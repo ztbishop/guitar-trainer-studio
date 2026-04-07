@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guitar Trainer Studio</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./assets/vendor/alphatab/alphaTab.js"></script>
+  </head>
+  <body>
+    <header id="static-menu" class="app-toolbar">
+      <div class="toolbar-side toolbar-left">
+        <button id="btn-scores" type="button">🎼 Scores</button>
+      </div>
+
+      <div class="toolbar-center">
+        <div class="toolbar-group toolbar-transport-group">
+          <button id="play-pause-button" type="button" disabled>▶ Play</button>
+          <button id="stop-button" type="button" disabled>⏮ Reset</button>
+        </div>
+
+        <div class="toolbar-separator" aria-hidden="true"></div>
+
+        <div class="toolbar-group toolbar-popup-group">
+          <button id="btn-practice" type="button">🎸 Practice ▾</button>
+          <button id="btn-tempo" type="button">♪ Tempo ▾</button>
+          <button id="btn-looper" type="button">🔁 Loop ▾</button>
+          <button id="btn-more" type="button">⋯ More ▾</button>
+        </div>
+      </div>
+
+      <div class="toolbar-side toolbar-right">
+        <button id="btn-options" type="button">⚙ Settings</button>
+      </div>
+    </header>
+
+    <div id="toolbar-backdrop" class="toolbar-backdrop hidden" aria-hidden="true"></div>
+
+    <section id="scores-panel" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
+      <div class="panel-header compact-header">
+        <div>
+          <div class="panel-kicker">Scores</div>
+          <h2>Open and route your score</h2>
+        </div>
+      </div>
+
+      <div class="popup-panel-grid popup-panel-grid--two">
+        <div class="popup-card">
+          <div class="popup-card-title">Open score</div>
+          <label class="file-picker" for="score-file-input">
+            <span class="button-like">Choose File</span>
+            <input id="score-file-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl" />
+          </label>
+
+          <div class="status-stack">
+            <div>
+              <div class="status-label">Loaded file</div>
+              <div id="loaded-file-name" class="status-value">None</div>
+            </div>
+            <div>
+              <div class="status-label">Score title</div>
+              <div id="score-title" class="status-value">No score loaded</div>
+            </div>
+            <div>
+              <div class="status-label">Player status</div>
+              <div id="player-status" class="status-value">Waiting for score</div>
+            </div>
+            <div>
+              <div class="status-label">Current position</div>
+              <div id="playback-position" class="status-value">0 ms</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="popup-card">
+          <div class="popup-card-title">Tracks</div>
+          <ul id="track-list" class="track-list">
+            <li class="track-placeholder">Load a score to list its tracks here.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="practice-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
+      <div class="panel-header compact-header">
+        <div>
+          <div class="panel-kicker">Practice</div>
+          <h2>Track selection and trainer foundation</h2>
+        </div>
+      </div>
+
+      <div class="popup-panel-grid">
+        <div class="popup-card">
+          <div class="form-grid form-grid--practice">
+            <label class="field-group" for="practice-track-select">
+              <span class="field-label">Practice track</span>
+              <select id="practice-track-select" disabled>
+                <option value="">Load a score first</option>
+              </select>
+            </label>
+
+            <label class="field-group field-group--compact" for="view-mode-select">
+              <span class="field-label">View</span>
+              <select id="view-mode-select" disabled>
+                <option value="practice-only">Practice only</option>
+                <option value="all-tracks">All tracks</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="toggle-grid">
+            <label class="toggle-row" for="play-selected-track-toggle">
+              <input id="play-selected-track-toggle" type="checkbox" checked disabled />
+              <span>Play selected track</span>
+            </label>
+
+            <label class="toggle-row" for="play-other-tracks-toggle">
+              <input id="play-other-tracks-toggle" type="checkbox" checked disabled />
+              <span>Play other tracks</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="popup-card">
+          <div class="midi-panel-header">
+            <div>
+              <div class="status-label">Trainer foundation</div>
+              <div class="midi-panel-title">Expected notes vs MIDI</div>
+            </div>
+            <div id="trainer-match-pill" class="status-pill">Idle</div>
+          </div>
+
+          <div class="status-grid status-grid--two">
+            <div>
+              <div class="status-label">Trainer status</div>
+              <div id="trainer-status" class="status-value">Load a score to begin</div>
+            </div>
+            <div>
+              <div class="status-label">Trainer summary</div>
+              <div id="trainer-summary" class="status-value">No trainer events yet</div>
+            </div>
+          </div>
+
+          <div class="info-stack">
+            <div>
+              <div class="status-label">Current expected event</div>
+              <div id="trainer-expected-notes" class="status-value">—</div>
+              <div id="trainer-expected-meta" class="track-meta">Load a score and choose a practice track.</div>
+            </div>
+            <div>
+              <div class="status-label">Detected MIDI notes</div>
+              <div id="trainer-detected-notes" class="status-value">—</div>
+              <div class="track-meta">Pitch-only for now. String and fret enforcement come later.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tempo-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
+      <div class="panel-header compact-header">
+        <div>
+          <div class="panel-kicker">Tempo</div>
+          <h2>Tempo controls will move here next</h2>
+        </div>
+      </div>
+      <div class="popup-card placeholder-card">
+        <p class="placeholder">Tempo UI is intentionally deferred for this step so playback logic stays untouched.</p>
+      </div>
+    </section>
+
+    <section id="looper-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
+      <div class="panel-header compact-header">
+        <div>
+          <div class="panel-kicker">Loop</div>
+          <h2>Looper controls will move here next</h2>
+        </div>
+      </div>
+      <div class="popup-card placeholder-card">
+        <p class="placeholder">Loop UI is intentionally deferred for this step so transport logic stays untouched.</p>
+      </div>
+    </section>
+
+    <section id="more-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
+      <div class="panel-header compact-header">
+        <div>
+          <div class="panel-kicker">More</div>
+          <h2>Extra info and layout placeholders</h2>
+        </div>
+      </div>
+
+      <div class="popup-panel-grid popup-panel-grid--two">
+        <div class="popup-card">
+          <div class="popup-card-title">Viewer notes</div>
+          <div class="viewer-hint viewer-hint--left">Use the Scores menu to load a local .gp / .gpx / .xml file. The score stays visible while these panels open.</div>
+        </div>
+
+        <div class="popup-card">
+          <div class="popup-card-title">Fretboard</div>
+          <p class="placeholder">Virtual fretboard remains active below the score area. Deeper controls can be organized here later.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="options-overlay" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
+      <div class="panel-header compact-header">
+        <div>
+          <div class="panel-kicker">Settings</div>
+          <h2>MIDI and debug</h2>
+        </div>
+      </div>
+
+      <div class="popup-panel-grid">
+        <div class="popup-card">
+          <div class="midi-panel-header">
+            <div>
+              <div class="status-label">Midi input</div>
+              <div class="midi-panel-title">Debug foundation</div>
+            </div>
+            <div id="midi-status-pill" class="status-pill">Waiting for MIDI…</div>
+          </div>
+
+          <div class="midi-grid">
+            <label class="field-group" for="midi-input-select">
+              <span class="field-label">Device</span>
+              <select id="midi-input-select" disabled>
+                <option value="">Detecting MIDI...</option>
+              </select>
+            </label>
+
+            <label class="field-group field-group--compact" for="midi-input-mode-select">
+              <span class="field-label">Input mode</span>
+              <select id="midi-input-mode-select">
+                <option value="single-channel">Single channel</option>
+                <option value="hex-6ch">Hexaphonic (6 ch)</option>
+              </select>
+            </label>
+          </div>
+
+          <div id="midi-single-channel-section" class="midi-mode-section">
+            <div class="status-label">Single-channel settings</div>
+            <label class="field-group field-group--compact" for="midi-single-channel-select">
+              <span class="field-label">Single channel</span>
+              <select id="midi-single-channel-select">
+                <option value="any">Any</option>
+              </select>
+            </label>
+          </div>
+
+          <div id="midi-hex-channel-section" class="midi-mode-section is-hidden">
+            <div class="status-label">Hexaphonic settings</div>
+            <label class="field-group field-group--compact" for="hex-channel-base-select">
+              <span class="field-label">Hex base channel</span>
+              <select id="hex-channel-base-select">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+              </select>
+            </label>
+            <p class="help-text">Base channel defines the low E string channel. A 6-channel range is mapped upward from that base.</p>
+          </div>
+
+          <div class="status-grid status-grid--two">
+            <div>
+              <div class="status-label">Support</div>
+              <div id="midi-support-status" class="status-value">Checking...</div>
+            </div>
+            <div>
+              <div class="status-label">Status</div>
+              <div id="midi-status" class="status-value">MIDI idle</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="popup-card">
+          <div class="popup-card-title">Debug</div>
+
+          <label class="toggle-row toggle-row--midi-debug" for="midi-debug-toggle">
+            <input id="midi-debug-toggle" type="checkbox" />
+            <span>Show MIDI debug</span>
+          </label>
+
+          <div id="midi-debug-details" class="midi-debug-details is-hidden">
+            <div class="midi-debug-card">
+              <div class="status-label">Last MIDI event</div>
+              <dl class="debug-grid">
+                <div>
+                  <dt>Type</dt>
+                  <dd id="midi-event-type">—</dd>
+                </div>
+                <div>
+                  <dt>Channel</dt>
+                  <dd id="midi-event-channel">—</dd>
+                </div>
+                <div>
+                  <dt>Note</dt>
+                  <dd id="midi-event-note">—</dd>
+                </div>
+                <div>
+                  <dt>Velocity</dt>
+                  <dd id="midi-event-velocity">—</dd>
+                </div>
+                <div>
+                  <dt>String hint</dt>
+                  <dd id="midi-event-string">—</dd>
+                </div>
+                <div>
+                  <dt>Raw data</dt>
+                  <dd id="midi-event-raw">—</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div class="midi-last-event-block">
+              <div class="status-label">Last event summary</div>
+              <div id="midi-last-event" class="status-value">No MIDI notes received yet</div>
+            </div>
+
+            <div class="status-label">Recent MIDI events</div>
+            <ul id="midi-recent-events" class="midi-event-list">
+              <li class="midi-placeholder">Play a note to see recent MIDI events.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <main class="app-main">
+      <section class="score-stage panel viewer-panel">
+        <div class="score-overlay-controls" aria-label="Score view controls">
+          <button type="button" id="btn-score-fullscreen" class="score-fullscreen-toggle" aria-label="Enter full screen" title="Enter full screen">⛶</button>
+        </div>
+
+        <div id="alphatab-wrapper" class="alphatab-wrapper">
+          <div id="alphatab-container"></div>
+        </div>
+      </section>
+
+      <section id="fretboard-container" class="panel fretboard-panel">
+        <p class="placeholder">Virtual fretboard comes later. MIDI input foundation is now active.</p>
+      </section>
+    </main>
+
+    <script type="module" src="./js/app-bootstrap.js"></script>
+  </body>
+</html>
