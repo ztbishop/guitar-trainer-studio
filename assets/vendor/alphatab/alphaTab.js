@@ -56846,7 +56846,7 @@
             element.style.position = 'relative';
             element.style.textAlign = 'left';
             cursorWrapper.style.position = 'absolute';
-            cursorWrapper.style.zIndex = '1000';
+            cursorWrapper.style.zIndex = '40';
             cursorWrapper.style.display = 'inline';
             cursorWrapper.style.pointerEvents = 'none';
             selectionWrapper.style.position = 'absolute';
