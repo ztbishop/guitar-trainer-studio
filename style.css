@@ -352,7 +352,7 @@ input[type='checkbox']:disabled:checked {
 
 .popup-panel-grid {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   padding: 18px 22px 22px;
 }
 
@@ -362,7 +362,7 @@ input[type='checkbox']:disabled:checked {
 
 .popup-card {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   padding: 16px 18px;
   border: 1px solid rgba(112, 127, 145, 0.22);
   border-radius: 18px;
@@ -438,15 +438,30 @@ input[type='checkbox']:disabled:checked {
 .form-grid {
   display: grid;
   gap: 14px;
+  align-items: end;
 }
 
 .form-grid--practice {
-  grid-template-columns: minmax(0, 1fr) 220px;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 260px);
 }
 
 .field-group {
   display: grid;
   gap: 8px;
+  min-width: 0;
+  align-content: start;
+}
+
+.field-group > select,
+.field-group > input[type='text'],
+.field-group > input[type='number'] {
+  width: 100%;
+}
+
+.field-group--compact {
+  width: 100%;
+  max-width: 260px;
+  justify-self: end;
 }
 
 .field-group--compact select {
@@ -455,6 +470,7 @@ input[type='checkbox']:disabled:checked {
 
 .field-label,
 .status-label {
+  display: block;
   font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.07em;
@@ -531,6 +547,12 @@ input[type='checkbox']:disabled:checked {
   gap: 14px;
 }
 
+.status-grid > div,
+.info-stack > div {
+  display: grid;
+  gap: 6px;
+}
+
 .status-grid--two {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -557,8 +579,9 @@ input[type='checkbox']:disabled:checked {
 
 .midi-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 260px);
   gap: 14px;
+  align-items: end;
 }
 
 .midi-mode-section,
@@ -566,7 +589,11 @@ input[type='checkbox']:disabled:checked {
 .midi-debug-card,
 .midi-last-event-block {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+}
+
+.midi-mode-section > .field-group {
+  max-width: 260px;
 }
 
 .debug-grid {
@@ -749,7 +776,11 @@ legend {
   }
 
   .midi-grid {
-    grid-template-columns: minmax(0, 1fr) 220px;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 240px);
+  }
+
+  .form-grid--practice {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 240px);
   }
 
   #scores-panel,
@@ -778,6 +809,12 @@ legend {
   .status-grid--two,
   .debug-grid {
     grid-template-columns: 1fr;
+  }
+
+  .field-group--compact,
+  .midi-mode-section > .field-group {
+    max-width: none;
+    justify-self: stretch;
   }
 
   .midi-panel-header,
