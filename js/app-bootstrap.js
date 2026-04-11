@@ -62,6 +62,49 @@ function syncTrainerFoundation() {
   renderTrainerUi();
 }
 
+
+function wireScoreStageUi() {
+  const fullscreenButton = document.getElementById('btn-score-fullscreen');
+  const scoreStage = document.querySelector('.score-stage.viewer-panel');
+  const fretboardContainer = document.getElementById('fretboard-container');
+  const fullscreenTarget = document.documentElement;
+
+  function syncFullscreenButton() {
+    if (!fullscreenButton) return;
+    const isFullscreen = document.fullscreenElement === fullscreenTarget;
+    fullscreenButton.setAttribute('aria-label', isFullscreen ? 'Exit full screen' : 'Enter full screen');
+    fullscreenButton.title = isFullscreen ? 'Exit full screen' : 'Enter full screen';
+    fullscreenButton.classList.toggle('is-active', isFullscreen);
+  }
+
+  if (fretboardContainer) {
+    const showFretboard = Boolean(AppState.ui.showFretboard);
+    fretboardContainer.classList.toggle('hidden', !showFretboard);
+    fretboardContainer.setAttribute('aria-hidden', showFretboard ? 'false' : 'true');
+    document.body.classList.toggle('fretboard-visible', showFretboard);
+  } else {
+    document.body.classList.remove('fretboard-visible');
+  }
+
+  fullscreenButton?.addEventListener('click', async () => {
+    if (!fullscreenTarget) return;
+    try {
+      if (document.fullscreenElement === fullscreenTarget) {
+        await document.exitFullscreen();
+      } else if (!document.fullscreenElement) {
+        await fullscreenTarget.requestFullscreen();
+      }
+    } catch (error) {
+      console.error('Could not toggle score fullscreen.', error);
+    } finally {
+      syncFullscreenButton();
+    }
+  });
+
+  document.addEventListener('fullscreenchange', syncFullscreenButton);
+  syncFullscreenButton();
+}
+
 function wireFilePicker() {
   const fileInput = document.getElementById('score-file-input');
   if (!fileInput) return;
@@ -361,6 +404,7 @@ async function bootstrap() {
   initToolbar();
   initScoreLibrary();
   initFretboard(document.getElementById('fretboard-container'));
+  wireScoreStageUi();
   wireFilePicker();
   wireTransportButtons();
   wirePracticeControls();

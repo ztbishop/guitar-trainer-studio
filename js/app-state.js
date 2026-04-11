@@ -45,7 +45,7 @@ export const AppState = {
   ui: {
     zoomPercent: 100,
     layoutMode: 'page',
-    showFretboard: true,
+    showFretboard: false,
     leftHanded: false,
     loadedFileName: '',
     playerStatus: 'Waiting for score',

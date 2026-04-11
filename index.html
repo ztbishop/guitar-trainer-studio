@@ -32,6 +32,13 @@
           <button id="btn-looper" type="button">🔁 Loop ▾</button>
           <button id="btn-more" type="button">⋯ More ▾</button>
         </div>
+
+        <div class="toolbar-separator toolbar-separator--score" aria-hidden="true"></div>
+
+        <div class="toolbar-group toolbar-score-group" aria-label="Current score summary">
+          <span class="toolbar-score-label">Score:</span>
+          <span id="toolbar-score-value" class="toolbar-score-value">100%</span>
+        </div>
       </div>
 
       <div class="toolbar-side toolbar-right">
@@ -90,7 +97,7 @@
       <div class="panel-header compact-header">
         <div>
           <div class="panel-kicker">Practice</div>
-          <h2>Track selection and trainer foundation</h2>
+          <h2>Practice setup and trainer foundation</h2>
         </div>
       </div>
 
@@ -98,14 +105,16 @@
         <div class="popup-card">
           <div class="form-grid form-grid--practice">
             <label class="field-group" for="practice-track-select">
-              <span class="field-label">Practice track</span>
+              <span class="field-label">Track to practice</span>
+              <span class="field-help">Choose which score track you want to play.</span>
               <select id="practice-track-select" disabled>
                 <option value="">Load a score first</option>
               </select>
             </label>
 
             <label class="field-group field-group--compact" for="view-mode-select">
-              <span class="field-label">View</span>
+              <span class="field-label">Display mode</span>
+              <span class="field-help">Choose whether to focus on the practice track or keep all tracks visible.</span>
               <select id="view-mode-select" disabled>
                 <option value="practice-only">Practice only</option>
                 <option value="all-tracks">All tracks</option>
@@ -116,12 +125,18 @@
           <div class="toggle-grid">
             <label class="toggle-row" for="play-selected-track-toggle">
               <input id="play-selected-track-toggle" type="checkbox" checked disabled />
-              <span>Play selected track</span>
+              <span class="toggle-row-text">
+                <span class="toggle-row-title">Play selected track</span>
+                <span class="toggle-row-help">Hear the track you are practicing during playback.</span>
+              </span>
             </label>
 
             <label class="toggle-row" for="play-other-tracks-toggle">
               <input id="play-other-tracks-toggle" type="checkbox" checked disabled />
-              <span>Play other tracks</span>
+              <span class="toggle-row-text">
+                <span class="toggle-row-title">Play other tracks</span>
+                <span class="toggle-row-help">Keep the rest of the arrangement audible while you practice.</span>
+              </span>
             </label>
           </div>
         </div>
@@ -219,7 +234,7 @@
         <div class="popup-card">
           <div class="midi-panel-header">
             <div>
-              <div class="status-label">Midi input</div>
+              <div class="status-label">MIDI input</div>
               <div class="midi-panel-title">Debug foundation</div>
             </div>
             <div id="midi-status-pill" class="status-pill">Waiting for MIDI…</div>
@@ -227,14 +242,16 @@
 
           <div class="midi-grid">
             <label class="field-group" for="midi-input-select">
-              <span class="field-label">Device</span>
+              <span class="field-label">Input device</span>
+              <span class="field-help">Select the MIDI device you want Guitar Trainer Studio to listen to.</span>
               <select id="midi-input-select" disabled>
                 <option value="">Detecting MIDI...</option>
               </select>
             </label>
 
             <label class="field-group field-group--compact" for="midi-input-mode-select">
-              <span class="field-label">Input mode</span>
+              <span class="field-label">Input source</span>
+              <span class="field-help">Use a single MIDI channel or a consecutive per-string hexaphonic layout.</span>
               <select id="midi-input-mode-select">
                 <option value="single-channel">Single channel</option>
                 <option value="hex-6ch">Hexaphonic (6 ch)</option>
@@ -245,7 +262,8 @@
           <div id="midi-single-channel-section" class="midi-mode-section">
             <div class="status-label">Single-channel settings</div>
             <label class="field-group field-group--compact" for="midi-single-channel-select">
-              <span class="field-label">Single channel</span>
+              <span class="field-label">Listen to channel</span>
+              <span class="field-help">Choose a single MIDI channel, or leave it on Any.</span>
               <select id="midi-single-channel-select">
                 <option value="any">Any</option>
               </select>
@@ -255,7 +273,8 @@
           <div id="midi-hex-channel-section" class="midi-mode-section is-hidden">
             <div class="status-label">Hexaphonic settings</div>
             <label class="field-group field-group--compact" for="hex-channel-base-select">
-              <span class="field-label">Hex base channel</span>
+              <span class="field-label">Base string channel</span>
+              <span class="field-help">Channel used for the lowest string. Higher strings map to consecutive channels.</span>
               <select id="hex-channel-base-select">
                 <option value="1">1</option>
                 <option value="2">2</option>
@@ -270,7 +289,7 @@
                 <option value="11">11</option>
               </select>
             </label>
-            <p class="help-text">Base channel defines the low E string channel. A 6-channel range is mapped upward from that base.</p>
+            <p class="help-text">Works with guitar, bass, and other hex-style instruments as long as each string uses consecutive MIDI channels.</p>
           </div>
 
           <div class="status-grid status-grid--two">
@@ -290,7 +309,10 @@
 
           <label class="toggle-row toggle-row--midi-debug" for="midi-debug-toggle">
             <input id="midi-debug-toggle" type="checkbox" />
-            <span>Show MIDI debug</span>
+            <span class="toggle-row-text">
+              <span class="toggle-row-title">Show MIDI debug</span>
+              <span class="toggle-row-help">Display the latest MIDI event details for troubleshooting.</span>
+            </span>
           </label>
 
           <div id="midi-debug-details" class="midi-debug-details is-hidden">
@@ -341,15 +363,20 @@
     <main class="app-main">
       <section class="score-stage panel viewer-panel">
         <div class="score-overlay-controls" aria-label="Score view controls">
-          <button type="button" id="btn-score-fullscreen" class="score-fullscreen-toggle" aria-label="Enter full screen" title="Enter full screen">⛶</button>
+          <button type="button" id="btn-score-fullscreen" class="score-fullscreen-toggle" aria-label="Enter full screen" title="Enter full screen"><span class="fullscreen-corners" aria-hidden="true"></span></button>
         </div>
 
         <div id="alphatab-wrapper" class="alphatab-wrapper">
+          <div id="score-empty-state" class="score-empty-state">
+            <div class="score-empty-icon" aria-hidden="true">♪</div>
+            <div class="score-empty-title">Load a score to begin</div>
+            <div class="score-empty-copy">Choose a Guitar Pro or MusicXML file from Scores to render notation here.</div>
+          </div>
           <div id="alphatab-container"></div>
         </div>
       </section>
 
-      <section id="fretboard-container" class="panel fretboard-panel">
+      <section id="fretboard-container" class="panel fretboard-panel hidden" aria-hidden="true">
         <p class="placeholder">Virtual fretboard comes later. MIDI input foundation is now active.</p>
       </section>
     </main>

@@ -44,8 +44,26 @@ function setLoadedFileName(name) {
 }
 
 function setScoreTitle(title) {
+  const nextTitle = title || 'Untitled score';
   if (ui?.scoreTitleEl) {
-    ui.scoreTitleEl.textContent = title || 'Untitled score';
+    ui.scoreTitleEl.textContent = nextTitle;
+  }
+}
+
+function setToolbarScoreValue(value = '100%') {
+  if (!ui?.toolbarScoreValueEl) return;
+  const nextValue = String(value || '100%');
+  ui.toolbarScoreValueEl.textContent = nextValue;
+  ui.toolbarScoreValueEl.title = 'Trainer score';
+}
+
+function setScoreLoadedUiState(hasScore) {
+  document.body.classList.toggle('has-score', Boolean(hasScore));
+  if (ui?.scoreEmptyStateEl) {
+    ui.scoreEmptyStateEl.classList.toggle('hidden', Boolean(hasScore));
+  }
+  if (ui?.toolbarScoreValueEl) {
+    setToolbarScoreValue('100%');
   }
 }
 
@@ -63,7 +81,9 @@ function updatePracticeControlsEnabled(enabled) {
 
 function updatePlayPauseLabel() {
   if (!ui?.playPauseButtonEl) return;
-  ui.playPauseButtonEl.textContent = AppState.isPlaying ? 'Pause' : 'Play';
+  ui.playPauseButtonEl.textContent = AppState.isPlaying ? '⏸ Pause' : '▶ Play';
+  ui.playPauseButtonEl.setAttribute('aria-label', AppState.isPlaying ? 'Pause playback' : 'Play score');
+  ui.playPauseButtonEl.title = AppState.isPlaying ? 'Pause playback' : 'Play score';
 }
 
 function escapeHtml(value) {
@@ -301,9 +321,13 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     playSelectedTrackToggleEl: document.getElementById('play-selected-track-toggle'),
     playOtherTracksToggleEl: document.getElementById('play-other-tracks-toggle'),
     viewModeSelectEl: document.getElementById('view-mode-select'),
+    scoreEmptyStateEl: document.getElementById('score-empty-state'),
+    toolbarScoreValueEl: document.getElementById('toolbar-score-value'),
   };
 
+  setScoreLoadedUiState(false);
   setScoreTitle('No score loaded');
+  setToolbarScoreValue('100%');
   setLoadedFileName('None');
   setStatus('Checking alphaTab assets…');
   setTransportEnabled(false);
@@ -322,9 +346,41 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 
   const wrapperEl = document.getElementById('alphatab-wrapper');
 
+  if (wrapperEl) {
+    wrapperEl.tabIndex = 0;
+    wrapperEl.style.touchAction = 'pan-x pan-y';
+    if (!wrapperEl.dataset.scrollWheelBound) {
+      wrapperEl.addEventListener('wheel', (event) => {
+        const canScrollVertically = wrapperEl.scrollHeight > wrapperEl.clientHeight;
+        const canScrollHorizontally = wrapperEl.scrollWidth > wrapperEl.clientWidth;
+        if (!canScrollVertically && !canScrollHorizontally) return;
+
+        const absDeltaX = Math.abs(event.deltaX);
+        const absDeltaY = Math.abs(event.deltaY);
+        const preferHorizontal = event.shiftKey || absDeltaX > absDeltaY;
+
+        if (preferHorizontal && canScrollHorizontally) {
+          wrapperEl.scrollLeft += event.deltaX || event.deltaY;
+          event.preventDefault();
+          return;
+        }
+
+        if (canScrollVertically) {
+          wrapperEl.scrollTop += event.deltaY;
+          event.preventDefault();
+        }
+      }, { passive: false });
+      wrapperEl.dataset.scrollWheelBound = '1';
+    }
+  }
+
   alphaTabApi = new alphaTabGlobal.AlphaTabApi(containerEl, {
     core: {
       scriptFile: getAssetUrl('./assets/vendor/alphatab/alphaTab.js'),
+    },
+    display: {
+      layoutMode: alphaTabGlobal.LayoutMode?.Page,
+      systemsLayoutMode: alphaTabGlobal.SystemsLayoutMode?.Automatic,
     },
     player: {
       enablePlayer: true,
@@ -333,6 +389,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
       enableElementHighlighting: VISUAL_MODES.playbackHighlight,
       soundFont: getAssetUrl('./assets/vendor/alphatab/soundfont/sonivox.sf2'),
       scrollElement: wrapperEl,
+      scrollMode: alphaTabGlobal.ScrollMode?.Continuous,
     },
   });
 
@@ -351,10 +408,17 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     syncViewModeSelect();
     renderTrackList();
 
+    setScoreLoadedUiState(Boolean(loadedScore));
     setScoreTitle(loadedScore?.title || loadedScore?.music || 'Untitled score');
     setStatus('Score loaded. Waiting for player.');
     setPlaybackPosition(0);
     updatePlayPauseLabel();
+    if (wrapperEl) {
+      requestAnimationFrame(() => {
+        wrapperEl.scrollTop = 0;
+        wrapperEl.scrollLeft = 0;
+      });
+    }
     hostCallbacks.onScoreLoaded?.(loadedScore);
   });
 
@@ -368,7 +432,8 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 
   alphaTabApi.playerStateChanged.on((event) => {
     const state = event?.state ?? event;
-    AppState.isPlaying = String(state).toLowerCase().includes('playing');
+    const normalizedState = typeof state === 'number' ? state : String(state).toLowerCase();
+    AppState.isPlaying = normalizedState === 1 || normalizedState === 'playing';
     updatePlayPauseLabel();
     setStatus(AppState.isPlaying ? 'Playing' : 'Paused');
     hostCallbacks.onPlayerStateChanged?.(state);
@@ -399,6 +464,7 @@ export async function loadScoreFile(file) {
   if (!file) return false;
 
   setLoadedFileName(file.name);
+  setScoreLoadedUiState(false);
   setScoreTitle('Loading…');
   setStatus('Loading score…');
   setTransportEnabled(false);
@@ -407,6 +473,8 @@ export async function loadScoreFile(file) {
 
   const buffer = await readFileAsArrayBuffer(file);
   const bytes = new Uint8Array(buffer);
+  const wrapperEl = document.getElementById('alphatab-wrapper');
+  if (wrapperEl) wrapperEl.scrollTop = 0;
   return alphaTabApi.load(bytes);
 }
 
@@ -439,14 +507,17 @@ export function updateAlphaTabSettings(nextSettings) {
 }
 
 export function play() {
-  if (!alphaTabApi) return false;
+  if (!alphaTabApi || !AppState.playerReady) return false;
   alphaTabApi.playPause();
   return true;
 }
 
 export function pause() {
-  if (!alphaTabApi || !AppState.isPlaying) return false;
+  if (!alphaTabApi || !AppState.playerReady || !AppState.isPlaying) return false;
   alphaTabApi.playPause();
+  AppState.isPlaying = false;
+  updatePlayPauseLabel();
+  setStatus('Paused');
   return true;
 }
 
