@@ -18,6 +18,7 @@ export const AppState = {
   isPlaying: false,
   tickPosition: 0,
   timePositionMs: 0,
+  playbackTimeline: null,
   expectedEvents: [],
   activeTargets: [],
   pressedNotes: new Map(),

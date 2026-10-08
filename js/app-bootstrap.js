@@ -411,6 +411,9 @@ async function bootstrap() {
       onScoreLoaded: () => {
         syncTrainerFoundation();
       },
+      onPlaybackTimelineChanged: () => {
+        syncTrainerFoundation();
+      },
       onPlayerPositionChanged: ({ currentTick }) => {
         updateActiveTargetsFromPlayback(currentTick);
         renderTrainerUi();

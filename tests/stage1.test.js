@@ -20,6 +20,15 @@ function targets() {
   ];
   AppState.tracks = [{ index: 0, name: 'Guitar', staves: [{ bars: [{ index: 0, voices: [{ beats }] }] }] }];
   AppState.practiceTrackId = '0';
+  AppState.playbackTimeline = {
+    endTick:1920, ticksPerQuarter:960, tempoMap:[{tick:0,bpm:120,timeMs:0}],
+    events:beats.map((beat,index)=>({
+      id:`beat:${index}`, sourceBeatId:String(index), trackId:'0', measureNumber:1,
+      beatIndex:index, startTick:beat.absolutePlaybackStart,
+      endTick:beat.absolutePlaybackStart+beat.playbackDuration,
+      notes:beat.notes.map((note,n)=>({...note,midi:note.realValue,attack:true,id:`${index}:${n}`})),
+    })),
+  };
   buildExpectedEventsFromPracticeTrack();
 }
 function held(pitches) {
@@ -129,7 +138,7 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   class FakeApi {
     constructor() {
       api=this; this.settings=new context.alphaTab.Settings(); this.calls=[];
-      for(const name of ['scoreLoaded','playerReady','playerStateChanged','playerPositionChanged','error']) this[name]={on:fn=>this[name].emit=fn};
+      for(const name of ['scoreLoaded','midiLoaded','playerReady','playerStateChanged','playerPositionChanged','error']) this[name]={on:fn=>this[name].emit=fn};
     }
     updateSettings(...args) { assert.equal(args.length,0); this.calls.push('update'); }
     render() { this.calls.push('render'); }
@@ -140,7 +149,8 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   }
   window.alphaTab={...context.alphaTab,AlphaTabApi:FakeApi};
   let position;
-  await initAlphaTab(new Element('container'), {onPlayerPositionChanged:e=>position=e});
+  const timelineChanges=[];
+  await initAlphaTab(new Element('container'), {onPlayerPositionChanged:e=>position=e, onPlaybackTimelineChanged:t=>timelineChanges.push(t)});
   assert.equal(elements.get('toolbar-score-value').textContent,'—');
   const originalSoundFont=api.settings.player.soundFont;
   assert.equal(updateAlphaTabSettings({display:{scale:1.25}}),true);
@@ -149,7 +159,18 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   assert.deepEqual(api.calls,['update','render']);
   globalThis.FileReader=class {readAsArrayBuffer(){this.result=new Uint8Array([1,2,3]).buffer; this.onload();}};
   assert.equal(await loadScoreFile({name:'sample.gp'}),true);
-  api.scoreLoaded.emit({title:'Test',tracks:[]}); api.playerReady.emit();
+  assert.equal(timelineChanges.at(-1),null);
+  const alpha=context.alphaTab;
+  const parser=new alpha.importer.AlphaTexImporter();
+  parser.initFromString(String.raw`\tempo 120 . \ro 0.6.1 | \rc 2 2.6.1`,new alpha.Settings());
+  const score=parser.readScore();
+  api.scoreLoaded.emit(score);
+  const generator=new alpha.midi.MidiFileGenerator(score,new alpha.Settings(),new alpha.midi.AlphaSynthMidiFileHandler(new alpha.midi.MidiFile()));
+  generator.generate(); api.tickCache=generator.tickLookup;
+  api.midiLoaded.emit({});
+  assert.equal(timelineChanges.at(-1).measures.length,4);
+  assert.equal(AppState.playbackTimeline.events.length,4);
+  api.playerReady.emit();
   assert.equal(play(),true); api.playerStateChanged.emit({state:1}); assert.equal(AppState.isPlaying,true);
   api.playerPositionChanged.emit({currentTick:960,currentTime:500});
   assert.deepEqual(position,{currentTick:960,currentTime:500});

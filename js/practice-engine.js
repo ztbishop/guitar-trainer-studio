@@ -4,6 +4,7 @@
 
 import { AppState } from './app-state.js';
 import { midiToNoteName } from './note-utils.js';
+import { getPracticeEvents } from './score-playback.js';
 
 function getTrackId(track, index) {
   return String(track?.index ?? index);
@@ -87,130 +88,23 @@ function findEventIndexAtTick(tickPosition) {
   if (!AppState.expectedEvents.length) return -1;
 
   const resolvedTick = Number.isFinite(tickPosition) ? tickPosition : 0;
-  const matchingIndex = AppState.expectedEvents.findIndex((event) =>
-    resolvedTick >= event.startTick && (resolvedTick < event.endTick || (event.endTick === event.startTick && resolvedTick === event.startTick))
-  );
-
-  if (matchingIndex !== -1) {
-    return matchingIndex;
+  // Latest onset wins; half-open intervals leave rests and tie-only gaps idle.
+  let low = 0, high = AppState.expectedEvents.length;
+  while (low < high) {
+    const mid = (low + high) >>> 1;
+    if (AppState.expectedEvents[mid].startTick <= resolvedTick) low = mid + 1;
+    else high = mid;
   }
-
-  const upcomingIndex = AppState.expectedEvents.findIndex((event) => resolvedTick < event.startTick);
-  if (upcomingIndex !== -1) {
-    return upcomingIndex;
-  }
+  const index = low - 1;
+  const event = AppState.expectedEvents[index];
+  if (event && (resolvedTick < event.targetEndTick || (event.targetEndTick === event.startTick && resolvedTick === event.startTick))) return index;
 
   return -1;
 }
 
-function createNormalizedEvent({ startTick, durationTicks, measureNumber, beatIndex, trackId, notes }) {
-  const uniquePitches = Array.from(new Set(notes
-    .map((note) => note.midi)
-    .filter((midi) => Number.isFinite(midi)))).sort((a, b) => a - b);
-
-  const normalizedNotes = notes
-    .filter((note) => Number.isFinite(note.midi))
-    .sort((left, right) => left.midi - right.midi)
-    .map((note) => ({
-      midi: note.midi,
-      noteName: midiToNoteName(note.midi),
-      string: Number.isFinite(note.string) ? note.string : null,
-      fret: Number.isFinite(note.fret) ? note.fret : null,
-    }));
-
-  return {
-    id: `${trackId}:${startTick}:${measureNumber}:${beatIndex}`,
-    trackId,
-    startTick,
-    durationTicks: Math.max(0, durationTicks || 0),
-    endTick: Math.max(startTick, startTick + Math.max(0, durationTicks || 0)),
-    measureNumber,
-    beatIndex,
-    pitches: uniquePitches,
-    pitchNames: uniquePitches.map((midi) => midiToNoteName(midi)),
-    notes: normalizedNotes,
-  };
-}
-
-function getTrackDisplayName(track, index = 0) {
-  return track?.name?.trim() || `Track ${index + 1}`;
-}
-
-function resolvePracticeTrack(tracks, practiceTrackId) {
-  if (!Array.isArray(tracks) || !tracks.length || practiceTrackId == null) {
-    return { track: null, trackIndex: -1, trackId: null };
-  }
-
-  const resolvedId = String(practiceTrackId);
-  const trackIndex = tracks.findIndex((track, index) => getTrackId(track, index) === resolvedId);
-  if (trackIndex === -1) {
-    return { track: null, trackIndex: -1, trackId: resolvedId };
-  }
-
-  return {
-    track: tracks[trackIndex],
-    trackIndex,
-    trackId: resolvedId,
-  };
-}
-
-function collectTrackEvents(track) {
-  const trackId = getTrackId(track, track?.index ?? 0);
-  const eventBuckets = new Map();
-
-  (track?.staves || []).forEach((staff) => {
-    (staff?.bars || []).forEach((bar) => {
-      const measureNumber = Number.isFinite(bar?.index) ? bar.index + 1 : null;
-      (bar?.voices || []).forEach((voice) => {
-        (voice?.beats || []).forEach((beat) => {
-          if (!beat || beat.isRest) return;
-
-          const notes = (beat.notes || [])
-            .filter((note) => note && Number.isFinite(note.realValue) && !note.isTieDestination)
-            .map((note) => ({
-              midi: note.realValue,
-              string: note.string,
-              fret: note.fret,
-            }));
-
-          if (!notes.length) return;
-
-          const startTick = Number.isFinite(beat.absolutePlaybackStart)
-            ? beat.absolutePlaybackStart
-            : (Number.isFinite(beat.playbackStart) ? beat.playbackStart : 0);
-          const durationTicks = Number.isFinite(beat.playbackDuration)
-            ? beat.playbackDuration
-            : (Number.isFinite(beat.displayDuration) ? beat.displayDuration : 0);
-          const beatIndex = Number.isFinite(beat.index) ? beat.index : 0;
-          const bucketKey = `${startTick}`;
-
-          if (!eventBuckets.has(bucketKey)) {
-            eventBuckets.set(bucketKey, {
-              startTick,
-              durationTicks,
-              measureNumber,
-              beatIndex,
-              trackId,
-              notes: [],
-            });
-          }
-
-          const bucket = eventBuckets.get(bucketKey);
-          bucket.durationTicks = Math.max(bucket.durationTicks, durationTicks);
-          bucket.notes.push(...notes);
-        });
-      });
-    });
-  });
-
-  return Array.from(eventBuckets.values())
-    .sort((left, right) => left.startTick - right.startTick)
-    .map((event) => createNormalizedEvent(event))
-    .filter((event) => event.pitches.length > 0);
-}
-
-export function buildExpectedEventsFromPracticeTrack({ tracks = AppState.tracks, practiceTrackId = AppState.practiceTrackId } = {}) {
-  const { track, trackIndex } = resolvePracticeTrack(tracks, practiceTrackId);
+export function buildExpectedEventsFromPracticeTrack({ tracks = AppState.tracks, practiceTrackId = AppState.practiceTrackId, timeline = AppState.playbackTimeline } = {}) {
+  const trackIndex = tracks.findIndex((track,index)=>getTrackId(track,index) === String(practiceTrackId));
+  const track = tracks[trackIndex];
 
   if (!track) {
     AppState.expectedEvents = [];
@@ -226,8 +120,8 @@ export function buildExpectedEventsFromPracticeTrack({ tracks = AppState.tracks,
     return [];
   }
 
-  const expectedEvents = collectTrackEvents(track);
-  const trackName = getTrackDisplayName(track, trackIndex);
+  const expectedEvents = getPracticeEvents(timeline, practiceTrackId);
+  const trackName = track.name?.trim() || `Track ${trackIndex + 1}`;
   AppState.expectedEvents = expectedEvents;
   AppState.activeTargets = expectedEvents.length ? [expectedEvents[0]] : [];
 
@@ -236,8 +130,8 @@ export function buildExpectedEventsFromPracticeTrack({ tracks = AppState.tracks,
       currentEventIndex: -1,
       currentEvent: null,
       matchState: 'idle',
-      status: 'No playable note events found on the selected track',
-      summary: `${trackName} • expected-note extraction found no playable beats`,
+      status: timeline ? 'No playable note attacks found on the selected track' : 'Preparing score playback timeline…',
+      summary: timeline ? `${trackName} • no playable attacks` : 'Waiting for alphaTab playback data',
       awaitingReleaseForEventId: null,
     });
     return expectedEvents;
@@ -263,7 +157,7 @@ export function updateActiveTargetsFromPlayback(position) {
       currentEventIndex: -1,
       currentEvent: null,
       matchState: 'idle',
-      status: 'Load a score and select a practice track to begin',
+      status: AppState.score && !AppState.playbackTimeline ? 'Preparing score playback timeline…' : 'Load a score and select a practice track to begin',
       summary: 'No expected events loaded',
       awaitingReleaseForEventId: null,
     });

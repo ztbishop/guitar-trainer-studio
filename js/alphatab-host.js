@@ -3,6 +3,7 @@
 // Do NOT: put trainer logic here
 
 import { AppState } from './app-state.js';
+import { buildPlaybackTimeline } from './score-playback.js';
 
 const VISUAL_MODES = {
   // Keep alphaTab's playback note-targeting logic available for later trainer feedback work,
@@ -14,6 +15,7 @@ let alphaTabApi = null;
 let ui = null;
 let hostCallbacks = {
   onScoreLoaded: null,
+  onPlaybackTimelineChanged: null,
   onPlayerPositionChanged: null,
   onPlayerStateChanged: null,
 };
@@ -305,6 +307,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 
   hostCallbacks = {
     onScoreLoaded: callbacks.onScoreLoaded || null,
+    onPlaybackTimelineChanged: callbacks.onPlaybackTimelineChanged || null,
     onPlayerPositionChanged: callbacks.onPlayerPositionChanged || null,
     onPlayerStateChanged: callbacks.onPlayerStateChanged || null,
   };
@@ -395,6 +398,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 
   alphaTabApi.scoreLoaded.on((score) => {
     const loadedScore = score || alphaTabApi.score || null;
+    AppState.playbackTimeline = null;
     AppState.score = loadedScore;
     AppState.tracks = loadedScore?.tracks ?? [];
     AppState.alphaTabReady = true;
@@ -420,6 +424,14 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
       });
     }
     hostCallbacks.onScoreLoaded?.(loadedScore);
+  });
+
+  alphaTabApi.midiLoaded.on(() => {
+    AppState.playbackTimeline = buildPlaybackTimeline(alphaTabApi.tickCache, {
+      tempo: AppState.score?.tempo || 120,
+      ticksPerQuarter: new alphaTabGlobal.midi.MidiFile().division,
+    });
+    hostCallbacks.onPlaybackTimelineChanged?.(AppState.playbackTimeline);
   });
 
   alphaTabApi.playerReady.on(() => {
@@ -463,6 +475,10 @@ export async function loadScoreFile(file) {
   if (!alphaTabApi) throw new Error('alphaTab is not ready yet. Fix the alphaTab asset path first.');
   if (!file) return false;
 
+  // Invalidate the previous score's targets before asynchronous loading starts.
+  AppState.playbackTimeline = null;
+  AppState.playerReady = false;
+  hostCallbacks.onPlaybackTimelineChanged?.(null);
   setLoadedFileName(file.name);
   setScoreLoadedUiState(false);
   setScoreTitle('Loading…');
