@@ -194,11 +194,17 @@
       <div class="panel-header compact-header">
         <div>
           <div class="panel-kicker">Tempo</div>
-          <h2>Tempo controls will move here next</h2>
+          <h2>Playback speed</h2>
         </div>
       </div>
-      <div class="popup-card placeholder-card">
-        <p class="placeholder">Tempo UI is intentionally deferred for this step so playback logic stays untouched.</p>
+      <div class="popup-card">
+        <label class="field-group" for="playback-speed-percent">
+          <span class="field-label">Speed (%)</span>
+          <span class="field-help">25–200%. Changing speed pauses practice and resets results.</span>
+          <input id="playback-speed-percent" type="number" min="25" max="200" step="5" value="100" disabled />
+        </label>
+        <button id="reset-playback-speed" type="button" disabled>Reset to 100%</button>
+        <p id="tempo-controls-status" role="status">Load a score to adjust playback speed.</p>
       </div>
     </section>
 
@@ -206,11 +212,16 @@
       <div class="panel-header compact-header">
         <div>
           <div class="panel-kicker">Loop</div>
-          <h2>Looper controls will move here next</h2>
+          <h2>Practice a section</h2>
         </div>
       </div>
-      <div class="popup-card placeholder-card">
-        <p class="placeholder">Loop UI is intentionally deferred for this step so transport logic stays untouched.</p>
+      <div class="popup-card">
+        <label class="toggle-row" for="practice-loop-enabled"><input id="practice-loop-enabled" type="checkbox" disabled /><span>Repeat selected section</span></label>
+        <label class="field-group" for="practice-loop-start"><span class="field-label">Start</span><select id="practice-loop-start" disabled></select></label>
+        <label class="field-group" for="practice-loop-end"><span class="field-label">End (included)</span><select id="practice-loop-end" disabled></select></label>
+        <p class="field-help">Measures are listed in playback order, including each repeat occurrence. Changes pause practice and reset results.</p>
+        <button id="apply-practice-loop" type="button" disabled>Apply loop settings</button>
+        <p id="loop-controls-status" role="status">Load a score to choose a section.</p>
       </div>
     </section>
 

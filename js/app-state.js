@@ -20,6 +20,7 @@ export const AppState = {
   tickPosition: 0,
   timePositionMs: 0,
   playbackSpeed: 1,
+  practiceLoop: { enabled: false, startIndex: 0, endIndex: 0, range: null },
   playbackTimeline: null,
   expectedEvents: [],
   activeTargets: [],

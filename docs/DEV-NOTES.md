@@ -1,6 +1,14 @@
 # Development notes
 
-Use TODO.md for current status and priorities, ARCHITECTURE.md for module boundaries, and STAGE-1 through STAGE-4 for implementation and validation details. Update these files in future packages so project decisions survive a new chat.
+Use TODO.md for current status and priorities, ARCHITECTURE.md for module boundaries, and STAGE-1 through STAGE-5 for implementation and validation details. Update these files in future packages so project decisions survive a new chat.
+
+## 2026-10-08 — Stage 5 implemented, local validation pending
+
+Tempo now sets a 25–200% multiplier on native alphaTab playback speed, preserving score tempo changes. Loop selects inclusive start/end measure occurrences in generated playback order. Applying changes pauses practice and resets results.
+
+Realtime repeats the native tick range and grades only attacks in that range. Wait immediately wraps its scoped target list, with native accompaniment still paused. Each pass has fresh grading; no cumulative session score is implemented. Loading a new score clears the selected loop. Speed remains a session setting; persistence across page reloads is deferred.
+
+56 tests pass, including bundled synthesizer half-speed looping with future attacks excluded, Realtime scoped grading/reset, Wait wraparound, host setting restoration, and form validation. Chrome UI/audio and physical MIDI validation are pending. The chord-timing option remains deferred.
 
 ## 2026-10-08 — Wait Mode correction validated
 

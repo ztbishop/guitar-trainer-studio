@@ -6,6 +6,7 @@ import { AppState } from './app-state.js';
 import { midiToNoteName } from './note-utils.js';
 import { getPracticeEvents, tickToTimeMs } from './score-playback.js';
 import { RealtimeSession } from './realtime-session.js';
+import { eventsInRange } from './practice-range.js';
 
 let realtime = null;
 
@@ -184,7 +185,7 @@ export function buildExpectedEventsFromPracticeTrack({ tracks = AppState.tracks,
     return [];
   }
 
-  const expectedEvents = getPracticeEvents(timeline, practiceTrackId);
+  const expectedEvents = eventsInRange(getPracticeEvents(timeline, practiceTrackId), AppState.practiceLoop.range);
   const trackName = track.name?.trim() || `Track ${trackIndex + 1}`;
   AppState.expectedEvents = expectedEvents;
   resetRealtimeSession('score-or-track-change');

@@ -8,13 +8,23 @@ Updated 2026-10-08. This is the central status and priority list. Stage files re
 - [x] Stage 2: occurrence-aware score/playback mapping.
 - [x] Stage 3: Realtime attack matching and results.
 - [x] Stage 4: Wait Mode, corrected to immediate silent stepping.
+- [x] Stage 5: playback speed and occurrence-aware section loops implemented; user confirmed loop and tempo work locally.
 - [x] User confirmed repeat playback works.
 - [x] User confirmed corrected Wait Mode works with their local setup.
 - [ ] Finish broader local verification of Realtime timing, pause/seek/mode switching, hex input, and chord cases. Implementation tests do not prove every hardware/browser case.
 
-## Next planned stage
+## Next checks and proposed stage
 
-- [ ] Stage 5: tempo and loop controls, preserving alphaTab transport ownership. Confirm exact scope when starting the stage.
+- [ ] Complete Stage 5 edge-case checks as needed: pause/Stop, disabling loops, mode changes, loading a new score, and repeated-measure selection. Basic loop and tempo behavior is user-confirmed; individual edge cases have not all been explicitly confirmed.
+- [ ] Proposed next stage: notation correctness feedback and fretboard target display. Confirm scope after Stage 5 validation.
+
+## Deferred Tempo and Loop menu refinement
+
+- [ ] Tune Tempo and Loop menu layout, labels, options, and control placement to match Piano Trainer Studio where appropriate for guitar.
+- User requested this refinement after confirming Stage 5 loop and tempo work. Detailed reference screenshots and intended logic are still to be supplied; do not assume which piano controls should be copied.
+- Schedule a focused UI pass after core notation/fretboard feedback is working. Preserve the functional Stage 5 controls while building that core framework.
+- Capture context whenever the user supplies it. If it changes tempo or loop behavior, range semantics, or transport requirements, review it before dependent development rather than treating it as cosmetic work.
+- During the refinement, verify Realtime/Wait behavior, repeat-occurrence selection, accessibility, and narrow-screen layout.
 
 ## Deferred chord matching option
 

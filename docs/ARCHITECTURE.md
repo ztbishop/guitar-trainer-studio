@@ -53,6 +53,11 @@ The app should preserve native alphaTab features wherever possible and layer cus
 - Normalizes alphaTab's generated playback occurrences, including repeats and endings.
 - Exposes required attack groups and tempo conversion helpers; tied continuations do not become new attacks.
 
+### `js/practice-range.js` and `js/transport-controls.js`
+- Practice-range validates measure occurrence selections and filters attacks by onset within the selected tick range.
+- Transport-controls owns Tempo/Loop form wiring and invokes bootstrap actions. All alphaTab speed/range operations remain in alphatab-host.
+- AppState.practiceLoop records the applied range. Realtime uses native looping; Wait loops its filtered target list without starting score playback.
+
 ### `js/realtime-session.js`
 - Owns attack matching, chord timing, misses, and scoring for Realtime.
 - Receives normalized events and clock values without directly calling alphaTab.
@@ -62,6 +67,7 @@ The app should preserve native alphaTab features wherever possible and layer cus
 - WaitController owns target progression and manual pause state through injected transport operations.
 - A completed target immediately seeks to the next target while native playback remains paused. No duration requirement or backing playback is used.
 - Current chord behavior accumulates pitches without a time limit. A configurable chord attack window is deferred; see `TODO.md`.
+- Loop completion starts a fresh Wait pass; Realtime native loop seeks reset grading for the next pass. Score loading clears section selection, while playback speed is retained for the session.
 
 ### `js/practice-timing.js`
 - Owns timing thresholds and helper rules such as early/late windows and chord grouping tolerance.

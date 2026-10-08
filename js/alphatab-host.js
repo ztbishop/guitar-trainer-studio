@@ -18,6 +18,7 @@ let hostCallbacks = {
   onPlaybackTimelineChanged: null,
   onPlayerFinished: null,
   onPlayerPositionChanged: null,
+  onPlayerReady: null,
   onPlayerStateChanged: null,
 };
 
@@ -311,6 +312,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     onPlaybackTimelineChanged: callbacks.onPlaybackTimelineChanged || null,
     onPlayerFinished: callbacks.onPlayerFinished || null,
     onPlayerPositionChanged: callbacks.onPlayerPositionChanged || null,
+    onPlayerReady: callbacks.onPlayerReady || null,
     onPlayerStateChanged: callbacks.onPlayerStateChanged || null,
   };
 
@@ -438,10 +440,12 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 
   alphaTabApi.playerReady.on(() => {
     AppState.playerReady = true;
+    alphaTabApi.playbackSpeed=AppState.playbackSpeed;
     setTransportEnabled(true);
     updatePracticeControlsEnabled(AppState.tracks.length > 0);
     applyTrackState();
     setStatus('Player ready');
+    hostCallbacks.onPlayerReady?.();
   });
 
   alphaTabApi.playerFinished.on(() => hostCallbacks.onPlayerFinished?.());
@@ -482,6 +486,11 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 export async function loadScoreFile(file) {
   if (!alphaTabApi) throw new Error('alphaTab is not ready yet. Fix the alphaTab asset path first.');
   if (!file) return false;
+  releaseWaitTransport();
+  alphaTabApi.pause();
+  AppState.practiceLoop={enabled:false,startIndex:0,endIndex:0,range:null};
+  alphaTabApi.isLooping=false;
+  alphaTabApi.playbackRange=null;
 
   // Invalidate the previous score's targets before asynchronous loading starts.
   AppState.playbackTimeline = null;
@@ -534,7 +543,28 @@ export function updateAlphaTabSettings(nextSettings) {
 
 export function play() {
   if (!alphaTabApi || !AppState.playerReady) return false;
+  const range=AppState.practiceLoop.range;
+  const tick=alphaTabApi.tickPosition ?? AppState.tickPosition;
+  if (!AppState.isPlaying && range && (tick < range.startTick || tick >= range.endTick)) alphaTabApi.tickPosition=range.startTick;
   alphaTabApi.playPause();
+  return true;
+}
+
+export function setPlaybackSpeed(speed) {
+  if (!alphaTabApi || !Number.isFinite(speed) || speed < 0.25 || speed > 2) return false;
+  AppState.playbackSpeed=speed;
+  alphaTabApi.playbackSpeed=speed;
+  return true;
+}
+
+export function applyPracticeLoop(range) {
+  if (!alphaTabApi) return false;
+  if (range && (!Number.isFinite(range.startTick) || !(range.endTick > range.startTick) ||
+      range.startTick < 0 || range.endTick > (AppState.playbackTimeline?.endTick ?? 0))) return false;
+  alphaTabApi.pause();
+  alphaTabApi.isLooping=Boolean(range);
+  alphaTabApi.playbackRange=range;
+  if(range)alphaTabApi.tickPosition=range.startTick;
   return true;
 }
 

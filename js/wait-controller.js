@@ -6,8 +6,9 @@ export class WaitController {
     this.transport=transport;this.onChange=onChange;this.events=[];this.endTick=0;
     this.active=false;this.phase='idle';this.index=-1;this.position=0;this.manualPaused=false;
   }
-  configure(events,endTick,hex=false) {
+  configure(events,endTick,hex=false,loop=false) {
     this.stop();this.events=events;this.endTick=endTick;this.hex=hex;
+    this.loop=loop;this.pass=1;this.lastPassResults=null;
     this.session=new WaitSession(events,{hex});this.index=-1;this.publish();
   }
   publish() {
@@ -24,8 +25,8 @@ export class WaitController {
     if(this.phase==='complete') {matchState='match';status='Wait practice complete';}
     const stats=this.session?.stats()??null;
     this.onChange({phase:this.phase,active:this.active,currentEvent,currentEventIndex:this.index,matchState,status,
-      summary:stats?`Correct ${stats.correct} • Wrong ${stats.wrong} • Remaining ${stats.pending}`:'No targets loaded',
-      results:stats,sessionStarted:this.active||this.phase==='complete',sessionCompleted:this.phase==='complete'});
+      summary:stats?`${this.loop?`Pass ${this.pass} • `:''}Correct ${stats.correct} • Wrong ${stats.wrong} • Remaining ${stats.pending}`:'No targets loaded',
+      results:stats,lastPassResults:this.lastPassResults,pass:this.pass,sessionStarted:this.active||this.phase==='complete',sessionCompleted:this.phase==='complete'});
   }
   toggle(tick=this.position) {
     if(!this.events.length) return false;
@@ -39,7 +40,7 @@ export class WaitController {
   }
   start(tick=0) {
     this.transport.acquire();this.active=true;this.manualPaused=false;this.position=tick;
-    this.session=new WaitSession(this.events,{hex:this.hex});
+    this.session=new WaitSession(this.events,{hex:this.hex});this.pass=1;this.lastPassResults=null;
     this.index=this.events.findIndex(e=>e.startTick>=tick-1);
     if(this.index<0) {this.index=0;this.position=0;tick=0;}
     this.session.skipBefore(this.index);
@@ -79,12 +80,18 @@ export class WaitController {
     if(paused) {this.manualPaused=true;this.pausedFrom=this.phase;this.phase='paused';this.transport.pause();this.publish();}
   }
   complete() {
+    if(this.loop && this.events.length) {
+      this.lastPassResults=this.session.stats();this.pass++;
+      this.session=new WaitSession(this.events,{hex:this.hex});
+      this.gate(0);return;
+    }
     this.active=false;this.phase='complete';this.position=this.endTick;this.desiredTick=null;
     this.publish();this.transport.finish(this.endTick);
   }
   stop() {
     const wasActive=this.active||this.phase==='complete';
     this.active=false;this.phase='idle';this.index=-1;this.manualPaused=false;this.desiredTick=null;
+    this.pass=1;this.lastPassResults=null;
     this.session=new WaitSession(this.events,{hex:this.hex});
     if(wasActive)this.transport.release();this.publish();
   }

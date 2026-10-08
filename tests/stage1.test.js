@@ -7,7 +7,7 @@ import { buildExpectedEventsFromPracticeTrack, updateActiveTargetsFromPlayback, 
 import { normalizeMidiMessage, initMidiRouter, clearActiveMidiNotes, setActiveMidiInput } from '../js/midi-router.js';
 import { channelToStringHint, formatStringHint } from '../js/note-utils.js';
 import { initToolbar } from '../js/toolbar-ui.js';
-import { initAlphaTab, updateAlphaTabSettings, loadScoreFile, play, stop, acquireWaitTransport, holdWaitAtTick, playWaitSegment, releaseWaitTransport } from '../js/alphatab-host.js';
+import { initAlphaTab, updateAlphaTabSettings, loadScoreFile, play, stop, acquireWaitTransport, holdWaitAtTick, playWaitSegment, releaseWaitTransport, setPlaybackSpeed, applyPracticeLoop } from '../js/alphatab-host.js';
 
 function targets() {
   AppState.inputMode = 'single-channel';
@@ -184,4 +184,15 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   holdWaitAtTick(960);assert.equal(api.tickPosition,960);assert.equal(api.playbackRange,null);
   playWaitSegment(960,1920);assert.deepEqual(api.playbackRange,{startTick:960,endTick:1920});assert.equal(api.calls.at(-1),'play');
   releaseWaitTransport();assert.equal(api.playbackRange,originalRange);assert.equal(api.isLooping,true);assert.equal(api.countInVolume,0.5);
+  assert.equal(setPlaybackSpeed(0.5),true);assert.equal(api.playbackSpeed,0.5);assert.equal(AppState.playbackSpeed,0.5);
+  assert.equal(setPlaybackSpeed(0),false);assert.equal(api.playbackSpeed,0.5);
+  const loopRange={startTick:3840,endTick:7680};
+  assert.equal(applyPracticeLoop(loopRange),true);assert.equal(api.tickPosition,3840);assert.equal(api.isLooping,true);
+  AppState.practiceLoop={enabled:true,startIndex:1,endIndex:1,range:loopRange};
+  acquireWaitTransport();holdWaitAtTick(5000);assert.equal(api.isLooping,false);
+  releaseWaitTransport();assert.equal(api.playbackRange,loopRange);assert.equal(api.isLooping,true);
+  AppState.isPlaying=false;api.tickPosition=8000;assert.equal(play(),true);assert.equal(api.tickPosition,3840);
+  assert.equal(applyPracticeLoop({startTick:0,endTick:999999}),false);assert.equal(api.playbackRange,loopRange);
+  assert.equal(applyPracticeLoop(null),true);assert.equal(api.playbackRange,null);assert.equal(api.isLooping,false);
+  await loadScoreFile({name:'new.gp'});assert.equal(AppState.practiceLoop.enabled,false);assert.equal(AppState.practiceLoop.range,null);
 });

@@ -2,7 +2,7 @@
 // Owns: startup wiring and module initialization order
 // Do NOT: let this grow into a giant logic file
 
-import { initAlphaTab, loadScoreFile, play, stop, applyPlaybackTrackState, acquireWaitTransport, holdWaitAtTick, pauseWaitTransport, releaseWaitTransport, finishWaitTransport } from './alphatab-host.js';
+import { initAlphaTab, loadScoreFile, play, stop, applyPlaybackTrackState, acquireWaitTransport, holdWaitAtTick, pauseWaitTransport, releaseWaitTransport, finishWaitTransport, setPlaybackSpeed, applyPracticeLoop } from './alphatab-host.js';
 import { AppState } from './app-state.js';
 import { WaitController } from './wait-controller.js';
 
@@ -22,6 +22,9 @@ import {
 } from './practice-engine.js';
 import { initScoreLibrary } from './score-library.js';
 import { initToolbar } from './toolbar-ui.js';
+import { initTransportControls } from './transport-controls.js';
+
+let transportControls=null;
 
 const waitController = new WaitController({
   acquire:acquireWaitTransport,hold:holdWaitAtTick,
@@ -33,6 +36,27 @@ const waitController = new WaitController({
 });
 
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
+
+function configureWaitSession() {
+  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled);
+}
+
+function wireTempoAndLoopControls() {
+  transportControls=initTransportControls({
+    onSpeedChange(speed) {
+      waitController.stop();pauseWaitTransport();
+      setPlaybackSpeed(speed);resetRealtimeSession('speed-change');configureWaitSession();renderTrainerUi();
+    },
+    onLoopChange(loop) {
+      waitController.stop();pauseWaitTransport();
+      AppState.practiceLoop=loop;applyPracticeLoop(loop.range);
+      // Native position events may arrive asynchronously; reset from the chosen start.
+      if(loop.range)AppState.tickPosition=loop.range.startTick;
+      clearActiveMidiNotes();syncTrainerFoundation();
+    },
+  });
+  transportControls.sync();
+}
 
 function loadMidiDebugPreference() {
   try {
@@ -67,7 +91,7 @@ function syncTrainerFoundation() {
     tracks: AppState.tracks,
     practiceTrackId: AppState.practiceTrackId,
   });
-  waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
+  configureWaitSession();
   updateActiveTargetsFromPlayback(AppState.tickPosition);
   renderTrainerUi();
 }
@@ -139,8 +163,9 @@ function wireTransportButtons() {
   document.getElementById('stop-button')?.addEventListener('click', () => {
     waitController.stop();
     stop();
-    resetRealtimeSession('stop',0);
-    updateActiveTargetsFromPlayback(0);
+    const start=AppState.practiceLoop.range?.startTick ?? 0;
+    resetRealtimeSession('stop',start);
+    updateActiveTargetsFromPlayback(start);
     renderTrainerUi();
   });
 }
@@ -150,7 +175,7 @@ function wirePracticeControls() {
     waitController.stop();pauseWaitTransport();
     AppState.mode=event.target.value==='wait'?'wait':'realtime';
     clearActiveMidiNotes();resetRealtimeSession('mode-change');
-    waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
+    configureWaitSession();
     renderTrainerUi();
   });
   document.getElementById('midi-latency-ms')?.addEventListener('change', (event) => {
@@ -343,6 +368,7 @@ function renderMidiUi() {
 }
 
 function renderTrainerUi() {
+  transportControls?.sync();
   const latencyInput = document.getElementById('midi-latency-ms');
   if (latencyInput) latencyInput.disabled = AppState.mode === 'wait';
   const pillEl = document.getElementById('trainer-match-pill');
@@ -415,7 +441,7 @@ function wireMidiControls() {
   document.getElementById('midi-input-select')?.addEventListener('change', (event) => {
     setActiveMidiInput(event.target.value);
     resetRealtimeSession('input-device-change');
-    waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
+    configureWaitSession();
     renderMidiUi();
     renderTrainerUi();
   });
@@ -424,7 +450,7 @@ function wireMidiControls() {
     AppState.inputMode = event.target.value;
     clearActiveMidiNotes();
     resetRealtimeSession('input-settings-change');
-    waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
+    configureWaitSession();
     AppState.ui.midiStatus = AppState.inputMode === 'hex-6ch'
       ? 'Hex mode enabled (channels map to strings)'
       : 'Single-channel mode enabled';
@@ -437,7 +463,7 @@ function wireMidiControls() {
     AppState.midi.singleChannel = event.target.value || 'any';
     clearActiveMidiNotes();
     resetRealtimeSession('input-settings-change');
-    waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
+    configureWaitSession();
     refreshTrainerMatchState(AppState.tickPosition);
     renderMidiUi();
     renderTrainerUi();
@@ -447,7 +473,7 @@ function wireMidiControls() {
     AppState.midi.hexChannelBase = Number(event.target.value) || 1;
     clearActiveMidiNotes();
     resetRealtimeSession('input-settings-change');
-    waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
+    configureWaitSession();
     refreshTrainerMatchState(AppState.tickPosition);
     renderMidiUi();
     renderTrainerUi();
@@ -469,6 +495,7 @@ async function bootstrap() {
   wireFilePicker();
   wireTransportButtons();
   wirePracticeControls();
+  wireTempoAndLoopControls();
   wireMidiControls();
 
   try {
@@ -492,6 +519,7 @@ async function bootstrap() {
         if(AppState.mode==='realtime')handlePlaybackState();
         renderTrainerUi();
       },
+      onPlayerReady: () => renderTrainerUi(),
     });
   } catch (error) {
     console.error('Failed to bootstrap Guitar Trainer Studio.', error);
@@ -509,7 +537,7 @@ async function bootstrap() {
       if (previousMidiInputId !== AppState.midi.activeInputId) {
         previousMidiInputId = AppState.midi.activeInputId;
         resetRealtimeSession('midi-device-change');
-        waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
+        configureWaitSession();
       }
       refreshTrainerMatchState(AppState.tickPosition);
       renderMidiUi();
