@@ -28,8 +28,8 @@
 
         <div class="toolbar-group toolbar-popup-group">
           <button id="btn-practice" type="button">🎸 Practice ▾</button>
-          <button id="btn-tempo" type="button">♪ Tempo ▾</button>
-          <button id="btn-looper" type="button">🔁 Loop ▾</button>
+          <button id="btn-tempo" type="button" data-toolbar-collapse="more">♪ Tempo ▾</button>
+          <button id="btn-looper" type="button" data-toolbar-collapse="more">🔁 Loop ▾</button>
           <button id="btn-more" type="button">⋯ More ▾</button>
         </div>
 
@@ -37,7 +37,7 @@
 
         <div class="toolbar-group toolbar-score-group" aria-label="Current score summary">
           <span class="toolbar-score-label">Score:</span>
-          <span id="toolbar-score-value" class="toolbar-score-value">100%</span>
+          <span id="toolbar-score-value" class="toolbar-score-value" title="Scoring is not implemented yet">—</span>
         </div>
       </div>
 
@@ -202,23 +202,75 @@
     </section>
 
     <section id="more-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
-      <div class="panel-header compact-header">
+      <div class="panel-header compact-header panel-header--more">
         <div>
           <div class="panel-kicker">More</div>
-          <h2>Extra info and layout placeholders</h2>
+          <h2>Quick access</h2>
         </div>
       </div>
 
+      <div class="more-popup-grid" role="group" aria-label="Additional controls">
+        <button type="button" class="more-shortcut-button" data-launch-panel="tempo-popup">♪ Tempo</button>
+        <button type="button" class="more-shortcut-button" data-launch-panel="looper-popup">🔁 Loop</button>
+        <button type="button" class="more-shortcut-button" data-launch-panel="audio-popup">🎚 Audio / Routing</button>
+        <button type="button" class="more-shortcut-button" data-launch-panel="display-popup">🖥 Display</button>
+        <button type="button" class="more-shortcut-button" data-launch-panel="transpose-popup">↕ Transpose</button>
+        <button type="button" class="more-shortcut-button" data-launch-panel="help-popup">ℹ Help &amp; Guide</button>
+      </div>
+    </section>
+
+    <section id="audio-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
+      <div class="panel-header compact-header">
+        <div>
+          <div class="panel-kicker">Audio / Routing</div>
+          <h2>Audio routing placeholder</h2>
+        </div>
+      </div>
+      <div class="popup-card placeholder-card">
+        <p class="placeholder">Audio and routing controls can live here later. This is the same future destination used by the More menu.</p>
+      </div>
+    </section>
+
+    <section id="display-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
+      <div class="panel-header compact-header">
+        <div>
+          <div class="panel-kicker">Display</div>
+          <h2>Viewer and fretboard placeholder</h2>
+        </div>
+      </div>
       <div class="popup-panel-grid popup-panel-grid--two">
         <div class="popup-card">
-          <div class="popup-card-title">Viewer notes</div>
-          <div class="viewer-hint viewer-hint--left">Use the Scores menu to load a local .gp / .gpx / .xml file. The score stays visible while these panels open.</div>
+          <div class="popup-card-title">Viewer</div>
+          <p class="placeholder">Display controls for notation density, zoom, and other viewer options can live here later.</p>
         </div>
-
         <div class="popup-card">
-          <div class="popup-card-title">Fretboard</div>
-          <p class="placeholder">Virtual fretboard remains active below the score area. Deeper controls can be organized here later.</p>
+          <div class="popup-card-title">Virtual fretboard</div>
+          <p class="placeholder">The virtual fretboard can eventually be toggled here when you are ready to expose it.</p>
         </div>
+      </div>
+    </section>
+
+    <section id="transpose-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
+      <div class="panel-header compact-header">
+        <div>
+          <div class="panel-kicker">Transpose</div>
+          <h2>Transpose placeholder</h2>
+        </div>
+      </div>
+      <div class="popup-card placeholder-card">
+        <p class="placeholder">Transpose controls can be added here later once the Guitar Trainer workflow is ready for them.</p>
+      </div>
+    </section>
+
+    <section id="help-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
+      <div class="panel-header compact-header">
+        <div>
+          <div class="panel-kicker">Help &amp; Guide</div>
+          <h2>Help placeholder</h2>
+        </div>
+      </div>
+      <div class="popup-card placeholder-card">
+        <p class="placeholder">Quick-start guidance, supported formats, and setup help can live here later.</p>
       </div>
     </section>
 

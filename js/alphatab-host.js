@@ -50,11 +50,11 @@ function setScoreTitle(title) {
   }
 }
 
-function setToolbarScoreValue(value = '100%') {
+function setToolbarScoreValue(value = '—') {
   if (!ui?.toolbarScoreValueEl) return;
-  const nextValue = String(value || '100%');
+  const nextValue = String(value || '—');
   ui.toolbarScoreValueEl.textContent = nextValue;
-  ui.toolbarScoreValueEl.title = 'Trainer score';
+  ui.toolbarScoreValueEl.title = 'Scoring is not implemented yet';
 }
 
 function setScoreLoadedUiState(hasScore) {
@@ -63,7 +63,7 @@ function setScoreLoadedUiState(hasScore) {
     ui.scoreEmptyStateEl.classList.toggle('hidden', Boolean(hasScore));
   }
   if (ui?.toolbarScoreValueEl) {
-    setToolbarScoreValue('100%');
+    setToolbarScoreValue('—');
   }
 }
 
@@ -327,7 +327,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 
   setScoreLoadedUiState(false);
   setScoreTitle('No score loaded');
-  setToolbarScoreValue('100%');
+  setToolbarScoreValue('—');
   setLoadedFileName('None');
   setStatus('Checking alphaTab assets…');
   setTransportEnabled(false);
@@ -502,7 +502,9 @@ export function applyPlaybackTrackState({ practiceTrackId, playSelectedTrack = A
 
 export function updateAlphaTabSettings(nextSettings) {
   if (!alphaTabApi || !nextSettings) return false;
-  alphaTabApi.updateSettings(nextSettings);
+  alphaTabApi.settings.fillFromJson(nextSettings);
+  alphaTabApi.updateSettings();
+  alphaTabApi.render();
   return true;
 }
 
@@ -533,7 +535,3 @@ export function getAlphaTabApi() {
   return alphaTabApi;
 }
 
-
-export function syncCursorToTick() {
-  // placeholder to satisfy import; real sync handled elsewhere
-}

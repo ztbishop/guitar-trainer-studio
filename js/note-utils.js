@@ -21,6 +21,6 @@ export function channelToStringHint(channel, baseChannel = 1) {
 
 export function formatStringHint(stringHint) {
   if (!Number.isFinite(stringHint)) return 'Unknown string';
-  const index = 6 - stringHint;
+  const index = stringHint - 1;
   return STRING_LABELS[index] || `String ${stringHint}`;
 }

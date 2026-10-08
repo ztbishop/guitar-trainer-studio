@@ -2,11 +2,11 @@
 // Owns: startup wiring and module initialization order
 // Do NOT: let this grow into a giant logic file
 
-import { initAlphaTab, loadScoreFile, play, stop, applyPlaybackTrackState, syncCursorToTick } from './alphatab-host.js';
+import { initAlphaTab, loadScoreFile, play, stop, applyPlaybackTrackState } from './alphatab-host.js';
 import { AppState } from './app-state.js';
 import { formatStringHint, midiToNoteName } from './note-utils.js';
 import { initFretboard } from './fretboard-ui.js';
-import { initMidiRouter, setActiveMidiInput } from './midi-router.js';
+import { initMidiRouter, setActiveMidiInput, clearActiveMidiNotes } from './midi-router.js';
 import {
   buildExpectedEventsFromPracticeTrack,
   handleMidiEvent,
@@ -46,19 +46,12 @@ function formatPitchList(pitches) {
   return pitches.map((midi) => `${midiToNoteName(midi)} (${midi})`).join(', ');
 }
 
-function syncTrainerCursorToActiveEvent() {
-  const currentEvent = AppState.trainer.currentEvent;
-  if (!currentEvent || !Number.isFinite(currentEvent.startTick)) return;
-  syncCursorToTick(currentEvent.startTick);
-}
-
 function syncTrainerFoundation() {
   buildExpectedEventsFromPracticeTrack({
     tracks: AppState.tracks,
     practiceTrackId: AppState.practiceTrackId,
   });
   updateActiveTargetsFromPlayback(AppState.tickPosition);
-  syncTrainerCursorToActiveEvent();
   renderTrainerUi();
 }
 
@@ -370,6 +363,7 @@ function wireMidiControls() {
 
   document.getElementById('midi-input-mode-select')?.addEventListener('change', (event) => {
     AppState.inputMode = event.target.value;
+    clearActiveMidiNotes();
     AppState.ui.midiStatus = AppState.inputMode === 'hex-6ch'
       ? 'Hex mode enabled (channels map to strings)'
       : 'Single-channel mode enabled';
@@ -380,6 +374,7 @@ function wireMidiControls() {
 
   document.getElementById('midi-single-channel-select')?.addEventListener('change', (event) => {
     AppState.midi.singleChannel = event.target.value || 'any';
+    clearActiveMidiNotes();
     refreshTrainerMatchState(AppState.tickPosition);
     renderMidiUi();
     renderTrainerUi();
@@ -387,6 +382,7 @@ function wireMidiControls() {
 
   document.getElementById('hex-channel-base-select')?.addEventListener('change', (event) => {
     AppState.midi.hexChannelBase = Number(event.target.value) || 1;
+    clearActiveMidiNotes();
     refreshTrainerMatchState(AppState.tickPosition);
     renderMidiUi();
     renderTrainerUi();
@@ -417,7 +413,6 @@ async function bootstrap() {
       },
       onPlayerPositionChanged: ({ currentTick }) => {
         updateActiveTargetsFromPlayback(currentTick);
-        syncTrainerCursorToActiveEvent();
         renderTrainerUi();
       },
       onPlayerStateChanged: () => {
@@ -431,13 +426,11 @@ async function bootstrap() {
   await initMidiRouter({
     onMidiEvent: (event) => {
       handleMidiEvent(event);
-      syncTrainerCursorToActiveEvent();
       renderMidiUi();
       renderTrainerUi();
     },
     onStateChange: () => {
       refreshTrainerMatchState(AppState.tickPosition);
-      syncTrainerCursorToActiveEvent();
       renderMidiUi();
       renderTrainerUi();
     },

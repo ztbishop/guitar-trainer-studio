@@ -41,6 +41,14 @@ function removeActiveNote(normalized) {
   }
 }
 
+export function clearActiveMidiNotes() {
+  AppState.midi.activeNotes.clear();
+  AppState.midi.activeNotesByChannel.clear();
+  AppState.midi.lastEvent = null;
+  AppState.midi.recentEvents = [];
+  updateStateChange();
+}
+
 function updateStateChange() {
   callbacks.onStateChange?.({ ...AppState.midi });
 }
@@ -73,8 +81,7 @@ function setActiveInput(input) {
 
   activeInput = input || null;
   AppState.midi.activeInputId = input?.id || '';
-  AppState.midi.activeNotes.clear();
-  AppState.midi.activeNotesByChannel.clear();
+  clearActiveMidiNotes();
 
   if (activeInput) {
     activeListener = (message) => {
@@ -84,12 +91,15 @@ function setActiveInput(input) {
       });
 
       if (!normalized) return;
-      if (!isEventInSelectedChannelRange(normalized)) return;
+      // Release tracked notes even if the selected filter has changed.
+      if (normalized.type === 'note-off') removeActiveNote(normalized);
+      if (!isEventInSelectedChannelRange(normalized)) {
+        updateStateChange();
+        return;
+      }
 
       if (normalized.type === 'note-on') {
         addActiveNote(normalized);
-      } else if (normalized.type === 'note-off') {
-        removeActiveNote(normalized);
       }
 
       AppState.midi.lastEvent = normalized;
@@ -121,7 +131,9 @@ function refreshInputs() {
 
   const desiredId = AppState.midi.activeInputId || AppState.midi.availableInputs[0].id;
   const input = midiAccess.inputs.get(desiredId) || midiAccess.inputs.get(AppState.midi.availableInputs[0].id);
-  setActiveInput(input || null);
+  // Unrelated port changes must not erase notes held on the selected device.
+  if (input !== activeInput) setActiveInput(input || null);
+  else updateStateChange();
 }
 
 export async function initMidiRouter({ onMidiEvent, onStateChange } = {}) {
@@ -166,18 +178,21 @@ export function normalizeMidiMessage(message, config = {}) {
   if (data.length < 1) return null;
 
   const [status, midi, velocity = 0] = data;
+  if (status < 0x80 || status >= 0xf0) return null;
   const command = status & 0xf0;
   const channel = (status & 0x0f) + 1;
   const inputMode = config.inputMode || 'single-channel';
+  const isNote = command === 0x80 || command === 0x90;
+  if ((isNote || command === 0xe0 || command === 0xb0) && data.length < 3) return null;
   const common = {
     channel,
-    midi: Number.isFinite(midi) ? midi : null,
-    velocity: Number.isFinite(velocity) ? velocity : null,
-    noteName: Number.isFinite(midi) ? midiToNoteName(midi) : null,
+    midi: isNote && Number.isFinite(midi) ? midi : null,
+    velocity: isNote && Number.isFinite(velocity) ? velocity : null,
+    noteName: isNote && Number.isFinite(midi) ? midiToNoteName(midi) : null,
     stringHint: inputMode === 'hex-6ch' ? channelToStringHint(channel, config.hexChannelBase ?? 1) : null,
     inputMode,
     raw: data,
-    at: performance.now(),
+    at: Number.isFinite(message?.timeStamp) ? message.timeStamp : performance.now(),
   };
 
   if (command === 0x90 && Number.isFinite(midi) && velocity > 0) {
@@ -201,6 +216,7 @@ export function normalizeMidiMessage(message, config = {}) {
       ...common,
       type: 'pitch-bend',
       typeLabel: 'Pitch bend',
+      bendValue: ((velocity << 7) | midi) - 8192,
       midi: null,
       noteName: null,
       stringHint: inputMode === 'hex-6ch' ? channelToStringHint(channel, config.hexChannelBase ?? 1) : null,
@@ -209,7 +225,9 @@ export function normalizeMidiMessage(message, config = {}) {
 
   return {
     ...common,
-    type: 'other',
-    typeLabel: 'Other',
+    type: command === 0xb0 ? 'control-change' : 'other',
+    typeLabel: command === 0xb0 ? 'Control change' : 'Other',
+    controller: command === 0xb0 ? midi : null,
+    value: command === 0xb0 ? velocity : null,
   };
 }

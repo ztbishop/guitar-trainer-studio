@@ -4,7 +4,6 @@
 
 import { AppState } from './app-state.js';
 import { midiToNoteName } from './note-utils.js';
-import { isWithinHitWindow } from './practice-timing.js';
 
 function getTrackId(track, index) {
   return String(track?.index ?? index);
@@ -64,7 +63,7 @@ function setTrainerState(partialState) {
 }
 
 function setCurrentTrainerEventByIndex(eventIndex) {
-  if (!AppState.expectedEvents.length) {
+  if (!AppState.expectedEvents.length || eventIndex < 0 || eventIndex >= AppState.expectedEvents.length) {
     AppState.activeTargets = [];
     setTrainerState({
       currentEventIndex: -1,
@@ -89,7 +88,7 @@ function findEventIndexAtTick(tickPosition) {
 
   const resolvedTick = Number.isFinite(tickPosition) ? tickPosition : 0;
   const matchingIndex = AppState.expectedEvents.findIndex((event) =>
-    resolvedTick >= event.startTick && resolvedTick <= Math.max(event.endTick, event.startTick)
+    resolvedTick >= event.startTick && (resolvedTick < event.endTick || (event.endTick === event.startTick && resolvedTick === event.startTick))
   );
 
   if (matchingIndex !== -1) {
@@ -101,16 +100,7 @@ function findEventIndexAtTick(tickPosition) {
     return upcomingIndex;
   }
 
-  return AppState.expectedEvents.length - 1;
-}
-
-function advanceTrainerEventAfterRelease() {
-  const currentIndex = Number.isFinite(AppState.trainer.currentEventIndex) ? AppState.trainer.currentEventIndex : -1;
-  if (currentIndex < 0) return null;
-
-  const nextIndex = Math.min(currentIndex + 1, AppState.expectedEvents.length - 1);
-  setTrainerState({ awaitingReleaseForEventId: null });
-  return setCurrentTrainerEventByIndex(nextIndex);
+  return -1;
 }
 
 function createNormalizedEvent({ startTick, durationTicks, measureNumber, beatIndex, trackId, notes }) {
@@ -288,7 +278,7 @@ export function updateActiveTargetsFromPlayback(position) {
 
 export function refreshTrainerMatchState(position = AppState.tickPosition) {
   const detectedPitches = getFilteredActivePitches();
-  let currentEvent = AppState.trainer.currentEvent;
+  const currentEvent = AppState.trainer.currentEvent;
 
   setTrainerState({
     detectedPitches,
@@ -308,39 +298,25 @@ export function refreshTrainerMatchState(position = AppState.tickPosition) {
   const detectedSet = new Set(detectedPitches);
   const hasAllExpected = expectedPitches.length > 0 && expectedPitches.every((pitch) => detectedSet.has(pitch));
   const hasAnyExpected = expectedPitches.some((pitch) => detectedSet.has(pitch));
+  const expectedSet = new Set(expectedPitches);
+  const hasUnexpected = detectedPitches.some((pitch) => !expectedSet.has(pitch));
   const tickPosition = Number.isFinite(position) ? position : 0;
   const measureLabel = currentEvent.measureNumber ? `Measure ${currentEvent.measureNumber}` : 'Current event';
   const pitchLabel = formatPitchList(expectedPitches);
 
   let matchState = 'waiting';
   let status = `${measureLabel} • expecting ${pitchLabel}`;
-  let awaitingReleaseForEventId = AppState.trainer.awaitingReleaseForEventId || null;
-
-  if (awaitingReleaseForEventId === currentEvent.id && detectedPitches.length === 0) {
-    currentEvent = advanceTrainerEventAfterRelease() || currentEvent;
-    awaitingReleaseForEventId = AppState.trainer.awaitingReleaseForEventId || null;
-  }
-
-  if (currentEvent !== AppState.trainer.currentEvent) {
-    return refreshTrainerMatchState(position);
-  }
-
-  if (hasAllExpected && detectedPitches.length) {
+  // Foundation feedback compares held pitches only. Playback owns progression;
+  // attack/timing grading and Wait Mode will be added in later stages.
+  if (hasUnexpected) {
+    matchState = 'mismatch';
+    status = `${measureLabel} • heard ${formatPitchList(detectedPitches)}`;
+  } else if (hasAllExpected && detectedPitches.length) {
     matchState = 'match';
     status = `${measureLabel} • matched ${pitchLabel}`;
-    awaitingReleaseForEventId = currentEvent.id;
   } else if (hasAnyExpected && detectedPitches.length) {
     matchState = 'partial';
     status = `${measureLabel} • partial match (${formatPitchList(detectedPitches)})`;
-    awaitingReleaseForEventId = null;
-  } else if (detectedPitches.length) {
-    matchState = 'mismatch';
-    status = `${measureLabel} • heard ${formatPitchList(detectedPitches)}`;
-    awaitingReleaseForEventId = null;
-  } else {
-    awaitingReleaseForEventId = AppState.trainer.awaitingReleaseForEventId === currentEvent.id
-      ? currentEvent.id
-      : null;
   }
 
   const eventNumber = (Number.isFinite(AppState.trainer.currentEventIndex) ? AppState.trainer.currentEventIndex : 0) + 1;
@@ -350,13 +326,12 @@ export function refreshTrainerMatchState(position = AppState.tickPosition) {
     matchState,
     status,
     summary,
-    awaitingReleaseForEventId,
+    awaitingReleaseForEventId: null,
   });
-  return isWithinHitWindow(0);
+  return matchState;
 }
 
 export function handleMidiEvent(midiEvent) {
   AppState.midi.lastEvent = midiEvent;
-  refreshTrainerMatchState(AppState.tickPosition);
-  return isWithinHitWindow(0);
+  return refreshTrainerMatchState(AppState.tickPosition);
 }
