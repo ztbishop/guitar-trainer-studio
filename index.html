@@ -97,12 +97,19 @@
       <div class="panel-header compact-header">
         <div>
           <div class="panel-kicker">Practice</div>
-          <h2>Practice setup and realtime trainer</h2>
+          <h2>Practice setup and trainer</h2>
         </div>
       </div>
 
       <div class="popup-panel-grid">
         <div class="popup-card">
+          <label class="field-group" for="practice-mode-select">
+            <span class="field-label">Practice mode</span>
+            <select id="practice-mode-select">
+              <option value="realtime">Realtime — play along</option>
+              <option value="wait">Wait — advance after correct notes</option>
+            </select>
+          </label>
           <div class="form-grid form-grid--practice">
             <label class="field-group" for="practice-track-select">
               <span class="field-label">Track to practice</span>
@@ -124,7 +131,7 @@
 
           <label class="field-group" for="midi-latency-ms">
             <span class="field-label">MIDI input latency (ms)</span>
-            <span class="field-help">Increase if your MIDI guitar reports notes late. Changing this resets the current results.</span>
+            <span class="field-help">Realtime only: increase if your MIDI guitar reports notes late. Changing this resets Realtime results.</span>
             <input id="midi-latency-ms" type="number" min="0" max="1000" step="5" value="0" />
           </label>
 
@@ -150,7 +157,7 @@
         <div class="popup-card">
           <div class="midi-panel-header">
             <div>
-              <div class="status-label">Realtime practice</div>
+              <div class="status-label">Practice feedback</div>
               <div class="midi-panel-title">Note attacks and results</div>
             </div>
             <div id="trainer-match-pill" class="status-pill">Idle</div>

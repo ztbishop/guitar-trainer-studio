@@ -11,6 +11,7 @@ export const AppState = {
   playOtherTracks: true,
   viewMode: 'practice-only',
   mode: 'realtime',
+  waitTrainer: null,
   inputMode: 'single-channel',
   correctnessMode: 'pitch-only',
   alphaTabReady: false,

@@ -2,8 +2,10 @@
 // Owns: startup wiring and module initialization order
 // Do NOT: let this grow into a giant logic file
 
-import { initAlphaTab, loadScoreFile, play, stop, applyPlaybackTrackState } from './alphatab-host.js';
+import { initAlphaTab, loadScoreFile, play, stop, applyPlaybackTrackState, acquireWaitTransport, holdWaitAtTick, pauseWaitTransport, releaseWaitTransport, finishWaitTransport } from './alphatab-host.js';
 import { AppState } from './app-state.js';
+import { WaitController } from './wait-controller.js';
+
 import { formatStringHint, midiToNoteName } from './note-utils.js';
 import { initFretboard } from './fretboard-ui.js';
 import { initMidiRouter, setActiveMidiInput, clearActiveMidiNotes } from './midi-router.js';
@@ -20,6 +22,15 @@ import {
 } from './practice-engine.js';
 import { initScoreLibrary } from './score-library.js';
 import { initToolbar } from './toolbar-ui.js';
+
+const waitController = new WaitController({
+  acquire:acquireWaitTransport,hold:holdWaitAtTick,
+  pause:pauseWaitTransport,release:releaseWaitTransport,finish:finishWaitTransport,
+}, state => {
+  AppState.waitTrainer=state;
+  if(AppState.mode==='wait')AppState.activeTargets=state.currentEvent?[state.currentEvent]:[];
+  if(AppState.mode==='wait')renderTrainerUi();
+});
 
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
 
@@ -56,6 +67,7 @@ function syncTrainerFoundation() {
     tracks: AppState.tracks,
     practiceTrackId: AppState.practiceTrackId,
   });
+  waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
   updateActiveTargetsFromPlayback(AppState.tickPosition);
   renderTrainerUi();
 }
@@ -120,8 +132,12 @@ function wireFilePicker() {
 }
 
 function wireTransportButtons() {
-  document.getElementById('play-pause-button')?.addEventListener('click', () => play());
+  document.getElementById('play-pause-button')?.addEventListener('click', () => {
+    if(AppState.mode==='wait')waitController.toggle(AppState.tickPosition);
+    else play();
+  });
   document.getElementById('stop-button')?.addEventListener('click', () => {
+    waitController.stop();
     stop();
     resetRealtimeSession('stop',0);
     updateActiveTargetsFromPlayback(0);
@@ -130,6 +146,13 @@ function wireTransportButtons() {
 }
 
 function wirePracticeControls() {
+  document.getElementById('practice-mode-select')?.addEventListener('change', event => {
+    waitController.stop();pauseWaitTransport();
+    AppState.mode=event.target.value==='wait'?'wait':'realtime';
+    clearActiveMidiNotes();resetRealtimeSession('mode-change');
+    waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
+    renderTrainerUi();
+  });
   document.getElementById('midi-latency-ms')?.addEventListener('change', (event) => {
     const value = Number(event.target.value);
     AppState.trainer.latencyMs = Number.isFinite(value) ? Math.max(0,Math.min(1000,value)) : 0;
@@ -320,6 +343,8 @@ function renderMidiUi() {
 }
 
 function renderTrainerUi() {
+  const latencyInput = document.getElementById('midi-latency-ms');
+  if (latencyInput) latencyInput.disabled = AppState.mode === 'wait';
   const pillEl = document.getElementById('trainer-match-pill');
   const statusEl = document.getElementById('trainer-status');
   const summaryEl = document.getElementById('trainer-summary');
@@ -327,11 +352,18 @@ function renderTrainerUi() {
   const expectedMetaEl = document.getElementById('trainer-expected-meta');
   const detectedNotesEl = document.getElementById('trainer-detected-notes');
 
-  const trainer = AppState.trainer;
+  const trainer = AppState.mode==='wait' ? (AppState.waitTrainer||AppState.trainer) : AppState.trainer;
+  const playButton=document.getElementById('play-pause-button');
+  if(playButton) {
+    const running=AppState.mode==='wait' ? trainer.active && trainer.phase!=='paused' : AppState.isPlaying;
+    playButton.textContent=running?'⏸ Pause':'▶ Play';
+    playButton.setAttribute('aria-label',running?'Pause practice':'Start or resume practice');
+    playButton.title=running?'Pause practice':'Start or resume practice';
+  }
   const scoreValue = document.getElementById('toolbar-score-value');
   if (scoreValue) {
     scoreValue.textContent = trainer.sessionStarted && trainer.results?.accuracy != null ? `${trainer.results.accuracy}%` : '—';
-    scoreValue.title = trainer.sessionStarted ? 'Correct / (correct + missed + wrong attacks)' : 'Press Play to start realtime practice';
+    scoreValue.title = trainer.sessionStarted ? 'Correct / (correct + missed + wrong attacks)' : 'Press Play to start practice';
   }
   const currentEvent = trainer.currentEvent;
 
@@ -375,7 +407,7 @@ function renderTrainerUi() {
   }
 
   if (detectedNotesEl) {
-    detectedNotesEl.textContent = formatPitchList(trainer.detectedPitches);
+    detectedNotesEl.textContent = formatPitchList(AppState.trainer.detectedPitches);
   }
 }
 
@@ -383,6 +415,7 @@ function wireMidiControls() {
   document.getElementById('midi-input-select')?.addEventListener('change', (event) => {
     setActiveMidiInput(event.target.value);
     resetRealtimeSession('input-device-change');
+    waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
     renderMidiUi();
     renderTrainerUi();
   });
@@ -391,6 +424,7 @@ function wireMidiControls() {
     AppState.inputMode = event.target.value;
     clearActiveMidiNotes();
     resetRealtimeSession('input-settings-change');
+    waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
     AppState.ui.midiStatus = AppState.inputMode === 'hex-6ch'
       ? 'Hex mode enabled (channels map to strings)'
       : 'Single-channel mode enabled';
@@ -403,6 +437,7 @@ function wireMidiControls() {
     AppState.midi.singleChannel = event.target.value || 'any';
     clearActiveMidiNotes();
     resetRealtimeSession('input-settings-change');
+    waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
     refreshTrainerMatchState(AppState.tickPosition);
     renderMidiUi();
     renderTrainerUi();
@@ -412,6 +447,7 @@ function wireMidiControls() {
     AppState.midi.hexChannelBase = Number(event.target.value) || 1;
     clearActiveMidiNotes();
     resetRealtimeSession('input-settings-change');
+    waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
     refreshTrainerMatchState(AppState.tickPosition);
     renderMidiUi();
     renderTrainerUi();
@@ -444,15 +480,16 @@ async function bootstrap() {
         syncTrainerFoundation();
       },
       onPlayerPositionChanged: (position) => {
-        handlePlaybackPosition(position);
+        if(AppState.mode==='wait')waitController.positionChanged(position);
+        else handlePlaybackPosition(position);
         renderTrainerUi();
       },
       onPlayerFinished: () => {
-        finishRealtimeSession();
+        if(AppState.mode==='realtime')finishRealtimeSession();
         renderTrainerUi();
       },
       onPlayerStateChanged: () => {
-        handlePlaybackState();
+        if(AppState.mode==='realtime')handlePlaybackState();
         renderTrainerUi();
       },
     });
@@ -463,7 +500,8 @@ async function bootstrap() {
   let previousMidiInputId = AppState.midi.activeInputId;
   await initMidiRouter({
     onMidiEvent: (event) => {
-      handleMidiEvent(event);
+      if(AppState.mode==='wait')waitController.noteOn(event);
+      else handleMidiEvent(event);
       renderMidiUi();
       renderTrainerUi();
     },
@@ -471,6 +509,7 @@ async function bootstrap() {
       if (previousMidiInputId !== AppState.midi.activeInputId) {
         previousMidiInputId = AppState.midi.activeInputId;
         resetRealtimeSession('midi-device-change');
+        waitController.configure(AppState.expectedEvents,AppState.playbackTimeline?.endTick||0,AppState.inputMode==='hex-6ch');
       }
       refreshTrainerMatchState(AppState.tickPosition);
       renderMidiUi();
@@ -479,7 +518,7 @@ async function bootstrap() {
   });
 
   setInterval(() => {
-    if (!AppState.isPlaying) return;
+    if (!AppState.isPlaying || AppState.mode!=='realtime') return;
     advanceRealtimeClock();
     renderTrainerUi();
   }, 50);

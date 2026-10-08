@@ -7,7 +7,7 @@ import { buildExpectedEventsFromPracticeTrack, updateActiveTargetsFromPlayback, 
 import { normalizeMidiMessage, initMidiRouter, clearActiveMidiNotes, setActiveMidiInput } from '../js/midi-router.js';
 import { channelToStringHint, formatStringHint } from '../js/note-utils.js';
 import { initToolbar } from '../js/toolbar-ui.js';
-import { initAlphaTab, updateAlphaTabSettings, loadScoreFile, play, stop } from '../js/alphatab-host.js';
+import { initAlphaTab, updateAlphaTabSettings, loadScoreFile, play, stop, acquireWaitTransport, holdWaitAtTick, playWaitSegment, releaseWaitTransport } from '../js/alphatab-host.js';
 
 function targets() {
   AppState.inputMode = 'single-channel';
@@ -137,13 +137,15 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   let api;
   class FakeApi {
     constructor() {
-      api=this; this.settings=new context.alphaTab.Settings(); this.calls=[];
+      api=this; this.settings=new context.alphaTab.Settings(); this.calls=[];this.player={output:{activate:()=>this.calls.push('activate')}};
       for(const name of ['playerFinished','scoreLoaded','midiLoaded','playerReady','playerStateChanged','playerPositionChanged','error']) this[name]={on:fn=>this[name].emit=fn};
     }
     updateSettings(...args) { assert.equal(args.length,0); this.calls.push('update'); }
     render() { this.calls.push('render'); }
     load(bytes) { assert.deepEqual(Array.from(bytes),[1,2,3]); return true; }
     playPause() { this.calls.push('playPause'); }
+    play() { this.calls.push('play'); }
+    pause() { this.calls.push('pause'); }
     stop() { this.calls.push('stop'); }
     renderTracks() {} changeTrackMute() {}
   }
@@ -177,4 +179,9 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   assert.equal(position.speed,1); assert.equal(position.isSeek,false);
   assert.ok(Number.isFinite(position.at));
   assert.equal(stop(),true); assert.equal(AppState.isPlaying,false);
+  const originalRange={startTick:0,endTick:3840};api.playbackRange=originalRange;api.isLooping=true;api.countInVolume=0.5;
+  acquireWaitTransport();assert.equal(api.calls.at(-1),'activate');assert.equal(api.isLooping,false);assert.equal(api.countInVolume,0);
+  holdWaitAtTick(960);assert.equal(api.tickPosition,960);assert.equal(api.playbackRange,null);
+  playWaitSegment(960,1920);assert.deepEqual(api.playbackRange,{startTick:960,endTick:1920});assert.equal(api.calls.at(-1),'play');
+  releaseWaitTransport();assert.equal(api.playbackRange,originalRange);assert.equal(api.isLooping,true);assert.equal(api.countInVolume,0.5);
 });

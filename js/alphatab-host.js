@@ -559,3 +559,49 @@ export function getAlphaTabApi() {
   return alphaTabApi;
 }
 
+
+// Wait Mode keeps native playback paused and seeks directly between targets.
+let savedWaitTransport = null;
+let waitTransportGeneration = 0;
+export function acquireWaitTransport() {
+  if (!alphaTabApi) return;
+  waitTransportGeneration++;
+  if (savedWaitTransport) return;
+  savedWaitTransport = {range:alphaTabApi.playbackRange,looping:alphaTabApi.isLooping,countIn:alphaTabApi.countInVolume};
+  // This runs from the Play button's user gesture, before MIDI-driven resumes.
+  alphaTabApi.player?.output?.activate();
+  alphaTabApi.isLooping=false;
+  alphaTabApi.countInVolume=0;
+}
+export function holdWaitAtTick(tick) {
+  if(!alphaTabApi)return;
+  alphaTabApi.pause();
+  alphaTabApi.playbackRange=null;
+  alphaTabApi.tickPosition=tick;
+}
+export function playWaitSegment(startTick,endTick) {
+  if(!alphaTabApi || !(endTick>startTick))return;
+  alphaTabApi.pause();
+  alphaTabApi.playbackRange={startTick,endTick};
+  alphaTabApi.tickPosition=startTick;
+  alphaTabApi.play();
+}
+export function pauseWaitTransport() {alphaTabApi?.pause();}
+export function resumeWaitTransport() {alphaTabApi?.play();}
+export function releaseWaitTransport() {
+  if(!alphaTabApi || !savedWaitTransport)return;
+  waitTransportGeneration++;
+  alphaTabApi.pause();
+  alphaTabApi.playbackRange=savedWaitTransport.range;
+  alphaTabApi.isLooping=savedWaitTransport.looping;
+  alphaTabApi.countInVolume=savedWaitTransport.countIn;
+  savedWaitTransport=null;
+}
+export function finishWaitTransport(tick) {
+  // Defer the final seek and cancel it if the session changes in this stack.
+  const generation=waitTransportGeneration;
+  queueMicrotask(() => {
+    if(alphaTabApi && savedWaitTransport && generation===waitTransportGeneration)holdWaitAtTick(tick);
+  });
+  // Restore pre-Wait looping/count-in/range only on Stop or mode exit.
+}

@@ -2,6 +2,8 @@
 
 ## Overview
 
+Implementation status and priorities are tracked in `TODO.md`; development decisions and user validation are recorded in `DEV-NOTES.md`. The v1 scope below is a design goal, not a list of completed features.
+
 Guitar Trainer Studio should be a sibling app to Piano Trainer Studio, not an instrument mode inside it.
 The app should preserve native alphaTab features wherever possible and layer custom trainer logic on top.
 
@@ -47,6 +49,20 @@ The app should preserve native alphaTab features wherever possible and layer cus
 - Reads expected note events from the selected practice track only.
 - Consumes normalized MIDI input and playback position updates.
 
+### `js/score-playback.js`
+- Normalizes alphaTab's generated playback occurrences, including repeats and endings.
+- Exposes required attack groups and tempo conversion helpers; tied continuations do not become new attacks.
+
+### `js/realtime-session.js`
+- Owns attack matching, chord timing, misses, and scoring for Realtime.
+- Receives normalized events and clock values without directly calling alphaTab.
+
+### `js/wait-session.js` and `js/wait-controller.js`
+- WaitSession collects required attacks and computes untimed results.
+- WaitController owns target progression and manual pause state through injected transport operations.
+- A completed target immediately seeks to the next target while native playback remains paused. No duration requirement or backing playback is used.
+- Current chord behavior accumulates pitches without a time limit. A configurable chord attack window is deferred; see `TODO.md`.
+
 ### `js/practice-timing.js`
 - Owns timing thresholds and helper rules such as early/late windows and chord grouping tolerance.
 - Keeps timing math out of rendering and UI files.
@@ -76,10 +92,10 @@ The app should preserve native alphaTab features wherever possible and layer cus
 3. `app-state.js` stores available tracks and the current practice/playback selections.
 4. `toolbar-ui.js` lets the user choose a single practice track and optional playback tracks.
 5. `alphatab-host.js` mutes/unmutes tracks and forwards playback position updates.
-6. `practice-engine.js` builds expected events from the practice track only.
+6. `score-playback.js` normalizes the generated timeline; `practice-engine.js` selects expected events for the configured practice scope.
 7. `midi-router.js` emits normalized user input events.
-8. `practice-engine.js` evaluates correctness.
-9. `fretboard-ui.js` renders expected, played, and feedback states.
+8. Bootstrap routes input to the Realtime engine or Wait controller/session. Those modules evaluate correctness.
+9. Bootstrap displays trainer feedback. Full fretboard and notation correctness overlays remain planned.
 
 ## Key rules
 
@@ -113,6 +129,7 @@ The app should preserve native alphaTab features wherever possible and layer cus
 ### Exact Position
 - Accept only if pitch, string, and position requirements match.
 - Best for hex MIDI and fretboard-specific practice.
+- Planned: current hex handling distinguishes same-pitch attacks by channel, but does not yet enforce the required string/fret position.
 
 ## Recommended v1 scope
 
