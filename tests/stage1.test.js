@@ -7,7 +7,7 @@ import { buildExpectedEventsFromPracticeTrack, updateActiveTargetsFromPlayback, 
 import { normalizeMidiMessage, initMidiRouter, clearActiveMidiNotes, setActiveMidiInput } from '../js/midi-router.js';
 import { channelToStringHint, formatStringHint } from '../js/note-utils.js';
 import { initToolbar } from '../js/toolbar-ui.js';
-import { initAlphaTab, updateAlphaTabSettings, loadScoreFile, play, stop, acquireWaitTransport, holdWaitAtTick, playWaitSegment, releaseWaitTransport, setPlaybackSpeed, applyPracticeLoop } from '../js/alphatab-host.js';
+import { initAlphaTab, updateAlphaTabSettings, loadScoreFile, play, stop, acquireWaitTransport, holdWaitAtTick, playWaitSegment, releaseWaitTransport, setPlaybackSpeed, applyPracticeLoop, setNotationFeedback } from '../js/alphatab-host.js';
 
 function targets() {
   AppState.inputMode = 'single-channel';
@@ -90,7 +90,8 @@ class Element {
   getBoundingClientRect() { return {width:1200}; }
   contains() { return false; }
   blur() {}
-  appendChild(child) { this.children.push(child); }
+  appendChild(child) { this.children.push(child);child.parentNode=this; }
+  replaceChildren() { this.children=[]; }
   click() { this.listeners.click?.({stopPropagation(){}}); }
   send(data) { this.listeners.midimessage?.({data, timeStamp:400}); }
 }
@@ -117,7 +118,7 @@ function dom() {
   const elements=new Map(ids.map(id=>[id,new Element(id)]));
   const launches=['audio-popup','display-popup'].map(id=>{const el=new Element(`launch-${id}`); el.dataset.launchPanel=id; return el;});
   globalThis.HTMLElement=Element;
-  globalThis.document={body:new Element('body'),getElementById:id=>elements.get(id)||null,querySelectorAll:()=>launches,addEventListener(type,cb){this[type]=cb;},createElement:()=>new Element('')};
+  globalThis.document={body:new Element('body'),getElementById:id=>elements.get(id)||null,querySelectorAll:()=>launches,addEventListener(type,cb){this[type]=cb;},createElement:()=>new Element(''),createElementNS:()=>new Element('')};
   globalThis.window={innerWidth:1200,location:{href:'https://example.test/index.html'},addEventListener(){}};
   return {elements,launches};
 }
@@ -136,9 +137,10 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   vm.runInContext(readFileSync(new URL('../assets/vendor/alphatab/alphaTab.js',import.meta.url),'utf8'),context);
   let api;
   class FakeApi {
-    constructor() {
+    constructor(container,settings) {
       api=this; this.settings=new context.alphaTab.Settings(); this.calls=[];this.player={output:{activate:()=>this.calls.push('activate')}};
-      for(const name of ['playerFinished','scoreLoaded','midiLoaded','playerReady','playerStateChanged','playerPositionChanged','error']) this[name]={on:fn=>this[name].emit=fn};
+      this.constructorSettings=settings;
+      for(const name of ['playerFinished','scoreLoaded','midiLoaded','playerReady','playerStateChanged','playerPositionChanged','error','renderStarted','postRenderFinished']) this[name]={on:fn=>this[name].emit=fn};
     }
     updateSettings(...args) { assert.equal(args.length,0); this.calls.push('update'); }
     render() { this.calls.push('render'); }
@@ -152,7 +154,9 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   window.alphaTab={...context.alphaTab,AlphaTabApi:FakeApi};
   let position;
   const timelineChanges=[];
-  await initAlphaTab(new Element('container'), {onPlayerPositionChanged:e=>position=e, onPlaybackTimelineChanged:t=>timelineChanges.push(t)});
+  const container=new Element('container');
+  await initAlphaTab(container, {onPlayerPositionChanged:e=>position=e, onPlaybackTimelineChanged:t=>timelineChanges.push(t)});
+  assert.equal(api.constructorSettings.core.includeNoteBounds,true);
   assert.equal(elements.get('toolbar-score-value').textContent,'—');
   const originalSoundFont=api.settings.player.soundFont;
   assert.equal(updateAlphaTabSettings({display:{scale:1.25}}),true);
@@ -167,6 +171,14 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   parser.initFromString(String.raw`\tempo 120 . \ro 0.6.1 | \rc 2 2.6.1`,new alpha.Settings());
   const score=parser.readScore();
   api.scoreLoaded.emit(score);
+  const renderedNote=score.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0];
+  api.boundsLookup={isFinished:true,findBeats:()=>[{notes:[{note:renderedNote,noteHeadBounds:{x:20,y:30,w:10,h:8}}]}]};
+  const marks=[{sourceNoteId:String(renderedNote.id),state:'correct',label:'Correct E2'}];
+  setNotationFeedback(marks);const overlay=container.children.at(-1);assert.equal(overlay.children.length,1);
+  assert.equal(overlay.children[0].attrs['data-state'],'correct');
+  setNotationFeedback(marks,false);assert.equal(overlay.children.length,0);
+  setNotationFeedback(marks,true);api.renderStarted.emit();assert.equal(overlay.children.length,0);
+  api.postRenderFinished.emit();assert.equal(overlay.children.length,1);
   const generator=new alpha.midi.MidiFileGenerator(score,new alpha.Settings(),new alpha.midi.AlphaSynthMidiFileHandler(new alpha.midi.MidiFile()));
   generator.generate(); api.tickCache=generator.tickLookup;
   api.midiLoaded.emit({});

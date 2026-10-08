@@ -7,6 +7,7 @@ import { midiToNoteName } from './note-utils.js';
 import { getPracticeEvents, tickToTimeMs } from './score-playback.js';
 import { RealtimeSession } from './realtime-session.js';
 import { eventsInRange } from './practice-range.js';
+import { noteStatesFromRecords } from './practice-visuals.js';
 
 let realtime = null;
 
@@ -24,6 +25,7 @@ function publishRealtimeStats() {
   AppState.trainer.lastFeedback = realtime?.lastFeedback ?? null;
   AppState.trainer.sessionStarted = Boolean(realtime?.started);
   AppState.trainer.sessionCompleted = Boolean(realtime?.completed);
+  AppState.trainer.noteStates = noteStatesFromRecords(realtime?.records);
 }
 
 export function handlePlaybackPosition({currentTick, at = performance.now(), speed = 1, isSeek = false}) {

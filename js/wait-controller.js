@@ -1,5 +1,6 @@
 // Gate progression using injected transport operations. No alphaTab/DOM dependency.
 import {WaitSession} from './wait-session.js';
+import {noteStatesFromRecords} from './practice-visuals.js';
 
 export class WaitController {
   constructor(transport,onChange=()=>{}) {
@@ -26,7 +27,8 @@ export class WaitController {
     const stats=this.session?.stats()??null;
     this.onChange({phase:this.phase,active:this.active,currentEvent,currentEventIndex:this.index,matchState,status,
       summary:stats?`${this.loop?`Pass ${this.pass} • `:''}Correct ${stats.correct} • Wrong ${stats.wrong} • Remaining ${stats.pending}`:'No targets loaded',
-      results:stats,lastPassResults:this.lastPassResults,pass:this.pass,sessionStarted:this.active||this.phase==='complete',sessionCompleted:this.phase==='complete'});
+      results:stats,noteStates:noteStatesFromRecords(this.session?.records),lastFeedback:this.session?.lastFeedback,
+      lastPassResults:this.lastPassResults,pass:this.pass,sessionStarted:this.active||this.phase==='complete',sessionCompleted:this.phase==='complete'});
   }
   toggle(tick=this.position) {
     if(!this.events.length) return false;

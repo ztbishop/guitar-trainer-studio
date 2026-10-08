@@ -78,6 +78,11 @@ The app should preserve native alphaTab features wherever possible and layer cus
 - Renders expected notes, played notes, and correctness feedback.
 - Must not contain correctness rules.
 
+### `js/practice-visuals.js`
+- Converts published grading records into per-note display states and resolves repeat occurrences onto written source-note IDs.
+- Prepares six-string target and possible played positions using score tuning/capo, without enforcing string correctness.
+- Maps prepared marks to native note bounds supplied by the host. Current occurrence feedback takes priority over earlier results for the same written note.
+
 ### `js/toolbar-ui.js`
 - Owns menu wiring and user controls.
 - Updates state and dispatches intents to other modules.
@@ -101,7 +106,7 @@ The app should preserve native alphaTab features wherever possible and layer cus
 6. `score-playback.js` normalizes the generated timeline; `practice-engine.js` selects expected events for the configured practice scope.
 7. `midi-router.js` emits normalized user input events.
 8. Bootstrap routes input to the Realtime engine or Wait controller/session. Those modules evaluate correctness.
-9. Bootstrap displays trainer feedback. Full fretboard and notation correctness overlays remain planned.
+9. Bootstrap prepares visual data through practice-visuals.js. Fretboard-ui renders the neck, while alphatab-host places non-interactive SVG outlines at native note bounds. These displays do not grade input.
 
 ## Key rules
 

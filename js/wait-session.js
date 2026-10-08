@@ -19,7 +19,7 @@ export class WaitSession {
     const slot=record.slots.find(s=>!s.hit && s.midi===note.midi);
     if(!slot || duplicate) {record.wrong++;return this.lastFeedback={type:'wrong',eventId:record.eventId,midi:note.midi,complete:false};}
     slot.hit=true;slot.channel=note.channel;
-    return this.lastFeedback={type:'correct',eventId:record.eventId,noteIds:slot.noteIds,complete:record.slots.every(s=>s.hit)};
+    return this.lastFeedback={type:'correct',eventId:record.eventId,midi:note.midi,noteIds:slot.noteIds,complete:record.slots.every(s=>s.hit)};
   }
   stats() {
     const records=this.records.filter(r=>!r.skipped);const slots=records.flatMap(r=>r.slots);

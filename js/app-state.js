@@ -28,6 +28,7 @@ export const AppState = {
   trainer: {
     latencyMs: 0,
     results: null,
+    noteStates: {},
     sessionStarted: false,
     sessionCompleted: false,
     currentEventIndex: -1,
@@ -54,6 +55,7 @@ export const AppState = {
     zoomPercent: 100,
     layoutMode: 'page',
     showFretboard: false,
+    showNotationFeedback: true,
     leftHanded: false,
     loadedFileName: '',
     playerStatus: 'Waiting for score',

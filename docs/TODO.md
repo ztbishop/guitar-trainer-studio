@@ -9,6 +9,7 @@ Updated 2026-10-08. This is the central status and priority list. Stage files re
 - [x] Stage 3: Realtime attack matching and results.
 - [x] Stage 4: Wait Mode, corrected to immediate silent stepping.
 - [x] Stage 5: playback speed and occurrence-aware section loops implemented; user confirmed loop and tempo work locally.
+- [x] Stage 6: notation outlines and six-string fretboard display implemented; awaiting user browser/MIDI validation.
 - [x] User confirmed repeat playback works.
 - [x] User confirmed corrected Wait Mode works with their local setup.
 - [ ] Finish broader local verification of Realtime timing, pause/seek/mode switching, hex input, and chord cases. Implementation tests do not prove every hardware/browser case.
@@ -16,7 +17,8 @@ Updated 2026-10-08. This is the central status and priority list. Stage files re
 ## Next checks and proposed stage
 
 - [ ] Complete Stage 5 edge-case checks as needed: pause/Stop, disabling loops, mode changes, loading a new score, and repeated-measure selection. Basic loop and tempo behavior is user-confirmed; individual edge cases have not all been explicitly confirmed.
-- [ ] Proposed next stage: notation correctness feedback and fretboard target display. Confirm scope after Stage 5 validation.
+- [ ] Validate Stage 6: notation alignment, repeats/loop resets, chord feedback, fretboard tuning/capo/string labels, note release, left-handed orientation, resize/scroll, and mode changes.
+- [ ] Choose the next stage after visual validation; exact-position grading and the deferred UI/chord refinements remain candidates rather than an agreed sequence.
 
 ## Deferred Tempo and Loop menu refinement
 
@@ -39,7 +41,8 @@ Updated 2026-10-08. This is the central status and priority list. Stage files re
 
 ## Other planned work
 
-- [ ] Notation correctness feedback and a functional virtual fretboard.
+- [x] Initial notation correctness feedback and functional six-string virtual fretboard.
+- [ ] Refine visual feedback and fretboard ergonomics based on Stage 6 local testing.
 - [ ] Exact-position/string grading for configured hex MIDI.
 - [ ] Preference persistence and score-library improvements after core practice is stable.
 - [ ] Articulation edge cases and normalization limitations recorded in STAGE-2.

@@ -4,6 +4,31 @@
 
 import { AppState } from './app-state.js';
 import { buildPlaybackTimeline } from './score-playback.js';
+import { notationRectangles } from './practice-visuals.js';
+
+let notationContainer=null,notationOverlay=null,notationMarks=[],notationEnabled=true,notationSignature='';
+let scoreNoteLookup=new Map();
+function drawNotationFeedback() {
+  if(!notationContainer)return;
+  const rectangles=notationEnabled?notationRectangles(notationMarks,scoreNoteLookup,alphaTabApi?.boundsLookup):[];
+  if(!rectangles.length) {notationOverlay?.replaceChildren();return;}
+  if(!notationOverlay) {
+    notationOverlay=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    notationOverlay.setAttribute('class','notation-feedback-overlay');notationOverlay.setAttribute('aria-hidden','true');
+  }
+  if(notationOverlay.parentNode!==notationContainer)notationContainer.appendChild(notationOverlay);
+  notationOverlay.replaceChildren();
+  for(const rectangle of rectangles) {
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    for(const [key,value] of Object.entries({x:rectangle.x,y:rectangle.y,width:rectangle.width,height:rectangle.height,rx:4,'data-state':rectangle.state}))rect.setAttribute(key,String(value));
+    const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=rectangle.label;rect.appendChild(title);notationOverlay.appendChild(rect);
+  }
+}
+export function setNotationFeedback(marks,enabled=true) {
+  notationMarks=marks;notationEnabled=enabled;
+  const signature=JSON.stringify([marks,enabled]);if(signature===notationSignature)return;
+  notationSignature=signature;drawNotationFeedback();
+}
 
 const VISUAL_MODES = {
   // Keep alphaTab's playback note-targeting logic available for later trainer feedback work,
@@ -383,6 +408,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 
   alphaTabApi = new alphaTabGlobal.AlphaTabApi(containerEl, {
     core: {
+      includeNoteBounds: true,
       scriptFile: getAssetUrl('./assets/vendor/alphatab/alphaTab.js'),
     },
     display: {
@@ -400,11 +426,17 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     },
   });
 
+  notationContainer=containerEl;
+  alphaTabApi.renderStarted?.on(()=>notationOverlay?.replaceChildren());
+  alphaTabApi.postRenderFinished?.on(()=>drawNotationFeedback());
   alphaTabApi.scoreLoaded.on((score) => {
     const loadedScore = score || alphaTabApi.score || null;
     AppState.playbackTimeline = null;
     AppState.score = loadedScore;
     AppState.tracks = loadedScore?.tracks ?? [];
+    scoreNoteLookup=new Map();notationMarks=[];notationSignature='';notationOverlay?.replaceChildren();
+    for(const track of AppState.tracks)for(const staff of track.staves||[])for(const bar of staff.bars||[])
+      for(const voice of bar.voices||[])for(const beat of voice.beats||[])for(const note of beat.notes||[])scoreNoteLookup.set(String(note.id),note);
     AppState.alphaTabReady = true;
     AppState.playerReady = false;
     AppState.isPlaying = false;

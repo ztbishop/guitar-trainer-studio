@@ -7,7 +7,9 @@ import { AppState } from './app-state.js';
 import { WaitController } from './wait-controller.js';
 
 import { formatStringHint, midiToNoteName } from './note-utils.js';
-import { initFretboard } from './fretboard-ui.js';
+import { initFretboard, renderFretboard } from './fretboard-ui.js';
+import { buildNotationMarks, buildFretboardModel } from './practice-visuals.js';
+import { setNotationFeedback } from './alphatab-host.js';
 import { initMidiRouter, setActiveMidiInput, clearActiveMidiNotes } from './midi-router.js';
 import {
   advanceRealtimeClock,
@@ -102,6 +104,19 @@ function wireScoreStageUi() {
   const scoreStage = document.querySelector('.score-stage.viewer-panel');
   const fretboardContainer = document.getElementById('fretboard-container');
   const fullscreenTarget = document.documentElement;
+  for(const [id,key] of [['show-fretboard','showFretboard'],['left-handed-fretboard','leftHanded'],['show-notation-feedback','showNotationFeedback']]) {
+    const control=document.getElementById(id);
+    if(control)control.checked=Boolean(AppState.ui[key]);
+    control?.addEventListener('change',()=>{
+      AppState.ui[key]=control.checked;
+      if(fretboardContainer) {
+        fretboardContainer.classList.toggle('hidden',!AppState.ui.showFretboard);
+        fretboardContainer.setAttribute('aria-hidden',String(!AppState.ui.showFretboard));
+        document.body.classList.toggle('fretboard-visible',AppState.ui.showFretboard);
+      }
+      renderTrainerUi();
+    });
+  }
 
   function syncFullscreenButton() {
     if (!fullscreenButton) return;
@@ -379,6 +394,12 @@ function renderTrainerUi() {
   const detectedNotesEl = document.getElementById('trainer-detected-notes');
 
   const trainer = AppState.mode==='wait' ? (AppState.waitTrainer||AppState.trainer) : AppState.trainer;
+  setNotationFeedback(buildNotationMarks(AppState.expectedEvents,trainer.currentEvent,trainer.noteStates),AppState.ui.showNotationFeedback);
+  if(AppState.ui.showFretboard) {
+    const track=AppState.tracks.find((item,index)=>getTrackId(item,index)===String(AppState.practiceTrackId));
+    renderFretboard(buildFretboardModel({track,currentEvent:trainer.currentEvent,noteStates:trainer.noteStates,
+      activeNotes:[...AppState.midi.activeNotes.values()],inputMode:AppState.inputMode,leftHanded:AppState.ui.leftHanded,lastFeedback:trainer.lastFeedback}));
+  }
   const playButton=document.getElementById('play-pause-button');
   if(playButton) {
     const running=AppState.mode==='wait' ? trainer.active && trainer.phase!=='paused' : AppState.isPlaying;

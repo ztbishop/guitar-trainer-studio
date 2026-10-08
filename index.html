@@ -259,17 +259,20 @@
       <div class="panel-header compact-header">
         <div>
           <div class="panel-kicker">Display</div>
-          <h2>Viewer and fretboard placeholder</h2>
+          <h2>Practice display</h2>
         </div>
       </div>
       <div class="popup-panel-grid popup-panel-grid--two">
         <div class="popup-card">
           <div class="popup-card-title">Viewer</div>
-          <p class="placeholder">Display controls for notation density, zoom, and other viewer options can live here later.</p>
+          <label class="toggle-row" for="show-notation-feedback"><input id="show-notation-feedback" type="checkbox" checked /><span>Show note feedback on the score</span></label>
+          <p class="practice-visual-legend">Blue: current target • Green: correct • Red: missed. Wrong pitches appear on the fretboard and in Practice feedback.</p>
         </div>
         <div class="popup-card">
           <div class="popup-card-title">Virtual fretboard</div>
-          <p class="placeholder">The virtual fretboard can eventually be toggled here when you are ready to expose it.</p>
+          <label class="toggle-row" for="show-fretboard"><input id="show-fretboard" type="checkbox" /><span>Show virtual fretboard</span></label>
+          <label class="toggle-row" for="left-handed-fretboard"><input id="left-handed-fretboard" type="checkbox" /><span>Left-handed orientation</span></label>
+          <p class="field-help">Six-string tracks use the score tuning and capo. Single-channel input shows possible played positions.</p>
         </div>
       </div>
     </section>
@@ -453,7 +456,7 @@
       </section>
 
       <section id="fretboard-container" class="panel fretboard-panel hidden" aria-hidden="true">
-        <p class="placeholder">Virtual fretboard comes later. MIDI input foundation is now active.</p>
+        <p class="placeholder">Select a six-string guitar track to show its fretboard.</p>
       </section>
     </main>
 

@@ -1,6 +1,14 @@
 # Development notes
 
-Use TODO.md for current status and priorities, ARCHITECTURE.md for module boundaries, and STAGE-1 through STAGE-5 for implementation and validation details. Update these files in future packages so project decisions survive a new chat.
+Use TODO.md for current status and priorities, ARCHITECTURE.md for module boundaries, and STAGE-1 through STAGE-6 for implementation and validation details. Update these files in future packages so project decisions survive a new chat.
+
+## 2026-10-08 — Stage 6 visual feedback implemented
+
+Native alphaTab note bounds (core.includeNoteBounds) are used for blue current-target, green accepted, and red dashed missed-note outlines over staff/tab notation. Original renderer elements are not recolored or rewritten. Overlays are non-interactive and rebuilt after native post-render completion. Current repeat occurrences override old results on shared written notes.
+
+Display now exposes notation feedback, virtual fretboard, and left-handed orientation toggles. Six-string fretboard targets use scored string/fret; played markers show possible pitch positions for single-channel input or configured channel-derived string positions for hex. The selected staff's tuning, capo, and pitch transposition are used. Exact-position grading remains deferred.
+
+Stage 5 tempo/loop behavior was user-confirmed before this stage. The deferred Tempo/Loop menu refinement remains in TODO.md. Stage 6 has 66 passing tests, including actual alphaTab note IDs/tuning/repeats and scaled native bounds, mocked overlay redraw/toggle behavior, grading resets, and fretboard DOM output. Actual Chrome alignment/scroll/resize and physical MIDI visual testing are pending.
 
 ## 2026-10-08 — Stage 5 implemented, local validation pending
 
