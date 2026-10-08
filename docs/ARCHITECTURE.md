@@ -66,12 +66,16 @@ The app should preserve native alphaTab features wherever possible and layer cus
 - WaitSession collects required attacks and computes untimed results.
 - WaitController owns target progression and manual pause state through injected transport operations.
 - A completed target immediately seeks to the next target while native playback remains paused. No duration requirement or backing playback is used.
-- Current chord behavior accumulates pitches without a time limit. A configurable chord attack window is deferred; see `TODO.md`.
+- Collect notes accumulates pitches without a time limit. Together uses a configurable active-time attack window, expires incomplete attempts, and keeps retries separate from wrong-note scoring. WaitController subtracts paused time from the MIDI/controller clock.
 - Loop completion starts a fresh Wait pass; Realtime native loop seeks reset grading for the next pass. Score loading clears section selection, while playback speed is retained for the session.
 
 ### `js/practice-timing.js`
 - Owns timing thresholds and helper rules such as early/late windows and chord grouping tolerance.
 - Keeps timing math out of rendering and UI files.
+- Validates Wait chord setting limits; Realtime retains its separate existing chord tolerance.
+
+### `js/chord-controls.js`
+- Owns Wait chord-setting form wiring and validation feedback. Bootstrap pauses/resets the Wait session when settings change.
 
 ### `js/fretboard-ui.js`
 - Owns visual neck rendering and display overlays.

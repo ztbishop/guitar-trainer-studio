@@ -110,6 +110,19 @@
               <option value="wait">Wait — advance after correct notes</option>
             </select>
           </label>
+          <label class="field-group" for="wait-chord-mode">
+            <span class="field-label">Wait chord matching</span>
+            <select id="wait-chord-mode" disabled>
+              <option value="collect">Collect notes — relaxed</option>
+              <option value="together">Together — strum window</option>
+            </select>
+          </label>
+          <label class="field-group" for="wait-chord-window">
+            <span class="field-label">Chord window (ms)</span>
+            <input id="wait-chord-window" type="number" min="50" max="1000" step="25" value="200" disabled />
+            <span class="field-help">Wait only. Changing either setting pauses practice and resets Wait results.</span>
+          </label>
+          <p id="wait-chord-status" class="field-help" role="status">These controls apply to Wait Mode.</p>
           <div class="form-grid form-grid--practice">
             <label class="field-group" for="practice-track-select">
               <span class="field-label">Track to practice</span>

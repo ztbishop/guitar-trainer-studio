@@ -25,8 +25,10 @@ import {
 import { initScoreLibrary } from './score-library.js';
 import { initToolbar } from './toolbar-ui.js';
 import { initTransportControls } from './transport-controls.js';
+import { initChordControls } from './chord-controls.js';
 
 let transportControls=null;
+let chordControls=null;
 
 const waitController = new WaitController({
   acquire:acquireWaitTransport,hold:holdWaitAtTick,
@@ -40,7 +42,7 @@ const waitController = new WaitController({
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
 
 function configureWaitSession() {
-  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled);
+  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,AppState.waitChord);
 }
 
 function wireTempoAndLoopControls() {
@@ -186,6 +188,11 @@ function wireTransportButtons() {
 }
 
 function wirePracticeControls() {
+  chordControls=initChordControls(settings=>{
+    waitController.stop();pauseWaitTransport();AppState.waitChord=settings;
+    clearActiveMidiNotes();configureWaitSession();renderTrainerUi();
+  });
+  chordControls.sync();
   document.getElementById('practice-mode-select')?.addEventListener('change', event => {
     waitController.stop();pauseWaitTransport();
     AppState.mode=event.target.value==='wait'?'wait':'realtime';
@@ -384,6 +391,7 @@ function renderMidiUi() {
 
 function renderTrainerUi() {
   transportControls?.sync();
+  chordControls?.sync();
   const latencyInput = document.getElementById('midi-latency-ms');
   if (latencyInput) latencyInput.disabled = AppState.mode === 'wait';
   const pillEl = document.getElementById('trainer-match-pill');
@@ -567,6 +575,7 @@ async function bootstrap() {
   });
 
   setInterval(() => {
+    if(AppState.mode==='wait') {waitController.advance();return;}
     if (!AppState.isPlaying || AppState.mode!=='realtime') return;
     advanceRealtimeClock();
     renderTrainerUi();

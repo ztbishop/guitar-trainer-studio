@@ -15,3 +15,9 @@ export function isWithinHitWindow(deltaMs, timing = TimingDefaults) {
 export function isWithinChordGrouping(deltaMs, timing = TimingDefaults) {
   return Math.abs(deltaMs) <= timing.chordGroupingMs;
 }
+
+export function normalizeWaitChordSettings(mode,windowMs) {
+  const value=Number(windowMs);
+  if(!['collect','together'].includes(mode) || !Number.isFinite(value) || value<50 || value>1000)return null;
+  return {mode,windowMs:value};
+}

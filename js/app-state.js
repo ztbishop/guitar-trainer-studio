@@ -12,6 +12,7 @@ export const AppState = {
   viewMode: 'practice-only',
   mode: 'realtime',
   waitTrainer: null,
+  waitChord: { mode: 'collect', windowMs: 200 },
   inputMode: 'single-channel',
   correctnessMode: 'pitch-only',
   alphaTabReady: false,

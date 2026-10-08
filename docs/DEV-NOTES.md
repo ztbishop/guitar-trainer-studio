@@ -1,6 +1,18 @@
 # Development notes
 
-Use TODO.md for current status and priorities, ARCHITECTURE.md for module boundaries, and STAGE-1 through STAGE-6 for implementation and validation details. Update these files in future packages so project decisions survive a new chat.
+Use TODO.md for current status and priorities, ARCHITECTURE.md for module boundaries, and STAGE-1 through STAGE-7 for implementation and validation details. Update these files in future packages so project decisions survive a new chat.
+
+## 2026-10-08 — Stage 7 Wait chord options
+
+The deferred Together / Collect notes option is implemented for Wait. Collect remains the default for continuity. Together starts a real-millisecond window on the first correct chord attack, default 200 ms and configurable 50–1000 ms. Expiry clears provisional hits and increments one retry, without wrong/missed penalties. A late pitch may start the next attempt. Wrong pitches retain their normal penalty and do not start/extend the window.
+
+Pause excludes elapsed paused time and ignores input, preserving an in-window partial chord. Single-note targets remain immediate. Loop/session resets preserve selected settings but clear attempt state. Realtime retains its prior 60 ms chord grouping and timing windows. Preferences remain page-session only.
+
+79 automated tests pass, including strict window boundaries, idle expiry, retry scoring, unisons, multiple channels, pause, loop/settings reset, and form validation. Keyboard/guitar browser testing remains pending.
+
+## 2026-10-08 — Stage 6 user check and marker recommendation
+
+User confirmed blue/green feedback while testing with a MIDI piano. This confirms those colors work locally, not complete fretboard/hex/resize validation. Recommendation: keep outlines for tabs to preserve fret-number readability; consider Piano Trainer-style dots on standard notation later. Logged in TODO; no marker-style change is included in Stage 7.
 
 ## 2026-10-08 — Stage 6 visual feedback implemented
 

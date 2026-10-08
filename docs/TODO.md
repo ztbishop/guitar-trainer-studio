@@ -9,7 +9,8 @@ Updated 2026-10-08. This is the central status and priority list. Stage files re
 - [x] Stage 3: Realtime attack matching and results.
 - [x] Stage 4: Wait Mode, corrected to immediate silent stepping.
 - [x] Stage 5: playback speed and occurrence-aware section loops implemented; user confirmed loop and tempo work locally.
-- [x] Stage 6: notation outlines and six-string fretboard display implemented; awaiting user browser/MIDI validation.
+- [x] Stage 6: notation outlines and six-string fretboard display implemented; user confirmed blue/green feedback with a MIDI piano. Other visual/hardware checks remain pending.
+- [x] Stage 7: Wait chord matching options implemented, with configurable Together window; awaiting local validation.
 - [x] User confirmed repeat playback works.
 - [x] User confirmed corrected Wait Mode works with their local setup.
 - [ ] Finish broader local verification of Realtime timing, pause/seek/mode switching, hex input, and chord cases. Implementation tests do not prove every hardware/browser case.
@@ -18,7 +19,8 @@ Updated 2026-10-08. This is the central status and priority list. Stage files re
 
 - [ ] Complete Stage 5 edge-case checks as needed: pause/Stop, disabling loops, mode changes, loading a new score, and repeated-measure selection. Basic loop and tempo behavior is user-confirmed; individual edge cases have not all been explicitly confirmed.
 - [ ] Validate Stage 6: notation alignment, repeats/loop resets, chord feedback, fretboard tuning/capo/string labels, note release, left-handed orientation, resize/scroll, and mode changes.
-- [ ] Choose the next stage after visual validation; exact-position grading and the deferred UI/chord refinements remain candidates rather than an agreed sequence.
+- [ ] Validate Stage 7: Together expiry/retry, chords within the window, Pause/resume, mode changes, and section loops. Check guitar strum/MIDI timing when guitar hardware is available.
+- [ ] Choose the next stage after validation; exact-position grading and the deferred menu/visual refinements remain candidates rather than an agreed sequence.
 
 ## Deferred Tempo and Loop menu refinement
 
@@ -28,16 +30,20 @@ Updated 2026-10-08. This is the central status and priority list. Stage files re
 - Capture context whenever the user supplies it. If it changes tempo or loop behavior, range semantics, or transport requirements, review it before dependent development rather than treating it as cosmetic work.
 - During the refinement, verify Realtime/Wait behavior, repeat-occurrence selection, accessibility, and narrow-screen layout.
 
-## Deferred chord matching option
+## Chord matching option: implemented, tuning pending
 
-- [ ] Add Practice setting: **Together / Collect notes**.
-- Current behavior: Collect notes. Correct pitches remain collected indefinitely, even after release.
-- Proposed Together behavior: all required fresh attacks must arrive within an adjustable window, initially about 200 ms from the first correct attack. This value is a starting proposal requiring guitar/MIDI testing, not an established optimum.
-- On expiry, clear the incomplete chord attempt and allow a new attempt at the same target. Keep single-note targets immediate; never require a written note's duration.
-- Account for strums and MIDI detection latency; do not demand exact simultaneity or depend exclusively on notes remaining held.
-- Show clear retry feedback. Decide scoring for expired partial attempts before implementation; avoid counting idle time as repeated errors.
-- Test chord expiry, rolled strums, incorrect pitches, repeated attacks, hex unisons, pause/reset, and attacks during cursor repositioning.
-- Suggested eventual default: Together, with Collect notes available for learning. Retain the working Collect notes default until this feature is implemented and tested.
+- [x] Add Wait Practice setting: **Together / Collect notes**.
+- Collect notes remains the default: correct pitches remain collected indefinitely, even after release.
+- Together requires all fresh chord attacks within 200 ms by default, adjustable from 50–1000 ms. Tune this with guitar/MIDI tests; 200 ms is not an established optimum.
+- [x] Expiry clears provisional chord hits and permits a new attempt at the same target. Single notes remain immediate; duration/held-note requirements are unchanged.
+- [x] Pause freezes the chord window. Incorrect pitches still count as wrong; expiry increments a separate retry counter without missed/wrong penalties. Idle time cannot repeatedly increment retries.
+- [x] Automated expiry, chord-edge, hex-unison, pause/reset, cursor-positioning, and setting-form tests.
+- [ ] Validate with a real guitar, especially rolled strums and unequal string detection latency. Consider changing the default to Together only after local feedback.
+
+## Deferred notation appearance refinement
+
+- [ ] Consider outlines for tab numbers and Piano Trainer-style dots for standard notation during a later visual pass.
+- Current recommendation: retain outlines so tab fret numbers remain readable. User confirmed blue/green behavior using a MIDI piano; no alternate marker style has been implemented.
 
 ## Other planned work
 
