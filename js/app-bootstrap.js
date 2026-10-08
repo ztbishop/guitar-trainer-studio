@@ -8,6 +8,11 @@ import { formatStringHint, midiToNoteName } from './note-utils.js';
 import { initFretboard } from './fretboard-ui.js';
 import { initMidiRouter, setActiveMidiInput, clearActiveMidiNotes } from './midi-router.js';
 import {
+  advanceRealtimeClock,
+  handlePlaybackPosition,
+  handlePlaybackState,
+  finishRealtimeSession,
+  resetRealtimeSession,
   buildExpectedEventsFromPracticeTrack,
   handleMidiEvent,
   refreshTrainerMatchState,
@@ -116,23 +121,37 @@ function wireFilePicker() {
 
 function wireTransportButtons() {
   document.getElementById('play-pause-button')?.addEventListener('click', () => play());
-  document.getElementById('stop-button')?.addEventListener('click', () => stop());
+  document.getElementById('stop-button')?.addEventListener('click', () => {
+    stop();
+    resetRealtimeSession('stop',0);
+    updateActiveTargetsFromPlayback(0);
+    renderTrainerUi();
+  });
 }
 
 function wirePracticeControls() {
+  document.getElementById('midi-latency-ms')?.addEventListener('change', (event) => {
+    const value = Number(event.target.value);
+    AppState.trainer.latencyMs = Number.isFinite(value) ? Math.max(0,Math.min(1000,value)) : 0;
+    event.target.value = String(AppState.trainer.latencyMs);
+    resetRealtimeSession('latency-change');
+    renderTrainerUi();
+  });
   const practiceTrackSelect = document.getElementById('practice-track-select');
   const playSelectedTrackToggle = document.getElementById('play-selected-track-toggle');
   const playOtherTracksToggle = document.getElementById('play-other-tracks-toggle');
   const viewModeSelect = document.getElementById('view-mode-select');
 
   function applyFromUi() {
+    const previousTrack = AppState.practiceTrackId;
     applyPlaybackTrackState({
       practiceTrackId: practiceTrackSelect?.value || AppState.practiceTrackId,
       playSelectedTrack: Boolean(playSelectedTrackToggle?.checked),
       playOtherTracks: Boolean(playOtherTracksToggle?.checked),
       viewMode: viewModeSelect?.value || AppState.viewMode,
     });
-    syncTrainerFoundation();
+    if (previousTrack !== AppState.practiceTrackId) syncTrainerFoundation();
+    else renderTrainerUi();
   }
 
   practiceTrackSelect?.addEventListener('change', applyFromUi);
@@ -309,10 +328,16 @@ function renderTrainerUi() {
   const detectedNotesEl = document.getElementById('trainer-detected-notes');
 
   const trainer = AppState.trainer;
+  const scoreValue = document.getElementById('toolbar-score-value');
+  if (scoreValue) {
+    scoreValue.textContent = trainer.sessionStarted && trainer.results?.accuracy != null ? `${trainer.results.accuracy}%` : '—';
+    scoreValue.title = trainer.sessionStarted ? 'Correct / (correct + missed + wrong attacks)' : 'Press Play to start realtime practice';
+  }
   const currentEvent = trainer.currentEvent;
 
   if (pillEl) {
     const pillLabel = {
+      missed: 'Missed',
       idle: 'Idle',
       waiting: 'Waiting',
       partial: 'Partial',
@@ -357,6 +382,7 @@ function renderTrainerUi() {
 function wireMidiControls() {
   document.getElementById('midi-input-select')?.addEventListener('change', (event) => {
     setActiveMidiInput(event.target.value);
+    resetRealtimeSession('input-device-change');
     renderMidiUi();
     renderTrainerUi();
   });
@@ -364,6 +390,7 @@ function wireMidiControls() {
   document.getElementById('midi-input-mode-select')?.addEventListener('change', (event) => {
     AppState.inputMode = event.target.value;
     clearActiveMidiNotes();
+    resetRealtimeSession('input-settings-change');
     AppState.ui.midiStatus = AppState.inputMode === 'hex-6ch'
       ? 'Hex mode enabled (channels map to strings)'
       : 'Single-channel mode enabled';
@@ -375,6 +402,7 @@ function wireMidiControls() {
   document.getElementById('midi-single-channel-select')?.addEventListener('change', (event) => {
     AppState.midi.singleChannel = event.target.value || 'any';
     clearActiveMidiNotes();
+    resetRealtimeSession('input-settings-change');
     refreshTrainerMatchState(AppState.tickPosition);
     renderMidiUi();
     renderTrainerUi();
@@ -383,6 +411,7 @@ function wireMidiControls() {
   document.getElementById('hex-channel-base-select')?.addEventListener('change', (event) => {
     AppState.midi.hexChannelBase = Number(event.target.value) || 1;
     clearActiveMidiNotes();
+    resetRealtimeSession('input-settings-change');
     refreshTrainerMatchState(AppState.tickPosition);
     renderMidiUi();
     renderTrainerUi();
@@ -414,11 +443,16 @@ async function bootstrap() {
       onPlaybackTimelineChanged: () => {
         syncTrainerFoundation();
       },
-      onPlayerPositionChanged: ({ currentTick }) => {
-        updateActiveTargetsFromPlayback(currentTick);
+      onPlayerPositionChanged: (position) => {
+        handlePlaybackPosition(position);
+        renderTrainerUi();
+      },
+      onPlayerFinished: () => {
+        finishRealtimeSession();
         renderTrainerUi();
       },
       onPlayerStateChanged: () => {
+        handlePlaybackState();
         renderTrainerUi();
       },
     });
@@ -426,6 +460,7 @@ async function bootstrap() {
     console.error('Failed to bootstrap Guitar Trainer Studio.', error);
   }
 
+  let previousMidiInputId = AppState.midi.activeInputId;
   await initMidiRouter({
     onMidiEvent: (event) => {
       handleMidiEvent(event);
@@ -433,11 +468,21 @@ async function bootstrap() {
       renderTrainerUi();
     },
     onStateChange: () => {
+      if (previousMidiInputId !== AppState.midi.activeInputId) {
+        previousMidiInputId = AppState.midi.activeInputId;
+        resetRealtimeSession('midi-device-change');
+      }
       refreshTrainerMatchState(AppState.tickPosition);
       renderMidiUi();
       renderTrainerUi();
     },
   });
+
+  setInterval(() => {
+    if (!AppState.isPlaying) return;
+    advanceRealtimeClock();
+    renderTrainerUi();
+  }, 50);
 
   renderMidiUi();
   renderTrainerUi();

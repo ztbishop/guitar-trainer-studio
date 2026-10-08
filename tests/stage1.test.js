@@ -138,7 +138,7 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   class FakeApi {
     constructor() {
       api=this; this.settings=new context.alphaTab.Settings(); this.calls=[];
-      for(const name of ['scoreLoaded','midiLoaded','playerReady','playerStateChanged','playerPositionChanged','error']) this[name]={on:fn=>this[name].emit=fn};
+      for(const name of ['playerFinished','scoreLoaded','midiLoaded','playerReady','playerStateChanged','playerPositionChanged','error']) this[name]={on:fn=>this[name].emit=fn};
     }
     updateSettings(...args) { assert.equal(args.length,0); this.calls.push('update'); }
     render() { this.calls.push('render'); }
@@ -173,6 +173,8 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   api.playerReady.emit();
   assert.equal(play(),true); api.playerStateChanged.emit({state:1}); assert.equal(AppState.isPlaying,true);
   api.playerPositionChanged.emit({currentTick:960,currentTime:500});
-  assert.deepEqual(position,{currentTick:960,currentTime:500});
+  assert.equal(position.currentTick,960); assert.equal(position.currentTime,500);
+  assert.equal(position.speed,1); assert.equal(position.isSeek,false);
+  assert.ok(Number.isFinite(position.at));
   assert.equal(stop(),true); assert.equal(AppState.isPlaying,false);
 });

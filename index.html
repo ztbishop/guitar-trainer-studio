@@ -37,7 +37,7 @@
 
         <div class="toolbar-group toolbar-score-group" aria-label="Current score summary">
           <span class="toolbar-score-label">Score:</span>
-          <span id="toolbar-score-value" class="toolbar-score-value" title="Scoring is not implemented yet">—</span>
+          <span id="toolbar-score-value" class="toolbar-score-value" title="Press Play to start realtime practice">—</span>
         </div>
       </div>
 
@@ -97,7 +97,7 @@
       <div class="panel-header compact-header">
         <div>
           <div class="panel-kicker">Practice</div>
-          <h2>Practice setup and trainer foundation</h2>
+          <h2>Practice setup and realtime trainer</h2>
         </div>
       </div>
 
@@ -122,6 +122,12 @@
             </label>
           </div>
 
+          <label class="field-group" for="midi-latency-ms">
+            <span class="field-label">MIDI input latency (ms)</span>
+            <span class="field-help">Increase if your MIDI guitar reports notes late. Changing this resets the current results.</span>
+            <input id="midi-latency-ms" type="number" min="0" max="1000" step="5" value="0" />
+          </label>
+
           <div class="toggle-grid">
             <label class="toggle-row" for="play-selected-track-toggle">
               <input id="play-selected-track-toggle" type="checkbox" checked disabled />
@@ -144,8 +150,8 @@
         <div class="popup-card">
           <div class="midi-panel-header">
             <div>
-              <div class="status-label">Trainer foundation</div>
-              <div class="midi-panel-title">Expected notes vs MIDI</div>
+              <div class="status-label">Realtime practice</div>
+              <div class="midi-panel-title">Note attacks and results</div>
             </div>
             <div id="trainer-match-pill" class="status-pill">Idle</div>
           </div>

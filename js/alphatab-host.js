@@ -16,6 +16,7 @@ let ui = null;
 let hostCallbacks = {
   onScoreLoaded: null,
   onPlaybackTimelineChanged: null,
+  onPlayerFinished: null,
   onPlayerPositionChanged: null,
   onPlayerStateChanged: null,
 };
@@ -308,6 +309,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   hostCallbacks = {
     onScoreLoaded: callbacks.onScoreLoaded || null,
     onPlaybackTimelineChanged: callbacks.onPlaybackTimelineChanged || null,
+    onPlayerFinished: callbacks.onPlayerFinished || null,
     onPlayerPositionChanged: callbacks.onPlayerPositionChanged || null,
     onPlayerStateChanged: callbacks.onPlayerStateChanged || null,
   };
@@ -442,6 +444,8 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     setStatus('Player ready');
   });
 
+  alphaTabApi.playerFinished.on(() => hostCallbacks.onPlayerFinished?.());
+
   alphaTabApi.playerStateChanged.on((event) => {
     const state = event?.state ?? event;
     const normalizedState = typeof state === 'number' ? state : String(state).toLowerCase();
@@ -455,10 +459,14 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     const currentTime = event?.currentTime ?? 0;
     AppState.timePositionMs = currentTime;
     AppState.tickPosition = event?.currentTick ?? 0;
+    AppState.playbackSpeed = alphaTabApi.playbackSpeed || 1;
     setPlaybackPosition(currentTime);
     hostCallbacks.onPlayerPositionChanged?.({
       currentTime,
       currentTick: AppState.tickPosition,
+      at: performance.now(),
+      speed: AppState.playbackSpeed,
+      isSeek: Boolean(event?.isSeek),
     });
   });
 

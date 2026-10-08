@@ -4,7 +4,70 @@
 
 import { AppState } from './app-state.js';
 import { midiToNoteName } from './note-utils.js';
-import { getPracticeEvents } from './score-playback.js';
+import { getPracticeEvents, tickToTimeMs } from './score-playback.js';
+import { RealtimeSession } from './realtime-session.js';
+
+let realtime = null;
+
+export function resetRealtimeSession(reason = 'reset', tick = AppState.tickPosition) {
+  realtime = new RealtimeSession(AppState.expectedEvents, {
+    hex: AppState.inputMode === 'hex-6ch', latencyMs: AppState.trainer.latencyMs || 0,
+  });
+  realtime.reset(tickToTimeMs(AppState.playbackTimeline, tick) ?? 0, AppState.playbackSpeed || 1);
+  AppState.trainer.sessionReason = reason;
+  publishRealtimeStats();
+}
+
+function publishRealtimeStats() {
+  AppState.trainer.results = realtime?.stats() ?? null;
+  AppState.trainer.lastFeedback = realtime?.lastFeedback ?? null;
+  AppState.trainer.sessionStarted = Boolean(realtime?.started);
+  AppState.trainer.sessionCompleted = Boolean(realtime?.completed);
+}
+
+export function handlePlaybackPosition({currentTick, at = performance.now(), speed = 1, isSeek = false}) {
+  const scoreMs = tickToTimeMs(AppState.playbackTimeline,currentTick);
+  if (scoreMs === null) return;
+  if (!realtime) resetRealtimeSession('playback-ready', currentTick);
+  if (isSeek || (realtime.anchor && (scoreMs < realtime.anchor.scoreMs - 2 || speed !== realtime.anchor.speed))) {
+    resetRealtimeSession('seek-or-speed-change',currentTick);
+    realtime.started = AppState.isPlaying;
+  }
+  realtime.anchorPosition(scoreMs,at,speed);
+  if (AppState.isPlaying) {
+    realtime.started = true;
+    realtime.advance(scoreMs-(AppState.trainer.latencyMs||0)*speed,speed);
+  }
+  publishRealtimeStats();
+  updateActiveTargetsFromPlayback(currentTick);
+}
+
+export function handlePlaybackState() {
+  if (!realtime) resetRealtimeSession('transport');
+  if (AppState.isPlaying) {
+    if (realtime.completed) resetRealtimeSession('restart');
+    realtime.started = true;
+  }
+  realtime.anchorPosition(tickToTimeMs(AppState.playbackTimeline,AppState.tickPosition)??0,performance.now(),AppState.playbackSpeed||1);
+  publishRealtimeStats();
+  refreshTrainerMatchState();
+}
+
+export function advanceRealtimeClock(at = performance.now()) {
+  if (!realtime?.started || !AppState.isPlaying || realtime.completed) return;
+  const scoreMs = realtime.scoreTime(at);
+  if (scoreMs === null) return;
+  realtime.advance(scoreMs-realtime.latencyMs*realtime.anchor.speed,realtime.anchor.speed);
+  publishRealtimeStats();
+  refreshTrainerMatchState();
+}
+
+export function finishRealtimeSession() {
+  realtime?.finish();
+  publishRealtimeStats();
+  refreshTrainerMatchState();
+}
+
 
 function getTrackId(track, index) {
   return String(track?.index ?? index);
@@ -108,6 +171,7 @@ export function buildExpectedEventsFromPracticeTrack({ tracks = AppState.tracks,
 
   if (!track) {
     AppState.expectedEvents = [];
+    resetRealtimeSession('track-change');
     AppState.activeTargets = [];
     setTrainerState({
       currentEventIndex: -1,
@@ -123,6 +187,7 @@ export function buildExpectedEventsFromPracticeTrack({ tracks = AppState.tracks,
   const expectedEvents = getPracticeEvents(timeline, practiceTrackId);
   const trackName = track.name?.trim() || `Track ${trackIndex + 1}`;
   AppState.expectedEvents = expectedEvents;
+  resetRealtimeSession('score-or-track-change');
   AppState.activeTargets = expectedEvents.length ? [expectedEvents[0]] : [];
 
   if (!expectedEvents.length) {
@@ -178,6 +243,28 @@ export function refreshTrainerMatchState(position = AppState.tickPosition) {
     detectedPitches,
   });
 
+  if (realtime?.started) {
+    const record = realtime.recordFor(currentEvent?.id);
+    const feedback = realtime.lastFeedback;
+    let matchState = 'idle';
+    let status = realtime.completed ? 'Practice complete' : AppState.isPlaying ? 'Realtime practice • listening for new note attacks' : 'Paused • resume to continue grading';
+    if (record && !record.skipped) {
+      const hits = record.slots.filter(slot=>slot.hit).length;
+      matchState = hits === record.slots.length ? 'match' : record.slots.some(slot=>slot.missed) ? 'missed' : hits ? 'partial' : 'waiting';
+      status = `Measure ${currentEvent.measureNumber} • ${hits}/${record.slots.length} required attacks played`;
+      if (record.slots.some(slot=>slot.missed)) status += ' • missing notes';
+    }
+    if (feedback?.type === 'wrong' && (!currentEvent || feedback.eventId === currentEvent.id)) {
+      matchState = 'mismatch'; status = `Wrong or out-of-time attack: ${midiToNoteName(feedback.midi)}`;
+    } else if (!record && feedback?.type === 'missed' && !realtime.completed) {
+      matchState = 'missed'; status = `Missed: ${formatPitchList(feedback.pitches)}`;
+    }
+    const stats = realtime.stats();
+    if (realtime.completed) status = 'Practice complete';
+    setTrainerState({matchState,status,summary:`Correct ${stats.correct} • Wrong ${stats.wrong} • Missed ${stats.missed} • Pending ${stats.pending}`,awaitingReleaseForEventId:null});
+    return matchState;
+  }
+
   if (!currentEvent) {
     setTrainerState({
       matchState: 'idle',
@@ -227,5 +314,10 @@ export function refreshTrainerMatchState(position = AppState.tickPosition) {
 
 export function handleMidiEvent(midiEvent) {
   AppState.midi.lastEvent = midiEvent;
+  if (midiEvent?.type === 'note-on' && AppState.isPlaying && realtime?.started) {
+    const at = Number.isFinite(midiEvent.at) ? midiEvent.at : performance.now();
+    realtime.noteOn(midiEvent,realtime.scoreTime(at),realtime.anchor?.speed || 1);
+    publishRealtimeStats();
+  }
   return refreshTrainerMatchState(AppState.tickPosition);
 }
