@@ -10,7 +10,7 @@ export class WaitController {
   }
   configure(events,endTick,hex=false,loop=false,chordSettings={}) {
     this.stop();this.events=events;this.endTick=endTick;this.hex=hex;
-    this.loop=loop;this.pass=1;this.lastPassResults=null;
+    this.loop=loop;this.pass=1;this.lastPassResults=null;this.passHistory=[];
     this.chordSettings={chordMode:chordSettings.mode,chordWindowMs:chordSettings.windowMs};
     this.session=new WaitSession(events,{hex,...this.chordSettings});this.index=-1;this.publish();
   }
@@ -32,6 +32,8 @@ export class WaitController {
     this.onChange({phase:this.phase,active:this.active,currentEvent,currentEventIndex:this.index,matchState,status,
       summary:stats?`${this.loop?`Pass ${this.pass} • `:''}Correct ${stats.correct} • Wrong ${stats.wrong} • Remaining ${stats.pending}${stats.retries?` • Chord retries ${stats.retries}`:''}`:'No targets loaded',
       results:stats,noteStates:noteStatesFromRecords(this.session?.records),lastFeedback:this.session?.lastFeedback,
+      history:this.session?.feedbackHistory(this.pass)??[],passHistory:this.passHistory,
+      liveWrongNotes:[...(this.session?.liveWrong.values()??[])],
       lastPassResults:this.lastPassResults,pass:this.pass,sessionStarted:this.active||this.phase==='complete',sessionCompleted:this.phase==='complete'});
   }
   toggle(tick=this.position) {
@@ -49,7 +51,7 @@ export class WaitController {
   start(tick=0) {
     this.transport.acquire();this.active=true;this.manualPaused=false;this.position=tick;
     this.pauseOffset=0;this.pausedAt=null;
-    this.session=new WaitSession(this.events,{hex:this.hex,...this.chordSettings});this.pass=1;this.lastPassResults=null;
+    this.session=new WaitSession(this.events,{hex:this.hex,...this.chordSettings});this.pass=1;this.lastPassResults=null;this.passHistory=[];
     this.index=this.events.findIndex(e=>e.startTick>=tick-1);
     if(this.index<0) {this.index=0;this.position=0;tick=0;}
     this.session.skipBefore(this.index);
@@ -62,11 +64,14 @@ export class WaitController {
   noteOn(note) {
     // Target identity is ready before the asynchronous native cursor seek.
     // Accept attacks during positioning; never depend on playback/duration.
+    // Releases also apply while paused, so stale held markers never reappear.
+    if(note.type==='note-off') {if(this.session.noteOff(note))this.publish();return null;}
     if(!this.active || !['waiting','seeking'].includes(this.phase) || note.type!=='note-on')return null;
     const at=(Number.isFinite(note.at)?note.at:this.now())-this.pauseOffset;
     const result=this.session.noteOn(this.index,note,at);
     this.publish();
     if(result?.complete) {
+      this.session.clearLiveWrong();
       const next=this.index+1;
       if(next<this.events.length)this.gate(next);else this.complete();
     }
@@ -93,9 +98,21 @@ export class WaitController {
     this.transport.pause();this.active=false;this.start(tick);
     if(paused) {this.manualPaused=true;this.pausedAt=this.now();this.pausedFrom=this.phase;this.phase='paused';this.transport.pause();this.publish();}
   }
+  newAttemptHere(tick=this.position) {
+    // Keep the active gate and transport state, including an in-flight gate seek.
+    // No native seek or release/acquire is needed to clear an attempt's results.
+    const index=this.active ? this.index : this.events.findIndex(e=>e.startTick>=tick-1);
+    this.session=new WaitSession(this.events,{hex:this.hex,...this.chordSettings});
+    this.session.skipBefore(index<0 ? this.events.length : index);
+    this.pass=1;this.lastPassResults=null;this.passHistory=[];
+    this.pauseOffset=0;this.pausedAt=this.manualPaused ? this.now() : null;
+    if(!this.active) {this.index=index;this.phase='idle';this.position=tick;this.desiredTick=null;}
+    this.publish();
+  }
   complete() {
     if(this.loop && this.events.length) {
-      this.lastPassResults=this.session.stats();this.pass++;
+      this.lastPassResults=this.session.stats();
+      this.passHistory.push(...this.session.feedbackHistory(this.pass));this.pass++;
       this.session=new WaitSession(this.events,{hex:this.hex,...this.chordSettings});
       this.gate(0);return;
     }
@@ -105,7 +122,7 @@ export class WaitController {
   stop() {
     const wasActive=this.active||this.phase==='complete';
     this.active=false;this.phase='idle';this.index=-1;this.manualPaused=false;this.desiredTick=null;
-    this.pass=1;this.lastPassResults=null;
+    this.pass=1;this.lastPassResults=null;this.passHistory=[];
     this.pauseOffset=0;this.pausedAt=null;
     this.session=new WaitSession(this.events,{hex:this.hex,...this.chordSettings});
     if(wasActive)this.transport.release();this.publish();

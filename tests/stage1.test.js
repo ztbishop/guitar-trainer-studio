@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { AppState } from '../js/app-state.js';
-import { buildExpectedEventsFromPracticeTrack, updateActiveTargetsFromPlayback, refreshTrainerMatchState, handleMidiEvent } from '../js/practice-engine.js';
+import { buildExpectedEventsFromPracticeTrack, updateActiveTargetsFromPlayback, refreshTrainerMatchState, handleMidiEvent, handlePlaybackPosition, handlePlaybackState } from '../js/practice-engine.js';
 import { normalizeMidiMessage, initMidiRouter, clearActiveMidiNotes, setActiveMidiInput } from '../js/midi-router.js';
 import { channelToStringHint, formatStringHint } from '../js/note-utils.js';
 import { initToolbar } from '../js/toolbar-ui.js';
@@ -140,7 +140,7 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
     constructor(container,settings) {
       api=this; this.settings=new context.alphaTab.Settings(); this.calls=[];this.player={output:{activate:()=>this.calls.push('activate')}};
       this.constructorSettings=settings;
-      for(const name of ['playerFinished','scoreLoaded','midiLoaded','playerReady','playerStateChanged','playerPositionChanged','error','renderStarted','postRenderFinished']) this[name]={on:fn=>this[name].emit=fn};
+      for(const name of ['playerFinished','scoreLoaded','midiLoaded','playerReady','playerStateChanged','playerPositionChanged','beatMouseDown','error','renderStarted','postRenderFinished']) this[name]={on:fn=>this[name].emit=fn};
     }
     updateSettings(...args) { assert.equal(args.length,0); this.calls.push('update'); }
     render() { this.calls.push('render'); }
@@ -155,7 +155,9 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   let position;
   const timelineChanges=[];
   const container=new Element('container');
-  await initAlphaTab(container, {onPlayerPositionChanged:e=>position=e, onPlaybackTimelineChanged:t=>timelineChanges.push(t)});
+  let gradeTransport = false;
+  await initAlphaTab(container, {onPlayerPositionChanged:e=>{position=e;if(gradeTransport)handlePlaybackPosition(e)},
+    onPlayerStateChanged:()=>{if(gradeTransport)handlePlaybackState()}, onPlaybackTimelineChanged:t=>timelineChanges.push(t)});
   assert.equal(api.constructorSettings.core.includeNoteBounds,true);
   assert.equal(elements.get('toolbar-score-value').textContent,'—');
   const originalSoundFont=api.settings.player.soundFont;
@@ -179,6 +181,16 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   setNotationFeedback(marks,false);assert.equal(overlay.children.length,0);
   setNotationFeedback(marks,true);api.renderStarted.emit();assert.equal(overlay.children.length,0);
   api.postRenderFinished.emit();assert.equal(overlay.children.length,1);
+  // Stage 8: actual native bounds plus host SVG redraw/toggle wiring.
+  const renderSettings=new alpha.Settings();renderSettings.core.engine='svg';renderSettings.core.includeNoteBounds=true;
+  const nativeRenderer=new alpha.rendering.ScoreRenderer(renderSettings);nativeRenderer.width=900;nativeRenderer.renderScore(score,[0]);
+  api.boundsLookup=nativeRenderer.boundsLookup;
+  const pitchMark={kind:'wrong-pitches',sourceNoteId:String(renderedNote.id),label:'Errors: F2 (41)',retained:true,pitches:[41]};
+  setNotationFeedback([...marks,pitchMark]);assert.equal(overlay.children.length,3);
+  assert.equal(overlay.children.at(-1).textContent,'Errors: F2 (41)');
+  assert.equal(overlay.children.at(-1).attrs.class,'wrong-pitch-label');
+  setNotationFeedback([...marks,pitchMark],false);assert.equal(overlay.children.length,0);
+  setNotationFeedback([...marks,pitchMark],true);api.renderStarted.emit();api.postRenderFinished.emit();assert.equal(overlay.children.length,3);
   const generator=new alpha.midi.MidiFileGenerator(score,new alpha.Settings(),new alpha.midi.AlphaSynthMidiFileHandler(new alpha.midi.MidiFile()));
   generator.generate(); api.tickCache=generator.tickLookup;
   api.midiLoaded.emit({});
@@ -190,6 +202,60 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   assert.equal(position.currentTick,960); assert.equal(position.currentTime,500);
   assert.equal(position.speed,1); assert.equal(position.isSeek,false);
   assert.ok(Number.isFinite(position.at));
+  // Exercise the actual full API Pause handler, which the synth-only test omitted.
+  api.tracks=score.tracks;AppState.practiceTrackId='0';AppState.practiceLoop={enabled:false,range:null};
+  AppState.trainer.latencyMs=0;AppState.inputMode='single-channel';
+  buildExpectedEventsFromPracticeTrack();gradeTransport=true;handlePlaybackState();
+  api.playerPositionChanged.emit({currentTick:0,currentTime:0});
+  handleMidiEvent({type:'note-on',midi:40,channel:1,at:position.at});
+  handleMidiEvent({type:'note-on',midi:41,channel:1,at:position.at});
+  api.playerPositionChanged.emit({currentTick:480,currentTime:250});
+  const beforePause=structuredClone(AppState.trainer.results);
+  assert.equal(beforePause.accuracy,50);
+  const nativePauseApi={_isDestroyed:false,_currentBeat:api.tickCache.findBeat(new Set([0]),480),_tickCache:api.tickCache,
+    _player:{set tickPosition(tick){api.playerPositionChanged.emit({currentTick:tick,currentTime:0,isSeek:true})}},
+    scrollToCursor(){},uiFacade:{triggerEvent(){}}};
+  api.playPause=()=>{
+    context.alphaTab.AlphaTabApi.prototype._onPlayerStateChanged.call(nativePauseApi,{state:0,stopped:false});
+    api.playerStateChanged.emit({state:0,stopped:false});
+  };
+  play();assert.equal(position.isPauseSnap,true);assert.equal(AppState.tickPosition,0);
+  assert.deepEqual(AppState.trainer.results,beforePause);assert.equal(AppState.trainer.sessionStarted,true);
+  api.playerStateChanged.emit({state:1});assert.deepEqual(AppState.trainer.results,beforePause);
+  // Worker delivery puts the seek acknowledgement after the Paused callback.
+  api.playerPositionChanged.emit({currentTick:480,currentTime:250});
+  api.playPause=()=>api.playerStateChanged.emit({state:0,stopped:false});play();
+  api.playerPositionChanged.emit({currentTick:0,currentTime:0,isSeek:true});
+  assert.equal(position.isPauseSnap,true);assert.deepEqual(AppState.trainer.results,beforePause);
+  api.playerPositionChanged.emit({currentTick:960,currentTime:500,isSeek:true});
+  assert.equal(position.isPauseSnap,false);assert.equal(AppState.trainer.results.correct,0);
+  // Cursor layout can lag the received tick, especially across repeats/tracks.
+  // Exercise the native API handler with a different current beat than the host
+  // would predict. Protection must be tied to the Pause action, not that guess.
+  AppState.tickPosition=0;buildExpectedEventsFromPracticeTrack();
+  api.playerStateChanged.emit({state:1});api.playerPositionChanged.emit({currentTick:0,currentTime:0});
+  handleMidiEvent({type:'note-on',midi:40,channel:1,at:position.at});
+  handleMidiEvent({type:'note-on',midi:41,channel:1,at:position.at});
+  api.playerPositionChanged.emit({currentTick:4500,currentTime:2343.75});
+  const laggedCursorResults=structuredClone(AppState.trainer.results);
+  nativePauseApi._currentBeat=api.tickCache.findBeat(new Set([0]),0);
+  api.playPause=()=>{
+    context.alphaTab.AlphaTabApi.prototype._onPlayerStateChanged.call(nativePauseApi,{state:0,stopped:false});
+    api.playerStateChanged.emit({state:0,stopped:false});
+  };
+  play();assert.equal(position.isPauseSnap,true);
+  assert.deepEqual(AppState.trainer.results,laggedCursorResults);
+  // Queued non-seek worker positions while paused must not clear results either.
+  api.playerPositionChanged.emit({currentTick:4500,currentTime:2343.75});
+  api.playerPositionChanged.emit({currentTick:0,currentTime:0});
+  assert.deepEqual(AppState.trainer.results,laggedCursorResults);
+  // No snap was emitted: a subsequent deliberate score click must reset.
+  api.playerStateChanged.emit({state:1});
+  api.playPause=()=>api.playerStateChanged.emit({state:0,stopped:false});play();
+  api.beatMouseDown.emit(renderedNote.beat);
+  api.playerPositionChanged.emit({currentTick:960,currentTime:500,isSeek:true});
+  assert.equal(position.isPauseSnap,false);assert.equal(AppState.trainer.results.correct,0);
+  gradeTransport=false;
   assert.equal(stop(),true); assert.equal(AppState.isPlaying,false);
   const originalRange={startTick:0,endTick:3840};api.playbackRange=originalRange;api.isLooping=true;api.countInVolume=0.5;
   acquireWaitTransport();assert.equal(api.calls.at(-1),'activate');assert.equal(api.isLooping,false);assert.equal(api.countInVolume,0);

@@ -1,6 +1,38 @@
 # Development notes
 
-Use TODO.md for current status and priorities, ARCHITECTURE.md for module boundaries, and STAGE-1 through STAGE-7 for implementation and validation details. Update these files in future packages so project decisions survive a new chat.
+Use TODO.md for current status and priorities, ARCHITECTURE.md for module boundaries, and STAGE-1 through STAGE-8 for implementation and validation details. Update these files in future packages so project decisions survive a new chat.
+
+## 2026-10-10 — Realtime Pause protection without predicted beats
+
+User reported Realtime still clears on Pause after the first follow-up. That fix relied on guessing the API's current cursor beat from the host's last received tick. Those can differ because worker position delivery and native cursor rendering are asynchronous. Added regression coverage invokes the actual bundled native Pause handler with a cursor beat different from the received position; it fails against the previous host. A second regression reproduces a queued non-seek backward position update clearing results while already paused; it fails against the previous engine.
+
+Manual Pause now immediately freezes app-side grading and marks one pending native Pause seek, without guessing its destination. The acknowledgement reanchors without clearing results. Play, stopped events and deliberate score mouse-down clear unused protection, so a later user seek is not swallowed. Non-seek backward updates while paused reanchor without starting a new attempt; explicit seeks and backward playback while running retain reset semantics. Native alphaTab cursor/audio behavior is unchanged. New attempt here remains available and Play/Resume remains retention-preserving.
+
+99 tests pass, with both new regression scenarios demonstrated failing against the previous implementation and passing now. Tests also cover native synchronous and worker-style Pause delivery, intentional score clicks after a pause without a snap, Reset, completion/replay and all existing Wait/new-attempt behavior. No browser/physical-MIDI validation has been performed here; this correction still needs user acceptance with the original failing setup. Deliver only the eight files changed since New attempt here, including the updated project notes.
+
+## 2026-10-10 — New attempt at current position
+
+User agreed to preserve Play/Resume retention and add an explicit **New attempt here** action in Practice. It clears grading, outlines, and Wait live/retained/pass history without moving the cursor or changing running/paused state. Wait retains the active gate (including an outstanding cursor acknowledgement), clears partial chord hits/retries and resets its Together clock; prior targets are skipped for this new attempt. Realtime rebuilds results at the current tick and reanchors its clock, so it can continue immediately when already playing. Existing reset/seek/loop behavior and score formulas remain unchanged. At a completed/end position the action clears the summary in place; Play still follows the existing completed replay behavior.
+
+`attempt-controls.js` owns the button wiring/readiness only; bootstrap routes the intent and clears stale held MIDI display; the engine/controller own the session reset. The action is disabled until the native player and practice targets are ready. 98 tests pass, including 4 new tests for paused partial Together chords, clearing previous loop-pass review, in-flight gate preservation, Realtime running/paused continuation, and button readiness. Local browser/MIDI acceptance is still required. Deliver only this update's changed/new files and a git commit description.
+
+## 2026-10-10 — Realtime Pause beat-snap correction
+
+User confirmed Wait retains its percentage but reported Realtime still clears on Pause. The bundled full AlphaTabApi `_onPlayerStateChanged` seeks to the current beat start for a non-stopped Paused event. This can move backward from mid-beat and was absent from the earlier synth-only test. The host now identifies the expected one-shot Pause seek using the rendered tracks and native tick lookup, marks it `isPauseSnap`, and keeps input paused. The engine reanchors the clock/cursor without clearing results, percentage, or note states. Native beat snapping is preserved; deliberate seeks, Reset, loop rewinds and completed replay retain their reset rules. No UI or scoring formula changes.
+
+94 tests pass. The host regression invokes the bundled API's actual Pause handler mid-beat with a mixed 50% score and covers both synchronous seek-before-state and worker-style state-before-seek delivery. Engine regression verifies retained mixed results, ignored paused attacks, Resume and subsequent explicit seek reset. Browser/physical MIDI acceptance remains pending: pause mid-beat several times in Realtime, including within a loop, resume, and confirm Reset clears the score. Deliver only files changed since the Stage 8 ZIP, with a git commit description.
+
+## 2026-10-10 — Stage 8 retention and first Wait feedback increments
+
+Inspected the bundled native synthesizer: ordinary Pause changes player state without seeking; no failing ordinary Pause sequence was reproduced by the baseline tests. The prior engine nevertheless reset on every `isSeek` notification. Stage 8 preserves unchanged-position seek acknowledgements through Pause/Resume, while actual seeks/loop rewinds still reset. A native integration test also exposed/covered Finished → automatic rewind → Paused; the final summary now survives that rewind until replay. No claim is made that all hardware causes of the user's original report have been reproduced.
+
+Wait now stores received wrong pitches by event occurrence, retains them through completion/expiry/Pause, and uses one completed-with-errors outcome for every note in an error chord. Original score/tab content is untouched. Live errors release independently by channel/pitch, including while paused, and clear on completion. Current/latest occurrences own written-score overlays; previous loop passes retain review history while new pass scoring stays fresh.
+
+First notation increment uses red actual pitch-name/MIDI text at native standard-notation target bounds, live while held and retained after completion. Display can hide live labels or history independently. Practice lists completed mistakes by pass/measure/occurrence/target. Precise staff notehead glyphs and verified-Hex temporary fret labels remain explicit next increments: do not guess glyph y from unlaid-out accidental-helper values or equate configured channels/MPE with verified physical strings. The latest TODO specification is still the final intended behavior.
+
+Percentage formulas are unchanged. Duplicate attacks of an already-collected required pitch retain the previous wrong-attack penalty, but are not received-wrong pitches and do not enter pitch history or turn solved targets red. Together timeouts remain retries without wrong/missed penalties. This distinction is documented rather than silently changing scoring.
+
+93 tests pass, including native synth transport integration and native SVG bounds across supported profiles/zoom, host redraw/visibility, independent releases, chords, retries, resets and occurrence/pass isolation. Browser alignment and physical MIDI remain pending; see STAGE-8.md for local checks and limits. Deferred features and Piano Trainer are untouched.
 
 ## 2026-10-08 — Stage 7 Wait chord options
 

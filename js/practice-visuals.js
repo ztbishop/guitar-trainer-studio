@@ -1,10 +1,13 @@
+import {midiToNoteName} from './note-utils.js';
+
 // Translate grading records into display data. No grading or alphaTab APIs here.
 export function noteStatesFromRecords(records=[]) {
   const states={};
   for(const record of records) {
     if(record.skipped)continue;
     for(const slot of record.slots) {
-      const status=slot.hit ? 'correct' : slot.missed ? 'missed' : null;
+      const completedWithErrors=record.wrongNotes?.length>0 && record.slots.every(s=>s.hit);
+      const status=completedWithErrors ? 'completed-with-errors' : slot.hit ? 'correct' : slot.missed ? 'missed' : null;
       if(status)for(const id of slot.noteIds)states[id]=status;
     }
   }
@@ -67,4 +70,54 @@ export function buildFretboardModel({track,currentEvent,noteStates={},activeNote
 export function fretX(fret,maxFret,leftHanded=false) {
   const x=70+(fret+0.5)*1060/(maxFret+1);
   return leftHanded ? 1200-x : x;
+}
+
+
+// Keep actual received pitches separate from the compact completed-tab summary.
+// Latest/current occurrence wins on shared written notes; old passes remain review data.
+export function buildWrongPitchMarks(events,currentEvent,history=[],liveWrongNotes=[],{showLive=true,showHistory=true}={}) {
+  const records=new Map(history.map(record=>[record.eventId,record]));
+  const bySource=new Map();
+  const put=(event)=>{
+    const anchor=event.notes.find(note=>note.sourceNoteId!=null);if(!anchor)return;
+    const record=records.get(event.id);
+    const notes=event.id===currentEvent?.id && !record?.completed
+      ? (showLive?liveWrongNotes.filter(note=>note.eventId===event.id):[])
+      : (showHistory && record?.completed?record.wrongNotes:[]);
+    const pitches=[...new Set(notes.map(note=>note.midi))];
+    bySource.set(String(anchor.sourceNoteId),pitches.length?{kind:'wrong-pitches',sourceNoteId:String(anchor.sourceNoteId),
+      eventId:event.id,retained:Boolean(record?.completed),pitches,
+      label:`${record?.completed?'Errors':'Heard'}: ${pitches.map(midi=>`${midiToNoteName(midi)} (${midi})`).join(', ')}`} : null);
+  };
+  for(const event of events)if(records.get(event.id)?.completed)put(event);
+  if(currentEvent)put(currentEvent);
+  return [...bySource.values()].filter(Boolean);
+}
+
+// Pitch labels are anchored beside the original note, never a guessed staff notehead.
+// The host identifies standard-notation bounds; tab remains a red/green summary.
+export function wrongPitchLabels(marks,noteLookup,boundsLookup,isStandardBound) {
+  const labels=[];if(!boundsLookup?.isFinished)return labels;
+  for(const mark of marks) {
+    const note=noteLookup.get(mark.sourceNoteId);if(!note)continue;
+    for(const beat of boundsLookup.findBeats(note.beat)||[]) {
+      const bound=beat.notes?.find(item=>String(item.note.id)===mark.sourceNoteId);
+      const b=bound?.noteHeadBounds;
+      if(!b || ![b.x,b.y,b.w,b.h].every(Number.isFinite) || b.w<=0 || b.h<=0 || !isStandardBound(note,beat,b))continue;
+      labels.push({...mark,x:b.x+b.w+7,y:b.y-5});break;
+    }
+  }
+  return labels;
+}
+
+
+export function standardBeatForNote(note,boundsLookup,profile=0) {
+  const staff=note.beat?.voice?.bar?.staff;if(!staff)return null;
+  if(![0,1,2].includes(profile))return null;
+  if(profile===0 && (!staff.showStandardNotation || staff.showSlashNotation || staff.showNumberedNotation))return null;
+  const candidates=(boundsLookup?.findBeats(note.beat)||[]).filter(beat=>beat.notes?.some(bound=>String(bound.note.id)===String(note.id)))
+    .sort((a,b)=>(a.barBounds?.visualBounds?.y??Infinity)-(b.barBounds?.visualBounds?.y??Infinity));
+  const expectedCount=profile===2?1:profile===1?2:1+Number(Boolean(staff.showTablature));
+  if(candidates.length!==expectedCount || candidates.some(beat=>!Number.isFinite(beat.barBounds?.visualBounds?.y)))return null;
+  return candidates[0]??null;
 }

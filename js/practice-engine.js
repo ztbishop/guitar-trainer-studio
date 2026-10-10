@@ -10,8 +10,12 @@ import { eventsInRange } from './practice-range.js';
 import { noteStatesFromRecords } from './practice-visuals.js';
 
 let realtime = null;
+let lastPositionTick = null;
+let finishedAwaitingRewind = false;
 
 export function resetRealtimeSession(reason = 'reset', tick = AppState.tickPosition) {
+  lastPositionTick = tick;
+  finishedAwaitingRewind = false;
   realtime = new RealtimeSession(AppState.expectedEvents, {
     hex: AppState.inputMode === 'hex-6ch', latencyMs: AppState.trainer.latencyMs || 0,
   });
@@ -28,14 +32,42 @@ function publishRealtimeStats() {
   AppState.trainer.noteStates = noteStatesFromRecords(realtime?.records);
 }
 
-export function handlePlaybackPosition({currentTick, at = performance.now(), speed = 1, isSeek = false}) {
+export function newRealtimeAttemptHere(at = performance.now()) {
+  const started = Boolean(realtime?.started || AppState.isPlaying);
+  resetRealtimeSession('new-attempt-here', AppState.tickPosition);
+  realtime.started = started;
+  realtime.anchorPosition(tickToTimeMs(AppState.playbackTimeline,AppState.tickPosition) ?? 0,at,AppState.playbackSpeed || 1);
+  publishRealtimeStats();
+  updateActiveTargetsFromPlayback(AppState.tickPosition);
+}
+
+export function handlePlaybackPosition({currentTick, at = performance.now(), speed = 1, isSeek = false, isPauseSnap = false}) {
   const scoreMs = tickToTimeMs(AppState.playbackTimeline,currentTick);
   if (scoreMs === null) return;
   if (!realtime) resetRealtimeSession('playback-ready', currentTick);
-  if (isSeek || (realtime.anchor && (scoreMs < realtime.anchor.scoreMs - 2 || speed !== realtime.anchor.speed))) {
+  if (isPauseSnap) {
+    lastPositionTick = currentTick;
+    realtime.anchorPosition(scoreMs,at,speed);
+    publishRealtimeStats();
+    updateActiveTargetsFromPlayback(currentTick);
+    return;
+  }
+  // Native non-loop completion reports Finished then seeks back before Paused.
+  // Retain the finished summary through that automatic transport rewind.
+  if(finishedAwaitingRewind && isSeek && Math.abs(currentTick-(AppState.practiceLoop.range?.startTick??0))<=2) {
+    finishedAwaitingRewind=false;lastPositionTick=currentTick;
+    realtime.anchorPosition(scoreMs,at,speed);publishRealtimeStats();
+    updateActiveTargetsFromPlayback(currentTick);return;
+  }
+  finishedAwaitingRewind=false;
+  // Native seek acknowledgements at the unchanged position are not new attempts.
+  // A real seek, loop rewind, speed change or completed replay still resets grading.
+  const movedSeek = isSeek && (lastPositionTick === null || Math.abs(currentTick-lastPositionTick)>2 || realtime.completed);
+  if (movedSeek || (realtime.anchor && ((AppState.isPlaying && scoreMs < realtime.anchor.scoreMs - 2) || speed !== realtime.anchor.speed))) {
     resetRealtimeSession('seek-or-speed-change',currentTick);
     realtime.started = AppState.isPlaying;
   }
+  lastPositionTick = currentTick;
   realtime.anchorPosition(scoreMs,at,speed);
   if (AppState.isPlaying) {
     realtime.started = true;
@@ -67,6 +99,7 @@ export function advanceRealtimeClock(at = performance.now()) {
 
 export function finishRealtimeSession() {
   realtime?.finish();
+  finishedAwaitingRewind=Boolean(realtime?.completed) && !AppState.practiceLoop.enabled;
   publishRealtimeStats();
   refreshTrainerMatchState();
 }

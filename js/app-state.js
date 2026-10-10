@@ -57,6 +57,8 @@ export const AppState = {
     layoutMode: 'page',
     showFretboard: false,
     showNotationFeedback: true,
+    showLiveErrors: true,
+    showErrorHistory: true,
     leftHanded: false,
     loadedFileName: '',
     playerStatus: 'Waiting for score',

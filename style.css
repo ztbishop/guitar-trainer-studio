@@ -1263,3 +1263,8 @@ body.has-score .alphatab-wrapper {
 .fretboard-marker-target text { fill:white; font-size:9px; font-weight:bold; }
 .fretboard-marker-played circle { fill:transparent; stroke:currentColor; stroke-width:2.5; }
 #fretboard-container { max-height:32vh; overflow-y:auto; }
+
+/* Stage 8 feedback additions: native score remains untouched. */
+.notation-feedback-overlay [data-state='completed-with-errors'] { stroke:#dc2626; }
+.notation-feedback-overlay .wrong-pitch-label { fill:#dc2626; font:600 11px system-ui,sans-serif; paint-order:stroke; stroke:white; stroke-width:3px; stroke-linejoin:round; }
+.trainer-error-history { color:#b91c1c; font-size:12px; max-height:150px; overflow:auto; padding-left:18px; }

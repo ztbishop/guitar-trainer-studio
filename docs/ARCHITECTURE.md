@@ -58,15 +58,24 @@ The app should preserve native alphaTab features wherever possible and layer cus
 - Transport-controls owns Tempo/Loop form wiring and invokes bootstrap actions. All alphaTab speed/range operations remain in alphatab-host.
 - AppState.practiceLoop records the applied range. Realtime uses native looping; Wait loops its filtered target list without starting score playback.
 
+### Realtime transport retention
+- alphatab-host freezes app-side playing state on manual Pause and forwards one-shot `isPauseSnap` metadata for the native Pause seek; it does not predict the cursor beat from delayed playback ticks. Play, stopped events and score mouse-down clear unused protection. practice-engine reanchors the Pause position without resetting grades and retains results through non-seek position rollback while paused.
+- practice-engine preserves grades on unchanged-position native seek acknowledgements and the non-loop Finished → rewind → Paused sequence; actual seeks, loop passes, explicit resets and completed replay start fresh grading.
+
+### `js/attempt-controls.js`
+- Owns Practice → New attempt here button wiring/readiness only. Bootstrap routes the intent to `newRealtimeAttemptHere` or `WaitController.newAttemptHere` and clears held MIDI display.
+- Session modules clear results/feedback at the current position without issuing transport calls; preserve running/paused state and exclude earlier targets. Wait clears partial chord/retry/live/history/pass data while retaining the gate and any outstanding cursor acknowledgement.
+
 ### `js/realtime-session.js`
 - Owns attack matching, chord timing, misses, and scoring for Realtime.
 - Receives normalized events and clock values without directly calling alphaTab.
 
 ### `js/wait-session.js` and `js/wait-controller.js`
-- WaitSession collects required attacks and computes untimed results.
+- WaitSession collects required attacks and computes untimed results. It stores occurrence-specific wrong-pitch attack history and live channel/pitch errors separately from retry/duplicate-required penalties; note-off removes only the corresponding live error.
 - WaitController owns target progression and manual pause state through injected transport operations.
 - A completed target immediately seeks to the next target while native playback remains paused. No duration requirement or backing playback is used.
 - Collect notes accumulates pitches without a time limit. Together uses a configurable active-time attack window, expires incomplete attempts, and keeps retries separate from wrong-note scoring. WaitController subtracts paused time from the MIDI/controller clock.
+- WaitController publishes history/live feedback and archives completed pass records for review, preserving grading/history through Pause/Resume and clearing live markers at target completion.
 - Loop completion starts a fresh Wait pass; Realtime native loop seeks reset grading for the next pass. Score loading clears section selection, while playback speed is retained for the session.
 
 ### `js/practice-timing.js`
@@ -85,6 +94,7 @@ The app should preserve native alphaTab features wherever possible and layer cus
 ### `js/practice-visuals.js`
 - Converts published grading records into per-note display states and resolves repeat occurrences onto written source-note IDs.
 - Prepares six-string target and possible played positions using score tuning/capo, without enforcing string correctness.
+- Prepares live/retained actual pitch labels separately from target red/green summaries and selects supported standard-notation bounds; it never guesses Poly frets or staff notehead placement.
 - Maps prepared marks to native note bounds supplied by the host. Current occurrence feedback takes priority over earlier results for the same written note.
 
 ### `js/toolbar-ui.js`

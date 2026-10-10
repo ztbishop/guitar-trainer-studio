@@ -8,9 +8,9 @@ export class WaitSession {
         if (!slots.has(key)) slots.set(key,{midi:note.midi,noteIds:[],channel:null,hit:false});
         slots.get(key).noteIds.push(note.id);
       }
-      return {eventId:event.id,slots:[...slots.values()],wrong:0,retries:0,attemptStartAt:null,skipped:false};
+      return {eventId:event.id,slots:[...slots.values()],wrong:0,wrongNotes:[],retries:0,attemptStartAt:null,skipped:false};
     });
-    this.hex=hex;this.lastFeedback=null;
+    this.hex=hex;this.lastFeedback=null;this.liveWrong=new Map();
     this.chordMode=chordMode==='together'?'together':'collect';
     this.chordWindowMs=Number.isFinite(chordWindowMs)&&chordWindowMs>=50&&chordWindowMs<=1000?chordWindowMs:200;
   }
@@ -29,10 +29,32 @@ export class WaitSession {
     const expiredAttempt=this.expire(index,at);
     const duplicate=this.hex && record.slots.some(s=>s.hit && s.midi===note.midi && s.channel===note.channel);
     const slot=record.slots.find(s=>!s.hit && s.midi===note.midi);
-    if(!slot || duplicate) {record.wrong++;return this.lastFeedback={type:'wrong',eventId:record.eventId,midi:note.midi,complete:false};}
+    if(!slot || duplicate) {
+      // Repeated/duplicate required tones retain the prior scoring penalty, but
+      // they are not received-wrong pitches and must not turn a solved tab red.
+      const wrongPitch=!record.slots.some(s=>s.midi===note.midi);
+      record.wrong++;
+      const feedback={type:'wrong',eventId:record.eventId,midi:note.midi,channel:note.channel,
+        stringHint:note.stringHint??null,at,wrongPitch,complete:false};
+      if(wrongPitch) {
+        record.wrongNotes.push({...feedback});
+        this.liveWrong.set(`${note.channel}:${note.midi}`,{...feedback});
+      }
+      return this.lastFeedback=feedback;
+    }
     slot.hit=true;slot.channel=note.channel;
     record.attemptStartAt??=at;
     return this.lastFeedback={type:'correct',eventId:record.eventId,midi:note.midi,noteIds:slot.noteIds,expiredAttempt,complete:record.slots.every(s=>s.hit)};
+  }
+  noteOff(note) {
+    return this.liveWrong.delete(`${note.channel}:${note.midi}`);
+  }
+  clearLiveWrong() { this.liveWrong.clear(); }
+  feedbackHistory(pass=1) {
+    return this.records.filter(r=>!r.skipped).map(record=>({eventId:record.eventId,pass,
+      completed:record.slots.every(s=>s.hit),
+      outcome:record.slots.every(s=>s.hit)?(record.wrongNotes.length?'completed-with-errors':'completed-clean'):'pending',
+      wrongNotes:record.wrongNotes.map(note=>({...note})),retries:record.retries}));
   }
   stats() {
     const records=this.records.filter(r=>!r.skipped);const slots=records.flatMap(r=>r.slots);

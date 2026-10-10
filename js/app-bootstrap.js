@@ -8,7 +8,7 @@ import { WaitController } from './wait-controller.js';
 
 import { formatStringHint, midiToNoteName } from './note-utils.js';
 import { initFretboard, renderFretboard } from './fretboard-ui.js';
-import { buildNotationMarks, buildFretboardModel } from './practice-visuals.js';
+import { buildNotationMarks, buildFretboardModel, buildWrongPitchMarks } from './practice-visuals.js';
 import { setNotationFeedback } from './alphatab-host.js';
 import { initMidiRouter, setActiveMidiInput, clearActiveMidiNotes } from './midi-router.js';
 import {
@@ -17,6 +17,7 @@ import {
   handlePlaybackState,
   finishRealtimeSession,
   resetRealtimeSession,
+  newRealtimeAttemptHere,
   buildExpectedEventsFromPracticeTrack,
   handleMidiEvent,
   refreshTrainerMatchState,
@@ -26,9 +27,11 @@ import { initScoreLibrary } from './score-library.js';
 import { initToolbar } from './toolbar-ui.js';
 import { initTransportControls } from './transport-controls.js';
 import { initChordControls } from './chord-controls.js';
+import { initAttemptControls } from './attempt-controls.js';
 
 let transportControls=null;
 let chordControls=null;
+let attemptControls=null;
 
 const waitController = new WaitController({
   acquire:acquireWaitTransport,hold:holdWaitAtTick,
@@ -106,7 +109,7 @@ function wireScoreStageUi() {
   const scoreStage = document.querySelector('.score-stage.viewer-panel');
   const fretboardContainer = document.getElementById('fretboard-container');
   const fullscreenTarget = document.documentElement;
-  for(const [id,key] of [['show-fretboard','showFretboard'],['left-handed-fretboard','leftHanded'],['show-notation-feedback','showNotationFeedback']]) {
+  for(const [id,key] of [['show-fretboard','showFretboard'],['left-handed-fretboard','leftHanded'],['show-notation-feedback','showNotationFeedback'],['show-live-errors','showLiveErrors'],['show-error-history','showErrorHistory']]) {
     const control=document.getElementById(id);
     if(control)control.checked=Boolean(AppState.ui[key]);
     control?.addEventListener('change',()=>{
@@ -188,6 +191,12 @@ function wireTransportButtons() {
 }
 
 function wirePracticeControls() {
+  attemptControls=initAttemptControls(()=>{
+    clearActiveMidiNotes();
+    if(AppState.mode==='wait')waitController.newAttemptHere(AppState.tickPosition);
+    else newRealtimeAttemptHere();
+    renderMidiUi();renderTrainerUi();
+  });
   chordControls=initChordControls(settings=>{
     waitController.stop();pauseWaitTransport();AppState.waitChord=settings;
     clearActiveMidiNotes();configureWaitSession();renderTrainerUi();
@@ -390,6 +399,7 @@ function renderMidiUi() {
 }
 
 function renderTrainerUi() {
+  attemptControls?.sync();
   transportControls?.sync();
   chordControls?.sync();
   const latencyInput = document.getElementById('midi-latency-ms');
@@ -402,7 +412,10 @@ function renderTrainerUi() {
   const detectedNotesEl = document.getElementById('trainer-detected-notes');
 
   const trainer = AppState.mode==='wait' ? (AppState.waitTrainer||AppState.trainer) : AppState.trainer;
-  setNotationFeedback(buildNotationMarks(AppState.expectedEvents,trainer.currentEvent,trainer.noteStates),AppState.ui.showNotationFeedback);
+  const marks=buildNotationMarks(AppState.expectedEvents,trainer.currentEvent,trainer.noteStates);
+  if(AppState.mode==='wait')marks.push(...buildWrongPitchMarks(AppState.expectedEvents,trainer.currentEvent,trainer.history,trainer.liveWrongNotes,
+    {showLive:AppState.ui.showLiveErrors,showHistory:AppState.ui.showErrorHistory}));
+  setNotationFeedback(marks,AppState.ui.showNotationFeedback);
   if(AppState.ui.showFretboard) {
     const track=AppState.tracks.find((item,index)=>getTrackId(item,index)===String(AppState.practiceTrackId));
     renderFretboard(buildFretboardModel({track,currentEvent:trainer.currentEvent,noteStates:trainer.noteStates,
@@ -418,7 +431,18 @@ function renderTrainerUi() {
   const scoreValue = document.getElementById('toolbar-score-value');
   if (scoreValue) {
     scoreValue.textContent = trainer.sessionStarted && trainer.results?.accuracy != null ? `${trainer.results.accuracy}%` : '—';
-    scoreValue.title = trainer.sessionStarted ? 'Correct / (correct + missed + wrong attacks)' : 'Press Play to start practice';
+    scoreValue.title = trainer.sessionStarted ? (AppState.mode==='wait'?'Correct / (correct + wrong attacks); chord retries are separate':'Correct / (correct + missed + wrong attacks)') : 'Press Play to start practice';
+  }
+  const historyEl=document.getElementById('trainer-error-history');
+  if(historyEl) {
+    historyEl.replaceChildren();historyEl.hidden=AppState.mode!=='wait' || !AppState.ui.showErrorHistory;
+    if(!historyEl.hidden)for(const record of [...(trainer.passHistory||[]),...(trainer.history||[])]) {
+      if(!record.completed || !record.wrongNotes.length)continue;
+      const event=AppState.expectedEvents.find(event=>event.id===record.eventId);
+      const item=document.createElement('li');
+      item.textContent=`Pass ${record.pass} • measure ${event?.measureNumber??'—'} • occurrence ${event?.occurrence??1} • target ${(AppState.expectedEvents.indexOf(event)+1)}: ${record.wrongNotes.map(note=>`${midiToNoteName(note.midi)} (${note.midi})`).join(', ')}`;
+      historyEl.appendChild(item);
+    }
   }
   const currentEvent = trainer.currentEvent;
 

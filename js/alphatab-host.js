@@ -4,14 +4,15 @@
 
 import { AppState } from './app-state.js';
 import { buildPlaybackTimeline } from './score-playback.js';
-import { notationRectangles } from './practice-visuals.js';
+import { notationRectangles, wrongPitchLabels, standardBeatForNote } from './practice-visuals.js';
 
 let notationContainer=null,notationOverlay=null,notationMarks=[],notationEnabled=true,notationSignature='';
 let scoreNoteLookup=new Map();
 function drawNotationFeedback() {
   if(!notationContainer)return;
-  const rectangles=notationEnabled?notationRectangles(notationMarks,scoreNoteLookup,alphaTabApi?.boundsLookup):[];
-  if(!rectangles.length) {notationOverlay?.replaceChildren();return;}
+  const rectangles=notationEnabled?notationRectangles(notationMarks.filter(mark=>!mark.kind),scoreNoteLookup,alphaTabApi?.boundsLookup):[];
+  const labels=notationEnabled?wrongPitchLabels(notationMarks.filter(mark=>mark.kind==='wrong-pitches'),scoreNoteLookup,alphaTabApi?.boundsLookup,isStandardNoteBound):[];
+  if(!rectangles.length && !labels.length) {notationOverlay?.replaceChildren();return;}
   if(!notationOverlay) {
     notationOverlay=document.createElementNS('http://www.w3.org/2000/svg','svg');
     notationOverlay.setAttribute('class','notation-feedback-overlay');notationOverlay.setAttribute('aria-hidden','true');
@@ -23,6 +24,19 @@ function drawNotationFeedback() {
     for(const [key,value] of Object.entries({x:rectangle.x,y:rectangle.y,width:rectangle.width,height:rectangle.height,rx:4,'data-state':rectangle.state}))rect.setAttribute(key,String(value));
     const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=rectangle.label;rect.appendChild(title);notationOverlay.appendChild(rect);
   }
+  for(const label of labels) {
+    const text=document.createElementNS('http://www.w3.org/2000/svg','text');
+    text.setAttribute('x',String(label.x));text.setAttribute('y',String(label.y));
+    text.setAttribute('class','wrong-pitch-label');text.setAttribute('data-retained',String(label.retained));
+    text.textContent=label.label;notationOverlay.appendChild(text);
+  }
+}
+
+// Bundled Default/ScoreTab layout puts standard notation above tablature.
+// Identify only supported score/tab profiles and fail closed for extra notation
+// types or incomplete bounds. This also works with native worker rendering.
+function isStandardNoteBound(note,beat) {
+  return standardBeatForNote(note,alphaTabApi?.boundsLookup,alphaTabApi?.settings?.display?.staveProfile??0)===beat;
 }
 export function setNotationFeedback(marks,enabled=true) {
   notationMarks=marks;notationEnabled=enabled;
@@ -37,6 +51,21 @@ const VISUAL_MODES = {
 };
 
 let alphaTabApi = null;
+let pauseSeekPending = false;
+
+function expectPauseSnap() {
+  // Cursor rendering and worker position events are asynchronous. The API's
+  // current beat can differ from a beat inferred from our last received tick.
+  pauseSeekPending = true;
+}
+
+function beginManualPause() {
+  expectPauseSnap();
+  AppState.isPlaying = false;
+  updatePlayPauseLabel();
+  setStatus('Paused');
+  hostCallbacks.onPlayerStateChanged?.(0);
+}
 let ui = null;
 let hostCallbacks = {
   onScoreLoaded: null,
@@ -485,6 +514,8 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   alphaTabApi.playerStateChanged.on((event) => {
     const state = event?.state ?? event;
     const normalizedState = typeof state === 'number' ? state : String(state).toLowerCase();
+    if (normalizedState === 1 || normalizedState === 'playing' || event?.stopped) pauseSeekPending = false;
+    else if (AppState.isPlaying) expectPauseSnap();
     AppState.isPlaying = normalizedState === 1 || normalizedState === 'playing';
     updatePlayPauseLabel();
     setStatus(AppState.isPlaying ? 'Playing' : 'Paused');
@@ -492,6 +523,11 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   });
 
   alphaTabApi.playerPositionChanged.on((event) => {
+    // The full alphaTab API seeks to the current beat's start on Pause.
+    // This acknowledgement is transport positioning, not a new practice attempt.
+    const isPauseSnap = Boolean(event?.isSeek && pauseSeekPending);
+    if (event?.isSeek) pauseSeekPending = false;
+    if (isPauseSnap) AppState.isPlaying = false;
     const currentTime = event?.currentTime ?? 0;
     AppState.timePositionMs = currentTime;
     AppState.tickPosition = event?.currentTick ?? 0;
@@ -503,8 +539,13 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
       at: performance.now(),
       speed: AppState.playbackSpeed,
       isSeek: Boolean(event?.isSeek),
+      isPauseSnap,
     });
   });
+
+  // A score click/drag is an intentional seek, even when paused and no native
+  // Pause snap was emitted. Do not let an unused pause acknowledgement mask it.
+  alphaTabApi.beatMouseDown?.on(() => {pauseSeekPending = false;});
 
   alphaTabApi.error.on((error) => {
     console.error('alphaTab error:', error);
@@ -518,6 +559,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 export async function loadScoreFile(file) {
   if (!alphaTabApi) throw new Error('alphaTab is not ready yet. Fix the alphaTab asset path first.');
   if (!file) return false;
+  pauseSeekPending = false;
   releaseWaitTransport();
   alphaTabApi.pause();
   AppState.practiceLoop={enabled:false,startIndex:0,endIndex:0,range:null};
@@ -578,6 +620,7 @@ export function play() {
   const range=AppState.practiceLoop.range;
   const tick=alphaTabApi.tickPosition ?? AppState.tickPosition;
   if (!AppState.isPlaying && range && (tick < range.startTick || tick >= range.endTick)) alphaTabApi.tickPosition=range.startTick;
+  if (AppState.isPlaying) beginManualPause();
   alphaTabApi.playPause();
   return true;
 }
@@ -602,6 +645,7 @@ export function applyPracticeLoop(range) {
 
 export function pause() {
   if (!alphaTabApi || !AppState.playerReady || !AppState.isPlaying) return false;
+  beginManualPause();
   alphaTabApi.playPause();
   AppState.isPlaying = false;
   updatePlayPauseLabel();
@@ -611,6 +655,7 @@ export function pause() {
 
 export function stop() {
   if (!alphaTabApi) return false;
+  pauseSeekPending = false;
   alphaTabApi.stop();
   AppState.isPlaying = false;
   updatePlayPauseLabel();

@@ -110,6 +110,8 @@
               <option value="wait">Wait — advance after correct notes</option>
             </select>
           </label>
+          <button id="new-attempt-here" type="button" disabled aria-describedby="new-attempt-help">New attempt here</button>
+          <p id="new-attempt-help" class="field-help">Clear the percentage and feedback at the current position. Playback stays playing or paused. Play resumes; Reset returns to the start.</p>
           <label class="field-group" for="wait-chord-mode">
             <span class="field-label">Wait chord matching</span>
             <select id="wait-chord-mode" disabled>
@@ -184,6 +186,7 @@
             <div>
               <div class="status-label">Trainer summary</div>
               <div id="trainer-summary" class="status-value">No trainer events yet</div>
+              <ul id="trainer-error-history" class="trainer-error-history" aria-label="Completed Wait target wrong-pitch history"></ul>
             </div>
           </div>
 
@@ -279,7 +282,9 @@
         <div class="popup-card">
           <div class="popup-card-title">Viewer</div>
           <label class="toggle-row" for="show-notation-feedback"><input id="show-notation-feedback" type="checkbox" checked /><span>Show note feedback on the score</span></label>
-          <p class="practice-visual-legend">Blue: current target • Green: correct • Red: missed. Wrong pitches appear on the fretboard and in Practice feedback.</p>
+          <label class="toggle-row" for="show-live-errors"><input id="show-live-errors" type="checkbox" checked /><span>Show live Wait wrong-pitch labels</span></label>
+          <label class="toggle-row" for="show-error-history"><input id="show-error-history" type="checkbox" checked /><span>Show Wait wrong-pitch history</span></label>
+          <p class="practice-visual-legend">Blue: current target • Green: correct • Solid red: Wait completed after wrong pitches • Dashed red: Realtime missed. Wait notation labels show actual received pitches; tab keeps its original frets.</p>
         </div>
         <div class="popup-card">
           <div class="popup-card-title">Virtual fretboard</div>
