@@ -2,6 +2,8 @@
 
 Updated 2026-10-10. This stage implements the first manageable feedback increments from the latest TODO specification. Existing menus, native alphaTab rendering/transport, and module boundaries remain in place. Vendor files are unchanged. No push or deployment was performed; the deliverable excludes `.git`.
 
+Current notation behavior is described in **STAGE-8-NOTATION.md**: played-pitch red noteheads and explicit accidentals supersede this stage’s initial pitch labels. The original increment below is retained as implementation history.
+
 ## Implemented
 
 - Realtime retains results, percentage and note states through Pause/ordinary Resume, including native same-position seek acknowledgements (two-tick rounding allowance). Actual position-changing seeks, backward loop passes, settings resets and explicit Stop still start fresh grading.
@@ -23,7 +25,7 @@ Stop/reset, changing score/track/device/input settings, changing chord settings,
 
 ## Deliberate next increments
 
-- **Precise wrong-note notation glyphs remain pending.** This ZIP uses accurate pitch-name/MIDI annotations at native target bounds. Native note bounds lack a general written-pitch-to-y API, and the bundled accidental helper returns a fallback for pitches not already laid out. Do not place fabricated noteheads with that fallback. A later glyph adapter must handle clef, octave/transposition, accidentals, ledger lines and multiple voices without mutating the score.
+- **Superseded: wrong-note notation glyphs are now implemented in STAGE-8-NOTATION.md.** The following describes the initial text-only limitation: This ZIP uses accurate pitch-name/MIDI annotations at native target bounds. Native note bounds lack a general written-pitch-to-y API, and the bundled accidental helper returns a fallback for pitches not already laid out. Do not place fabricated noteheads with that fallback. A later glyph adapter must handle clef, octave/transposition, accidentals, ledger lines and multiple voices without mutating the score.
 - **Temporary verified-Hex wrong-fret markers remain pending.** Existing Hex channel selection is not an explicit verification of physical mapping. Do not silently treat it, or an MPE stream, as verified. Add explicit mapping verification and validate tuning/capo/transposition/pitch interpretation before drawing temporary detected-string fret labels. The current tab summary works for both input modes without claiming position.
 - Long pitch labels can crowd dense notation. Check real pieces and zoom before refining the layout. Default, ScoreTab and Score profiles are supported for these labels. Tab/TabMixed profiles omit them; unsupported extra slash/numbered/default layouts fail closed, retaining the Practice history list instead. Visibility preferences remain page-session only.
 - No Follow, strict-string grading, tracking filters, harmony/exercise/media work, menu redesign or Piano Trainer changes are included.
@@ -77,3 +79,7 @@ The first Pause correction depended on a predicted current beat, which does not 
 All 99 tests pass. The new cursor/position mismatch and paused rollback regressions were run against the previous implementation and failed there before passing with this correction. Native cursor behavior and the existing Wait/New attempt here behavior are retained. Browser/MIDI validation remains pending.
 
 Local acceptance: apply this ZIP after the New attempt here update and hard-refresh Chrome. In Realtime, build a percentage with some correct and wrong/missed attacks. Pause mid-beat and verify it stays unchanged immediately and after several seconds. Play MIDI while paused, resume, and repeat near beat/measure/repeat boundaries and inside a loop. Existing results must remain on Pause/Resume. Then deliberately click another score position, use New attempt here, and use Reset separately: each must clear results according to its existing behavior. A real loop wrap still starts a fresh pass. If a Pause still clears results, record the score file, track/view, approximate measure and whether a section loop was enabled so the exact remaining sequence can be reproduced.
+
+## Notation noteheads follow-up (2026-10-10)
+
+On-score pitch text is replaced by red played-pitch noteheads, explicit key-aware accidentals and ledger lines. Green/red expected-note feedback now fills standard noteheads; tab keeps outlines. Native SVG visual QA was inspected and all 105 automated tests pass. See STAGE-8-NOTATION.md for current behavior, placement limits and the updated local acceptance checks.

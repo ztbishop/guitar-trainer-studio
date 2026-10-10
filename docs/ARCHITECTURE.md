@@ -94,8 +94,14 @@ The app should preserve native alphaTab features wherever possible and layer cus
 ### `js/practice-visuals.js`
 - Converts published grading records into per-note display states and resolves repeat occurrences onto written source-note IDs.
 - Prepares six-string target and possible played positions using score tuning/capo, without enforcing string correctness.
-- Prepares live/retained actual pitch labels separately from target red/green summaries and selects supported standard-notation bounds; it never guesses Poly frets or staff notehead placement.
+- Prepares occurrence-aware live/retained wrong-pitch records separately from target red/green summaries and identifies supported standard-notation bounds; it never guesses Poly frets.
 - Maps prepared marks to native note bounds supplied by the host. Current occurrence feedback takes priority over earlier results for the same written note.
+
+### `js/notation-feedback.js`
+- Owns pure wrong-pitch spelling and notation-overlay geometry. Host supplies native note bounds, stave profile, zoom and engraving metrics; this module never calls alphaTab.
+- Chooses spelling using the local bar key signature. Explicit vector accidentals (including naturals), notehead-sized red dots and ledger lines show wrong pitches without long score text. All wrong pitches use the target anchor’s single horizontal cursor column, with a fixed adjacent accidental position. Same-line/neighboring pitches may overlap; never spread them horizontally into other targets. Repeated identical pitches share a dot, while Practice retains the complete attack history.
+- Projects sounding MIDI to displayed pitch with beat/clef ottava and staff display transposition, using native five-line treble/bass/alto/tenor staff coordinates. Checks the projection against actual rendered original notehead bounds and omits unsupported/inconsistent wrong-note geometry. Never uses the native accidental helper's unregistered-pitch fallback or mutates renderer/model accidental state.
+- Returns filled-overlay bounds for standard expected noteheads and unchanged outlines for tab targets. The host renders SVG and rebuilds on native post-render completion; grading/lifecycle stay in Wait/Realtime modules.
 
 ### `js/toolbar-ui.js`
 - Owns menu wiring and user controls.

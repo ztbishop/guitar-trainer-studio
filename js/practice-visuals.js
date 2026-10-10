@@ -94,23 +94,6 @@ export function buildWrongPitchMarks(events,currentEvent,history=[],liveWrongNot
   return [...bySource.values()].filter(Boolean);
 }
 
-// Pitch labels are anchored beside the original note, never a guessed staff notehead.
-// The host identifies standard-notation bounds; tab remains a red/green summary.
-export function wrongPitchLabels(marks,noteLookup,boundsLookup,isStandardBound) {
-  const labels=[];if(!boundsLookup?.isFinished)return labels;
-  for(const mark of marks) {
-    const note=noteLookup.get(mark.sourceNoteId);if(!note)continue;
-    for(const beat of boundsLookup.findBeats(note.beat)||[]) {
-      const bound=beat.notes?.find(item=>String(item.note.id)===mark.sourceNoteId);
-      const b=bound?.noteHeadBounds;
-      if(!b || ![b.x,b.y,b.w,b.h].every(Number.isFinite) || b.w<=0 || b.h<=0 || !isStandardBound(note,beat,b))continue;
-      labels.push({...mark,x:b.x+b.w+7,y:b.y-5});break;
-    }
-  }
-  return labels;
-}
-
-
 export function standardBeatForNote(note,boundsLookup,profile=0) {
   const staff=note.beat?.voice?.bar?.staff;if(!staff)return null;
   if(![0,1,2].includes(profile))return null;

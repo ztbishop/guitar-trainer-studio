@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {notationFeedbackGeometry} from '../js/notation-feedback.js';
 import {WaitSession} from '../js/wait-session.js';
 import {WaitController} from '../js/wait-controller.js';
-import {noteStatesFromRecords,buildNotationMarks,buildWrongPitchMarks,wrongPitchLabels,standardBeatForNote} from '../js/practice-visuals.js';
+import {noteStatesFromRecords,buildNotationMarks,buildWrongPitchMarks,standardBeatForNote} from '../js/practice-visuals.js';
 import {buildPlaybackTimeline as buildNativeTimeline} from '../js/score-playback.js';
 import {AppState} from '../js/app-state.js';
 import {buildExpectedEventsFromPracticeTrack,handlePlaybackPosition,handlePlaybackState,handleMidiEvent,finishRealtimeSession} from '../js/practice-engine.js';
@@ -127,7 +128,7 @@ test('queued non-seek position rollback while paused preserves Realtime results'
  handlePlaybackPosition({currentTick:0,at:1300,isSeek:true});assert.equal(AppState.trainer.results.correct,0);
 });
 const context=vm.createContext({console,process});vm.runInContext(readFileSync(new URL('../assets/vendor/alphatab/alphaTab.js',import.meta.url),'utf8'),context);const at=context.alphaTab;
-test('bundled native render bounds place pitch labels only beside standard notation through profiles and zoom',()=>{
+test('bundled native render bounds place wrong noteheads only on standard notation through profiles and zoom',()=>{
  for(const profile of [0,1,2,3,4])for(const scale of [0.75,1,1.5]) {
   const settings=new at.Settings();settings.core.engine='svg';settings.core.includeNoteBounds=true;settings.display.staveProfile=profile;settings.display.scale=scale;
   const p=new at.importer.AlphaTexImporter();p.initFromString(String.raw`\tempo 120 . 0.6.4 (1.2 0.1).4`,settings);const score=p.readScore();
@@ -135,23 +136,27 @@ test('bundled native render bounds place pitch labels only beside standard notat
   const note=score.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0];
   const mark={sourceNoteId:String(note.id),kind:'wrong-pitches',label:'Heard: F2 (41)',pitches:[41]};
   const standard=standardBeatForNote(note,renderer.boundsLookup,profile);
-  const labels=wrongPitchLabels([mark],new Map([[String(note.id),note]]),renderer.boundsLookup,(_note,beat)=>beat===standard);
+  const engraving=settings.display.resources.engravingSettings;
+  const labels=notationFeedbackGeometry([mark],new Map([[String(note.id),note]]),renderer.boundsLookup,
+   {profile,scale,oneStaffSpace:engraving.oneStaffSpace,staffLineThickness:engraving.staffLineThickness,
+   noteHeadWidth:engraving.glyphWidths.get(0xe0a4),noteHeadHeight:engraving.glyphHeights.get(0xe0a4)}).wrongNotes;
   assert.equal(labels.length,profile<=2?1:0);
   if(labels.length) {
    const sr=renderer.layout.getRendererForBar('score',note.beat.voice.bar);
    const b=standard.notes.find(bound=>bound.note.id===note.id).noteHeadBounds;
    assert.ok(Math.abs((standard.barBounds.visualBounds.y+sr.getNoteY(note,2)*scale)-(b.y+b.h/2))<1);
-   assert.equal(labels[0].x,b.x+b.w+7);assert.equal(labels[0].y,b.y-5);
+   assert.equal(labels[0].cx,b.x+b.w/2);assert.ok(Math.abs(labels[0].cy-(b.y+b.h/2-engraving.oneStaffSpace*scale/2))<1);
+   assert.equal(labels[0].spelling,'F3');assert.equal(labels[0].accidental,'♮');
   }
  }
 });
-test('Default tab-only flags, hidden notes and unfinished bounds never fabricate notation labels',()=>{
+test('Default tab-only flags, hidden notes and unfinished bounds never fabricate wrong noteheads',()=>{
  const settings=new at.Settings();settings.core.engine='svg';settings.core.includeNoteBounds=true;
  const p=new at.importer.AlphaTexImporter();p.initFromString('0.6.4',settings);const score=p.readScore();const staff=score.tracks[0].staves[0];staff.showStandardNotation=false;
  const renderer=new at.rendering.ScoreRenderer(settings);renderer.width=800;renderer.renderScore(score,[0]);const note=staff.bars[0].voices[0].beats[0].notes[0];
  assert.equal(standardBeatForNote(note,renderer.boundsLookup),null);
- assert.deepEqual(wrongPitchLabels([{sourceNoteId:String(note.id)}],new Map([[String(note.id),note]]),{isFinished:false},()=>true),[]);
- assert.deepEqual(wrongPitchLabels([{sourceNoteId:'hidden'}],new Map(),renderer.boundsLookup,()=>true),[]);
+ assert.deepEqual(notationFeedbackGeometry([{sourceNoteId:String(note.id)}],new Map([[String(note.id),note]]),{isFinished:false},{}).wrongNotes,[]);
+ assert.deepEqual(notationFeedbackGeometry([{sourceNoteId:'hidden'}],new Map(),renderer.boundsLookup,{}).wrongNotes,[]);
 });
 
 class Emitter {handlers=[];on(fn){this.handlers.push(fn)}trigger(value){for(const fn of this.handlers)fn(value)}}

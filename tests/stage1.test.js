@@ -183,12 +183,16 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   api.postRenderFinished.emit();assert.equal(overlay.children.length,1);
   // Stage 8: actual native bounds plus host SVG redraw/toggle wiring.
   const renderSettings=new alpha.Settings();renderSettings.core.engine='svg';renderSettings.core.includeNoteBounds=true;
+  renderSettings.display.scale=api.settings.display.scale;
   const nativeRenderer=new alpha.rendering.ScoreRenderer(renderSettings);nativeRenderer.width=900;nativeRenderer.renderScore(score,[0]);
   api.boundsLookup=nativeRenderer.boundsLookup;
   const pitchMark={kind:'wrong-pitches',sourceNoteId:String(renderedNote.id),label:'Errors: F2 (41)',retained:true,pitches:[41]};
   setNotationFeedback([...marks,pitchMark]);assert.equal(overlay.children.length,3);
-  assert.equal(overlay.children.at(-1).textContent,'Errors: F2 (41)');
-  assert.equal(overlay.children.at(-1).attrs.class,'wrong-pitch-label');
+  assert.equal(overlay.children.at(-1).attrs.class,'wrong-notehead-feedback');
+  assert.equal(overlay.children.at(-1).attrs['data-spelling'],'F3');
+  assert.ok(overlay.children.some(node=>node.attrs.class==='target-notehead'));
+  assert.ok(overlay.children.some(node=>node.attrs['data-state']==='correct' && node.attrs.width));
+  assert.equal(overlay.children.at(-1).children.at(-1).attrs['data-accidental'],'♮');
   setNotationFeedback([...marks,pitchMark],false);assert.equal(overlay.children.length,0);
   setNotationFeedback([...marks,pitchMark],true);api.renderStarted.emit();api.postRenderFinished.emit();assert.equal(overlay.children.length,3);
   const generator=new alpha.midi.MidiFileGenerator(score,new alpha.Settings(),new alpha.midi.AlphaSynthMidiFileHandler(new alpha.midi.MidiFile()));

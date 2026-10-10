@@ -4,39 +4,48 @@
 
 import { AppState } from './app-state.js';
 import { buildPlaybackTimeline } from './score-playback.js';
-import { notationRectangles, wrongPitchLabels, standardBeatForNote } from './practice-visuals.js';
+import { notationFeedbackGeometry, accidentalPath } from './notation-feedback.js';
 
 let notationContainer=null,notationOverlay=null,notationMarks=[],notationEnabled=true,notationSignature='';
 let scoreNoteLookup=new Map();
 function drawNotationFeedback() {
   if(!notationContainer)return;
-  const rectangles=notationEnabled?notationRectangles(notationMarks.filter(mark=>!mark.kind),scoreNoteLookup,alphaTabApi?.boundsLookup):[];
-  const labels=notationEnabled?wrongPitchLabels(notationMarks.filter(mark=>mark.kind==='wrong-pitches'),scoreNoteLookup,alphaTabApi?.boundsLookup,isStandardNoteBound):[];
-  if(!rectangles.length && !labels.length) {notationOverlay?.replaceChildren();return;}
+  const settings=alphaTabApi?.settings;
+  const engraving=settings?.display?.resources?.engravingSettings;
+  const metrics={profile:settings?.display?.staveProfile??0,scale:settings?.display?.scale??1,
+    oneStaffSpace:engraving?.oneStaffSpace,staffLineThickness:engraving?.staffLineThickness,
+    noteHeadWidth:engraving?.glyphWidths?.get(0xe0a4),noteHeadHeight:engraving?.glyphHeights?.get(0xe0a4)};
+  const {targets,wrongNotes}=notationEnabled?notationFeedbackGeometry(notationMarks,scoreNoteLookup,alphaTabApi?.boundsLookup,metrics):{targets:[],wrongNotes:[]};
+  if(!targets.length && !wrongNotes.length) {notationOverlay?.replaceChildren();return;}
   if(!notationOverlay) {
     notationOverlay=document.createElementNS('http://www.w3.org/2000/svg','svg');
     notationOverlay.setAttribute('class','notation-feedback-overlay');notationOverlay.setAttribute('aria-hidden','true');
   }
   if(notationOverlay.parentNode!==notationContainer)notationContainer.appendChild(notationOverlay);
   notationOverlay.replaceChildren();
-  for(const rectangle of rectangles) {
-    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
-    for(const [key,value] of Object.entries({x:rectangle.x,y:rectangle.y,width:rectangle.width,height:rectangle.height,rx:4,'data-state':rectangle.state}))rect.setAttribute(key,String(value));
-    const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=rectangle.label;rect.appendChild(title);notationOverlay.appendChild(rect);
+  for(const target of targets) {
+    const node=svgElement(target.kind==='notehead'?'ellipse':'rect',target.kind==='notehead'
+      ?{cx:target.cx,cy:target.cy,rx:target.rx,ry:target.ry,class:'target-notehead','data-state':target.state}
+      :{x:target.x,y:target.y,width:target.width,height:target.height,rx:4,'data-state':target.state});
+    node.appendChild(svgElement('title',{},target.label));notationOverlay.appendChild(node);
   }
-  for(const label of labels) {
-    const text=document.createElementNS('http://www.w3.org/2000/svg','text');
-    text.setAttribute('x',String(label.x));text.setAttribute('y',String(label.y));
-    text.setAttribute('class','wrong-pitch-label');text.setAttribute('data-retained',String(label.retained));
-    text.textContent=label.label;notationOverlay.appendChild(text);
+  for(const note of wrongNotes) {
+    const group=svgElement('g',{class:'wrong-notehead-feedback','data-retained':note.retained,
+      'data-midi':note.midi,'data-spelling':note.spelling});
+    group.appendChild(svgElement('title',{},note.label));
+    for(const y of note.ledgerYs)group.appendChild(svgElement('line',{x1:note.cx-note.rx-note.space*0.25,x2:note.cx+note.rx+note.space*0.25,y1:y,y2:y,class:'wrong-ledger'}));
+    group.appendChild(svgElement('ellipse',{cx:note.cx,cy:note.cy,rx:note.rx,ry:note.ry,class:'wrong-notehead'}));
+    group.appendChild(svgElement('path',{d:accidentalPath(note.offset),class:'wrong-accidental',
+      transform:`translate(${note.accidentalX} ${note.cy}) scale(${note.space*0.8})`,'data-accidental':note.accidental}));
+    notationOverlay.appendChild(group);
   }
 }
 
-// Bundled Default/ScoreTab layout puts standard notation above tablature.
-// Identify only supported score/tab profiles and fail closed for extra notation
-// types or incomplete bounds. This also works with native worker rendering.
-function isStandardNoteBound(note,beat) {
-  return standardBeatForNote(note,alphaTabApi?.boundsLookup,alphaTabApi?.settings?.display?.staveProfile??0)===beat;
+function svgElement(name,attributes={},text) {
+  const node=document.createElementNS('http://www.w3.org/2000/svg',name);
+  for(const [key,value] of Object.entries(attributes))node.setAttribute(key,String(value));
+  if(text!==undefined)node.textContent=text;
+  return node;
 }
 export function setNotationFeedback(marks,enabled=true) {
   notationMarks=marks;notationEnabled=enabled;

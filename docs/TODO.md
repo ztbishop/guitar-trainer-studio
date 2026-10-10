@@ -11,18 +11,20 @@ Updated 2026-10-10. This is the central status and priority list. Stage files re
 - [x] Stage 5: playback speed and occurrence-aware section loops implemented; user confirmed loop and tempo work locally.
 - [x] Stage 6: notation outlines and six-string fretboard display implemented; user confirmed blue/green feedback with a MIDI piano. Other visual/hardware checks remain pending.
 - [x] Stage 7: Wait chord matching options implemented, with configurable Together window; awaiting local validation.
-- [x] Stage 8 first increments: Pause/Resume and completion-summary retention, occurrence/pass-aware Wait wrong-pitch history, red completed-target summaries, live/retained actual pitch labels and visibility options; 99 tests pass. New attempt here is available in both modes. Realtime Pause protection now follows the Pause action rather than a predicted beat and ignores queued non-seek rollback while paused; local acceptance remains required. Local acceptance and precise glyph/verified-Hex live fret increments remain pending (STAGE-8.md).
+- [x] Stage 8 first increments: Pause/Resume and completion-summary retention, occurrence/pass-aware Wait wrong-pitch history, red completed-target summaries, live/retained wrong-pitch feedback and visibility options; 105 tests pass. Wrong-pitch notation now uses staff-positioned red noteheads with key-aware explicit accidentals; expected notation feedback uses filled noteheads while tab keeps outlines. New attempt here is available in both modes. Realtime Pause protection now follows the Pause action rather than a predicted beat and ignores queued non-seek rollback while paused; local acceptance remains required. Local acceptance and verified-Hex live fret markers remain pending (STAGE-8.md).
 - [x] User confirmed repeat playback works.
 - [x] User confirmed corrected Wait Mode works with their local setup.
 - [x] User confirmed both hex and poly MIDI modes work with their setup.
 - [x] User confirmed Realtime green/correct and red/missed feedback works locally.
 - [ ] Finish broader verification of timing, pause/seek/mode switching, per-string identity, and Together chord cases. Implementation tests do not prove every hardware/browser case.
 
+- [x] Notation feedback correction: all live/retained wrong pitches stay in their own target’s horizontal cursor column, even when they overlap vertically. No sideways collision spreading; user confirmed the notation update is a step in the right direction. Local acceptance of this alignment correction remains pending.
+
 ## Stage 8 progress against the agreed feedback specification
 
-Implemented: unchanged-position native seek retention and native Pause beat-start snap retention through Pause/Resume; final Realtime summary through automatic completion rewind; Wait wrong-pitch history through solving/retries/pause; red completed target outlines versus clean green; independent live releases; standard-notation actual pitch-name/MIDI labels at target bounds; history visibility and previous-pass review with fresh pass scores. Scoring formulas remain unchanged; duplicate required-pitch penalties remain distinct from received-wrong pitch history.
+Implemented: unchanged-position native seek retention and native Pause beat-start snap retention through Pause/Resume; final Realtime summary through automatic completion rewind; Wait wrong-pitch history through solving/retries/pause; red completed target outlines versus clean green; independent live releases; standard-notation red wrong-pitch noteheads at their played staff positions, key-aware explicit accidentals and ledger lines; filled expected-notehead feedback; history visibility and previous-pass review with fresh pass scores. Scoring formulas remain unchanged; duplicate required-pitch penalties remain distinct from received-wrong pitch history.
 
-Pending next increments: precise wrong-note staff glyphs and temporary detected-fret markers gated on **explicitly verified** Hex mapping. Existing channel selection alone is not verification. Current notation labels are accurate pitch detail, not positioned notehead glyphs. Run Stage 8 local acceptance before expanding these adapters. See STAGE-8.md for implemented behavior, edge cases, limits and next steps. The agreement below remains the intended final behavior; its latest rules still override older proposals.
+Pending next increment: temporary detected-fret markers gated on **explicitly verified** Hex mapping. Existing channel selection alone is not verification. Current wrong-pitch noteheads are validated against native five-line standard-notation bounds; exact MIDI history remains in Practice. Accidentals are explicit for feedback clarity, even when supplied by the key signature. Run Stage 8 local acceptance before expanding these adapters. See STAGE-8.md for implemented behavior, edge cases, limits and next steps. The agreement below remains the intended final behavior; its latest rules still override older proposals.
 
 ## Ordered next priorities
 
@@ -34,11 +36,11 @@ Pending next increments: precise wrong-note staff glyphs and temporary detected-
 6. **Add optional reversed hex mapping and exact-string grading.** Preserve the current working channel-1 default. Reverse the mapping inside the selected six-channel block (e.g. channels 1–6), rather than subtracting from channel 1. A string-by-string calibration/display check should confirm direction. UI fretboard mirroring is a different setting. Exact-string grading remains opt-in and requires verified channel mapping. App remapping does not establish that a physically reversed pickup is supported by its manufacturer.
 7. **Evaluate a piano alphaTab prototype before a rewrite or merger.** Keep the current OSMD piano application working. Test a separate small prototype against representative piano MusicXML: two staves, hand selection, dense chords/voices, repeats/endings, ties, pedal behavior, and stable feedback positioning through resize/zoom. Compare actual results with the current piano app. Only then decide whether migration and a shared instrument-selector app are worthwhile; hide hand/LED/MIDI-output controls by instrument where appropriate. MIDI input channels and score staves are separate concepts: two piano staves need not require two keyboard input channels.
 
-Recommended next stage: priorities 1–2, with focused validation from priority 3. The later items are ordered follow-ups, not a commitment to implement them all in one stage.
+Recommended next stage: priorities 1–2, with focused validation from priority 3. Notation-first visual refinement is implemented in STAGE-8-NOTATION.md; validate it before adding Hex tab detail. The later items are ordered follow-ups, not a commitment to implement them all in one stage.
 
 ## Latest agreed Wait feedback specification
 
-This specification includes the user's final clarification and overrides earlier tab mockups/inference proposals for the default feedback flow. Stage 8 implements the history/summary and pitch-label increments documented above; precise notation glyphs and verified-Hex live fret labels remain pending.
+This specification includes the user's final clarification and overrides earlier tab mockups/inference proposals for the default feedback flow. Stage 8 implements the history/summary and notation feedback increments documented above; notation noteheads/accidentals are implemented; verified-Hex live fret labels remain pending.
 
 | Moment/view | Planned behavior |
 | --- | --- |
@@ -50,11 +52,11 @@ This specification includes the user's final clarification and overrides earlier
 | Wrong note held/released, standard notation | Show its actual pitch in red while held; hide that live marker on release. |
 | Target completed, standard notation | Show the retained wrong-pitch history at that target's score position for later review. Keep this independent of the compact tab summary and feedback visibility settings. |
 
-For ambiguous chord errors use a target-level summary, not an invented assignment to a specific expected chord tone. Hex live markers identify the detected string, not necessarily the intended target string. These rules describe pitch grading; wrong-position feedback for future strict string grading must be separately defined. Pending/missing notes and Together retries are not wrong-pitch attempts. Keep history occurrence/pass-aware and preserve it on Pause/Resume under priority 1. Build stable history/tab summary first; live wrong-fret and actual wrong-note glyph placement may be separate increments if needed.
+For ambiguous chord errors use a target-level summary, not an invented assignment to a specific expected chord tone. Hex live markers identify the detected string, not necessarily the intended target string. These rules describe pitch grading; wrong-position feedback for future strict string grading must be separately defined. Pending/missing notes and Together retries are not wrong-pitch attempts. Keep history occurrence/pass-aware and preserve it on Pause/Resume under priority 1. History/tab summaries and actual wrong-note staff placement are implemented. Validate the notation increment locally before the separate verified-Hex live wrong-fret increment.
 
 ## Starting a new development chat
 
-Upload the latest complete GuitarTrainerStudio project ZIP with these updated docs included. This documentation-only ZIP is not the application source. Read TODO.md for priorities/specification, DEV-NOTES.md for decisions, ARCHITECTURE.md for boundaries, and STAGE-1 through STAGE-8 for prior implementation/tests. Current source and user confirmations govern status; pending proposals must not be reported as already implemented. Unresolved choices such as Follow semantics, harmony rules, exact-string behavior, scoring formula changes, and precise glyph layout require a focused scope rather than assumptions.
+Upload the latest complete GuitarTrainerStudio project ZIP with these updated docs included. Changed-files ZIPs must be applied over the prior project before creating the next full source ZIP. Read TODO.md for priorities/specification, DEV-NOTES.md for decisions, ARCHITECTURE.md for boundaries, and STAGE-1 through STAGE-8 for prior implementation/tests. Current source and user confirmations govern status; pending proposals must not be reported as already implemented. Unresolved choices such as Follow semantics, harmony rules, exact-string behavior, scoring formula changes, and unsupported notation layouts require a focused scope rather than assumptions.
 
 Suggested prompt:
 
@@ -117,7 +119,7 @@ Already addressed in Stages 1–7: MIDI normalization/held-note tracking, repeat
 - [ ] Complete Stage 5 edge-case checks as needed: pause/Stop, disabling loops, mode changes, loading a new score, and repeated-measure selection. Basic loop and tempo behavior is user-confirmed; individual edge cases have not all been explicitly confirmed.
 - [ ] Validate Stage 6: notation alignment, repeats/loop resets, chord feedback, fretboard tuning/capo/string labels, note release, left-handed orientation, resize/scroll, and mode changes.
 - [ ] Validate Stage 7: Together expiry/retry, chords within the window, Pause/resume, mode changes, and section loops. Check guitar strum/MIDI timing when guitar hardware is available.
-- [x] Stage 8 implements retention and the first Wait-history/display increments; follow STAGE-8.md for remaining precise-glyph and verified-Hex marker work, following the latest specification.
+- [x] Stage 8 implements retention and the first Wait-history/display increments; follow STAGE-8.md and STAGE-8-NOTATION.md for notation validation and remaining verified-Hex marker work, following the latest specification.
 
 ## Deferred Tempo and Loop menu refinement
 
@@ -137,10 +139,10 @@ Already addressed in Stages 1–7: MIDI normalization/held-note tracking, repeat
 - [x] Automated expiry, chord-edge, hex-unison, pause/reset, cursor-positioning, and setting-form tests.
 - [ ] Validate with a real guitar, especially rolled strums and unequal string detection latency. Consider changing the default to Together only after local feedback.
 
-## Deferred notation appearance refinement
+## Notation appearance: implemented, local validation pending
 
-- [ ] Consider outlines for tab numbers and Piano Trainer-style dots for standard notation during a later visual pass.
-- Current recommendation: retain outlines so tab fret numbers remain readable. User confirmed blue/green behavior using a MIDI piano; no alternate marker style has been implemented.
+- [ ] Validate the implemented Piano Trainer-style filled notation noteheads and separate wrong-pitch red dots/accidentals; retain tab outlines.
+- Tab retains outlines so fret numbers remain readable. Standard notation now uses filled green/red noteheads with blue current-target guidance. New browser/hardware acceptance remains pending.
 
 ## Other planned work
 

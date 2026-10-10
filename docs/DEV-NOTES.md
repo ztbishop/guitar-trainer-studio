@@ -2,6 +2,22 @@
 
 Use TODO.md for current status and priorities, ARCHITECTURE.md for module boundaries, and STAGE-1 through STAGE-8 for implementation and validation details. Update these files in future packages so project decisions survive a new chat.
 
+## 2026-10-10 — Keep every mistake in its target cursor column
+
+User screenshot showed wrong pitches from the second target spread left across the correctly played first target. The prior collision-avoidance columns made target ownership unclear. User prefers vertical overlap within the original cursor space. Removed all sideways collision offsets: every wrong notehead uses its target anchor's horizontal center, with accidentals at one fixed adjacent position. Ledger lines remain centered at that same target. Live and retained feedback use the same rule; repeated identical pitches still share one dot and full attack details remain in Practice.
+
+Same-line enharmonic mistakes and their accidentals can overlap; this is an explicit readability tradeoff chosen to preserve target identity, not a reason to shift markers to nearby beats. Filled expected-note feedback, tab outlines, spelling, grading and transport behavior are unchanged. 105 tests pass, including assertions for all notehead/accidental horizontal positions and retained errors at a second target. Local dense-cluster acceptance remains pending.
+
+## 2026-10-10 — Notation feedback: played-pitch noteheads and explicit accidentals
+
+User approved a notation-first visual increment based on Piano Trainer screenshots. Replace the on-score wrong-pitch text with separate red noteheads at the played pitch's actual staff line/space, horizontally anchored to the target. Keep live held notes disappearing on release and retained mistakes reappearing on target completion. Color expected standard-notation noteheads with filled green/red overlays instead of rectangular outlines; keep blue current-target guidance and original tab outlines. Completed Wait targets with any received wrong pitch remain red even when finally solved correctly.
+
+The user delegated accidental presentation. Decision: explicit accidentals, including naturals, on these supplemental feedback notes, even when present in the key signature. This avoids reliance on the key/earlier score accidentals without changing native notation or accidental state. Spelling prefers tones supplied by the local bar's key signature, then its sharp/flat direction (Bb in Bb major, A# in a sharp key). MIDI cannot uniquely determine enharmonic intent. No Poly string/fret inference or new Hex tab markers were added.
+
+`notation-feedback.js` owns pure spelling/projection and native-bounds overlay geometry. The host passes the current engraving metrics/zoom and renders SVG ellipses, vector accidentals and ledger lines without modifying the score. Staff projection follows the bundled native five-line treble/bass/alto/tenor conventions, beat/clef ottava and display transposition. It is verified against already-rendered original noteheads; unsupported or inconsistent geometry omits wrong dots instead of guessing. Same-line/adjacent mistakes use compact leftward columns, one dot per distinct pitch, while the detailed MIDI attack history remains complete in Practice.
+
+105 tests pass. Native reference-note comparisons cover 60 clef/key/zoom combinations, sounding/display transposition, capo and octave marks; prior lifecycle, transport, loop and history tests remain passing. Host redraw/toggle tests now assert notehead/accidental groups and preserved tab outlines. Native SVG visual QA was rendered to PNG and inspected. A Chromium executable was unavailable, so actual Chrome/worker/physical MIDI acceptance remains local. See STAGE-8-NOTATION.md. All transport/reset/Pause guards and New attempt here behavior are preserved.
+
 ## 2026-10-10 — Realtime Pause protection without predicted beats
 
 User reported Realtime still clears on Pause after the first follow-up. That fix relied on guessing the API's current cursor beat from the host's last received tick. Those can differ because worker position delivery and native cursor rendering are asynchronous. Added regression coverage invokes the actual bundled native Pause handler with a cursor beat different from the received position; it fails against the previous host. A second regression reproduces a queued non-seek backward position update clearing results while already paused; it fails against the previous engine.

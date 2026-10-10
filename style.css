@@ -1266,5 +1266,11 @@ body.has-score .alphatab-wrapper {
 
 /* Stage 8 feedback additions: native score remains untouched. */
 .notation-feedback-overlay [data-state='completed-with-errors'] { stroke:#dc2626; }
-.notation-feedback-overlay .wrong-pitch-label { fill:#dc2626; font:600 11px system-ui,sans-serif; paint-order:stroke; stroke:white; stroke-width:3px; stroke-linejoin:round; }
+.notation-feedback-overlay .target-notehead { fill:transparent; stroke-width:1.5; vector-effect:non-scaling-stroke; }
+.notation-feedback-overlay .target-notehead[data-state='correct'] { fill:#16803d; fill-opacity:0.8; }
+.notation-feedback-overlay .target-notehead[data-state='missed'],
+.notation-feedback-overlay .target-notehead[data-state='completed-with-errors'] { fill:#dc2626; fill-opacity:0.7; stroke-dasharray:none; }
+.notation-feedback-overlay .wrong-notehead { fill:#dc2626; fill-opacity:0.65; stroke:#dc2626; stroke-width:1; }
+.notation-feedback-overlay .wrong-ledger { stroke:#dc2626; stroke-width:1; }
+.notation-feedback-overlay .wrong-accidental { fill:none; stroke:#dc2626; stroke-width:0.16; stroke-linecap:round; stroke-linejoin:round; }
 .trainer-error-history { color:#b91c1c; font-size:12px; max-height:150px; overflow:auto; padding-left:18px; }
