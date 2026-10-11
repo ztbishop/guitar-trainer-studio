@@ -3,7 +3,8 @@
 // Do NOT: put trainer logic here
 
 import { AppState } from './app-state.js';
-import { buildPlaybackTimeline } from './score-playback.js';
+import { buildPlaybackTimeline, tickToTimeMs } from './score-playback.js';
+import { audibleDelayMs, createMetronomeClock } from './metronome-clock.js';
 import { wrongFretGeometry } from './tab-feedback.js';
 import { notationFeedbackGeometry, accidentalPath } from './notation-feedback.js';
 
@@ -492,12 +493,27 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   alphaTabApi.midiEventsPlayed?.on(event => {
     if (!AppState.isPlaying || AppState.mode === 'wait' || !AppState.playerReady || !AppState.metronome.enabled) return;
     for (const midi of event.events || []) {
-      if (midi.type === metronomeType) hostCallbacks.onMetronomeTick?.();
+      if (midi.type !== metronomeType) continue;
+      const output = alphaTabApi.player?.output;
+      const context = output?.context;
+      const eventMs = tickToTimeMs(AppState.playbackTimeline, midi.tick);
+      const positionMs = tickToTimeMs(AppState.playbackTimeline, AppState.tickPosition);
+      // Native events describe the end of a processed audio block. Locate the
+      // click within that block, then map it to the speaker's output clock.
+      const age = eventMs === null || positionMs === null ? 0 : Math.max(0, (positionMs - eventMs) / AppState.playbackSpeed / 1000);
+      const blockSeconds = context ? (output instanceof alphaTabGlobal.synth.AlphaSynthScriptProcessorOutput ? 4096 : 128) / context.sampleRate : 0;
+      const delay = audibleDelayMs(context, context ? context.currentTime + blockSeconds - age : undefined);
+      const timer = setTimeout(() => {
+        realtimePulseTimers.delete(timer);
+        if (AppState.isPlaying && AppState.mode !== 'wait' && AppState.metronome.enabled) hostCallbacks.onMetronomeTick?.();
+      }, delay);
+      realtimePulseTimers.add(timer);
     }
   });
   alphaTabApi.renderStarted?.on(()=>notationOverlay?.replaceChildren());
   alphaTabApi.postRenderFinished?.on(()=>drawNotationFeedback());
   alphaTabApi.scoreLoaded.on((score) => {
+    cancelRealtimePulses();
     const loadedScore = score || alphaTabApi.score || null;
     AppState.playbackTimeline = null;
     AppState.score = loadedScore;
@@ -556,12 +572,14 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     if (normalizedState === 1 || normalizedState === 'playing' || event?.stopped) pauseSeekPending = false;
     else if (AppState.isPlaying) expectPauseSnap();
     AppState.isPlaying = normalizedState === 1 || normalizedState === 'playing';
+    if (!AppState.isPlaying) cancelRealtimePulses();
     updatePlayPauseLabel();
     setStatus(AppState.isPlaying ? 'Playing' : 'Paused');
     hostCallbacks.onPlayerStateChanged?.(state);
   });
 
   alphaTabApi.playerPositionChanged.on((event) => {
+    if (event?.isSeek) cancelRealtimePulses();
     // The full alphaTab API seeks to the current beat's start on Pause.
     // This acknowledgement is transport positioning, not a new practice attempt.
     const isPauseSnap = Boolean(event?.isSeek && pauseSeekPending);
@@ -671,32 +689,39 @@ export function setPlaybackSpeed(speed) {
   return true;
 }
 
-// Wait uses a separate native synthesizer containing only rests/metronome ticks.
-// Its clock never seeks with the score or drives the Wait controller.
+const realtimePulseTimers = new Set();
+function cancelRealtimePulses() {
+  for (const timer of realtimePulseTimers) clearTimeout(timer);
+  realtimePulseTimers.clear();
+}
+
+// Render one native Sonivox click once; schedule copies on the audio clock.
+// This avoids the live ScriptProcessor loop's buffer starvation on restarts.
 let waitMetronome = null, waitMetronomeLoading = null;
 let waitMetronomeState = { enabled: false, running: false, bpm: 120, volume: 0 };
 
 function syncWaitMetronome() {
-  if (!waitMetronome) return;
-  const state = waitMetronomeState;
-  if (!state.enabled || !state.running) {
-    if (waitMetronome.state === 1) waitMetronome.pause();
-    return;
-  }
-  if (waitMetronome.metronomeVolume !== state.volume) waitMetronome.metronomeVolume = state.volume;
-  if (waitMetronome.playbackSpeed !== state.bpm / 120) waitMetronome.playbackSpeed = state.bpm / 120;
-  if (waitMetronome.state !== 1) waitMetronome.play();
+  waitMetronome?.sync(waitMetronomeState);
 }
 
 async function prepareWaitMetronome() {
   let synth;
   try {
     const at = window.alphaTab;
-    // The bundled synchronous output avoids a pending worklet start racing Pause.
-    const output = new at.synth.AlphaSynthScriptProcessorOutput();
-    // ScriptProcessor needs at least two 4096-frame buffers to request samples.
-    synth = new at.synth.AlphaSynth(output, 400);
-    output.activate();
+    const context = alphaTabApi.player.output.context;
+    class ClickOutput extends at.synth.AlphaSynthWebAudioOutputBase {
+      chunks = [];
+      get sampleRate() { return context.sampleRate; }
+      open() { this.onReady(); }
+      activate() {}
+      play() {}
+      pause() {}
+      destroy() {}
+      resetSamples() { this.chunks = []; }
+      addSamples(samples) { this.chunks.push(samples); }
+    }
+    const output = new ClickOutput();
+    synth = new at.synth.AlphaSynth(output, 100);
     const parser = new at.importer.AlphaTexImporter();
     parser.initFromString('\\tempo 120 . r.1', new at.Settings());
     const midi = new at.midi.MidiFile();
@@ -705,13 +730,26 @@ async function prepareWaitMetronome() {
     const response = await fetch(getAssetUrl('./assets/vendor/alphatab/soundfont/sonivox.sf2'));
     if (!response.ok) throw new Error('Could not load the Wait metronome soundfont.');
     synth.loadSoundFont(new Uint8Array(await response.arrayBuffer()), false);
-    synth.isLooping = true;
-    synth.midiEventsPlayedFilter = [at.midi.MidiEventType.AlphaTabMetronome];
-    synth.midiEventsPlayed.on(event => {
-      if (!waitMetronomeState.enabled || !waitMetronomeState.running || AppState.mode !== 'wait') return;
-      for (const midi of event.events) if (midi.type === at.midi.MidiEventType.AlphaTabMetronome) hostCallbacks.onMetronomeTick?.();
+    synth.metronomeVolume = 1;
+    synth.play();
+    const frames = Math.ceil(context.sampleRate * 0.45);
+    let count = 0;
+    while (count < frames * 2) {
+      output.onSampleRequest();
+      const chunk = output.chunks.at(-1);
+      if (!chunk?.length) throw new Error('Could not render the native metronome click.');
+      count += chunk.length;
+    }
+    const buffer = context.createBuffer(2, frames, context.sampleRate);
+    const channels = [buffer.getChannelData(0), buffer.getChannelData(1)];
+    let frame = 0;
+    for (const chunk of output.chunks) for (let i = 0; i < chunk.length && frame < frames; i += 2, frame++) {
+      channels[0][frame] = chunk[i]; channels[1][frame] = chunk[i + 1];
+    }
+    synth.destroy(); synth = null;
+    waitMetronome = createMetronomeClock(context, buffer, () => {
+      if (waitMetronomeState.enabled && waitMetronomeState.running && AppState.mode === 'wait') hostCallbacks.onMetronomeTick?.();
     });
-    waitMetronome = synth;
     syncWaitMetronome();
   } catch (error) {
     synth?.destroy();
@@ -725,6 +763,7 @@ export function setMetronomeVolume(volume, options = {}) {
   if (!alphaTabApi || !Number.isFinite(volume) || volume < 0 || volume > 1) return false;
   const nativeVolume = options.wait ? 0 : volume;
   if (alphaTabApi.metronomeVolume !== nativeVolume) alphaTabApi.metronomeVolume = nativeVolume;
+  if (options.wait || !options.enabled || !options.running) cancelRealtimePulses();
   waitMetronomeState = { enabled: Boolean(options.wait && options.enabled), running: Boolean(options.running),
     bpm: Number.isFinite(options.bpm) && options.bpm > 0 ? options.bpm : 120, volume };
   if (waitMetronomeState.enabled && !waitMetronome && !waitMetronomeLoading) waitMetronomeLoading = prepareWaitMetronome();

@@ -1,6 +1,7 @@
 // Tempo presentation and validation only; native playback stays in the host.
 import { AppState } from './app-state.js';
 import { normalizePlaybackSpeed } from './practice-range.js';
+import { readMetronomeVolume, saveMetronomeVolume } from './tempo-preferences.js';
 
 export function tempoAtTick(timeline, tick = 0, fallback = 120) {
   let bpm = fallback > 0 ? fallback : 120;
@@ -19,6 +20,7 @@ export function stepToFive(value, direction, min, max) {
 const displayNumber = value => String(Number(value.toFixed(2)));
 
 export function initTempoControls({ onSpeedChange, onMetronomeChange = () => {} }) {
+  AppState.metronome.volumePercent = readMetronomeVolume();
   const get = id => document.getElementById(id);
   const bpm = get('playback-bpm'), speed = get('playback-speed-percent');
   const slider = get('playback-speed-slider'), reset = get('reset-playback-speed');
@@ -71,6 +73,7 @@ export function initTempoControls({ onSpeedChange, onMetronomeChange = () => {} 
       return;
     }
     AppState.metronome.volumePercent = number;
+    saveMetronomeVolume(number);
     updateNumbers(true);
     sync();
   }

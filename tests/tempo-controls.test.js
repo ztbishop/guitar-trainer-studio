@@ -82,10 +82,10 @@ test('invalid entries restore controls and unloaded scores cannot change tempo o
 test('metronome preferences never dispatch speed changes and pulse clears on pause and disable', () => {
   const h = harness();
   try {
-    assert.equal(h.get('metronome-volume-percent').value, '25');
+    assert.equal(h.get('metronome-volume-percent').value, '75');
     assert.equal(h.get('metronome-volume-percent').disabled, true);
     h.get('metronome-enabled').checked = true; h.get('metronome-enabled').handlers.change();
-    assert.equal(h.volumes.at(-1), 0.25);
+    assert.equal(h.volumes.at(-1), 0.75);
     h.change('metronome-volume-percent', '33'); h.get('volume-up').handlers.click();
     assert.equal(h.volumes.at(-1), 0.35);
     h.change('metronome-volume-percent', '101');

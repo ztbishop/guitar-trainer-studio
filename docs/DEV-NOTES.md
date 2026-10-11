@@ -1,5 +1,20 @@
 # Development notes
 
+## Metronome timing/restart fix and saved volume — 2026-10-11
+
+The supplied Wes Montgomery - Four On Six.gp3 was parsed with the bundled alphaTab importer: its initial tempo is 200 BPM, with two 200 BPM automations in bar 1 and no other tempo changes. The previous 120 BPM display was a fallback; this check does not establish that earlier native playback was at 120.
+
+Owner reported visual pulse preceding audible click, erratic Wait pulse, and Wait audio becoming silent after option/pause/restart use. Native playback events report samples as an output block is processed, before the speaker output timestamp. Realtime pulses now account for the event's position within the processed block and map to the browser audio output timestamp, with reported output/base latency as fallback. Queued pulses cancel on pause, seek, disable and mode exit. This follows the browser timestamp contract: https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/getOutputTimestamp.
+
+Wait no longer loops a live secondary ScriptProcessor synth. The host renders one click using bundled native AlphaSynth/Sonivox, then schedules copies on the main player's Web Audio clock. Audio sources and visual pulses share each scheduled beat; stop cancels both. Restart uses fresh sources and no old circular-buffer counters. UI refreshes, volume changes and cursor/loop movement do not restart the clock; BPM changes do. Stalled scheduling skips missed clicks instead of a burst. Latest desired state still governs completion of asynchronous font loading. No changes to native score playback, grading, input routing, output selection or deferred features.
+
+Default volume is now 75%. Valid volume changes (including 0) save as gts.metronomeVolumePercent. Startup restores a valid saved 0–100 value before displaying controls; missing/invalid/inaccessible storage falls back to 75. Metronome enable remains off at startup, visual pulse remains session-only. Storage belongs to the browser origin: localhost and 127.0.0.1 can retain different preferences.
+
+Realtime grading review (read-only): the evaluator anchors to native playback notifications at their receipt time and interpolates MIDI timestamps. Manual MIDI latency compensation exists, but speaker output latency is not automatically applied to grading. A note played to delayed audible backing can appear late. Record this for a separately scoped browser/Fishman timing/calibration check; do not change grading as part of this metronome task.
+
+Automated evidence: 152 tests pass, including real bundled click samples, late font-load cancellation, six pause/restart cycles, fixed 200 BPM scheduling, stalled-tab skip, muted visual beats, pulse/audio cancellation, output timestamp mapping and storage validation/failure. Changed modules pass Node syntax checks. Background browser smoke check loaded the actual GP3, verified 200 BPM/75% initial volume, Realtime and Wait pulses, Wait pause/resume, and 65% surviving reload with metronome off. Test browser did not have MIDI permission; physical Fishman and speaker listening remain owner acceptance. Check audible/visual alignment in both modes, repeated option/mode toggles and restarts, and volume retention using your usual Live Server address. No Git publishing or version changes.
+
+
 ## Tempo menu and independent Wait metronome — 2026-10-11
 
 Implemented the owner's Piano-style reference with compact BPM/speed rows, linked sliders/number boxes, reset, and stacked arrows snapping to the next/previous multiple of five. Direct typing is not forced to a multiple; numeric edits commit on change, Enter or blur. Native playback speed remains 25–200% and scales the original tempo map. Realtime displays current effective BPM; speed/BPM edits retain the existing pause/reset rule.
