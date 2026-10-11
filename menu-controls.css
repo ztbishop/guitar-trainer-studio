@@ -118,8 +118,42 @@
 .menu-option { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-height: var(--menu-control-height); margin-top: 4px; touch-action: manipulation; }
 .menu-content hr { margin: 20px 0; border: 0; border-top: 1px solid var(--section-rule); }
 
-/* Tempo composition only; control appearance comes from the shared rules. */
+/* Menu composition; control appearance comes from the shared rules above. */
 #tempo-popup { width: min(740px, calc(100vw - 32px)); border-radius: 16px; background: #f5f7f9; }
+#looper-popup { --menu-label-width: 160px; width: min(780px, calc(100vw - 32px)); border-radius: 16px; background: #f5f7f9; }
+#loop-count-in-label { margin: 8px 0 22px 16px; }
+.menu-unavailable { opacity: 0.45; }
+.loop-help, #loop-controls-status { font-size: 0.75rem; color: var(--muted); line-height: 1.5; margin: 14px 0 0; }
+#loop-controls-status:empty { display: none; }
+#btn-looper.is-loop-enabled, #more-loop-shortcut.is-loop-enabled {
+  background: #d9edfc;
+  border-color: #2994d0;
+  color: #1c4e70;
+  box-shadow: inset 0 0 0 1px #2994d0;
+}
+.app-toolbar.is-collapse-to-more #btn-more.has-enabled-loop::after { content: '↻'; color: #1c4e70; margin-left: 6px; }
+.loop-notice {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translate(-50%, 6px);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border: 1px solid #c6d0db;
+  border-radius: 8px;
+  background: #f5f7f9;
+  color: #1c4e70;
+  box-shadow: 0 4px 16px rgba(34, 48, 62, 0.18);
+  text-align: center;
+  font-size: 0.9rem;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+.loop-notice.is-visible { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { .loop-notice { transition: none; } }
 .menu-bpm-row { grid-template-columns: var(--menu-label-width) var(--menu-number-group) minmax(0, 1fr); }
 .tempo-metronome-row { display: grid; grid-template-columns: auto auto minmax(60px, 1fr) var(--menu-number-group); align-items: center; gap: var(--menu-gap); }
 .tempo-metronome-row label { display: flex; align-items: center; gap: 10px; min-height: var(--menu-control-height); }

@@ -140,7 +140,7 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
     constructor(container,settings) {
       api=this; this.settings=new context.alphaTab.Settings(); this.calls=[];this.player={output:{activate:()=>this.calls.push('activate')}};
       this.constructorSettings=settings;
-      for(const name of ['playerFinished','scoreLoaded','midiLoaded','playerReady','playerStateChanged','playerPositionChanged','beatMouseDown','error','renderStarted','postRenderFinished']) this[name]={on:fn=>this[name].emit=fn};
+      for(const name of ['playerFinished','scoreLoaded','midiLoaded','playerReady','playerStateChanged','playerPositionChanged','beatMouseDown','beatMouseMove','beatMouseUp','error','renderStarted','postRenderFinished']) this[name]={on:fn=>this[name].emit=fn};
     }
     updateSettings(...args) { assert.equal(args.length,0); this.calls.push('update'); }
     render() { this.calls.push('render'); }
@@ -152,12 +152,12 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
     renderTracks() {} changeTrackMute() {}
   }
   window.alphaTab={...context.alphaTab,AlphaTabApi:FakeApi};
-  let position;
+  let position,loopSelection;
   const timelineChanges=[];
   const container=new Element('container');
   let gradeTransport = false;
   await initAlphaTab(container, {onPlayerPositionChanged:e=>{position=e;if(gradeTransport)handlePlaybackPosition(e)},
-    onPlayerStateChanged:()=>{if(gradeTransport)handlePlaybackState()}, onPlaybackTimelineChanged:t=>timelineChanges.push(t)});
+    onPlayerStateChanged:()=>{if(gradeTransport)handlePlaybackState()}, onPlaybackTimelineChanged:t=>timelineChanges.push(t),onLoopSelection:selection=>loopSelection=selection});
   assert.equal(api.constructorSettings.core.includeNoteBounds,true);
   assert.equal(elements.get('toolbar-score-value').textContent,'—');
   const originalSoundFont=api.settings.player.soundFont;
@@ -221,7 +221,10 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   assert.equal(timelineChanges.at(-1).measures.length,4);
   assert.equal(AppState.playbackTimeline.events.length,4);
   api.playerReady.emit();
-  assert.equal(play(),true); api.playerStateChanged.emit({state:1}); assert.equal(AppState.isPlaying,true);
+  assert.equal(play(),true);assert.equal(AppState.countInActive,true);assert.equal(AppState.isPlaying,false);
+  // Audio scheduling is covered by the native-click host test; this fake API
+  // checks that cancellation leaves subsequent native playback callbacks intact.
+  stop();api.playerStateChanged.emit({state:1});assert.equal(AppState.isPlaying,true);
   api.playerPositionChanged.emit({currentTick:960,currentTime:500});
   assert.equal(position.currentTick,960); assert.equal(position.currentTime,500);
   assert.equal(position.speed,1); assert.equal(position.isSeek,false);
@@ -280,6 +283,17 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   api.playerPositionChanged.emit({currentTick:960,currentTime:500,isSeek:true});
   assert.equal(position.isPauseSnap,false);assert.equal(AppState.trainer.results.correct,0);
   gradeTransport=false;
+  AppState.practiceLoop={enabled:true,countIn:false,startIndex:1,endIndex:1,range:{startTick:3840,endTick:7680}};
+  const previousPosition=position;
+  api.playerPositionChanged.emit({currentTick:0,currentTime:0,isSeek:true});
+  assert.equal(position,previousPosition,'out-of-loop native seek is not forwarded to practice');assert.equal(api.tickPosition,3840);
+  const secondBeat=score.tracks[0].staves[0].bars[1].voices[0].beats[0];
+  api.beatMouseDown.emit(renderedNote.beat);api.beatMouseMove.emit(secondBeat);
+  api.playbackRange={startTick:100,endTick:7679};api.beatMouseUp.emit(secondBeat);
+  assert.deepEqual(loopSelection,{startIndex:0,endIndex:1,range:{startTick:0,endTick:7680}});
+  api.beatMouseDown.emit(secondBeat);api.playbackRange=null;api.beatMouseUp.emit(secondBeat);
+  assert.deepEqual(api.playbackRange,AppState.practiceLoop.range,'single click retains enabled loop');
+  AppState.practiceLoop={enabled:false,countIn:false,startIndex:0,endIndex:0,range:null};
   assert.equal(stop(),true); assert.equal(AppState.isPlaying,false);
   const originalRange={startTick:0,endTick:3840};api.playbackRange=originalRange;api.isLooping=true;api.countInVolume=0.5;
   acquireWaitTransport();assert.equal(api.calls.at(-1),'activate');assert.equal(api.isLooping,false);assert.equal(api.countInVolume,0);

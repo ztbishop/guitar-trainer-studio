@@ -21,6 +21,7 @@ No build step or npm dependency installation is required to run the app. Serve t
 - Native alphaTab score/tab rendering, playback, track display, and selected/backing track routing.
 - Repeat-aware Realtime pitch/timing grading and silent Wait stepping as each target is solved.
 - Linked BPM/speed controls, native metronome volume and visual pulse, occurrence-aware section loops, MIDI latency adjustment, and Wait Collect notes/Together chord settings. Wait's metronome runs independently at the set BPM.
+- Piano-style Loop menu uses the shared touch-friendly sliders and horizontal arrows (one-measure steps). Enable Loop and Loop Count-in default off on page/score load and are not saved. Play/resume gets a one-bar count-in; Loop Count-in adds one at each repeat. Native score dragging selects whole measures and enables looping; sliders remain precise for repeat occurrences. Out-of-range written measures are shaded, and cursor seeks remain inside an enabled loop.
 - Pause/Resume retention, explicit **New attempt here**, completion summaries, and mistake history.
 - Staff target feedback and actual wrong-pitch noteheads, independent tab highlights and incorrect fret numbers, and an optional six-string fretboard with left-handed display.
 - Configured Hex string-channel feedback; optional Poly fret estimates only for an unambiguous remaining written note. Estimates are display feedback, not detected string identity.
@@ -35,7 +36,7 @@ With Node 22 or newer, run from the project root:
 node --test tests/*.test.js
 ```
 
-The current 2026-10-11 suite passes 152 automated tests (142 at the v0.0.2 checkpoint). Tests cover normalization, native score/playback integration, transport retention, session grading, visual geometry, Tempo/metronome timing and restarts, and saved volume; they do not establish physical Fishman acceptance. Browser smoke checks covered desktop/narrow-screen layout, the supplied 200 BPM score, Realtime/Wait pulses, Wait restart, and volume retention after reload. The owner accepted this checkpoint for now; full listening and hardware acceptance remain local.
+The current 2026-10-11 suite passes 160 automated tests (142 at the v0.0.2 checkpoint). Coverage includes native looping/selection, activation notices, endpoint ordering, shading, count-in cancellation and exclusion from Wait chord active time, alongside earlier MIDI, grading, geometry and Tempo tests. Browser smoke checks loaded the supplied 200 BPM score and covered Loop layouts, mouse selection, cursor confinement, initial count-in, Wait pause/resume/Reset, and Realtime repeat count-in. Full listening, physical tablet and Fishman acceptance remain local; automated checks do not establish them.
 
 Use your normal Live Server/browser setup to check Realtime Pause/Resume, Wait mistake retention and note releases, Together strums, per-string channel identity, repeats/loops/seeks, and overlay alignment through zoom/resize. Relevant stage notes provide detailed scenarios; the current specification below overrides their older instructions.
 

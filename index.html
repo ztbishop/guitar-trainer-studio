@@ -47,6 +47,8 @@
       </div>
     </header>
 
+    <div id="loop-enabled-notice" class="loop-notice" role="status" aria-live="polite" aria-atomic="true"></div>
+
     <div id="toolbar-backdrop" class="toolbar-backdrop hidden" aria-hidden="true"></div>
 
     <section id="scores-panel" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
@@ -255,18 +257,33 @@
     </section>
 
     <section id="looper-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
-      <div class="panel-header compact-header">
-        <div>
-          <div class="panel-kicker">Loop</div>
-          <h2>Practice a section</h2>
+      <div class="menu-content">
+        <h2>Looper</h2>
+        <label class="menu-option"><input id="practice-loop-enabled" type="checkbox" disabled /> Enable Loop</label>
+        <label id="loop-count-in-label" class="menu-option menu-unavailable"><input id="loop-count-in" type="checkbox" disabled /> Loop Count-in</label>
+        <div class="menu-row">
+          <label for="practice-loop-start">Beginning Measure</label>
+          <input id="loop-start-slider" aria-label="Beginning measure slider" type="range" min="1" max="1" step="1" value="1" disabled />
+          <div class="menu-number">
+            <input id="practice-loop-start" aria-label="Beginning measure" type="number" min="1" max="1" step="1" value="1" disabled />
+            <div class="menu-steppers">
+              <button id="loop-start-down" type="button" aria-label="Decrease beginning measure" disabled>▾</button>
+              <button id="loop-start-up" type="button" aria-label="Increase beginning measure" disabled>▴</button>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="popup-card">
-        <label class="toggle-row" for="practice-loop-enabled"><input id="practice-loop-enabled" type="checkbox" disabled /><span>Repeat selected section</span></label>
-        <label class="field-group" for="practice-loop-start"><span class="field-label">Start</span><select id="practice-loop-start" disabled></select></label>
-        <label class="field-group" for="practice-loop-end"><span class="field-label">End (included)</span><select id="practice-loop-end" disabled></select></label>
-        <p class="field-help">Measures are listed in playback order, including each repeat occurrence. Changes pause practice and reset results.</p>
-        <button id="apply-practice-loop" type="button" disabled>Apply loop settings</button>
+        <div class="menu-row">
+          <label for="practice-loop-end">Ending Measure</label>
+          <input id="loop-end-slider" aria-label="Ending measure slider" type="range" min="1" max="1" step="1" value="1" disabled />
+          <div class="menu-number">
+            <input id="practice-loop-end" aria-label="Ending measure" type="number" min="1" max="1" step="1" value="1" disabled />
+            <div class="menu-steppers">
+              <button id="loop-end-down" type="button" aria-label="Decrease ending measure" disabled>▾</button>
+              <button id="loop-end-up" type="button" aria-label="Increase ending measure" disabled>▴</button>
+            </div>
+          </div>
+        </div>
+        <p class="loop-help">Play starts with a count-in. Loop Count-in adds one before each repeat.<br />Drag across score beats to select whole measures. Range changes pause practice and reset results.</p>
         <p id="loop-controls-status" role="status">Load a score to choose a section.</p>
       </div>
     </section>
@@ -281,7 +298,7 @@
 
       <div class="more-popup-grid" role="group" aria-label="Additional controls">
         <button type="button" class="more-shortcut-button" data-launch-panel="tempo-popup">♪ Tempo</button>
-        <button type="button" class="more-shortcut-button" data-launch-panel="looper-popup">🔁 Loop</button>
+        <button id="more-loop-shortcut" type="button" class="more-shortcut-button" data-launch-panel="looper-popup">🔁 Loop</button>
         <button type="button" class="more-shortcut-button" data-launch-panel="audio-popup">🎚 Audio / Routing</button>
         <button type="button" class="more-shortcut-button" data-launch-panel="display-popup">🖥 Display</button>
         <button type="button" class="more-shortcut-button" data-launch-panel="transpose-popup">↕ Transpose</button>

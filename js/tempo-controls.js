@@ -34,7 +34,7 @@ export function initTempoControls({ onSpeedChange, onMetronomeChange = () => {} 
   const ready = () => Boolean(AppState.playerReady && AppState.playbackTimeline?.measures.length);
   const usable = ready;
   const running = () => AppState.mode === 'wait'
-    ? Boolean(AppState.waitTrainer?.active && AppState.waitTrainer.phase !== 'paused') : AppState.isPlaying;
+    ? Boolean(AppState.waitTrainer?.active && !['paused','count-in'].includes(AppState.waitTrainer.phase)) : AppState.isPlaying;
 
   function clearPulse() {
     if (pulseTimer !== null) clearTimeout(pulseTimer);

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { AppState } from '../js/app-state.js';
-import { initAlphaTab, setMetronomeVolume } from '../js/alphatab-host.js';
+import { initAlphaTab, setMetronomeVolume, startCountIn, cancelCountIn } from '../js/alphatab-host.js';
 
 class Emitter {
   handlers = [];
@@ -32,7 +32,7 @@ test('Wait reuses an audible native click, survives repeated restart, and never 
   let api, ticks = 0, loads = 0;
   class Api {
     constructor() {
-      api=this;this.player={output:{context:audio}};this.metronomeVolume=0;this.midiEventsPlayedFilter=[];
+      api=this;this.player={output:{context:audio,activate(){}}};this.metronomeVolume=0;this.midiEventsPlayedFilter=[];
       for(const name of ['midiEventsPlayed','renderStarted','postRenderFinished','scoreLoaded','midiLoaded','playerReady','playerFinished','playerStateChanged','playerPositionChanged','beatMouseDown','error'])this[name]=new Emitter();
     }
   }
@@ -71,7 +71,21 @@ test('Wait reuses an audible native click, survives repeated restart, and never 
     await wait(5);assert.equal(ticks,rt+1);
     api.midiEventsPlayed.trigger({events:[new at.midi.AlphaTabMetronomeEvent(0,960,1,960,500)]});
     AppState.isPlaying=false;setMetronomeVolume(0,{wait:false});await wait(5);assert.equal(ticks,rt+1);
+    const savedTimeline=AppState.playbackTimeline,savedScore=AppState.score,savedSpeed=AppState.playbackSpeed;
+    AppState.playbackTimeline={measures:[{measureNumber:1,startTick:0,endTick:3840}],tempoMap:[{tick:0,bpm:200}]};
+    AppState.score={tempo:200,masterBars:[{timeSignatureNumerator:4,timeSignatureDenominator:4}]};AppState.playbackSpeed=1;
+    AppState.metronome.volumePercent=75;
+    let completions=0;const beforeCount=sources.length;
+    startCountIn(0,()=>completions++);await wait(5);
+    assert.equal(AppState.countInActive,true);assert.equal(AppState.isPlaying,false);
+    assert.equal(sources.length-beforeCount,4,'one bar uses the actual rendered native click');
+    api.playerStateChanged.trigger({state:1});assert.equal(AppState.isPlaying,false,'queued native state cannot start grading during count-in');
+    cancelCountIn();await wait(5);assert.equal(completions,0);assert.equal(AppState.countInActive,false);
+    assert.ok(sources.slice(beforeCount).every(source=>source.stopped));
+    startCountIn(0,()=>completions++);await wait(1280);assert.equal(completions,1);assert.equal(AppState.countInActive,false);
+    AppState.playbackTimeline=savedTimeline;AppState.score=savedScore;AppState.playbackSpeed=savedSpeed;
   } finally {
+    cancelCountIn();
     setMetronomeVolume(0,{wait:false});Object.assign(globalThis,previous);
     AppState.trainer.results=saved.results;delete saved.results;Object.assign(AppState,saved);
   }

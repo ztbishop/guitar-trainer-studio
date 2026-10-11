@@ -7,6 +7,18 @@ import { buildPlaybackTimeline, tickToTimeMs } from './score-playback.js';
 import { audibleDelayMs, createMetronomeClock } from './metronome-clock.js';
 import { wrongFretGeometry } from './tab-feedback.js';
 import { notationFeedbackGeometry, accidentalPath } from './notation-feedback.js';
+import {outsideLoopBounds,wholeMeasureSelection} from './loop-visuals.js';
+import {countInTiming,scheduleCountIn} from './count-in.js';
+
+let loopOverlay=null;
+function drawLoopShading() {
+  if(!notationContainer)return;
+  const rectangles=outsideLoopBounds(AppState.playbackTimeline,AppState.practiceLoop,alphaTabApi?.boundsLookup);
+  if(!rectangles.length){loopOverlay?.replaceChildren();return;}
+  if(!loopOverlay){loopOverlay=svgElement('svg',{class:'loop-shading-overlay','aria-hidden':'true'});}
+  if(loopOverlay.parentNode!==notationContainer)notationContainer.appendChild(loopOverlay);
+  loopOverlay.replaceChildren(...rectangles.map(rect=>svgElement('rect',{x:rect.x,y:rect.y,width:rect.w,height:rect.h})));
+}
 
 let notationContainer=null,notationOverlay=null,notationMarks=[],feedbackVisibility={notation:true,tabCircles:true,tabFrets:true},notationSignature='';
 let scoreNoteLookup=new Map();
@@ -104,6 +116,8 @@ let hostCallbacks = {
   onPlayerStateChanged: null,
   onMetronomeTick: null,
   onMetronomeError: null,
+  onLoopSelection: null,
+  onCountInChanged: null,
 };
 
 function getAssetUrl(relativePath) {
@@ -400,6 +414,8 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     onPlayerStateChanged: callbacks.onPlayerStateChanged || null,
     onMetronomeTick: callbacks.onMetronomeTick || null,
     onMetronomeError: callbacks.onMetronomeError || null,
+    onLoopSelection: callbacks.onLoopSelection || null,
+    onCountInChanged: callbacks.onCountInChanged || null,
   };
 
   ui = {
@@ -510,8 +526,8 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
       realtimePulseTimers.add(timer);
     }
   });
-  alphaTabApi.renderStarted?.on(()=>notationOverlay?.replaceChildren());
-  alphaTabApi.postRenderFinished?.on(()=>drawNotationFeedback());
+  alphaTabApi.renderStarted?.on(()=>{notationOverlay?.replaceChildren();loopOverlay?.replaceChildren();});
+  alphaTabApi.postRenderFinished?.on(()=>{drawNotationFeedback();drawLoopShading();});
   alphaTabApi.scoreLoaded.on((score) => {
     cancelRealtimePulses();
     const loadedScore = score || alphaTabApi.score || null;
@@ -564,21 +580,32 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     hostCallbacks.onPlayerReady?.();
   });
 
-  alphaTabApi.playerFinished.on(() => hostCallbacks.onPlayerFinished?.());
+  alphaTabApi.playerFinished.on(() => {
+    hostCallbacks.onPlayerFinished?.();
+    // Native continuous loops do not insert count-ins. With this option on,
+    // let native playback finish, then pre-roll before starting the next pass.
+    if(AppState.mode==='realtime' && AppState.practiceLoop.enabled && AppState.practiceLoop.countIn) {
+      startCountIn(AppState.practiceLoop.range.startTick,ok=>{if(ok)alphaTabApi.play();});
+    }
+  });
 
   alphaTabApi.playerStateChanged.on((event) => {
     const state = event?.state ?? event;
     const normalizedState = typeof state === 'number' ? state : String(state).toLowerCase();
     if (normalizedState === 1 || normalizedState === 'playing' || event?.stopped) pauseSeekPending = false;
     else if (AppState.isPlaying) expectPauseSnap();
-    AppState.isPlaying = normalizedState === 1 || normalizedState === 'playing';
+    AppState.isPlaying = !AppState.countInActive && (normalizedState === 1 || normalizedState === 'playing');
     if (!AppState.isPlaying) cancelRealtimePulses();
     updatePlayPauseLabel();
-    setStatus(AppState.isPlaying ? 'Playing' : 'Paused');
+    if(!AppState.countInActive)setStatus(AppState.isPlaying ? 'Playing' : 'Paused');
     hostCallbacks.onPlayerStateChanged?.(state);
   });
 
   alphaTabApi.playerPositionChanged.on((event) => {
+    const range=AppState.practiceLoop.range;
+    if(event?.isSeek && range && !scoreDragging && (event.currentTick<range.startTick || event.currentTick>=range.endTick)) {
+      alphaTabApi.tickPosition=range.startTick;return;
+    }
     if (event?.isSeek) cancelRealtimePulses();
     // The full alphaTab API seeks to the current beat's start on Pause.
     // This acknowledgement is transport positioning, not a new practice attempt.
@@ -602,7 +629,20 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 
   // A score click/drag is an intentional seek, even when paused and no native
   // Pause snap was emitted. Do not let an unused pause acknowledgement mask it.
-  alphaTabApi.beatMouseDown?.on(() => {pauseSeekPending = false;});
+  let scoreDragging=false,scoreMouseDown=null;
+  alphaTabApi.beatMouseDown?.on(beat => {pauseSeekPending=false;if(AppState.mode!=='wait')cancelCountIn();scoreMouseDown=beat.id;});
+  alphaTabApi.beatMouseMove?.on(beat => {if(scoreMouseDown!==null && scoreMouseDown!==beat.id)scoreDragging=true;});
+  alphaTabApi.beatMouseUp?.on(() => {
+    const selected=scoreDragging ? wholeMeasureSelection(AppState.playbackTimeline,alphaTabApi.playbackRange) : null;
+    scoreMouseDown=null;scoreDragging=false;
+    if(selected)hostCallbacks.onLoopSelection?.(selected);
+    else {
+      // A native single click clears its range. Retain our enabled loop instead.
+      alphaTabApi.playbackRange=savedWaitTransport ? null : AppState.practiceLoop.range;
+      const range=AppState.practiceLoop.range,tick=alphaTabApi.tickPosition;
+      if(range && (tick<range.startTick || tick>=range.endTick))alphaTabApi.tickPosition=range.startTick;
+    }
+  });
 
   alphaTabApi.error.on((error) => {
     console.error('alphaTab error:', error);
@@ -617,9 +657,11 @@ export async function loadScoreFile(file) {
   if (!alphaTabApi) throw new Error('alphaTab is not ready yet. Fix the alphaTab asset path first.');
   if (!file) return false;
   pauseSeekPending = false;
+  cancelCountIn();
   releaseWaitTransport();
   alphaTabApi.pause();
-  AppState.practiceLoop={enabled:false,startIndex:0,endIndex:0,range:null};
+  AppState.practiceLoop={enabled:false,countIn:false,startIndex:0,endIndex:0,range:null};
+  loopOverlay?.replaceChildren();
   alphaTabApi.isLooping=false;
   alphaTabApi.playbackRange=null;
 
@@ -674,11 +716,12 @@ export function updateAlphaTabSettings(nextSettings) {
 
 export function play() {
   if (!alphaTabApi || !AppState.playerReady) return false;
+  if(AppState.countInActive){cancelCountIn();return true;}
   const range=AppState.practiceLoop.range;
   const tick=alphaTabApi.tickPosition ?? AppState.tickPosition;
   if (!AppState.isPlaying && range && (tick < range.startTick || tick >= range.endTick)) alphaTabApi.tickPosition=range.startTick;
-  if (AppState.isPlaying) beginManualPause();
-  alphaTabApi.playPause();
+  if (AppState.isPlaying) {beginManualPause();alphaTabApi.playPause();}
+  else startCountIn(range && (tick<range.startTick || tick>=range.endTick) ? range.startTick : tick,ok=>{if(ok)alphaTabApi.play();});
   return true;
 }
 
@@ -697,7 +740,7 @@ function cancelRealtimePulses() {
 
 // Render one native Sonivox click once; schedule copies on the audio clock.
 // This avoids the live ScriptProcessor loop's buffer starvation on restarts.
-let waitMetronome = null, waitMetronomeLoading = null;
+let waitMetronome = null, waitMetronomeLoading = null, nativeClickBuffer=null;
 let waitMetronomeState = { enabled: false, running: false, bpm: 120, volume: 0 };
 
 function syncWaitMetronome() {
@@ -747,6 +790,7 @@ async function prepareWaitMetronome() {
       channels[0][frame] = chunk[i]; channels[1][frame] = chunk[i + 1];
     }
     synth.destroy(); synth = null;
+    nativeClickBuffer=buffer;
     waitMetronome = createMetronomeClock(context, buffer, () => {
       if (waitMetronomeState.enabled && waitMetronomeState.running && AppState.mode === 'wait') hostCallbacks.onMetronomeTick?.();
     });
@@ -757,6 +801,44 @@ async function prepareWaitMetronome() {
     setStatus(error.message || 'Wait metronome unavailable');
     hostCallbacks.onMetronomeError?.();
   } finally { waitMetronomeLoading = null; }
+}
+
+let countInGeneration=0,stopCountInAudio=null;
+export function cancelCountIn() {
+  countInGeneration++;stopCountInAudio?.();stopCountInAudio=null;
+  const active=AppState.countInActive;AppState.countInActive=false;
+  if(active){setStatus('Paused');hostCallbacks.onCountInChanged?.();}
+}
+
+export function startCountIn(tick,onComplete) {
+  cancelCountIn();
+  const generation=countInGeneration;
+  AppState.countInActive=true;AppState.isPlaying=false;
+  cancelRealtimePulses();waitMetronome?.stop();
+  alphaTabApi?.player?.output?.activate();
+  setStatus('Count-in…');hostCallbacks.onCountInChanged?.();
+  const timing=countInTiming(AppState.playbackTimeline,AppState.score,tick,AppState.playbackSpeed,
+    AppState.mode==='wait' ? waitMetronomeState.bpm : null);
+  (async()=>{
+    if(!nativeClickBuffer) {
+      if(!waitMetronomeLoading)waitMetronomeLoading=prepareWaitMetronome();
+      await waitMetronomeLoading;
+    }
+    if(generation!==countInGeneration)return;
+    const context=alphaTabApi?.player?.output?.context;
+    if(!nativeClickBuffer || !context){cancelCountIn();onComplete(false);return;}
+    if(context.state!=='running'){setStatus('Count-in • waiting for browser audio');await context.resume();}
+    if(generation!==countInGeneration)return;
+    stopCountInAudio=scheduleCountIn(context,nativeClickBuffer,timing,AppState.metronome.volumePercent/100,
+      (beat,beats)=>{setStatus(`Count-in ${beat} / ${beats}`);},()=>{
+        stopCountInAudio=null;
+        if(generation!==countInGeneration)return;
+        AppState.countInActive=false;onComplete(true);hostCallbacks.onCountInChanged?.();
+      });
+  })().catch(error=>{
+    if(generation!==countInGeneration)return;
+    cancelCountIn();setStatus(error.message || 'Count-in unavailable');onComplete(false);
+  });
 }
 
 export function setMetronomeVolume(volume, options = {}) {
@@ -775,14 +857,16 @@ export function applyPracticeLoop(range) {
   if (!alphaTabApi) return false;
   if (range && (!Number.isFinite(range.startTick) || !(range.endTick > range.startTick) ||
       range.startTick < 0 || range.endTick > (AppState.playbackTimeline?.endTick ?? 0))) return false;
-  alphaTabApi.pause();
-  alphaTabApi.isLooping=Boolean(range);
+  cancelCountIn();alphaTabApi.pause();
+  alphaTabApi.isLooping=Boolean(range && !AppState.practiceLoop.countIn);
   alphaTabApi.playbackRange=range;
   if(range)alphaTabApi.tickPosition=range.startTick;
+  drawLoopShading();
   return true;
 }
 
 export function pause() {
+  if(AppState.countInActive){cancelCountIn();return true;}
   if (!alphaTabApi || !AppState.playerReady || !AppState.isPlaying) return false;
   beginManualPause();
   alphaTabApi.playPause();
@@ -795,6 +879,7 @@ export function pause() {
 export function stop() {
   if (!alphaTabApi) return false;
   pauseSeekPending = false;
+  cancelCountIn();
   alphaTabApi.stop();
   AppState.isPlaying = false;
   updatePlayPauseLabel();
@@ -832,9 +917,10 @@ export function playWaitSegment(startTick,endTick) {
   alphaTabApi.tickPosition=startTick;
   alphaTabApi.play();
 }
-export function pauseWaitTransport() {alphaTabApi?.pause();}
+export function pauseWaitTransport() {cancelCountIn();alphaTabApi?.pause();}
 export function resumeWaitTransport() {alphaTabApi?.play();}
 export function releaseWaitTransport() {
+  cancelCountIn();
   if(!alphaTabApi || !savedWaitTransport)return;
   waitTransportGeneration++;
   alphaTabApi.pause();

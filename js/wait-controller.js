@@ -8,9 +8,9 @@ export class WaitController {
     this.active=false;this.phase='idle';this.index=-1;this.position=0;this.manualPaused=false;
     this.now=now;this.pauseOffset=0;this.pausedAt=null;this.chordSettings={};
   }
-  configure(events,endTick,hex=false,loop=false,chordSettings={}) {
+  configure(events,endTick,hex=false,loop=false,chordSettings={},loopCountIn=false) {
     this.stop();this.events=events;this.endTick=endTick;this.hex=hex;
-    this.loop=loop;this.pass=1;this.lastPassResults=null;this.passHistory=[];
+    this.loop=loop;this.loopCountIn=loopCountIn;this.pass=1;this.lastPassResults=null;this.passHistory=[];
     this.chordSettings={chordMode:chordSettings.mode,chordWindowMs:chordSettings.windowMs};
     this.session=new WaitSession(events,{hex,...this.chordSettings});this.index=-1;this.publish();
   }
@@ -27,6 +27,7 @@ export class WaitController {
       if(this.session.chordMode==='together' && record?.slots.length>1)status+=` • chord window ${this.session.chordWindowMs} ms`;
     }
     if(this.phase==='paused') status='Paused • press Play to resume Wait Mode';
+    if(this.phase==='count-in') status='Count-in • get ready';
     if(this.phase==='complete') {matchState='match';status='Wait practice complete';}
     const stats=this.session?.stats()??null;
     this.onChange({phase:this.phase,active:this.active,currentEvent,currentEventIndex:this.index,matchState,status,
@@ -43,7 +44,7 @@ export class WaitController {
       this.pauseOffset+=Math.max(0,this.now()-this.pausedAt);this.pausedAt=null;
       this.manualPaused=false;
       this.phase=this.pausedFrom==='seeking' ? (this.desiredTick===null?'waiting':'seeking') : this.pausedFrom;
-      this.publish();return true;
+      this.beginGate(this.index,true);return true;
     }
     this.advance(this.now());this.pausedAt=this.now();
     this.manualPaused=true;this.pausedFrom=this.phase;this.phase='paused';this.transport.pause();this.publish();return true;
@@ -55,7 +56,21 @@ export class WaitController {
     this.index=this.events.findIndex(e=>e.startTick>=tick-1);
     if(this.index<0) {this.index=0;this.position=0;tick=0;}
     this.session.skipBefore(this.index);
-    this.gate(this.index);
+    this.beginGate(this.index,true);
+  }
+  beginGate(index,countIn=false) {
+    if(!countIn || !this.transport.countIn){this.gate(index);return;}
+    const generation=this.countInGeneration=(this.countInGeneration || 0)+1;
+    const startedAt=this.now();
+    this.index=index;this.phase='count-in';this.desiredTick=this.events[index].startTick;
+    this.publish();this.transport.hold(this.desiredTick);
+    this.transport.countIn(this.desiredTick,ok=>{
+      if(generation!==this.countInGeneration || !this.active || this.phase!=='count-in')return;
+      // A resumed partial chord's active-time window excludes the pre-roll.
+      this.pauseOffset+=Math.max(0,this.now()-startedAt);
+      if(ok===false){this.manualPaused=true;this.pausedAt=this.now();this.pausedFrom='waiting';this.phase='paused';this.publish();return;}
+      this.pausedFrom='waiting';this.gate(index);
+    });
   }
   gate(index) {
     this.index=index;this.phase='seeking';this.desiredTick=this.events[index].startTick;
@@ -83,7 +98,10 @@ export class WaitController {
     if(this.desiredTick!==null && this.desiredTick!==undefined) {
       if(isSeek && Math.abs(currentTick-this.desiredTick)<=2) {
         this.position=this.desiredTick;this.desiredTick=null;
-        this.phase=this.manualPaused?'paused':'waiting';this.pausedFrom='waiting';this.publish();
+        if(this.phase!=='count-in' && this.pausedFrom!=='count-in') {
+          this.phase=this.manualPaused?'paused':'waiting';this.pausedFrom='waiting';
+        }
+        this.publish();
       }
       return;
     }
@@ -114,12 +132,13 @@ export class WaitController {
       this.lastPassResults=this.session.stats();
       this.passHistory.push(...this.session.feedbackHistory(this.pass));this.pass++;
       this.session=new WaitSession(this.events,{hex:this.hex,...this.chordSettings});
-      this.gate(0);return;
+      this.beginGate(0,this.loopCountIn);return;
     }
     this.active=false;this.phase='complete';this.position=this.endTick;this.desiredTick=null;
     this.publish();this.transport.finish(this.endTick);
   }
   stop() {
+    this.countInGeneration=(this.countInGeneration || 0)+1;
     const wasActive=this.active||this.phase==='complete';
     this.active=false;this.phase='idle';this.index=-1;this.manualPaused=false;this.desiredTick=null;
     this.pass=1;this.lastPassResults=null;this.passHistory=[];

@@ -2,7 +2,7 @@
 // Owns: startup wiring and module initialization order
 // Do NOT: let this grow into a giant logic file
 
-import { initAlphaTab, loadScoreFile, play, stop, applyPlaybackTrackState, acquireWaitTransport, holdWaitAtTick, pauseWaitTransport, releaseWaitTransport, finishWaitTransport, setPlaybackSpeed, setMetronomeVolume, applyPracticeLoop } from './alphatab-host.js';
+import { initAlphaTab, loadScoreFile, play, stop, applyPlaybackTrackState, acquireWaitTransport, holdWaitAtTick, pauseWaitTransport, releaseWaitTransport, finishWaitTransport, setPlaybackSpeed, setMetronomeVolume, applyPracticeLoop, startCountIn } from './alphatab-host.js';
 import { AppState } from './app-state.js';
 import { WaitController } from './wait-controller.js';
 
@@ -38,6 +38,7 @@ let attemptControls=null;
 const waitController = new WaitController({
   acquire:acquireWaitTransport,hold:holdWaitAtTick,
   pause:pauseWaitTransport,release:releaseWaitTransport,finish:finishWaitTransport,
+  countIn:startCountIn,
 }, state => {
   AppState.waitTrainer=state;
   if(AppState.mode==='wait')AppState.activeTargets=state.currentEvent?[state.currentEvent]:[];
@@ -47,7 +48,14 @@ const waitController = new WaitController({
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
 
 function configureWaitSession() {
-  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,AppState.waitChord);
+  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,AppState.waitChord,AppState.practiceLoop.countIn);
+}
+
+function changePracticeLoop(loop) {
+  waitController.stop();pauseWaitTransport();
+  AppState.practiceLoop=loop;applyPracticeLoop(loop.range);
+  if(loop.range)AppState.tickPosition=loop.range.startTick;
+  clearActiveMidiNotes();syncTrainerFoundation();
 }
 
 function wireTempoAndLoopControls() {
@@ -58,13 +66,7 @@ function wireTempoAndLoopControls() {
       waitController.stop();pauseWaitTransport();
       setPlaybackSpeed(speed);resetRealtimeSession('speed-change');configureWaitSession();renderTrainerUi();
     },
-    onLoopChange(loop) {
-      waitController.stop();pauseWaitTransport();
-      AppState.practiceLoop=loop;applyPracticeLoop(loop.range);
-      // Native position events may arrive asynchronously; reset from the chosen start.
-      if(loop.range)AppState.tickPosition=loop.range.startTick;
-      clearActiveMidiNotes();syncTrainerFoundation();
-    },
+    onLoopChange:changePracticeLoop,
   });
   transportControls.sync();
 }
@@ -439,7 +441,7 @@ function renderTrainerUi() {
   }
   const playButton=document.getElementById('play-pause-button');
   if(playButton) {
-    const running=AppState.mode==='wait' ? trainer.active && trainer.phase!=='paused' : AppState.isPlaying;
+    const running=AppState.countInActive || (AppState.mode==='wait' ? trainer.active && trainer.phase!=='paused' : AppState.isPlaying);
     playButton.textContent=running?'⏸ Pause':'▶ Play';
     playButton.setAttribute('aria-label',running?'Pause practice':'Start or resume practice');
     playButton.title=running?'Pause practice':'Start or resume practice';
@@ -476,7 +478,7 @@ function renderTrainerUi() {
   }
 
   if (statusEl) {
-    statusEl.textContent = trainer.status || 'Load a score to begin';
+    statusEl.textContent = AppState.countInActive ? 'Count-in • get ready' : trainer.status || 'Load a score to begin';
   }
 
   if (summaryEl) {
@@ -595,6 +597,8 @@ async function bootstrap() {
       onPlayerReady: () => renderTrainerUi(),
       onMetronomeTick: () => transportControls?.pulse(),
       onMetronomeError: () => renderTrainerUi(),
+      onCountInChanged: () => renderTrainerUi(),
+      onLoopSelection: selection => transportControls?.selectLoopByDrag(selection),
     });
   } catch (error) {
     console.error('Failed to bootstrap Guitar Trainer Studio.', error);

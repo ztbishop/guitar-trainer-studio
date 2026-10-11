@@ -1246,6 +1246,8 @@ body.has-score .alphatab-wrapper {
 /* Stage 6 practice feedback overlays */
 .feedback-group--tabs { border-top:1px solid #dbe3eb; margin-top:16px; padding-top:16px; }
 .notation-feedback-overlay { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; z-index:5; }
+.loop-shading-overlay { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; z-index:3; }
+.loop-shading-overlay rect { fill:#59616b; fill-opacity:0.18; }
 .notation-feedback-overlay rect { fill:transparent; stroke-width:2.5; vector-effect:non-scaling-stroke; }
 .notation-feedback-overlay [data-state='expected'] { stroke:#2563eb; }
 .notation-feedback-overlay [data-state='correct'] { stroke:#16803d; }

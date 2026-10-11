@@ -4,6 +4,17 @@ Updated 2026-10-11. This is the central status and priority list. Stage files re
 
 ## Current workflow and specification — 2026-10-11
 
+### Loop menu refinement — implemented 2026-10-11
+
+- [x] Loop stays highlighted while enabled, including its More shortcut and a narrow-screen More marker. Dragging shows a three-second nonblocking notice only when it enables looping; later enabled drags stay silent. Follow-up validation: 160 tests pass; browser verified measures 2–3 activation, silent 3–4 adjustment, notice expiry, tablet More indicator and disable cleanup. Owner normal-browser acceptance remains pending.
+- [x] Compact Piano-style Looper uses shared menu CSS, linked measure sliders/number fields, and horizontal arrows stepping by one. Crossing an endpoint moves the other; edits apply immediately and retain the existing pause/reset rule.
+- [x] Enable Loop and Loop Count-in default off on page/score load, session-only. Loop Count-in is disabled/grayed when looping is off. Numbers remain playback-order positions, including repeated occurrences; repeated scores show written-measure/occurrence context.
+- [x] Play/resume starts with a one-bar native-sound click pre-roll in both modes. Checked Loop Count-in inserts a pre-roll on each pass; unchecked loops repeat directly. Wait score playback remains paused and its independent metronome is suspended only for the pre-roll. Pauses, Reset, range/mode changes and score loading cancel pending pre-roll; note acceptance waits until completion. Resumed Together windows exclude pre-roll time.
+- [x] Native alphaTab mouse drag selection expands to whole measures, updates the menu and enables looping. Single clicks retain the enabled loop; out-of-range seeks return to its start. Realtime playback uses native tick ranges/continuous looping, with explicit finish/pre-roll/restart only for repeat count-in.
+- [x] Passive gray SVG shading uses native bounds outside selected written measures, redraws after layout changes, and disappears with looping off/full-song selection. A repeated written measure stays unshaded if any selected occurrence uses it. No custom score hit testing, MIDI output or grading-formula changes.
+- [x] 159 automated tests and syntax checks; browser checks loaded Four On Six, selected measures 2–3 by native dragging, confined an outside click to 1,200ms, exercised count-in/cancellation, and checked 1280-wide, 768 × 1024 and 390 × 844 layouts without horizontal overflow. Touch arrows are 44 × 44, ranges 44px high.
+- [ ] Owner listening/Fishman/tablet acceptance: count-in to first-note timing, repeated short loops with count-in on/off in both modes, Pause/Reset during pre-roll, and shade alignment through zoom/track changes. No version/Git publishing changes.
+
 ### Tempo menu refinement — implemented 2026-10-11
 
 - [x] Compact Piano-style Tempo layout: editable BPM, linked speed slider/number box, and reset. Native speed range remains 25–200%; source tempo map is preserved. Realtime BPM shows effective tempo at the current position; missing initial tempo falls back to native 120 BPM.
