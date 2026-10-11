@@ -21,6 +21,7 @@ export const AppState = {
   tickPosition: 0,
   timePositionMs: 0,
   playbackSpeed: 1,
+  metronome: { enabled: false, volumePercent: 25, visualPulse: true },
   practiceLoop: { enabled: false, startIndex: 0, endIndex: 0, range: null },
   playbackTimeline: null,
   expectedEvents: [],

@@ -20,7 +20,7 @@ No build step or npm dependency installation is required to run the app. Serve t
 
 - Native alphaTab score/tab rendering, playback, track display, and selected/backing track routing.
 - Repeat-aware Realtime pitch/timing grading and silent Wait stepping as each target is solved.
-- Tempo adjustment, occurrence-aware section loops, MIDI latency adjustment, and Wait Collect notes/Together chord settings.
+- Linked BPM/speed controls, native metronome volume and visual pulse, occurrence-aware section loops, MIDI latency adjustment, and Wait Collect notes/Together chord settings. Wait's metronome runs independently at the set BPM.
 - Pause/Resume retention, explicit **New attempt here**, completion summaries, and mistake history.
 - Staff target feedback and actual wrong-pitch noteheads, independent tab highlights and incorrect fret numbers, and an optional six-string fretboard with left-handed display.
 - Configured Hex string-channel feedback; optional Poly fret estimates only for an unambiguous remaining written note. Estimates are display feedback, not detected string identity.
@@ -35,7 +35,7 @@ With Node 22 or newer, run from the project root:
 node --test tests/*.test.js
 ```
 
-The 2026-10-11 baseline passes 142 automated tests. Tests cover normalization, native score/playback integration, transport retention, session grading, and visual geometry; they do not establish physical Fishman or browser acceptance.
+The current 2026-10-11 suite passes 149 automated tests (142 at the beta baseline). Tests cover normalization, native score/playback integration, transport retention, session grading, visual geometry, and Tempo/metronome controls; they do not establish physical Fishman acceptance. Tempo received a desktop/narrow-screen browser smoke check; listening quality and hardware acceptance remain local.
 
 Use your normal Live Server/browser setup to check Realtime Pause/Resume, Wait mistake retention and note releases, Together strums, per-string channel identity, repeats/loops/seeks, and overlay alignment through zoom/resize. Relevant stage notes provide detailed scenarios; the current specification below overrides their older instructions.
 

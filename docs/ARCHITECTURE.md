@@ -1,5 +1,14 @@
 # Guitar Trainer Studio Architecture
 
+## Tempo/metronome contract — 2026-10-11
+
+- `js/tempo-controls.js` owns BPM/speed/volume validation and presentation, five-step buttons, control availability, and the short visual pulse. It reads the normalized tempo map, dispatches injected intents and never calls alphaTab or grades MIDI. Numeric commits keep precise state separate from rounded display values.
+- `js/transport-controls.js` composes Tempo controls with unchanged occurrence-aware Loop controls. `AppState.metronome` owns page-session defaults (off, volume 25%, visual pulse true); no new persistence. Downbeat accent is only an explicitly disabled UI placeholder. MIDI output is absent.
+- Realtime BPM is current score tempo × native playback speed; editing BPM derives that same multiplier, preserving the source tempo map. Bootstrap retains the existing Realtime pause/reset path. Wait tempo edits apply the multiplier without resetting/pausing the Wait attempt.
+- Wait latches a reference score BPM on mode entry/score readiness. Its effective BPM is reference × speed and does not follow subsequent cursor movement, source tempo changes, note solving or loop rewinds. The click runs only for an active, non-paused Wait session; accompaniment stays paused and no grading event comes from it.
+- `js/alphatab-host.js` is the sole alphaTab boundary. Main playback uses native metronome volume/filter/events. For Wait, the host lazily creates a separate native AlphaSynth with a looping rest-only score, Sonivox soundfont and bundled synchronous audio output (400ms buffer). It uses native sample timing for clicks/pulses and pauses independently on session stop/pause/completion or mode/score changes. An asynchronous font load consults the latest desired state before starting, so a late load cannot restart a paused metronome. Preparation failures turn off the metronome and surface a player-status error.
+- Rendering, MIDI normalization, grade formulas, and deferred features are unchanged. Browser smoke checks cover desktop/narrow layout and actual Wait pulse; automated coverage includes the native output buffer and click samples. Physical Fishman and audible acceptance remain pending.
+
 ## Current maintenance contract — 2026-10-11
 
 Root README.md describes running and checking the app; AGENTS.md records standing agent instructions. This remains a static browser app using bundled alphaTab and WebMIDI, edited directly in the local project folder and served through VS Code Live Server in the owner's normal browser with a Fishman Connect. This documentation/version cleanup introduces no runtime or build-system changes.

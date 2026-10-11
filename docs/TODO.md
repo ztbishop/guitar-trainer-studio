@@ -4,6 +4,16 @@ Updated 2026-10-11. This is the central status and priority list. Stage files re
 
 ## Current workflow and specification — 2026-10-11
 
+### Tempo menu refinement — implemented 2026-10-11
+
+- [x] Compact Piano-style Tempo layout: editable BPM, linked speed slider/number box, and reset. Native speed range remains 25–200%; source tempo map is preserved. Realtime BPM shows effective tempo at the current position; missing initial tempo falls back to native 120 BPM.
+- [x] Stacked five-step buttons for BPM, speed and volume; up from 103 goes to 105 then 110, down to 100 then 95. Direct entries can remain off-grid. Edited numbers commit on change, Enter or blur.
+- [x] Native Sonivox metronome, linked volume controls, and functional Tempo-button visual pulse. Defaults: metronome off, volume 25%, visual pulse checked. Volume/visual controls gray out with metronome off. Accented downbeat is a disabled, explicitly labeled placeholder. MIDI Out click is omitted.
+- [x] Latest owner clarification: Wait metronome is independent of cursor/user pace. It runs at the selected BPM while Wait is active, stops on Pause/Reset/completion, and does not restart for solved notes or loop passes. Entering Wait latches the source tempo at that position; later score tempo changes do not change its rate. BPM/speed edits in Wait adjust the click without pausing/resetting results; Realtime retains its existing pause/reset behavior. Accompaniment remains paused in Wait.
+- [x] Session-only settings with centralized defaults; no new localStorage preferences, output routing, grading changes, or version bump.
+- [x] 149 automated tests pass, including actual native audio-output buffering, click samples/events, stationary/rewound cursor, pause, volume, and mode exit. Desktop and 390px browser smoke checks verified layout, BPM linkage, Wait pulse, and Pause cleanup.
+- [ ] Owner listening/Fishman checks: native click tone/volume and beat alignment; continue solving Wait targets across tempo changes/loops at a steady click; change BPM while retaining errors/partial chords; verify Pause/Resume, Reset, completion, and new-score loading.
+
 The baseline is **Beta v0.0.2**, identified by the existing `v0.0.2` tag. `version.json` now records `0.0.2`; its old foundation suffix and the tagged commit's v0.0.1 wording are historical labeling inconsistencies. No tag, commit history, or runtime code was changed for this cleanup.
 
 Read root README.md and AGENTS.md when starting a task. Work directly in this folder, preserve VS Code Live Server and the owner's normal browser/Fishman Connect testing, and leave commits/tags/pushes/deployment to the owner unless requested. Documentation carries durable decisions between chats; full chat history is not assumed to be available. Earlier ChatGPT history is in **Guitar Trainer** if accessible.
@@ -193,8 +203,8 @@ Already addressed in Stages 1–7: MIDI normalization/held-note tracking, repeat
 
 ## Deferred Tempo and Loop menu refinement
 
-- [ ] Tune Tempo and Loop menu layout, labels, options, and control placement to match Piano Trainer Studio where appropriate for guitar.
-- User requested this refinement after confirming Stage 5 loop and tempo work. Detailed reference screenshots and intended logic are still to be supplied; do not assume which piano controls should be copied.
+- [x] Tempo refinement implemented from the owner's screenshots and clarification above.
+- [ ] Loop menu refinement remains a separate task; its existing occurrence-aware controls are preserved.
 - Schedule a focused UI pass after core notation/fretboard feedback is working. Preserve the functional Stage 5 controls while building that core framework.
 - Capture context whenever the user supplies it. If it changes tempo or loop behavior, range semantics, or transport requirements, review it before dependent development rather than treating it as cosmetic work.
 - During the refinement, verify Realtime/Wait behavior, repeat-occurrence selection, accessibility, and narrow-screen layout.

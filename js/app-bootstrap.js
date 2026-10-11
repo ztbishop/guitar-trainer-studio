@@ -2,7 +2,7 @@
 // Owns: startup wiring and module initialization order
 // Do NOT: let this grow into a giant logic file
 
-import { initAlphaTab, loadScoreFile, play, stop, applyPlaybackTrackState, acquireWaitTransport, holdWaitAtTick, pauseWaitTransport, releaseWaitTransport, finishWaitTransport, setPlaybackSpeed, applyPracticeLoop } from './alphatab-host.js';
+import { initAlphaTab, loadScoreFile, play, stop, applyPlaybackTrackState, acquireWaitTransport, holdWaitAtTick, pauseWaitTransport, releaseWaitTransport, finishWaitTransport, setPlaybackSpeed, setMetronomeVolume, applyPracticeLoop } from './alphatab-host.js';
 import { AppState } from './app-state.js';
 import { WaitController } from './wait-controller.js';
 
@@ -52,7 +52,9 @@ function configureWaitSession() {
 
 function wireTempoAndLoopControls() {
   transportControls=initTransportControls({
+    onMetronomeChange:setMetronomeVolume,
     onSpeedChange(speed) {
+      if(AppState.mode==='wait') {setPlaybackSpeed(speed);renderTrainerUi();return;}
       waitController.stop();pauseWaitTransport();
       setPlaybackSpeed(speed);resetRealtimeSession('speed-change');configureWaitSession();renderTrainerUi();
     },
@@ -568,17 +570,21 @@ async function bootstrap() {
   try {
     await initAlphaTab(document.getElementById('alphatab-container'), {
       onScoreLoaded: () => {
+        transportControls?.clearPulse();
         syncTrainerFoundation();
       },
       onPlaybackTimelineChanged: () => {
+        transportControls?.clearPulse();
         syncTrainerFoundation();
       },
       onPlayerPositionChanged: (position) => {
+        if(position.isSeek && AppState.mode!=='wait')transportControls?.clearPulse();
         if(AppState.mode==='wait')waitController.positionChanged(position);
         else handlePlaybackPosition(position);
         renderTrainerUi();
       },
       onPlayerFinished: () => {
+        transportControls?.clearPulse();
         if(AppState.mode==='realtime')finishRealtimeSession();
         renderTrainerUi();
       },
@@ -587,6 +593,8 @@ async function bootstrap() {
         renderTrainerUi();
       },
       onPlayerReady: () => renderTrainerUi(),
+      onMetronomeTick: () => transportControls?.pulse(),
+      onMetronomeError: () => renderTrainerUi(),
     });
   } catch (error) {
     console.error('Failed to bootstrap Guitar Trainer Studio.', error);

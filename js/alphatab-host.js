@@ -101,6 +101,8 @@ let hostCallbacks = {
   onPlayerPositionChanged: null,
   onPlayerReady: null,
   onPlayerStateChanged: null,
+  onMetronomeTick: null,
+  onMetronomeError: null,
 };
 
 function getAssetUrl(relativePath) {
@@ -395,6 +397,8 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     onPlayerPositionChanged: callbacks.onPlayerPositionChanged || null,
     onPlayerReady: callbacks.onPlayerReady || null,
     onPlayerStateChanged: callbacks.onPlayerStateChanged || null,
+    onMetronomeTick: callbacks.onMetronomeTick || null,
+    onMetronomeError: callbacks.onMetronomeError || null,
   };
 
   ui = {
@@ -483,6 +487,14 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   });
 
   notationContainer=containerEl;
+  const metronomeType = alphaTabGlobal.midi.MidiEventType.AlphaTabMetronome;
+  alphaTabApi.midiEventsPlayedFilter = [...new Set([...(alphaTabApi.midiEventsPlayedFilter || []), metronomeType])];
+  alphaTabApi.midiEventsPlayed?.on(event => {
+    if (!AppState.isPlaying || AppState.mode === 'wait' || !AppState.playerReady || !AppState.metronome.enabled) return;
+    for (const midi of event.events || []) {
+      if (midi.type === metronomeType) hostCallbacks.onMetronomeTick?.();
+    }
+  });
   alphaTabApi.renderStarted?.on(()=>notationOverlay?.replaceChildren());
   alphaTabApi.postRenderFinished?.on(()=>drawNotationFeedback());
   alphaTabApi.scoreLoaded.on((score) => {
@@ -656,6 +668,67 @@ export function setPlaybackSpeed(speed) {
   if (!alphaTabApi || !Number.isFinite(speed) || speed < 0.25 || speed > 2) return false;
   AppState.playbackSpeed=speed;
   alphaTabApi.playbackSpeed=speed;
+  return true;
+}
+
+// Wait uses a separate native synthesizer containing only rests/metronome ticks.
+// Its clock never seeks with the score or drives the Wait controller.
+let waitMetronome = null, waitMetronomeLoading = null;
+let waitMetronomeState = { enabled: false, running: false, bpm: 120, volume: 0 };
+
+function syncWaitMetronome() {
+  if (!waitMetronome) return;
+  const state = waitMetronomeState;
+  if (!state.enabled || !state.running) {
+    if (waitMetronome.state === 1) waitMetronome.pause();
+    return;
+  }
+  if (waitMetronome.metronomeVolume !== state.volume) waitMetronome.metronomeVolume = state.volume;
+  if (waitMetronome.playbackSpeed !== state.bpm / 120) waitMetronome.playbackSpeed = state.bpm / 120;
+  if (waitMetronome.state !== 1) waitMetronome.play();
+}
+
+async function prepareWaitMetronome() {
+  let synth;
+  try {
+    const at = window.alphaTab;
+    // The bundled synchronous output avoids a pending worklet start racing Pause.
+    const output = new at.synth.AlphaSynthScriptProcessorOutput();
+    // ScriptProcessor needs at least two 4096-frame buffers to request samples.
+    synth = new at.synth.AlphaSynth(output, 400);
+    output.activate();
+    const parser = new at.importer.AlphaTexImporter();
+    parser.initFromString('\\tempo 120 . r.1', new at.Settings());
+    const midi = new at.midi.MidiFile();
+    new at.midi.MidiFileGenerator(parser.readScore(), new at.Settings(), new at.midi.AlphaSynthMidiFileHandler(midi)).generate();
+    synth.loadMidiFile(midi);
+    const response = await fetch(getAssetUrl('./assets/vendor/alphatab/soundfont/sonivox.sf2'));
+    if (!response.ok) throw new Error('Could not load the Wait metronome soundfont.');
+    synth.loadSoundFont(new Uint8Array(await response.arrayBuffer()), false);
+    synth.isLooping = true;
+    synth.midiEventsPlayedFilter = [at.midi.MidiEventType.AlphaTabMetronome];
+    synth.midiEventsPlayed.on(event => {
+      if (!waitMetronomeState.enabled || !waitMetronomeState.running || AppState.mode !== 'wait') return;
+      for (const midi of event.events) if (midi.type === at.midi.MidiEventType.AlphaTabMetronome) hostCallbacks.onMetronomeTick?.();
+    });
+    waitMetronome = synth;
+    syncWaitMetronome();
+  } catch (error) {
+    synth?.destroy();
+    AppState.metronome.enabled = false;
+    setStatus(error.message || 'Wait metronome unavailable');
+    hostCallbacks.onMetronomeError?.();
+  } finally { waitMetronomeLoading = null; }
+}
+
+export function setMetronomeVolume(volume, options = {}) {
+  if (!alphaTabApi || !Number.isFinite(volume) || volume < 0 || volume > 1) return false;
+  const nativeVolume = options.wait ? 0 : volume;
+  if (alphaTabApi.metronomeVolume !== nativeVolume) alphaTabApi.metronomeVolume = nativeVolume;
+  waitMetronomeState = { enabled: Boolean(options.wait && options.enabled), running: Boolean(options.running),
+    bpm: Number.isFinite(options.bpm) && options.bpm > 0 ? options.bpm : 120, volume };
+  if (waitMetronomeState.enabled && !waitMetronome && !waitMetronomeLoading) waitMetronomeLoading = prepareWaitMetronome();
+  syncWaitMetronome();
   return true;
 }
 

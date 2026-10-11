@@ -84,7 +84,7 @@ test('bundled synthesizer loops selected range at half speed without dispatching
  synth.pause();assert.equal(synth.state,0);synth.stop();assert.ok(Math.abs(synth.tickPosition-960)<=2);
 });
 
-test('Tempo/Loop forms validate selection, expose repeated occurrences, and disable speed in Wait',()=>{
+test('Tempo/Loop forms validate selection, expose repeated occurrences, and allow Wait click tempo',()=>{
  const priorDocument=globalThis.document;
  const elements=new Map();
  const get=id=>{if(!elements.has(id))elements.set(id,{value:'',checked:false,disabled:false,children:[],handlers:{},addEventListener(name,fn){this.handlers[name]=fn},replaceChildren(){this.children=[]},appendChild(item){this.children.push(item)}});return elements.get(id)};
@@ -98,7 +98,7 @@ test('Tempo/Loop forms validate selection, expose repeated occurrences, and disa
   end.value='2';get('apply-practice-loop').handlers.click();assert.deepEqual(loops[0].range,{startTick:7680,endTick:11520});
   speed.value='50';speed.handlers.change();assert.deepEqual(speeds,[0.5]);
   speed.value='0';speed.handlers.change();assert.equal(speeds.length,1);assert.equal(speed.value,'50');
-  AppState.mode='wait';controls.sync();assert.equal(speed.disabled,true);assert.equal(get('apply-practice-loop').disabled,false);
+  AppState.mode='wait';controls.sync();assert.equal(speed.disabled,false);assert.equal(get('apply-practice-loop').disabled,false);
   AppState.playbackTimeline=null;AppState.playerReady=false;AppState.practiceLoop={enabled:false,startIndex:0,endIndex:0,range:null};controls.sync();assert.equal(start.children.length,0);assert.equal(get('apply-practice-loop').disabled,true);
  } finally {globalThis.document=priorDocument;}
 });
