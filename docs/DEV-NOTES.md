@@ -1,5 +1,11 @@
 # Development notes
 
+## Tempo touch targets and slider handles — 2026-10-11
+
+Owner requested tablet-friendly Tempo controls, emphasizing the slider grab handles. Added CSS scoped to `any-pointer: coarse`, including hybrid tablets: 44-pixel visible slider thumbs and input height, 44 × 44 stacked arrows, 44-pixel Reset/checkbox label rows, 16px numeric text, and narrow-screen row wrapping. Firefox and WebKit have corresponding thumb/track rules; native range input handling and all BPM/speed/metronome behavior stay unchanged. Fine-pointer-only desktop keeps its compact controls. No version/tag changes, grading edits or deferred features.
+
+Browser evidence: temporary previews forced each pointer-style branch without changing the app's runtime modules. Touch layout checked at 768 × 1024, 1024 × 768 and 390 × 844, with no horizontal overflow and vertical scrolling available as needed. All six arrows measured 44 × 44 and both ranges measured 44px high. With the actual 200 BPM GP3 loaded, speed-up then slider decrement produced 104%/208 BPM; metronome/volume controls enabled normally. Fine-pointer desktop checked at 1440 × 900: arrows remained 30 × 20. Preview files were removed. Existing 152 regression tests pass; no new implementation-mirroring tests added for this CSS-only change. Physical finger dragging, taps, portrait/landscape scrolling and numeric keyboard behavior remain tablet acceptance; hard-refresh before checking on the owner's usual device/browser.
+
 ## Beta v0.0.3 checkpoint — 2026-10-11
 
 Owner accepted the Tempo/metronome update for now, committed it as `ee33aae`, and explicitly requested preparing Beta v0.0.3. Updated `version.json`, README, AGENTS, TODO and the architecture baseline to 0.0.3. README now records the latest 152-test evidence rather than the earlier 149-test count. Earlier dated entries and tags remain historical records.
