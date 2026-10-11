@@ -2,7 +2,7 @@
 
 A browser-based guitar practice app using bundled alphaTab for native score rendering and playback, with WebMIDI input for Realtime and Wait practice.
 
-Current baseline: **Beta v0.0.2** (Git tag `v0.0.2`). This is an early development checkpoint; broader browser and physical MIDI acceptance remains pending. The tag is the baseline identifier; `version.json` records `0.0.2`. The older foundation suffix and v0.0.1 wording in the tagged commit message are historical labels, not different builds.
+Current baseline: **Beta v0.0.3**; `version.json` records `0.0.3`. This checkpoint includes the Tempo menu, metronome timing/Wait restart fixes, and saved metronome volume. The owner will create the `v0.0.3` Git tag after committing the version update. Earlier tags remain historical checkpoints; broader browser and physical MIDI acceptance remains pending.
 
 Repository: [ztbishop/guitar-trainer-studio](https://github.com/ztbishop/guitar-trainer-studio).
 
@@ -35,7 +35,7 @@ With Node 22 or newer, run from the project root:
 node --test tests/*.test.js
 ```
 
-The current 2026-10-11 suite passes 149 automated tests (142 at the beta baseline). Tests cover normalization, native score/playback integration, transport retention, session grading, visual geometry, and Tempo/metronome controls; they do not establish physical Fishman acceptance. Tempo received a desktop/narrow-screen browser smoke check; listening quality and hardware acceptance remain local.
+The current 2026-10-11 suite passes 152 automated tests (142 at the v0.0.2 checkpoint). Tests cover normalization, native score/playback integration, transport retention, session grading, visual geometry, Tempo/metronome timing and restarts, and saved volume; they do not establish physical Fishman acceptance. Browser smoke checks covered desktop/narrow-screen layout, the supplied 200 BPM score, Realtime/Wait pulses, Wait restart, and volume retention after reload. The owner accepted this checkpoint for now; full listening and hardware acceptance remain local.
 
 Use your normal Live Server/browser setup to check Realtime Pause/Resume, Wait mistake retention and note releases, Together strums, per-string channel identity, repeats/loops/seeks, and overlay alignment through zoom/resize. Relevant stage notes provide detailed scenarios; the current specification below overrides their older instructions.
 

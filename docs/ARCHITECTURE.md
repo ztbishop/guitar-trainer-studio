@@ -13,7 +13,7 @@
 
 Root README.md describes running and checking the app; AGENTS.md records standing agent instructions. This remains a static browser app using bundled alphaTab and WebMIDI, edited directly in the local project folder and served through VS Code Live Server in the owner's normal browser with a Fishman Connect. This documentation/version cleanup introduces no runtime or build-system changes.
 
-Current baseline: **Beta v0.0.2**, existing tag `v0.0.2`, and `version.json` value `0.0.2`. Git publishing and deployment remain owner actions unless requested. Project documentation is the durable handoff between chats; earlier ChatGPT **Guitar Trainer** history is optional context if accessible.
+Current baseline: **Beta v0.0.3**, with `version.json` value `0.0.3`; owner creation of the `v0.0.3` tag follows the version-update commit. The previous `v0.0.2` tag remains a historical checkpoint. This metadata update introduces no runtime or architectural changes. Git publishing and deployment remain owner actions unless requested. Project documentation is the durable handoff between chats; earlier ChatGPT **Guitar Trainer** history is optional context if accessible.
 
 Current feedback contract: one Staff visibility control; independent tab highlights and numbers; default-off conservative Poly inference; no mandatory Hex string-check gate. Numeric Hex/Poly feedback is plain red at the native tab font size beside the score string, with translucent backing and no prefix/border/pointer or custom spacing. Both input modes grade pitch; strict-position grading remains deferred. Historical entries below preserve earlier designs and validation results, not current instructions where superseded.
 

@@ -15,7 +15,7 @@ Updated 2026-10-11. This is the central status and priority list. Stage files re
 - [ ] Separately scope Realtime speaker/input latency calibration: current grading has manual input compensation but does not automatically account for speaker output latency. Grading unchanged in this task.
 - [ ] Owner listening/Fishman checks: native click tone/volume and beat alignment; continue solving Wait targets across tempo changes/loops at a steady click; change BPM while retaining errors/partial chords; verify Pause/Resume, Reset, completion, and new-score loading.
 
-The baseline is **Beta v0.0.2**, identified by the existing `v0.0.2` tag. `version.json` now records `0.0.2`; its old foundation suffix and the tagged commit's v0.0.1 wording are historical labeling inconsistencies. No tag, commit history, or runtime code was changed for this cleanup.
+The current baseline is **Beta v0.0.3**; `version.json` records `0.0.3`. The owner approved this checkpoint after the Tempo/metronome update and will create the `v0.0.3` tag after committing the metadata/documentation update. Earlier tags, including `v0.0.2`, remain unchanged. This version update changes no runtime behavior and does not establish full browser/Fishman acceptance.
 
 Read root README.md and AGENTS.md when starting a task. Work directly in this folder, preserve VS Code Live Server and the owner's normal browser/Fishman Connect testing, and leave commits/tags/pushes/deployment to the owner unless requested. Documentation carries durable decisions between chats; full chat history is not assumed to be available. Earlier ChatGPT history is in **Guitar Trainer** if accessible.
 

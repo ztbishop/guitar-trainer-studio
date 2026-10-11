@@ -1,5 +1,13 @@
 # Development notes
 
+## Beta v0.0.3 checkpoint — 2026-10-11
+
+Owner accepted the Tempo/metronome update for now, committed it as `ee33aae`, and explicitly requested preparing Beta v0.0.3. Updated `version.json`, README, AGENTS, TODO and the architecture baseline to 0.0.3. README now records the latest 152-test evidence rather than the earlier 149-test count. Earlier dated entries and tags remain historical records.
+
+This checkpoint includes the compact linked BPM/speed menu, independent Wait metronome, pulse timing/restart fixes, 75% default volume and saved volume preference. General acceptance of the checkpoint does not establish full speaker-alignment or Fishman/browser acceptance. Realtime latency calibration and deferred features remain outside this update.
+
+Validation for this metadata/documentation-only change: parsed version.json and checked the diff for whitespace errors and consistent current version references. No runtime files changed; the preceding runtime verification remains 152 passing tests. Commit, creation of the `v0.0.3` tag, push and deployment remain owner actions; the tag did not exist when this update began.
+
 ## Metronome timing/restart fix and saved volume — 2026-10-11
 
 The supplied Wes Montgomery - Four On Six.gp3 was parsed with the bundled alphaTab importer: its initial tempo is 200 BPM, with two 200 BPM automations in bar 1 and no other tempo changes. The previous 120 BPM display was a fallback; this check does not establish that earlier native playback was at 120.

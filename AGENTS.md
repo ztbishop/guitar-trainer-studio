@@ -30,4 +30,4 @@
 - Automated tests do not substitute for physical MIDI/browser checks. Briefly describe what the owner should test locally.
 - Provide a concise change summary and a suggested Git commit description with each update.
 - Leave commits, tags, pushes, history rewriting, and deployment to the owner unless explicitly requested. Repository: https://github.com/ztbishop/guitar-trainer-studio.
-- Current baseline is **Beta v0.0.2**, tagged `v0.0.2`. Do not bump versions or rename existing tags merely for routine edits.
+- Current baseline is **Beta v0.0.3**; `version.json` records `0.0.3`. The owner will create the `v0.0.3` tag after committing the version update. Preserve earlier tags, including `v0.0.2`. Do not bump versions or rename existing tags merely for routine edits.
