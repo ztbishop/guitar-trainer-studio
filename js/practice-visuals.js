@@ -1,12 +1,13 @@
 import {midiToNoteName} from './note-utils.js';
 
 // Translate grading records into display data. No grading or alphaTab APIs here.
-export function noteStatesFromRecords(records=[]) {
+export function noteStatesFromRecords(records=[],summarizeErrors=true,{hex=false}={}) {
   const states={};
   for(const record of records) {
     if(record.skipped)continue;
     for(const slot of record.slots) {
-      const completedWithErrors=record.wrongNotes?.length>0 && record.slots.every(s=>s.hit);
+      const completedWithErrors=hex && summarizeErrors && record.wrongNotes?.some(n=>n.wrongPitch &&
+        (!hex || !Number.isInteger(n.stringHint) || n.stringHint<1 || n.stringHint>6 || n.stringHint===slot.string)) && record.slots.every(s=>s.hit);
       const status=completedWithErrors ? 'completed-with-errors' : slot.hit ? 'correct' : slot.missed ? 'missed' : null;
       if(status)for(const id of slot.noteIds)states[id]=status;
     }

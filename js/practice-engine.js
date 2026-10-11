@@ -29,7 +29,9 @@ function publishRealtimeStats() {
   AppState.trainer.lastFeedback = realtime?.lastFeedback ?? null;
   AppState.trainer.sessionStarted = Boolean(realtime?.started);
   AppState.trainer.sessionCompleted = Boolean(realtime?.completed);
-  AppState.trainer.noteStates = noteStatesFromRecords(realtime?.records);
+  AppState.trainer.noteStates = noteStatesFromRecords(realtime?.records,false);
+  AppState.trainer.history = realtime?.feedbackHistory() ?? [];
+  AppState.trainer.liveWrongNotes = [...(realtime?.liveWrong.values() ?? [])];
 }
 
 export function newRealtimeAttemptHere(at = performance.now()) {
@@ -350,6 +352,7 @@ export function refreshTrainerMatchState(position = AppState.tickPosition) {
 
 export function handleMidiEvent(midiEvent) {
   AppState.midi.lastEvent = midiEvent;
+  if(midiEvent?.type==='note-off' && realtime?.noteOff(midiEvent))publishRealtimeStats();
   if (midiEvent?.type === 'note-on' && AppState.isPlaying && realtime?.started) {
     const at = Number.isFinite(midiEvent.at) ? midiEvent.at : performance.now();
     realtime.noteOn(midiEvent,realtime.scoreTime(at),realtime.anchor?.speed || 1);

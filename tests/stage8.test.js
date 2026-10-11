@@ -18,11 +18,11 @@ function harness(events,loop=false,settings={}) {
  c.configure(events,1920,false,loop,settings);c.toggle(0);
  return {c,get state(){return state},set time(value){time=value}};
 }
-test('Wait retains wrong pitches after release and colors the entire solved chord red',()=>{
+test('Poly Wait retains wrong pitches after release without recoloring accepted chord tones',()=>{
  const s=new WaitSession([target('a',[60,64])]);s.noteOn(0,on(61));s.noteOff(off(61));
  assert.equal(s.liveWrong.size,0);assert.equal(s.records[0].wrongNotes.length,1);
  s.noteOn(0,on(60));assert.deepEqual(noteStatesFromRecords(s.records),{'a:0':'correct'});
- s.noteOn(0,on(64));assert.deepEqual(noteStatesFromRecords(s.records),{'a:0':'completed-with-errors','a:1':'completed-with-errors'});
+ s.noteOn(0,on(64));assert.deepEqual(noteStatesFromRecords(s.records),{'a:0':'correct','a:1':'correct'});
  assert.equal(s.feedbackHistory()[0].outcome,'completed-with-errors');assert.equal(s.stats().accuracy,67);
 });
 test('clean completion stays green and duplicate required pitches keep scoring without false pitch history',()=>{
@@ -45,14 +45,14 @@ test('Pause/Resume preserves completed results, current partial chord, wrong his
  h.time=10050;h.c.toggle();h.c.noteOn(on(65,1,10100));
  assert.equal(before.results.correct,2);assert.equal(before.results.wrong,1);
  assert.equal(h.state.results.correct,3);assert.equal(h.state.results.wrong,1);assert.equal(h.state.results.retries,0);
- assert.equal(h.state.noteStates['a:0'],'completed-with-errors');assert.equal(h.state.phase,'complete');
+ assert.equal(h.state.noteStates['a:0'],'correct');assert.equal(h.state.phase,'complete');
 });
 test('Together expiry adds only a retry and retains received-wrong history',()=>{
  const h=harness([target('a',[60,64])],false,{mode:'together',windowMs:200});
  h.c.noteOn(on(61));h.c.noteOn(on(60));h.c.advance(201);
  assert.equal(h.state.results.retries,1);assert.equal(h.state.results.wrong,1);assert.equal(h.state.results.missed,0);
  assert.equal(h.state.history[0].wrongNotes.length,1);assert.deepEqual(h.state.noteStates,{});
- h.c.noteOn(on(60,1,300));h.c.noteOn(on(64,1,400));assert.equal(h.state.noteStates['a:0'],'completed-with-errors');
+ h.c.noteOn(on(60,1,300));h.c.noteOn(on(64,1,400));assert.equal(h.state.noteStates['a:0'],'correct');
 });
 test('completion clears temporary errors; loop passes keep distinct review history and fresh scoring',()=>{
  const h=harness([target('a')],true);h.c.noteOn(on(61));h.c.noteOn(on(60));

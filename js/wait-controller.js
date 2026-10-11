@@ -31,7 +31,7 @@ export class WaitController {
     const stats=this.session?.stats()??null;
     this.onChange({phase:this.phase,active:this.active,currentEvent,currentEventIndex:this.index,matchState,status,
       summary:stats?`${this.loop?`Pass ${this.pass} • `:''}Correct ${stats.correct} • Wrong ${stats.wrong} • Remaining ${stats.pending}${stats.retries?` • Chord retries ${stats.retries}`:''}`:'No targets loaded',
-      results:stats,noteStates:noteStatesFromRecords(this.session?.records),lastFeedback:this.session?.lastFeedback,
+      results:stats,noteStates:noteStatesFromRecords(this.session?.records,true,{hex:this.hex}),lastFeedback:this.session?.lastFeedback,
       history:this.session?.feedbackHistory(this.pass)??[],passHistory:this.passHistory,
       liveWrongNotes:[...(this.session?.liveWrong.values()??[])],
       lastPassResults:this.lastPassResults,pass:this.pass,sessionStarted:this.active||this.phase==='complete',sessionCompleted:this.phase==='complete'});

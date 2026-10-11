@@ -1,11 +1,12 @@
 // Untimed attack collection for a gated note-for-note session. No transport/UI APIs.
+import {inferPolyExpectedNoteIds} from './poly-feedback.js';
 export class WaitSession {
   constructor(events, {hex=false,chordMode='collect',chordWindowMs=200} = {}) {
     this.records=events.map(event=>{
       const slots=new Map();
       for (const note of event.notes) {
         const key=hex ? `${note.midi}:${note.string??''}` : String(note.midi);
-        if (!slots.has(key)) slots.set(key,{midi:note.midi,noteIds:[],channel:null,hit:false});
+        if (!slots.has(key)) slots.set(key,{midi:note.midi,string:note.string,noteIds:[],channel:null,hit:false});
         slots.get(key).noteIds.push(note.id);
       }
       return {eventId:event.id,slots:[...slots.values()],wrong:0,wrongNotes:[],retries:0,attemptStartAt:null,skipped:false};
@@ -37,6 +38,7 @@ export class WaitSession {
       const feedback={type:'wrong',eventId:record.eventId,midi:note.midi,channel:note.channel,
         stringHint:note.stringHint??null,at,wrongPitch,complete:false};
       if(wrongPitch) {
+        if(!this.hex)feedback.inferredNoteIds=inferPolyExpectedNoteIds(record.slots);
         record.wrongNotes.push({...feedback});
         this.liveWrong.set(`${note.channel}:${note.midi}`,{...feedback});
       }

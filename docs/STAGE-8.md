@@ -2,7 +2,7 @@
 
 Updated 2026-10-10. This stage implements the first manageable feedback increments from the latest TODO specification. Existing menus, native alphaTab rendering/transport, and module boundaries remain in place. Vendor files are unchanged. No push or deployment was performed; the deliverable excludes `.git`.
 
-Current notation behavior is described in **STAGE-8-NOTATION.md**: played-pitch red noteheads and explicit accidentals supersede this stage’s initial pitch labels. The original increment below is retained as implementation history.
+Current live/retained Hex tab detail for Wait and Realtime is described in **STAGE-8-TAB.md**; it supersedes the pending-marker item below. Current notation behavior is described in **STAGE-8-NOTATION.md**: played-pitch red noteheads and explicit accidentals supersede this stage’s initial pitch labels. The original increment below is retained as implementation history.
 
 ## Implemented
 

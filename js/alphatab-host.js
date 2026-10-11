@@ -4,9 +4,10 @@
 
 import { AppState } from './app-state.js';
 import { buildPlaybackTimeline } from './score-playback.js';
+import { wrongFretGeometry } from './tab-feedback.js';
 import { notationFeedbackGeometry, accidentalPath } from './notation-feedback.js';
 
-let notationContainer=null,notationOverlay=null,notationMarks=[],notationEnabled=true,notationSignature='';
+let notationContainer=null,notationOverlay=null,notationMarks=[],feedbackVisibility={notation:true,tabCircles:true,tabFrets:true},notationSignature='';
 let scoreNoteLookup=new Map();
 function drawNotationFeedback() {
   if(!notationContainer)return;
@@ -14,9 +15,14 @@ function drawNotationFeedback() {
   const engraving=settings?.display?.resources?.engravingSettings;
   const metrics={profile:settings?.display?.staveProfile??0,scale:settings?.display?.scale??1,
     oneStaffSpace:engraving?.oneStaffSpace,staffLineThickness:engraving?.staffLineThickness,
+    tabLineSpacing:engraving?.tabLineSpacing,
+    tabFontSize:settings?.display?.resources?.tablatureFont?.size,
     noteHeadWidth:engraving?.glyphWidths?.get(0xe0a4),noteHeadHeight:engraving?.glyphHeights?.get(0xe0a4)};
-  const {targets,wrongNotes}=notationEnabled?notationFeedbackGeometry(notationMarks,scoreNoteLookup,alphaTabApi?.boundsLookup,metrics):{targets:[],wrongNotes:[]};
-  if(!targets.length && !wrongNotes.length) {notationOverlay?.replaceChildren();return;}
+  const geometry=notationFeedbackGeometry(notationMarks,scoreNoteLookup,alphaTabApi?.boundsLookup,metrics);
+  const targets=geometry.targets.filter(target=>target.kind==='notehead'?feedbackVisibility.notation:feedbackVisibility.tabCircles);
+  const wrongNotes=feedbackVisibility.notation?geometry.wrongNotes:[];
+  const wrongFrets=feedbackVisibility.tabFrets?wrongFretGeometry(notationMarks,scoreNoteLookup,alphaTabApi?.boundsLookup,metrics):[];
+  if(!targets.length && !wrongNotes.length && !wrongFrets.length) {notationOverlay?.replaceChildren();return;}
   if(!notationOverlay) {
     notationOverlay=document.createElementNS('http://www.w3.org/2000/svg','svg');
     notationOverlay.setAttribute('class','notation-feedback-overlay');notationOverlay.setAttribute('aria-hidden','true');
@@ -27,7 +33,16 @@ function drawNotationFeedback() {
     const node=svgElement(target.kind==='notehead'?'ellipse':'rect',target.kind==='notehead'
       ?{cx:target.cx,cy:target.cy,rx:target.rx,ry:target.ry,class:'target-notehead','data-state':target.state}
       :{x:target.x,y:target.y,width:target.width,height:target.height,rx:4,'data-state':target.state});
+    if(target.inferred)node.setAttribute('data-inferred','true');
     node.appendChild(svgElement('title',{},target.label));notationOverlay.appendChild(node);
+  }
+  for(const fret of wrongFrets) {
+    const group=svgElement('g',{class:'wrong-fret-feedback','data-string':fret.string,'data-retained':Boolean(fret.retained)});
+    if(fret.inferred)group.setAttribute('data-inferred','true');
+    group.appendChild(svgElement('title',{},fret.inferred?`Inferred fret ${fret.fret} on expected string ${fret.string}; pitch-only input`:`Played fret ${fret.fret} on string ${fret.string}`));
+    group.appendChild(svgElement('rect',{x:fret.x,y:fret.y,width:fret.width,height:fret.height,rx:2,class:'wrong-fret-background'}));
+    group.appendChild(svgElement('text',{x:fret.x+fret.width/2,y:fret.y+fret.height/2,'text-anchor':'middle','dominant-baseline':'central','font-size':fret.fontSize,class:'wrong-fret-number'},fret.displayFret??fret.fret));
+    notationOverlay.appendChild(group);
   }
   for(const note of wrongNotes) {
     const group=svgElement('g',{class:'wrong-notehead-feedback','data-retained':note.retained,
@@ -48,8 +63,11 @@ function svgElement(name,attributes={},text) {
   return node;
 }
 export function setNotationFeedback(marks,enabled=true) {
-  notationMarks=marks;notationEnabled=enabled;
-  const signature=JSON.stringify([marks,enabled]);if(signature===notationSignature)return;
+  notationMarks=marks;
+  feedbackVisibility=typeof enabled==='boolean'
+    ?{notation:enabled,tabCircles:enabled,tabFrets:enabled}
+    :{notation:enabled.notation??true,tabCircles:enabled.tabCircles??true,tabFrets:enabled.tabFrets??true};
+  const signature=JSON.stringify([marks,feedbackVisibility]);if(signature===notationSignature)return;
   notationSignature=signature;drawNotationFeedback();
 }
 

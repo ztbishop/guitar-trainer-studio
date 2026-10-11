@@ -92,3 +92,25 @@ test('unsupported notation, invalid metrics and mismatched geometry omit wrong d
   h.metrics.oneStaffSpace=NaN;assert.deepEqual(h.geometry([mark]).wrongNotes,[]);
   h.metrics.oneStaffSpace=30;assert.deepEqual(h.geometry([mark]).wrongNotes,[]);
 });
+
+test('retained tab error outlines do not recolor a correctly played standard notehead',()=>{
+  const h=render(),note=h.notes[0];
+  const targets=h.geometry([{sourceNoteId:String(note.id),state:'correct'},
+    {kind:'tab-error',sourceNoteId:String(note.id),state:'completed-with-errors'}]).targets;
+  assert.equal(targets.filter(t=>t.kind==='notehead').length,1);
+  assert.equal(targets.find(t=>t.kind==='notehead').state,'correct');
+  assert.equal(targets.at(-1).kind,'outline');assert.equal(targets.at(-1).state,'completed-with-errors');
+});
+
+test('inferred Poly marks replace only their own expected overlay on notation and tab across zoom',()=>{
+  for(const profile of [0,1,2,3,4])for(const scale of [.75,1,1.5]) {
+    const h=render({profile,scale}),[clean,wrong]=h.notes;
+    const targets=h.geometry([{sourceNoteId:String(clean.id),state:'correct'},
+      {sourceNoteId:String(wrong.id),state:'expected'},
+      {kind:'poly-error',sourceNoteId:String(wrong.id),state:'wrong',inferred:true}]).targets;
+    assert.ok(targets.length>0);
+    assert.ok(targets.filter(m=>m.sourceNoteId===String(clean.id)).every(m=>m.state==='correct'));
+    assert.ok(targets.filter(m=>m.sourceNoteId===String(wrong.id)).every(m=>m.state==='wrong' && m.inferred));
+    assert.equal(targets.length,profile===0 || profile===1?4:2);
+  }
+});

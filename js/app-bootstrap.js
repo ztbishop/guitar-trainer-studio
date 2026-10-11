@@ -9,6 +9,8 @@ import { WaitController } from './wait-controller.js';
 import { formatStringHint, midiToNoteName } from './note-utils.js';
 import { initFretboard, renderFretboard } from './fretboard-ui.js';
 import { buildNotationMarks, buildFretboardModel, buildWrongPitchMarks } from './practice-visuals.js';
+import { buildWrongFretMarks, buildTabErrorTargets } from './tab-feedback.js';
+import { buildPolyMistakeMarks, buildPolyWrongFretMarks } from './poly-feedback.js';
 import { setNotationFeedback } from './alphatab-host.js';
 import { initMidiRouter, setActiveMidiInput, clearActiveMidiNotes } from './midi-router.js';
 import {
@@ -109,7 +111,7 @@ function wireScoreStageUi() {
   const scoreStage = document.querySelector('.score-stage.viewer-panel');
   const fretboardContainer = document.getElementById('fretboard-container');
   const fullscreenTarget = document.documentElement;
-  for(const [id,key] of [['show-fretboard','showFretboard'],['left-handed-fretboard','leftHanded'],['show-notation-feedback','showNotationFeedback'],['show-live-errors','showLiveErrors'],['show-error-history','showErrorHistory']]) {
+  for(const [id,key] of [['show-fretboard','showFretboard'],['left-handed-fretboard','leftHanded'],['show-notation-feedback','showNotationFeedback'],['show-tab-circles','showTabCircles'],['show-tab-mistakes','showTabMistakes'],['infer-poly-mistakes','inferPolyMistakes']]) {
     const control=document.getElementById(id);
     if(control)control.checked=Boolean(AppState.ui[key]);
     control?.addEventListener('change',()=>{
@@ -412,10 +414,22 @@ function renderTrainerUi() {
   const detectedNotesEl = document.getElementById('trainer-detected-notes');
 
   const trainer = AppState.mode==='wait' ? (AppState.waitTrainer||AppState.trainer) : AppState.trainer;
+  const tabStatus=document.getElementById('tab-feedback-status');
+  if(tabStatus) {tabStatus.hidden=!AppState.ui.showTabMistakes;tabStatus.textContent=AppState.inputMode==='hex-6ch'?'Fret feedback uses the selected Hex channel layout.':AppState.ui.inferPolyMistakes?'Fret numbers are inferred on expected strings, not detected positions.':'Enable non-hex fret inference to show unambiguous estimated frets.';}
   const marks=buildNotationMarks(AppState.expectedEvents,trainer.currentEvent,trainer.noteStates);
-  if(AppState.mode==='wait')marks.push(...buildWrongPitchMarks(AppState.expectedEvents,trainer.currentEvent,trainer.history,trainer.liveWrongNotes,
-    {showLive:AppState.ui.showLiveErrors,showHistory:AppState.ui.showErrorHistory}));
-  setNotationFeedback(marks,AppState.ui.showNotationFeedback);
+  marks.push(...buildWrongPitchMarks(AppState.expectedEvents,trainer.currentEvent,trainer.history,trainer.liveWrongNotes));
+  marks.push(...buildTabErrorTargets(AppState.expectedEvents,trainer.currentEvent,trainer.history,
+    {liveWrongNotes:trainer.liveWrongNotes,inputMode:AppState.inputMode,noteStates:trainer.noteStates,mode:AppState.mode}));
+  if(AppState.inputMode==='single-channel')marks.push(...buildPolyMistakeMarks({events:AppState.expectedEvents,currentEvent:trainer.currentEvent,
+    history:trainer.history,liveWrongNotes:trainer.liveWrongNotes,noteStates:trainer.noteStates,mode:AppState.mode,enabled:AppState.ui.inferPolyMistakes}));
+  if(AppState.ui.showTabMistakes) {
+    const track=AppState.tracks.find((item,index)=>getTrackId(item,index)===String(AppState.practiceTrackId));
+    marks.push(...buildWrongFretMarks({track,events:AppState.expectedEvents,currentEvent:trainer.currentEvent,history:trainer.history,
+      liveWrongNotes:trainer.liveWrongNotes,inputMode:AppState.inputMode,mode:AppState.mode}));
+    if(AppState.inputMode==='single-channel')marks.push(...buildPolyWrongFretMarks({track,events:AppState.expectedEvents,
+      currentEvent:trainer.currentEvent,history:trainer.history,liveWrongNotes:trainer.liveWrongNotes,mode:AppState.mode,enabled:AppState.ui.inferPolyMistakes}));
+  }
+  setNotationFeedback(marks,{notation:AppState.ui.showNotationFeedback,tabCircles:AppState.ui.showTabCircles,tabFrets:AppState.ui.showTabMistakes});
   if(AppState.ui.showFretboard) {
     const track=AppState.tracks.find((item,index)=>getTrackId(item,index)===String(AppState.practiceTrackId));
     renderFretboard(buildFretboardModel({track,currentEvent:trainer.currentEvent,noteStates:trainer.noteStates,
@@ -435,7 +449,7 @@ function renderTrainerUi() {
   }
   const historyEl=document.getElementById('trainer-error-history');
   if(historyEl) {
-    historyEl.replaceChildren();historyEl.hidden=AppState.mode!=='wait' || !AppState.ui.showErrorHistory;
+    historyEl.replaceChildren();historyEl.hidden=false;
     if(!historyEl.hidden)for(const record of [...(trainer.passHistory||[]),...(trainer.history||[])]) {
       if(!record.completed || !record.wrongNotes.length)continue;
       const event=AppState.expectedEvents.find(event=>event.id===record.eventId);

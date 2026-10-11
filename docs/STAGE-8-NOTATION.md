@@ -1,5 +1,7 @@
 # Stage 8 notation feedback refinement — 2026-10-10
 
+Latest tab/Realtime feedback and guided string setup are described in STAGE-8-TAB.md. Actual wrong-pitch noteheads/history now also consume Realtime target-attributed records; notation correct/missed colors are preserved while tab error targets retain red outlines.
+
 ## Delivered behavior
 
 - Wrong pitches in Wait now appear as separate red notehead-sized dots on their actual staff lines/spaces, horizontally anchored at that target. The long Heard/Errors pitch lists are removed from the score. Exact attack history remains in Practice.

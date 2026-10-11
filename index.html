@@ -280,11 +280,19 @@
       </div>
       <div class="popup-panel-grid popup-panel-grid--two">
         <div class="popup-card">
-          <div class="popup-card-title">Viewer</div>
-          <label class="toggle-row" for="show-notation-feedback"><input id="show-notation-feedback" type="checkbox" checked /><span>Show note feedback on the score</span></label>
-          <label class="toggle-row" for="show-live-errors"><input id="show-live-errors" type="checkbox" checked /><span>Show live Wait wrong-note heads</span></label>
-          <label class="toggle-row" for="show-error-history"><input id="show-error-history" type="checkbox" checked /><span>Show Wait wrong-pitch history</span></label>
-          <p class="practice-visual-legend">Blue: current target • Green: correct • Red: completed after errors or Realtime missed. Notation uses filled noteheads; Wait mistakes appear at the played pitch with explicit accidentals. Tab keeps outlines around its original frets.</p>
+          <div class="popup-card-title">Visual Feedback</div>
+          <div class="feedback-group">
+            <label class="toggle-row" for="show-notation-feedback"><input id="show-notation-feedback" type="checkbox" checked /><span>Staff: Highlight correct / incorrect notes</span></label>
+            <p class="help-text">Includes current-target guidance, correct / incorrect highlights, and live / historical wrong-pitch noteheads.</p>
+          </div>
+          <div class="feedback-group feedback-group--tabs">
+            <label class="toggle-row" for="show-tab-circles"><input id="show-tab-circles" type="checkbox" checked /><span>Tabs: Highlight correct / incorrect notes</span></label>
+            <label class="toggle-row" for="show-tab-mistakes"><input id="show-tab-mistakes" type="checkbox" checked /><span>Tabs: Show incorrect fret numbers</span></label>
+            <label class="toggle-row" for="infer-poly-mistakes"><input id="infer-poly-mistakes" type="checkbox" /><span>Tabs: Infer incorrect frets for non-hex pickups</span></label>
+            <p class="help-text">For non-hex input, infer the fret on the expected string when exactly one note remained at the mistake. Works with single notes and unambiguous chords. These numbers are estimates, not detected positions; ambiguous mistakes stay unassigned. Enable incorrect fret numbers to see them. Grading is unchanged.</p>
+          </div>
+          <p id="tab-feedback-status" class="help-text" role="status"></p>
+          <p class="practice-visual-legend">Blue: current target • Green: correct • Red: Hex string errors, optional inferred Poly errors, or Realtime missed. Clean chord tones stay green. Pitch grading accepts correct notes on any string. Notation shows actual wrong pitches with explicit accidentals. Tab preserves original frets; detected Hex wrong frets appear beside their strings.</p>
         </div>
         <div class="popup-card">
           <div class="popup-card-title">Virtual fretboard</div>

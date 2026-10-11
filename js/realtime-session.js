@@ -1,5 +1,6 @@
 // A score-independent, attack-based realtime evaluator. No MIDI device or UI APIs.
 import { TimingDefaults, isWithinHitWindow } from './practice-timing.js';
+import {inferPolyExpectedNoteIds} from './poly-feedback.js';
 
 export class RealtimeSession {
   constructor(events, { hex = false, timing = TimingDefaults, latencyMs = 0 } = {}) {
@@ -17,9 +18,10 @@ export class RealtimeSession {
         if (!slots.has(key)) slots.set(key,{ midi:note.midi, string:note.string, noteIds:[], hit:null, missed:false });
         slots.get(key).noteIds.push(note.id);
       }
-      return {eventId:event.id, timeMs:event.startTimeMs, slots:[...slots.values()], firstHitMs:null, wrong:0, skipped:event.startTimeMs + this.timing.lateMs*speed < scoreMs};
+      return {eventId:event.id, timeMs:event.startTimeMs, slots:[...slots.values()], firstHitMs:null, wrong:0, wrongNotes:[], finalized:false, skipped:event.startTimeMs + this.timing.lateMs*speed < scoreMs};
     });
     this.wrongNotes = [];
+    this.liveWrong = new Map();
     this.lastFeedback = null;
     this.started = false;
     this.completed = false;
@@ -42,6 +44,7 @@ export class RealtimeSession {
         missing.forEach(slot=>slot.missed=true);
         if (missing.length) this.lastFeedback = {type:'missed',eventId:record.eventId,pitches:missing.map(slot=>slot.midi)};
       }
+      record.finalized=true;
       this.finalizeIndex++;
     }
   }
@@ -70,9 +73,19 @@ export class RealtimeSession {
     const nearest=this.records.filter(r=>!r.skipped && isWithinHitWindow((correctedMs-r.timeMs)/speed,this.timing))
       .sort((a,b)=>Math.abs(a.timeMs-correctedMs)-Math.abs(b.timeMs-correctedMs))[0];
     if(nearest) nearest.wrong++;
-    const wrong={type:'wrong',eventId:nearest?.eventId??null,midi:note.midi,at:note.at,scoreMs:correctedMs};
+    const wrong={type:'wrong',eventId:nearest?.eventId??null,midi:note.midi,at:note.at,scoreMs:correctedMs,
+      channel:note.channel,stringHint:note.stringHint??null,wrongPitch:Boolean(nearest && !nearest.slots.some(s=>s.midi===note.midi))};
+    if(wrong.wrongPitch) {
+      if(!this.hex)wrong.inferredNoteIds=inferPolyExpectedNoteIds(nearest.slots);
+      nearest.wrongNotes.push({...wrong});this.liveWrong.set(`${note.channel}:${note.midi}`,{...wrong});
+    }
     this.wrongNotes.push(wrong);
     return this.lastFeedback=wrong;
+  }
+  noteOff(note) { return this.liveWrong.delete(`${note.channel}:${note.midi}`); }
+  feedbackHistory() {
+    return this.records.filter(r=>!r.skipped).map(r=>({eventId:r.eventId,completed:r.finalized,
+      wrongNotes:r.wrongNotes.map(n=>({...n})),pass:1}));
   }
   finish() {
     if (!this.started) return;

@@ -1,5 +1,6 @@
 // Pure score-overlay geometry. The host supplies native bounds and engraving metrics.
 import {standardBeatForNote} from './practice-visuals.js';
+import {tabBeat} from './tab-feedback.js';
 
 const semitones=[0,2,4,5,7,9,11];
 const letters=['C','D','E','F','G','A','B'];
@@ -65,6 +66,8 @@ function staffGeometry(note,beat,metrics) {
 
 export function notationFeedbackGeometry(marks,noteLookup,boundsLookup,metrics) {
   const targets=[],wrongNotes=[];
+  const tabErrors=new Set(marks.filter(m=>m.kind==='tab-error').map(m=>m.sourceNoteId));
+  const polyErrors=new Set(marks.filter(m=>m.kind==='poly-error').map(m=>m.sourceNoteId));
   if(!boundsLookup?.isFinished)return {targets,wrongNotes};
   for(const mark of marks) {
     const note=noteLookup.get(mark.sourceNoteId);if(!note)continue;
@@ -93,12 +96,16 @@ export function notationFeedbackGeometry(marks,noteLookup,boundsLookup,metrics) 
           accidentalX:cx-width/2-staff.space*0.95,ledgerYs,
           label:`${mark.retained?'Earlier mistake':'Played'}: ${pitch.name} • MIDI ${midi}`});
       }
-    } else if(!mark.kind) {
+    } else if(!mark.kind || mark.kind==='tab-error' || mark.kind==='poly-error') {
+      if(!mark.kind && polyErrors.has(mark.sourceNoteId))continue;
       for(const beat of boundsLookup.findBeats(note.beat)||[]) {
+        if(mark.kind==='tab-error' && beat!==tabBeat(note,boundsLookup,metrics.profile??0))continue;
         const b=beat.notes?.find(item=>String(item.note.id)===mark.sourceNoteId)?.noteHeadBounds;
         if(!validBounds(b))continue;
-        if(beat===standard)targets.push({...mark,kind:'notehead',cx:b.x+b.w/2,cy:b.y+b.h/2,rx:b.w/2,ry:b.h/2});
-        else targets.push({...mark,kind:'outline',x:b.x-3,y:b.y-3,width:b.w+6,height:b.h+6});
+        if(beat===standard) {
+          if(mark.kind!=='tab-error')targets.push({...mark,kind:'notehead',cx:b.x+b.w/2,cy:b.y+b.h/2,rx:b.w/2,ry:b.h/2});
+        }
+        else if(mark.kind==='tab-error' || !tabErrors.has(mark.sourceNoteId))targets.push({...mark,kind:'outline',x:b.x-3,y:b.y-3,width:b.w+6,height:b.h+6});
       }
     }
   }
