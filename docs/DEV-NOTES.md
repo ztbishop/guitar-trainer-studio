@@ -1,5 +1,15 @@
 # Development notes
 
+## Direct local Codex workflow and beta baseline — 2026-10-11
+
+The owner now uses Codex with direct access to this project folder. Added root README.md with startup, capabilities, checks, and task handoff guidance, plus AGENTS.md with standing instructions. Preserve VS Code Live Server and the owner's normal browser for WebMIDI testing with a Fishman Connect; no build-system or application behavior change is part of this cleanup.
+
+Future changes should update relevant TODO, development notes, and architecture documentation, run appropriate checks, and provide a brief result, local testing instructions, and suggested commit description. The owner retains commits, tags, pushes, and deployment unless explicitly requested. Use separate chats for major tasks and one active coding chat per shared folder; durable guidance belongs in project files. Earlier ChatGPT history is in **Guitar Trainer**, but access/full transcript inheritance is not assumed.
+
+Retain **Beta v0.0.2** as the existing development checkpoint. The local annotated `v0.0.2` tag identifies commit `0049770` and describes the completed Hex/Poly visual feedback. That commit's v0.0.1 message is historical; `version.json` was aligned from `0.0.2-trainer-midi-foundation` to `0.0.2`. No new release, commit, tag, push, or deployment was performed.
+
+Baseline checks pass: 142 automated tests and syntax checks for all 23 application modules. Hardware/browser acceptance remains pending as documented in TODO. Older dated entries and stage notes are retained as history; ZIP delivery instructions and superseded feedback/control decisions no longer direct current work.
+
 ## Plain inferred fret numbers — 2026-10-10
 
 User's screenshot showed dashed numeric badges resembling extra scored frets. Removed the inferred-number badge border. Both Hex and inferred Poly feedback now use plain red numbers with the existing translucent backing, native tab font size and side placement. No tilde or numeric badge outline is drawn. The inference checkbox/help/status and SVG title retain the distinction; expected-note highlights are separate from the numeric feedback and unchanged. This supersedes the dashed-badge presentation in the preceding font update.

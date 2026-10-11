@@ -1,6 +1,22 @@
 # Guitar Trainer Studio: status and to-do
 
-Updated 2026-10-10. This is the central status and priority list. Stage files retain implementation details and checks; DEV-NOTES records decisions. Proposed items below are recommendations, not implemented changes. The next implementation stage should be scoped from this ordered list.
+Updated 2026-10-11. This is the central status and priority list. Stage files retain implementation details and checks; DEV-NOTES records decisions. Proposed items below are recommendations, not implemented changes. The next implementation stage should be scoped from this ordered list.
+
+## Current workflow and specification — 2026-10-11
+
+The baseline is **Beta v0.0.2**, identified by the existing `v0.0.2` tag. `version.json` now records `0.0.2`; its old foundation suffix and the tagged commit's v0.0.1 wording are historical labeling inconsistencies. No tag, commit history, or runtime code was changed for this cleanup.
+
+Read root README.md and AGENTS.md when starting a task. Work directly in this folder, preserve VS Code Live Server and the owner's normal browser/Fishman Connect testing, and leave commits/tags/pushes/deployment to the owner unless requested. Documentation carries durable decisions between chats; full chat history is not assumed to be available. Earlier ChatGPT history is in **Guitar Trainer** if accessible.
+
+Current feedback uses one Staff control, independent tab highlights/fret numbers, and optional default-off Poly inference. Hex numbers require configured channels and valid score interpretation, not a mandatory setup/verification button. Poly numeric inference is implemented for an unambiguous remaining written note; it is not physical string detection or strict-position grading. Both Hex and inferred Poly numbers are plain red numbers with translucent backing, native tab font size, and side placement; no tilde, numeric border, pointer, or custom staff spacing. Accepted tones stay green under the latest mode-specific rules; genuine wrong-pitch history is retained.
+
+This summary and the latest user instructions override older dated entries below. Those entries and stage documents preserve historical ZIP instructions, control labels, whole-chord error rules, and earlier inference limitations; do not treat them as current requirements. The latest agreed Wait feedback table remains applicable with these clarifications.
+
+- [x] Document direct local editing and standing agent instructions; align version metadata with the existing beta baseline.
+- [x] Baseline verification: 142 tests pass; all 23 application JavaScript modules pass syntax checks.
+- [ ] Complete browser/Fishman acceptance for Realtime retention, chord timing, releases, channel identity, loops/seeks, and visual layout. Existing user confirmations are narrower than full acceptance.
+
+## Dated feedback implementation history
 
 ## Plain inferred fret numbers — 2026-10-10
 
@@ -46,7 +62,7 @@ The measure 83 case was tested using both correct pitches on MIDI channel 4 in W
 
 131 tests pass. New regressions exercise measure 85's Bb dyad and measure 83's D dyad through normalized MIDI, Wait controller publication and Realtime finalization; three chord regressions fail against the prior update. Native tab geometry now verifies two green tones plus one red completed-error tone across four profiles and three scales. Browser/physical MIDI acceptance remains local. Apply this changed-files ZIP after the live-circles update. No version/tag bump, menu restructuring, deferred features or Piano Trainer changes.
 
-## Latest feedback update
+## Earlier feedback update (superseded control labels and inference limits)
 
 Live Hex wrong-pitch circles now appear immediately around pending expected frets on the detected string in Wait and Realtime. Accepted partial chord tones remain green. Release restores pending guidance; Hex completion retains red only on strings with recorded wrong pitches, while Poly accepted tones remain green by default; optional unambiguous inference is described above. A detected string absent from the written target gets no guessed expected-fret circle. Physical Poly string detection and guessed fret-number detail remain deferred; optional remaining-note inference is implemented above. Circles work with fret details hidden and are independent of notation options.
 
@@ -108,11 +124,13 @@ For ambiguous Poly chord errors keep confirmed green tones and show actual wrong
 
 ## Starting a new development chat
 
-Upload the latest complete GuitarTrainerStudio project ZIP with these updated docs included. Changed-files ZIPs must be applied over the prior project before creating the next full source ZIP. Read TODO.md for priorities/specification, DEV-NOTES.md for decisions, ARCHITECTURE.md for boundaries, and STAGE-1 through STAGE-8 for prior implementation/tests. Current source and user confirmations govern status; pending proposals must not be reported as already implemented. Unresolved choices such as Follow semantics, harmony rules, exact-string behavior, scoring formula changes, and unsupported notation layouts require a focused scope rather than assumptions.
+Start a new chat in this same local project for each major task; keep implementation and follow-up testing for that task together. Read AGENTS.md, README.md, TODO.md for current priorities/specification, DEV-NOTES.md for decisions, ARCHITECTURE.md for boundaries, and relevant stage notes. Check Git status and inspect current source before editing. Edit this folder directly; ZIP exchanges are no longer required. Keep one coding chat actively editing the shared folder at a time.
+
+Current source, the latest specification, and user confirmations govern status; pending proposals must not be reported as already implemented. Store decisions and validation results in the relevant documentation so future chats can recover context without relying on full transcripts. Unresolved choices such as Follow semantics, harmony rules, exact-string behavior, scoring formula changes, and unsupported notation layouts require a focused scope rather than assumptions.
 
 Suggested prompt:
 
-> Continue Guitar Trainer Studio from the attached latest project. First read docs/TODO.md, docs/DEV-NOTES.md, docs/ARCHITECTURE.md, and the relevant stage notes. Preserve the existing UI and native alphaTab behavior; make small modular changes and deliver a verified project ZIP. Begin with score retention through Pause/Resume, then the documented Wait mistake-history feedback. Preserve expected tab fret numbers: larger live red wrong frets using the configured Hex channel layout, disappearing on release; after completion retain the last wrong fret per detected string/target beside its string without pointers. Live Hex wrong pitches circle pending expected frets on the detected string red; accepted partial chord tones stay green. Include Wait and Realtime; preserve existing target colors. Poly must not claim a known string/fret. Standard notation gets live and retained actual wrong-pitch feedback. Inspect the current source before fixing behavior, run relevant checks, and update the docs. Keep deferred chord/harmony/media features and the piano app outside this stage.
+> Read AGENTS.md and the project documentation, check Git status, and continue with: [task description]. Edit this project directly, preserve the UI, native alphaTab behavior, and Live Server/browser WebMIDI workflow. Follow the latest agreed feedback specification, run appropriate checks, update relevant documentation, and explain what I should test locally. Provide a suggested commit description; leave commits, tags, pushes, and deployment to me. Keep deferred features and Piano Trainer changes outside this task.
 
 ## Screenshot clarification and core release checks
 

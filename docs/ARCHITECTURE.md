@@ -1,5 +1,15 @@
 # Guitar Trainer Studio Architecture
 
+## Current maintenance contract — 2026-10-11
+
+Root README.md describes running and checking the app; AGENTS.md records standing agent instructions. This remains a static browser app using bundled alphaTab and WebMIDI, edited directly in the local project folder and served through VS Code Live Server in the owner's normal browser with a Fishman Connect. This documentation/version cleanup introduces no runtime or build-system changes.
+
+Current baseline: **Beta v0.0.2**, existing tag `v0.0.2`, and `version.json` value `0.0.2`. Git publishing and deployment remain owner actions unless requested. Project documentation is the durable handoff between chats; earlier ChatGPT **Guitar Trainer** history is optional context if accessible.
+
+Current feedback contract: one Staff visibility control; independent tab highlights and numbers; default-off conservative Poly inference; no mandatory Hex string-check gate. Numeric Hex/Poly feedback is plain red at the native tab font size beside the score string, with translucent backing and no prefix/border/pointer or custom spacing. Both input modes grade pitch; strict-position grading remains deferred. Historical entries below preserve earlier designs and validation results, not current instructions where superseded.
+
+## Dated implementation history
+
 ## Plain inferred fret numbers — 2026-10-10
 
 User's screenshot showed dashed numeric badges resembling extra scored frets. Removed the inferred-number badge border. Both Hex and inferred Poly feedback now use plain red numbers with the existing translucent backing, native tab font size and side placement. No tilde or numeric badge outline is drawn. The inference checkbox/help/status and SVG title retain the distinction; expected-note highlights are separate from the numeric feedback and unchanged. This supersedes the dashed-badge presentation in the preceding font update.
@@ -195,6 +205,11 @@ The app should preserve native alphaTab features wherever possible and layer cus
 - Chooses spelling using the local bar key signature. Explicit vector accidentals (including naturals), notehead-sized red dots and ledger lines show wrong pitches without long score text. All wrong pitches use the target anchor’s single horizontal cursor column, with a fixed adjacent accidental position. Same-line/neighboring pitches may overlap; never spread them horizontally into other targets. Repeated identical pitches share a dot, while Practice retains the complete attack history.
 - Projects sounding MIDI to displayed pitch with beat/clef ottava and staff display transposition, using native five-line treble/bass/alto/tenor staff coordinates. Checks the projection against actual rendered original notehead bounds and omits unsupported/inconsistent wrong-note geometry. Never uses the native accidental helper's unregistered-pitch fallback or mutates renderer/model accidental state.
 - Returns filled-overlay bounds for standard expected noteheads and unchanged outlines for tab targets. The host renders SVG and rebuilds on native post-render completion; grading/lifecycle stay in Wait/Realtime modules.
+
+### `js/tab-feedback.js` and `js/poly-feedback.js`
+- Tab-feedback projects live/completed Hex errors to expected strings and validates sounding pitch, tuning/capo/transposition, and native tab bounds before deriving wrong-fret display geometry. Accepted clean tones retain their mode-specific green feedback; unknown Hex string metadata uses conservative target summaries.
+- Poly-feedback captures an association only when one pending slot with one written note remains at the wrong attack. It prepares optional inferred target/fret overlays from genuine wrong-pitch records, without changing grading or attaching an invented detected string to stored MIDI/history. Ambiguous attacks remain unassigned.
+- The host renders these pure projections through independent Staff, tab highlight, and fret-number visibility settings. Numeric estimates use the same native font-size/side geometry as Hex numbers; SVG titles and the inference control explain their estimated status. `js/string-setup.js` is inactive historical code, not a runtime prerequisite.
 
 ### `js/toolbar-ui.js`
 - Owns menu wiring and user controls.
