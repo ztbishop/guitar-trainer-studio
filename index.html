@@ -10,6 +10,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png" />
     <link rel="manifest" href="./site.webmanifest" />
     <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./menu-controls.css" />
     <script src="./assets/vendor/alphatab/alphaTab.js"></script>
   </head>
   <body>
@@ -207,26 +208,26 @@
     </section>
 
     <section id="tempo-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
-      <div class="tempo-content">
+      <div class="menu-content">
         <h2>Tempo</h2>
-        <div class="tempo-row">
+        <div class="menu-row menu-bpm-row">
           <label for="playback-bpm">BPM</label>
-          <div class="tempo-number">
+          <div class="menu-number">
             <input id="playback-bpm" type="number" step="any" value="120" disabled />
-            <div class="tempo-steppers">
-              <button id="bpm-up" type="button" aria-label="Increase BPM to the next multiple of five" disabled>▴</button>
+            <div class="menu-steppers">
               <button id="bpm-down" type="button" aria-label="Decrease BPM to the previous multiple of five" disabled>▾</button>
+              <button id="bpm-up" type="button" aria-label="Increase BPM to the next multiple of five" disabled>▴</button>
             </div>
           </div>
         </div>
-        <div class="tempo-row">
+        <div class="menu-row">
           <label for="playback-speed-slider">Speed (%)</label>
           <input id="playback-speed-slider" type="range" min="25" max="200" step="1" value="100" disabled />
-          <div class="tempo-number">
+          <div class="menu-number">
             <input id="playback-speed-percent" aria-label="Speed percentage" type="number" min="25" max="200" step="any" value="100" disabled />
-            <div class="tempo-steppers">
-              <button id="speed-up" type="button" aria-label="Increase speed to the next multiple of five" disabled>▴</button>
+            <div class="menu-steppers">
               <button id="speed-down" type="button" aria-label="Decrease speed to the previous multiple of five" disabled>▾</button>
+              <button id="speed-up" type="button" aria-label="Increase speed to the next multiple of five" disabled>▴</button>
             </div>
           </div>
         </div>
@@ -239,16 +240,16 @@
           <label><input id="metronome-enabled" type="checkbox" disabled /> Metronome</label>
           <label id="metronome-volume-label" for="metronome-volume-slider" class="tempo-unavailable">Volume</label>
           <input id="metronome-volume-slider" type="range" min="0" max="100" step="1" value="75" disabled />
-          <div class="tempo-number">
+          <div class="menu-number">
             <input id="metronome-volume-percent" aria-label="Metronome volume percentage" type="number" min="0" max="100" step="any" value="75" disabled />
-            <div class="tempo-steppers">
-              <button id="volume-up" type="button" aria-label="Increase metronome volume to the next multiple of five" disabled>▴</button>
+            <div class="menu-steppers">
               <button id="volume-down" type="button" aria-label="Decrease metronome volume to the previous multiple of five" disabled>▾</button>
+              <button id="volume-up" type="button" aria-label="Increase metronome volume to the next multiple of five" disabled>▴</button>
             </div>
           </div>
         </div>
-        <label class="tempo-option tempo-unavailable"><input type="checkbox" disabled /> Accented downbeat <span class="field-help">Not implemented yet</span></label>
-        <label id="metronome-visual-label" class="tempo-option tempo-unavailable"><input id="metronome-visual-pulse" type="checkbox" checked disabled /> Visual pulse</label>
+        <label class="menu-option tempo-unavailable"><input type="checkbox" disabled /> Accented downbeat <span class="field-help">Not implemented yet</span></label>
+        <label id="metronome-visual-label" class="menu-option tempo-unavailable"><input id="metronome-visual-pulse" type="checkbox" checked disabled /> Visual pulse</label>
         <p id="tempo-controls-status" role="status">Load a score to adjust playback speed.</p>
       </div>
     </section>

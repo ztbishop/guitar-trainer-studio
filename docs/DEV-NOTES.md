@@ -1,5 +1,13 @@
 # Development notes
 
+## Piano-style Tempo and shared menu CSS — 2026-10-11
+
+Owner rejected the oversized touch layout and provided the Piano Tempo screenshot as the visual reference, allowing horizontal arrows. Replaced the stacked arrows with down/up pairs beside the numeric field, reduced visible slider thumbs to 24px (28px for touch), and restored compact aligned rows, plain bold number boxes, a flatter light panel and a smaller corner radius. Interaction rows remain 44px high and touch arrows remain 44 × 44; native sliders, validation, linked BPM/speed, saved volume, metronome timing and grading are unchanged. This supersedes the preceding tall-row/44px-visible-thumb design, not touch support.
+
+Added menu-controls.css after style.css. Its top-level popup variables centralize spacing, padding, field/arrow dimensions, slider sizes, borders and colors. Shared rules serve all existing popup shell/card/form spacing and future sliders. Reusable menu-content/row/number/steppers/option classes now compose Tempo; number-group widths derive from the shared component dimensions. Menu-specific composition is separated at the bottom. Future menu refinements should reuse these styles instead of reconfiguring control appearance; existing complex forms keep their layouts until their own refinement. Removed old duplicated Tempo rules from style.css. No output/MIDI features, version bump or Piano project edits.
+
+Validation: 152 regression tests pass. Browser checks at 1440 × 900, 768 × 1024 and 390 × 844 showed no horizontal Tempo overflow; wide/tablet popup height is 458px with 44px rows. Loaded the supplied 200 BPM GP3, tested speed-up/down and slider/volume linkage; Settings still opens with its existing controls. Captured the revised menu for owner review. Browser is touch-capable; physical tablet dragging/tapping and Firefox appearance remain owner acceptance. Changes began from clean Git status; commits/tags/pushes remain owner actions.
+
 ## Tempo touch targets and slider handles — 2026-10-11
 
 Owner requested tablet-friendly Tempo controls, emphasizing the slider grab handles. Added CSS scoped to `any-pointer: coarse`, including hybrid tablets: 44-pixel visible slider thumbs and input height, 44 × 44 stacked arrows, 44-pixel Reset/checkbox label rows, 16px numeric text, and narrow-screen row wrapping. Firefox and WebKit have corresponding thumb/track rules; native range input handling and all BPM/speed/metronome behavior stay unchanged. Fine-pointer-only desktop keeps its compact controls. No version/tag changes, grading edits or deferred features.

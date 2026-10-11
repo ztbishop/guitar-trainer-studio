@@ -1,0 +1,144 @@
+/* Shared menu design settings. Existing menus inherit these values; use the
+   menu-* classes for new compact rows instead of copying per-menu CSS. */
+.toolbar-popup {
+  --menu-padding: 24px;
+  --menu-gap: 12px;
+  --menu-row-gap: 18px;
+  --menu-field-gap: 8px;
+  --menu-card-gap: 14px;
+  --menu-section-gap: 16px;
+  --menu-control-height: 44px;
+  --menu-number-width: 72px;
+  --menu-step-width: 32px;
+  --menu-step-gap: 4px;
+  --menu-number-group: calc(var(--menu-number-width) + var(--menu-field-gap) + var(--menu-step-width) + var(--menu-step-width) + var(--menu-step-gap));
+  --menu-label-width: 112px;
+  --menu-radius: 7px;
+  --menu-thumb-size: 24px;
+  --menu-track-height: 6px;
+  --menu-accent: #2994d0;
+  --menu-track: #d2d6dc;
+  --menu-track-border: #b9c2ce;
+  --menu-input-border: #c6d0db;
+}
+.toolbar-popup .panel-header { padding: var(--menu-padding) var(--menu-padding) 0; gap: var(--menu-section-gap); }
+.toolbar-popup .popup-panel-grid { padding: 18px var(--menu-padding) var(--menu-padding); gap: var(--menu-section-gap); }
+.toolbar-popup .popup-card { padding: 16px var(--menu-padding); gap: var(--menu-card-gap); }
+.toolbar-popup .form-grid { gap: var(--menu-card-gap); }
+.toolbar-popup .field-group { gap: var(--menu-field-gap); }
+.toolbar-popup .toggle-grid, .toolbar-popup .status-stack, .toolbar-popup .info-stack { gap: var(--menu-gap); }
+.toolbar-popup input[type='number'], .toolbar-popup select { min-height: var(--menu-control-height); }
+.menu-content { padding: 18px var(--menu-padding) 22px; }
+.menu-content h2 { margin: 0 0 20px; font-size: 1.15rem; font-weight: 500; }
+.menu-row {
+  display: grid;
+  grid-template-columns: var(--menu-label-width) minmax(0, 1fr) var(--menu-number-group);
+  align-items: center;
+  gap: var(--menu-gap);
+  margin: var(--menu-row-gap) 0;
+}
+.menu-number { display: flex; align-items: center; gap: var(--menu-field-gap); width: var(--menu-number-group); }
+.toolbar-popup .menu-number input {
+  width: var(--menu-number-width);
+  flex: 0 0 var(--menu-number-width);
+  min-width: 0;
+  min-height: var(--menu-control-height);
+  padding: 6px;
+  border: 1px solid var(--menu-input-border);
+  border-radius: var(--menu-radius);
+  background: #fff;
+  box-shadow: none;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.menu-number input::-webkit-inner-spin-button, .menu-number input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.toolbar-popup .menu-number input:disabled { color: #9aa5b1; background: #f8f9fb; }
+.menu-steppers { display: flex; gap: var(--menu-step-gap); }
+.toolbar-popup .menu-steppers button {
+  width: var(--menu-step-width);
+  min-height: var(--menu-control-height);
+  padding: 0;
+  border: 1px solid var(--menu-input-border);
+  border-radius: var(--menu-radius);
+  background: transparent;
+  box-shadow: none;
+  font-size: 16px;
+  line-height: 1;
+}
+.toolbar-popup .menu-steppers button:hover:not(:disabled) { background: var(--control-bg-hover); transform: none; }
+.toolbar-popup input[type='range'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-width: 0;
+  height: var(--menu-control-height);
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.toolbar-popup input[type='range']::-webkit-slider-runnable-track {
+  height: var(--menu-track-height);
+  border: 1px solid var(--menu-track-border);
+  border-radius: 4px;
+  background: var(--menu-track);
+}
+.toolbar-popup input[type='range']::-moz-range-track {
+  height: var(--menu-track-height);
+  border: 1px solid var(--menu-track-border);
+  border-radius: 4px;
+  background: var(--menu-track);
+}
+.toolbar-popup input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: var(--menu-thumb-size);
+  height: var(--menu-thumb-size);
+  margin-top: calc((var(--menu-track-height) - var(--menu-thumb-size)) / 2 - 1px);
+  border: 2px solid #3b5267;
+  border-radius: 50%;
+  background: var(--menu-accent);
+  box-shadow: 0 1px 2px rgba(34, 48, 62, 0.25);
+}
+.toolbar-popup input[type='range']::-moz-range-thumb {
+  box-sizing: border-box;
+  width: var(--menu-thumb-size);
+  height: var(--menu-thumb-size);
+  border: 2px solid #3b5267;
+  border-radius: 50%;
+  background: var(--menu-accent);
+  box-shadow: 0 1px 2px rgba(34, 48, 62, 0.25);
+}
+.toolbar-popup input[type='range']:focus-visible { outline: 2px solid var(--menu-accent); outline-offset: 2px; }
+.toolbar-popup input[type='range']:disabled { opacity: 0.45; cursor: default; }
+.menu-option { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-height: var(--menu-control-height); margin-top: 4px; touch-action: manipulation; }
+.menu-content hr { margin: 20px 0; border: 0; border-top: 1px solid var(--section-rule); }
+
+/* Tempo composition only; control appearance comes from the shared rules. */
+#tempo-popup { width: min(740px, calc(100vw - 32px)); border-radius: 16px; background: #f5f7f9; }
+.menu-bpm-row { grid-template-columns: var(--menu-label-width) var(--menu-number-group) minmax(0, 1fr); }
+.tempo-metronome-row { display: grid; grid-template-columns: auto auto minmax(60px, 1fr) var(--menu-number-group); align-items: center; gap: var(--menu-gap); }
+.tempo-metronome-row label { display: flex; align-items: center; gap: 10px; min-height: var(--menu-control-height); }
+.tempo-speed-help { display: flex; align-items: center; gap: var(--menu-gap); font-size: 0.75rem; color: var(--muted); }
+.toolbar-popup #reset-playback-speed { flex: 0 0 auto; min-height: var(--menu-control-height); padding: 6px 10px; border-radius: var(--menu-radius); font-size: 0.75rem; box-shadow: none; }
+.tempo-unavailable { opacity: 0.45; }
+#tempo-controls-status { margin: 14px 0 0; font-size: 0.75rem; color: var(--muted); }
+@keyframes tempo-beat { from { background: #b8e3ff; box-shadow: 0 0 0 4px rgba(41, 148, 208, 0.3); } to { background: var(--control-bg); } }
+#btn-tempo.metronome-pulse { animation: tempo-beat 170ms ease-out; }
+@media (prefers-reduced-motion: reduce) { #btn-tempo.metronome-pulse { animation: none; background: #b8e3ff; } }
+@media (any-pointer: coarse) {
+  .toolbar-popup { --menu-step-width: 44px; --menu-thumb-size: 28px; }
+}
+@media (max-width: 600px) {
+  .toolbar-popup { --menu-padding: 16px; --menu-gap: 10px; --menu-row-gap: 12px; }
+  .menu-row { grid-template-columns: minmax(0, 1fr) var(--menu-number-group); }
+  .menu-row > label { grid-column: 1 / -1; }
+  .menu-bpm-row .menu-number { grid-column: 1 / -1; }
+  .tempo-speed-help { flex-wrap: wrap; }
+  .tempo-metronome-row { grid-template-columns: minmax(0, 1fr) var(--menu-number-group); }
+  .tempo-metronome-row > label { grid-column: 1 / -1; }
+}
