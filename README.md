@@ -22,11 +22,12 @@ No build step or npm dependency installation is required to run the app. Serve t
 - Repeat-aware Realtime pitch/timing grading and silent Wait stepping as each target is solved.
 - Linked BPM/speed controls, native metronome volume and visual pulse, occurrence-aware section loops, MIDI latency adjustment, and Wait Collect notes/Together chord settings. Wait's metronome runs independently at the set BPM.
 - Piano-style Loop menu uses the shared touch-friendly sliders and horizontal arrows (one-measure steps). Enable Loop and Loop Count-in default off on page/score load and are not saved. Play/resume gets a one-bar count-in; Loop Count-in adds one at each repeat. Native score dragging selects whole measures and enables looping; sliders remain precise for repeat occurrences. Out-of-range written measures are shaded, and cursor seeks remain inside an enabled loop.
-- Pause/Resume retention, explicit **New attempt here**, completion summaries, and mistake history.
+- Pause/Resume retention, compact **Clear practice results** at the current position, completion summaries, and mistake history.
+- Piano-style toolbar sizing and responsive collapse/stacking. Practice owns visual feedback; Display owns track visibility/fretboard orientation; Audio owns selected/backing playback choices. Settings has collapsed MIDI/practice diagnostics. Library, pitch/transposition and Media & Sync controls are explicitly reserved for later implementation.
 - Staff target feedback and actual wrong-pitch noteheads, independent tab highlights and incorrect fret numbers, and an optional six-string fretboard with left-handed display.
 - Configured Hex string-channel feedback; optional Poly fret estimates only for an unambiguous remaining written note. Estimates are display feedback, not detected string identity.
 
-Both MIDI modes currently use pitch grading. Exact-string grading, reversed Hex mapping, broader preference persistence, and a persistent score library remain planned. Follow mode, harmony/exercise tools, media synchronization, LEDs, and deeper instrument support remain deferred. Piano Trainer changes require a separate task.
+Both MIDI modes currently use pitch grading. Hex supports ascending or descending channels from the lowest-string base, with valid base choices and a visible channel sequence. Display provides native zoom (50–200%), auto-scroll and fullscreen on Play. Practice exposes Realtime/Wait and Wait chord choices as radio buttons. New preferences last for the page session. Exact-string grading, broader preference persistence and a persistent score library remain planned. Follow mode, harmony/exercise tools, media synchronization, LEDs and deeper instrument support remain deferred. Piano Trainer changes require a separate task.
 
 ## Tests and local acceptance
 

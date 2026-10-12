@@ -1,5 +1,33 @@
 # Development notes
 
+## Toolbar touch detection and remaining binary selectors — 2026-10-11
+
+Owner's comparison showed toolbar buttons still taller than Piano. The cause was `any-pointer: coarse`: a secondary touchscreen enlarged desktop buttons to 44px. Toolbar sizing now uses the primary pointer (`pointer: coarse`), so mouse-driven layouts use Piano's 36px minimum height and 7px/13px padding even with a touchscreen attached. Touch-driven layouts retain 44px targets; shared popup touch sizing and responsive thresholds remain unchanged.
+
+Display mode (Practice only/All tracks) and MIDI input source (Single channel/Hexaphonic) now use visible native radio groups. Host enable/sync paths update both display radios on loading/track changes; bootstrap reads the checked choice. Input radios retain MIDI availability gating, channel-section visibility and existing note/result reset behavior. No grading or device-routing semantics change. Prior uncommitted work preserved.
+
+Validation: 162 tests and changed-module syntax checks pass. Browser inspected desktop dimensions at 36px with primary fine/secondary coarse input, and verified unloaded Display/MIDI availability. Physical Fishman switching and loaded-score track visibility remain owner checks.
+
+## Visible choices, Display and reverse Hex — 2026-10-11
+
+Preserved preceding uncommitted menu work. Owner confirmed responsive collapse; thresholds remain unchanged. Toolbar text is 14px with coarse-pointer targets retained. Practice modes and Wait chord options use radio groups with shorter help; diagnostics remain collapsed in Settings. Independent feedback controls and default-off Poly inference are preserved.
+
+Display controls use display-controls.js; alphatab-host.js applies native scale and Continuous/Off scroll mode, rerendering only for zoom changes. Numeric zoom commits on change/blur/Enter; arrows include pending typed values. Fullscreen-on-Play requests document fullscreen within the start/resume user click when the player is ready, before following unchanged transport handling. These preferences remain session-only.
+
+Latest owner instruction supersedes the earlier reverse-within-block proposal: higher strings count downward from the lowest-string base. Valid bases are 6–16 reversed and 1–11 forward. Direction changes preserve a valid base or clamp it to the nearest valid base; the UI shows all six channels. Filtering and normalization share channelToStringHint. Setting changes clear holds/results through the existing boundary; pitch grading stays unchanged. Six-string Hex mapping remains separate from visual mirroring.
+
+Validation: 162 regression tests pass, including reversed routing/releases, radio gating, native display settings and zoom editing. Browser preview verifies controls and phone fit without horizontal overflow. Loaded-score zoom/scroll/fullscreen and physical Fishman direction remain owner acceptance. No version bump, commit or deployment.
+
+## Menu organization and Piano toolbar — 2026-10-11
+
+Owner approved the reviewed menu plan. Started from clean Git status. Read the local PianoApp toolbar stylesheet and library source without editing Piano: toolbar reference uses 36px desktop buttons/8px corners, 1060px Tempo/Loop collapse, 960px percentage hiding and 620px stacking; its scores/folders use IndexedDB rather than localStorage. Guitar retains 44px coarse-pointer toolbar targets and shared popup control sizing. Popup top/max-height follows actual toolbar height, including phone wrapping.
+
+Recomposed menus in index.html and menu-controls.css while retaining control IDs and existing bootstrap/host wiring. Practice owns visual switches; Display owns track visibility and fretboard orientation; Audio owns existing selected/backing playback toggles. Live trainer feedback/history moved into a closed-by-default Settings diagnostics disclosure; the MIDI event toggle remains within it. The existing attempt reset is a small **Clear practice results** action with position-preservation help. Basic Help content now explains the guitar workflow.
+
+Scores retains Open File and metadata; library controls are disabled in an expandable future section. Audio volume/mixer/output, playback offset/full score transpose and Media & Sync are explicitly unavailable. No new storage, sound selection, pitch/grading changes, media integration, expanded fretboard, Follow or virtual piano implementation. Future storage: IndexedDB scores/folders, localStorage small preferences, downloadable backups including score/media sync profiles. Audio-only offset must not claim capo/down-tuning grading support. Native sync/transposition capabilities need coordinated app behavior in separate tasks.
+
+Validation: 160 regression tests pass, node --check for toolbar-ui.js and git diff --check pass. Browser preview via existing 127.0.0.1 Live Server checks compact menus, tablet collapse, phone stacking, Settings diagnostics and Media shortcut. No horizontal overflow in inspected layouts. Preview browser cannot access MIDI; physical Fishman, touch ergonomics and loaded-score listening remain owner acceptance. No version change, commits, tags, pushes or deployment.
+
 ## Loop activation feedback — 2026-10-11
 
 Owner confirmed the preceding Loop changes worked, then approved keeping native drag-to-loop with a persistent enabled indicator and an activation-only notice. Started with the preceding Loop work uncommitted and preserved it. Loop and its More shortcut now remain highlighted while enabled; collapsed toolbars show a loop marker on More. Dragging from loop off shows "Loop enabled: measures…" as a nonblocking status notice for three seconds. Further drags while enabled update the range silently; disabling, score replacement or another range edit clears stale notices. No transport, grading, defaults or persistence changes.

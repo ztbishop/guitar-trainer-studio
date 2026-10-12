@@ -12,9 +12,10 @@ export function midiToNoteName(midi) {
   return `${name}${octave}`;
 }
 
-export function channelToStringHint(channel, baseChannel = 1) {
-  if (!Number.isFinite(channel) || !Number.isFinite(baseChannel)) return null;
-  const offset = channel - baseChannel;
+export function channelToStringHint(channel, baseChannel = 1, reverse = false) {
+  if (!Number.isInteger(channel) || !Number.isInteger(baseChannel) || channel < 1 || channel > 16 ||
+      baseChannel < (reverse ? 6 : 1) || baseChannel > (reverse ? 16 : 11)) return null;
+  const offset = reverse ? baseChannel - channel : channel - baseChannel;
   if (offset < 0 || offset > 5) return null;
   return 6 - offset;
 }

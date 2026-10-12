@@ -4,6 +4,30 @@ Updated 2026-10-11. This is the central status and priority list. Stage files re
 
 ## Current workflow and specification — 2026-10-11
 
+### Menu follow-up — implemented 2026-10-11
+
+- [x] Follow-up: desktop toolbar uses 36px buttons even when a secondary touchscreen is present; only a coarse primary pointer selects 44px. Display mode and MIDI input source are visible radio groups with existing readiness/availability behavior.
+
+- [x] Smaller 14px toolbar text, retaining responsive collapse/stack thresholds and 44px coarse-pointer targets. Owner confirmed the preceding collapse behavior.
+- [x] Visible Practice mode and **Wait Mode Chords** radio choices, Wait-only chord gating, shorter help and compact spacing. Small screens still scroll.
+- [x] Display: native zoom slider/numeric entry/±5 buttons (50–200%), auto-scroll and fullscreen on starting/resuming a ready player's Play gesture. Preferences remain session-only.
+- [x] Reverse Hex counts **downward from the selected lowest-string base**, with bases 6–16; forward bases remain 1–11. Invalid bases clamp when switching direction. Channel sequence is explicit, active notes/results clear on input-setting changes, and grading stays pitch-only.
+- [x] 162 tests pass, including radio gating, native scale/scroll, zoom editing and reversed Hex routing/releases. Browser preview verifies controls and phone fit. Loaded-score zoom/scroll/fullscreen and physical Fishman direction remain local acceptance.
+
+### Menu organization and Piano toolbar — implemented 2026-10-11
+
+- [x] Compact shared-menu composition replaces oversized headings/cards and stretched file/fretboard controls. Toolbar follows Piano's 1060px Tempo/Loop collapse, 960px score-percentage hiding and 620px stacking; coarse-pointer buttons retain 44px height. Popups follow measured toolbar height.
+- [x] Practice contains Realtime/Wait, practice track, existing timing/chord controls, independent Staff/tab highlight/fret-number controls and default-off Poly inference. Small **Clear practice results** retains the existing current-position attempt action; no grading/transport change.
+- [x] Live trainer status, expected/detected notes and mistake history moved to collapsed Settings MIDI/practice diagnostics. Display owns practice-only/all-track visibility and the existing six-string/left-handed fretboard. Audio owns existing selected/backing-track playback toggles; Wait accompaniment stays paused.
+- [x] Scores keeps working Open File, compact metadata and expandable track list. Library/folder/backup controls, Audio volume/mixer/output, Pitch & Transpose and Media & Sync are explicitly **Not implemented yet**. Help now provides a basic guitar-specific quick start.
+- [x] 160 regression tests and toolbar syntax check pass. Browser smoke checks cover menu movement, tablet collapse, phone stacking, diagnostics disclosure and Media shortcut; no horizontal overflow in checked layouts. Physical Fishman/tablet and loaded-score playback acceptance remain local.
+- [ ] Later: audio volume/mixer wiring; IndexedDB score/folder library with JSON backups, small preferences in localStorage. Native zoom/scroll is implemented; no library persistence is added in this layout pass.
+- [ ] Later: define playback-only semitone offset versus coordinated practice pitch offset versus full key/semitone score transpose. Do not present audio-only shift as capo/down-tuning grading support.
+- [ ] Later: Media & Sync for local audio/video and supported online providers, score/media-specific saved sync profiles, export/import and inclusion in library backups. Media files are separate from settings; backing-media/synth mixing and Wait behavior need focused validation.
+- [ ] Later: custom fretboard automatically follows score string count/tuning (bass/7-string); separately scope positional MIDI mapping. Future dots/exercise overlays stay display-only. No Follow or virtual piano addition in the guitar menu plan.
+
+This entry supersedes older menu-placement recommendations; dated descriptions of **New attempt here** refer to the unchanged action now labeled **Clear practice results**.
+
 ### Loop menu refinement — implemented 2026-10-11
 
 - [x] Loop stays highlighted while enabled, including its More shortcut and a narrow-screen More marker. Dragging shows a three-second nonblocking notice only when it enables looping; later enabled drags stay silent. Follow-up validation: 160 tests pass; browser verified measures 2–3 activation, silent 3–4 adjustment, notice expiry, tablet More indicator and disable cleanup. Owner normal-browser acceptance remains pending.
@@ -124,7 +148,7 @@ Implemented latest increments: larger live numbers remain visible regardless of 
 3. **Validate hardware/transport and define tracking tolerance.** Hex/poly basic operation is confirmed; validate every string's channel identity, Together strums/latency, pause/resume, seeks, repeats, loop boundaries, resizing, and note release. Cover the reported score reset and Wait-history scenarios as they are fixed. For audio-to-MIDI input, distinguish received wrong pitches from expected pitches not received; do not pretend MIDI alone can establish whether a missing pitch was a playing error or a tracking omission. Test dense/classical chords, overlapping notes, repeated attacks, and duplicate pitches. Consider an explicit, adjustable tracking-tolerance profile after tests, without silently accepting missing chord tones or weakening every user's grading. Existing Collect/Together settings already provide chord accumulation/window options.
 4. **Refine menus and feedback layout against Piano Trainer Studio.** Preserve the deferred Tempo/Loop refinement below. Capture the user's actual menu logic and examples before copying controls. Keep notation readable and tab fret numbers unobscured. Instrument-specific controls should appear only for the relevant instrument if a unified app is later chosen.
 5. **Persist useful preferences and guitar profiles.** MIDI device/channel block, channel order, latency, chord mode/window, and display preferences are candidates; validate saved settings against the current device/score. Do not restore stale grading as a new attempt. Score library improvements remain a separate follow-up.
-6. **Add optional reversed hex mapping and exact-string grading.** Preserve the current working channel-1 default. Reverse the mapping inside the selected six-channel block (e.g. channels 1–6), rather than subtracting from channel 1. A string-by-string calibration/display check should confirm direction. UI fretboard mirroring is a different setting. Exact-string grading remains opt-in and requires verified channel mapping. App remapping does not establish that a physically reversed pickup is supported by its manufacturer.
+6. **Validate reversed Hex mapping; scope exact-string grading separately.** Reverse order now counts downward from the lowest-string base (6–16), following the owner's latest instruction. Forward channel-1 remains default. A string-by-string hardware/display check should confirm direction. Fretboard mirroring is separate. Exact-string grading remains deferred and requires verified mapping.
 7. **Evaluate a piano alphaTab prototype before a rewrite or merger.** Keep the current OSMD piano application working. Test a separate small prototype against representative piano MusicXML: two staves, hand selection, dense chords/voices, repeats/endings, ties, pedal behavior, and stable feedback positioning through resize/zoom. Compare actual results with the current piano app. Only then decide whether migration and a shared instrument-selector app are worthwhile; hide hand/LED/MIDI-output controls by instrument where appropriate. MIDI input channels and score staves are separate concepts: two piano staves need not require two keyboard input channels.
 
 Recommended next stage: priorities 1–2, with focused validation from priority 3. Notation-first visual refinement is implemented in STAGE-8-NOTATION.md; validate it before adding Hex tab detail. The later items are ordered follow-ups, not a commitment to implement them all in one stage.
@@ -217,7 +241,7 @@ Already addressed in Stages 1–7: MIDI normalization/held-note tracking, repeat
 ## Deferred Tempo and Loop menu refinement
 
 - [x] Tempo refinement implemented from the owner's screenshots and clarification above.
-- [ ] Loop menu refinement remains a separate task; its existing occurrence-aware controls are preserved.
+- [x] Loop refinement is implemented; see the current 2026-10-11 entry above. Hardware/browser acceptance remains pending.
 - Schedule a focused UI pass after core notation/fretboard feedback is working. Preserve the functional Stage 5 controls while building that core framework.
 - Capture context whenever the user supplies it. If it changes tempo or loop behavior, range semantics, or transport requirements, review it before dependent development rather than treating it as cosmetic work.
 - During the refinement, verify Realtime/Wait behavior, repeat-occurrence selection, accessibility, and narrow-screen layout.

@@ -71,7 +71,7 @@ function isEventInSelectedChannelRange(event) {
   }
 
   const base = Number(AppState.midi.hexChannelBase || 1);
-  return event.channel >= base && event.channel <= base + 5;
+  return channelToStringHint(event.channel, base, AppState.midi.hexChannelReverse) !== null;
 }
 
 function setActiveInput(input) {
@@ -88,6 +88,7 @@ function setActiveInput(input) {
       const normalized = normalizeMidiMessage(message, {
         inputMode: AppState.inputMode,
         hexChannelBase: AppState.midi.hexChannelBase,
+        hexChannelReverse: AppState.midi.hexChannelReverse,
       });
 
       if (!normalized) return;
@@ -189,7 +190,7 @@ export function normalizeMidiMessage(message, config = {}) {
     midi: isNote && Number.isFinite(midi) ? midi : null,
     velocity: isNote && Number.isFinite(velocity) ? velocity : null,
     noteName: isNote && Number.isFinite(midi) ? midiToNoteName(midi) : null,
-    stringHint: inputMode === 'hex-6ch' ? channelToStringHint(channel, config.hexChannelBase ?? 1) : null,
+    stringHint: inputMode === 'hex-6ch' ? channelToStringHint(channel, config.hexChannelBase ?? 1, config.hexChannelReverse) : null,
     inputMode,
     raw: data,
     at: Number.isFinite(message?.timeStamp) ? message.timeStamp : performance.now(),
@@ -219,7 +220,7 @@ export function normalizeMidiMessage(message, config = {}) {
       bendValue: ((velocity << 7) | midi) - 8192,
       midi: null,
       noteName: null,
-      stringHint: inputMode === 'hex-6ch' ? channelToStringHint(channel, config.hexChannelBase ?? 1) : null,
+      stringHint: inputMode === 'hex-6ch' ? channelToStringHint(channel, config.hexChannelBase ?? 1, config.hexChannelReverse) : null,
     };
   }
 

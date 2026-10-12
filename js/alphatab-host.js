@@ -178,7 +178,7 @@ function updatePracticeControlsEnabled(enabled) {
   if (ui?.practiceTrackSelectEl) ui.practiceTrackSelectEl.disabled = !enabled;
   if (ui?.playSelectedTrackToggleEl) ui.playSelectedTrackToggleEl.disabled = !enabled;
   if (ui?.playOtherTracksToggleEl) ui.playOtherTracksToggleEl.disabled = !enabled;
-  if (ui?.viewModeSelectEl) ui.viewModeSelectEl.disabled = !enabled;
+  for(const mode of ui?.viewModeRadios || [])mode.disabled = !enabled;
 }
 
 function updatePlayPauseLabel() {
@@ -279,8 +279,7 @@ function syncPracticeTrackSelect() {
 }
 
 function syncViewModeSelect() {
-  if (!ui?.viewModeSelectEl) return;
-  ui.viewModeSelectEl.value = AppState.viewMode || 'practice-only';
+  for(const mode of ui?.viewModeRadios || [])mode.checked=mode.value===(AppState.viewMode || 'practice-only');
 }
 
 function renderTrackList() {
@@ -429,7 +428,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     practiceTrackSelectEl: document.getElementById('practice-track-select'),
     playSelectedTrackToggleEl: document.getElementById('play-selected-track-toggle'),
     playOtherTracksToggleEl: document.getElementById('play-other-tracks-toggle'),
-    viewModeSelectEl: document.getElementById('view-mode-select'),
+    viewModeRadios: ['view-practice-only','view-all-tracks'].map(id=>document.getElementById(id)).filter(Boolean),
     scoreEmptyStateEl: document.getElementById('score-empty-state'),
     toolbarScoreValueEl: document.getElementById('toolbar-score-value'),
   };
@@ -489,6 +488,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
       scriptFile: getAssetUrl('./assets/vendor/alphatab/alphaTab.js'),
     },
     display: {
+      scale: AppState.ui.zoomPercent / 100,
       layoutMode: alphaTabGlobal.LayoutMode?.Page,
       systemsLayoutMode: alphaTabGlobal.SystemsLayoutMode?.Automatic,
     },
@@ -499,7 +499,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
       enableElementHighlighting: VISUAL_MODES.playbackHighlight,
       soundFont: getAssetUrl('./assets/vendor/alphatab/soundfont/sonivox.sf2'),
       scrollElement: wrapperEl,
-      scrollMode: alphaTabGlobal.ScrollMode?.Continuous,
+      scrollMode: AppState.ui.autoScroll ? alphaTabGlobal.ScrollMode?.Continuous : alphaTabGlobal.ScrollMode?.Off,
     },
   });
 
@@ -711,6 +711,17 @@ export function updateAlphaTabSettings(nextSettings) {
   alphaTabApi.settings.fillFromJson(nextSettings);
   alphaTabApi.updateSettings();
   alphaTabApi.render();
+  return true;
+}
+
+export function applyScoreDisplay() {
+  if(!alphaTabApi)return false;
+  const scale=AppState.ui.zoomPercent/100;
+  const zoomChanged=alphaTabApi.settings.display.scale!==scale;
+  alphaTabApi.settings.display.scale=scale;
+  alphaTabApi.settings.player.scrollMode=AppState.ui.autoScroll ? window.alphaTab.ScrollMode.Continuous : window.alphaTab.ScrollMode.Off;
+  alphaTabApi.updateSettings();
+  if(zoomChanged)alphaTabApi.render();
   return true;
 }
 

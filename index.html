@@ -55,7 +55,7 @@
       <div class="panel-header compact-header">
         <div>
           <div class="panel-kicker">Scores</div>
-          <h2>Open and route your score</h2>
+          <h2>Scores</h2>
         </div>
       </div>
 
@@ -63,10 +63,11 @@
         <div class="popup-card">
           <div class="popup-card-title">Open score</div>
           <label class="file-picker" for="score-file-input">
-            <span class="button-like">Choose File</span>
+            <span class="button-like">Open File</span>
             <input id="score-file-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl" />
           </label>
 
+          <details class="menu-future"><summary>Score library — Not implemented yet</summary><div class="menu-library-actions"><button disabled>Save to Library</button><button disabled>Backup Library</button><button disabled>Import Library (Merge)</button><button disabled>Manage folders</button></div><p class="field-help">Planned: browser-stored scores and single-level folders, with downloadable backups.</p></details>
           <div class="status-stack">
             <div>
               <div class="status-label">Loaded file</div>
@@ -88,10 +89,10 @@
         </div>
 
         <div class="popup-card">
-          <div class="popup-card-title">Tracks</div>
+          <details class="menu-track-details"><summary>Loaded score tracks</summary>
           <ul id="track-list" class="track-list">
             <li class="track-placeholder">Load a score to list its tracks here.</li>
-          </ul>
+          </ul></details>
         </div>
       </div>
     </section>
@@ -100,34 +101,16 @@
       <div class="panel-header compact-header">
         <div>
           <div class="panel-kicker">Practice</div>
-          <h2>Practice setup and trainer</h2>
+          <h2>Practice</h2>
         </div>
       </div>
 
       <div class="popup-panel-grid">
-        <div class="popup-card">
-          <label class="field-group" for="practice-mode-select">
-            <span class="field-label">Practice mode</span>
-            <select id="practice-mode-select">
-              <option value="realtime">Realtime — play along</option>
-              <option value="wait">Wait — advance after correct notes</option>
-            </select>
-          </label>
-          <button id="new-attempt-here" type="button" disabled aria-describedby="new-attempt-help">New attempt here</button>
-          <p id="new-attempt-help" class="field-help">Clear the percentage and feedback at the current position. Playback stays playing or paused. Play resumes; Reset returns to the start.</p>
-          <label class="field-group" for="wait-chord-mode">
-            <span class="field-label">Wait chord matching</span>
-            <select id="wait-chord-mode" disabled>
-              <option value="collect">Collect notes — relaxed</option>
-              <option value="together">Together — strum window</option>
-            </select>
-          </label>
-          <label class="field-group" for="wait-chord-window">
-            <span class="field-label">Chord window (ms)</span>
-            <input id="wait-chord-window" type="number" min="50" max="1000" step="25" value="200" disabled />
-            <span class="field-help">Wait only. Changing either setting pauses practice and resets Wait results.</span>
-          </label>
-          <p id="wait-chord-status" class="field-help" role="status">These controls apply to Wait Mode.</p>
+        <div class="popup-card practice-setup">
+          <fieldset class="menu-radio-group"><legend>Practice mode</legend>
+            <label><input type="radio" name="practice-mode" value="realtime" checked /><span><strong>Realtime</strong> — play along at the set tempo</span></label>
+            <label><input type="radio" name="practice-mode" value="wait" /><span><strong>Wait for Me</strong> — advance after correct notes</span></label>
+          </fieldset>
           <div class="form-grid form-grid--practice">
             <label class="field-group" for="practice-track-select">
               <span class="field-label">Track to practice</span>
@@ -136,16 +119,18 @@
                 <option value="">Load a score first</option>
               </select>
             </label>
-
-            <label class="field-group field-group--compact" for="view-mode-select">
-              <span class="field-label">Display mode</span>
-              <span class="field-help">Choose whether to focus on the practice track or keep all tracks visible.</span>
-              <select id="view-mode-select" disabled>
-                <option value="practice-only">Practice only</option>
-                <option value="all-tracks">All tracks</option>
-              </select>
-            </label>
           </div>
+
+          <fieldset class="menu-radio-group"><legend>Wait Mode Chords</legend>
+            <label><input type="radio" name="wait-chord-mode" value="collect" checked disabled /><span><strong>One at a time</strong> — collect correct notes, no time limit</span></label>
+            <label><input type="radio" name="wait-chord-mode" value="together" disabled /><span><strong>Together</strong> — complete the chord within the window</span></label>
+          </fieldset>
+          <label class="field-group" for="wait-chord-window">
+            <span class="field-label">Chord window (ms)</span>
+            <input id="wait-chord-window" type="number" min="50" max="1000" step="25" value="200" disabled />
+            <span class="field-help">Together only. Changes pause practice and clear Wait results.</span>
+          </label>
+          <p id="wait-chord-status" class="field-help" role="status">These controls apply to Wait Mode.</p>
 
           <label class="field-group" for="midi-latency-ms">
             <span class="field-label">MIDI input latency (ms)</span>
@@ -153,59 +138,24 @@
             <input id="midi-latency-ms" type="number" min="0" max="1000" step="5" value="0" />
           </label>
 
-          <div class="toggle-grid">
-            <label class="toggle-row" for="play-selected-track-toggle">
-              <input id="play-selected-track-toggle" type="checkbox" checked disabled />
-              <span class="toggle-row-text">
-                <span class="toggle-row-title">Play selected track</span>
-                <span class="toggle-row-help">Hear the track you are practicing during playback.</span>
-              </span>
-            </label>
 
-            <label class="toggle-row" for="play-other-tracks-toggle">
-              <input id="play-other-tracks-toggle" type="checkbox" checked disabled />
-              <span class="toggle-row-text">
-                <span class="toggle-row-title">Play other tracks</span>
-                <span class="toggle-row-help">Keep the rest of the arrangement audible while you practice.</span>
-              </span>
-            </label>
-          </div>
         </div>
 
         <div class="popup-card">
-          <div class="midi-panel-header">
-            <div>
-              <div class="status-label">Practice feedback</div>
-              <div class="midi-panel-title">Note attacks and results</div>
-            </div>
-            <div id="trainer-match-pill" class="status-pill">Idle</div>
+          <div class="popup-card-title">Visual Feedback</div>
+          <div class="feedback-group">
+            <label class="toggle-row" for="show-notation-feedback"><input id="show-notation-feedback" type="checkbox" checked /><span>Staff: Highlight correct / incorrect notes</span></label>
           </div>
-
-          <div class="status-grid status-grid--two">
-            <div>
-              <div class="status-label">Trainer status</div>
-              <div id="trainer-status" class="status-value">Load a score to begin</div>
-            </div>
-            <div>
-              <div class="status-label">Trainer summary</div>
-              <div id="trainer-summary" class="status-value">No trainer events yet</div>
-              <ul id="trainer-error-history" class="trainer-error-history" aria-label="Completed Wait target wrong-pitch history"></ul>
-            </div>
+          <div class="feedback-group feedback-group--tabs">
+            <label class="toggle-row" for="show-tab-circles"><input id="show-tab-circles" type="checkbox" checked /><span>Tabs: Highlight correct / incorrect notes</span></label>
+            <label class="toggle-row" for="show-tab-mistakes"><input id="show-tab-mistakes" type="checkbox" checked /><span>Tabs: Show incorrect fret numbers</span></label>
+            <label class="toggle-row" for="infer-poly-mistakes"><input id="infer-poly-mistakes" type="checkbox" /><span>Tabs: Infer incorrect frets for non-hex pickups</span></label>
+            <p class="help-text">Optional estimates for an unambiguous remaining note; not detected positions. Enable incorrect fret numbers to see them. Grading is unchanged.</p>
           </div>
-
-          <div class="info-stack">
-            <div>
-              <div class="status-label">Current expected event</div>
-              <div id="trainer-expected-notes" class="status-value">—</div>
-              <div id="trainer-expected-meta" class="track-meta">Load a score and choose a practice track.</div>
-            </div>
-            <div>
-              <div class="status-label">Detected MIDI notes</div>
-              <div id="trainer-detected-notes" class="status-value">—</div>
-              <div class="track-meta">Pitch-only for now. String and fret enforcement come later.</div>
-            </div>
-          </div>
+          <p id="tab-feedback-status" class="help-text" role="status"></p>
+          <details class="menu-future"><summary>Feedback colors and positions</summary><p class="practice-visual-legend">Blue: current target • Green: correct • Red: Hex string errors, optional inferred Poly errors, or Realtime missed. Clean chord tones stay green. Pitch grading accepts correct notes on any string. Notation shows actual wrong pitches with explicit accidentals. Tab preserves original frets; detected Hex wrong frets appear beside their strings.</p></details>
         </div>
+        <div class="menu-action-row"><button id="new-attempt-here" type="button" disabled aria-describedby="new-attempt-help">Clear practice results</button><span id="new-attempt-help" class="field-help">Keeps your current position. Play/Pause preserves results; Reset returns to the start.</span></div>
       </div>
     </section>
 
@@ -299,49 +249,54 @@
       <div class="more-popup-grid" role="group" aria-label="Additional controls">
         <button type="button" class="more-shortcut-button" data-launch-panel="tempo-popup">♪ Tempo</button>
         <button id="more-loop-shortcut" type="button" class="more-shortcut-button" data-launch-panel="looper-popup">🔁 Loop</button>
-        <button type="button" class="more-shortcut-button" data-launch-panel="audio-popup">🎚 Audio / Routing</button>
+        <button type="button" class="more-shortcut-button" data-launch-panel="audio-popup">🎚 Audio</button>
         <button type="button" class="more-shortcut-button" data-launch-panel="display-popup">🖥 Display</button>
-        <button type="button" class="more-shortcut-button" data-launch-panel="transpose-popup">↕ Transpose</button>
+        <button type="button" class="more-shortcut-button" data-launch-panel="transpose-popup">↕ Pitch &amp; Transpose <span class="menu-status">Not implemented yet</span></button>
+        <button type="button" class="more-shortcut-button" data-launch-panel="media-popup">▶ Media &amp; Sync <span class="menu-status">Not implemented yet</span></button>
         <button type="button" class="more-shortcut-button" data-launch-panel="help-popup">ℹ Help &amp; Guide</button>
       </div>
     </section>
 
-    <section id="audio-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
-      <div class="panel-header compact-header">
-        <div>
-          <div class="panel-kicker">Audio / Routing</div>
-          <h2>Audio routing placeholder</h2>
-        </div>
-      </div>
-      <div class="popup-card placeholder-card">
-        <p class="placeholder">Audio and routing controls can live here later. This is the same future destination used by the More menu.</p>
-      </div>
-    </section>
+    <section id="audio-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content"><h2>Audio</h2><h3>Score playback</h3>          <div class="toggle-grid">
+            <label class="toggle-row" for="play-selected-track-toggle">
+              <input id="play-selected-track-toggle" type="checkbox" checked disabled />
+              <span class="toggle-row-text">
+                <span class="toggle-row-title">Play selected track</span>
+                <span class="toggle-row-help">Hear the track you are practicing during playback.</span>
+              </span>
+            </label>
+
+            <label class="toggle-row" for="play-other-tracks-toggle">
+              <input id="play-other-tracks-toggle" type="checkbox" checked disabled />
+              <span class="toggle-row-text">
+                <span class="toggle-row-title">Play other tracks</span>
+                <span class="toggle-row-help">Keep the rest of the arrangement audible while you practice.</span>
+              </span>
+            </label>
+          </div><p class="field-help">Realtime playback choices. Score accompaniment stays paused in Wait mode.</p><hr /><fieldset disabled><legend>Playback volume — Not implemented yet</legend><label class="menu-option">Volume <input type="range" min="0" max="100" value="100" aria-label="Future playback volume" /></label></fieldset><details class="menu-future"><summary>Track mixer &amp; output — Not implemented yet</summary><p>Future controls: per-track sound, volume and mute/solo; supported output device and channel routing.</p></details></div></section>
 
     <section id="display-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
       <div class="panel-header compact-header">
         <div>
           <div class="panel-kicker">Display</div>
-          <h2>Practice display</h2>
+          <h2>Display</h2>
         </div>
       </div>
-      <div class="popup-panel-grid popup-panel-grid--two">
+      <div class="popup-panel-grid ">
         <div class="popup-card">
-          <div class="popup-card-title">Visual Feedback</div>
-          <div class="feedback-group">
-            <label class="toggle-row" for="show-notation-feedback"><input id="show-notation-feedback" type="checkbox" checked /><span>Staff: Highlight correct / incorrect notes</span></label>
-            <p class="help-text">Includes current-target guidance, correct / incorrect highlights, and live / historical wrong-pitch noteheads.</p>
+          <div class="menu-row">
+            <label for="score-zoom">Zoom (%)</label>
+            <input id="score-zoom" type="range" min="50" max="200" step="5" value="100" />
+            <div class="menu-number"><input id="score-zoom-number" aria-label="Zoom percent" type="number" min="50" max="200" step="5" value="100" /><div class="menu-steppers"><button id="score-zoom-down" type="button" aria-label="Zoom out">−</button><button id="score-zoom-up" type="button" aria-label="Zoom in">+</button></div></div>
           </div>
-          <div class="feedback-group feedback-group--tabs">
-            <label class="toggle-row" for="show-tab-circles"><input id="show-tab-circles" type="checkbox" checked /><span>Tabs: Highlight correct / incorrect notes</span></label>
-            <label class="toggle-row" for="show-tab-mistakes"><input id="show-tab-mistakes" type="checkbox" checked /><span>Tabs: Show incorrect fret numbers</span></label>
-            <label class="toggle-row" for="infer-poly-mistakes"><input id="infer-poly-mistakes" type="checkbox" /><span>Tabs: Infer incorrect frets for non-hex pickups</span></label>
-            <p class="help-text">For non-hex input, infer the fret on the expected string when exactly one note remained at the mistake. Works with single notes and unambiguous chords. These numbers are estimates, not detected positions; ambiguous mistakes stay unassigned. Enable incorrect fret numbers to see them. Grading is unchanged.</p>
-          </div>
-          <p id="tab-feedback-status" class="help-text" role="status"></p>
-          <p class="practice-visual-legend">Blue: current target • Green: correct • Red: Hex string errors, optional inferred Poly errors, or Realtime missed. Clean chord tones stay green. Pitch grading accepts correct notes on any string. Notation shows actual wrong pitches with explicit accidentals. Tab preserves original frets; detected Hex wrong frets appear beside their strings.</p>
+          <label class="toggle-row"><input id="score-auto-scroll" type="checkbox" checked /><span>Auto scroll</span></label>
+          <label class="toggle-row"><input id="fullscreen-on-play" type="checkbox" /><span>Full screen on Play</span></label>
         </div>
         <div class="popup-card">
+          <fieldset class="menu-radio-group"><legend>Display mode</legend>
+            <label><input id="view-practice-only" type="radio" name="view-mode" value="practice-only" checked disabled /><span>Practice only</span></label>
+            <label><input id="view-all-tracks" type="radio" name="view-mode" value="all-tracks" disabled /><span>All tracks</span></label>
+          </fieldset>
           <div class="popup-card-title">Virtual fretboard</div>
           <label class="toggle-row" for="show-fretboard"><input id="show-fretboard" type="checkbox" /><span>Show virtual fretboard</span></label>
           <label class="toggle-row" for="left-handed-fretboard"><input id="left-handed-fretboard" type="checkbox" /><span>Left-handed orientation</span></label>
@@ -350,35 +305,17 @@
       </div>
     </section>
 
-    <section id="transpose-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
-      <div class="panel-header compact-header">
-        <div>
-          <div class="panel-kicker">Transpose</div>
-          <h2>Transpose placeholder</h2>
-        </div>
-      </div>
-      <div class="popup-card placeholder-card">
-        <p class="placeholder">Transpose controls can be added here later once the Guitar Trainer workflow is ready for them.</p>
-      </div>
-    </section>
+    <section id="transpose-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content"><h2>Pitch &amp; Transpose</h2><fieldset disabled><legend>Playback pitch offset — Not implemented yet</legend><label class="menu-setting">Semitones <input type="number" min="-12" max="12" value="0" /></label></fieldset><p class="field-help">A playback-only offset shifts synthesized sound; it does not change written music or expected MIDI pitches. Capo/down-tuning practice needs coordinated expected-pitch handling.</p><hr /><fieldset disabled><legend>Transpose score — Not implemented yet</legend><label class="menu-setting">Transpose by <select><option>Semitones</option><option>Target key</option></select></label></fieldset><p class="field-help">Future transposition must keep notation, key signatures, tab positions and practice targets consistent.</p></div></section>
 
-    <section id="help-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
-      <div class="panel-header compact-header">
-        <div>
-          <div class="panel-kicker">Help &amp; Guide</div>
-          <h2>Help placeholder</h2>
-        </div>
-      </div>
-      <div class="popup-card placeholder-card">
-        <p class="placeholder">Quick-start guidance, supported formats, and setup help can live here later.</p>
-      </div>
-    </section>
+    <section id="help-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content"><h2>Help &amp; Guide</h2><ol class="menu-help-list"><li>Open a Guitar Pro or MusicXML score from Scores.</li><li>Select your Fishman or other MIDI input in Settings. Choose Poly/single-channel or your configured six-channel Hex layout.</li><li>In Practice, choose a track and Realtime or Wait. Both currently grade pitch.</li><li>Use Tempo and Loop to work on a section. Play starts with a count-in; Pause preserves results.</li></ol><p>Visual feedback is in Practice; track visibility and the optional six-string fretboard are in Display. Audio controls selected/backing-track playback.</p><p class="field-help">Poly fret estimates are optional guidance, not detected positions. Left-handed fretboard orientation does not reverse MIDI channel mapping.</p><a href="./README.md" target="_blank" rel="noopener">Project setup and current limitations</a></div></section>
+
+    <section id="media-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content"><h2>Media &amp; Sync</h2><p class="menu-status">Not implemented yet</p><p>Future support for syncing scores with local audio/video and supported online media.</p><details class="menu-future"><summary>Planned media and sync controls</summary><ul><li>Select media and align score/media sync points.</li><li>Save sync profiles for each score and media source.</li><li>Export/import sync settings and include profiles in library backups.</li></ul><p class="field-help">Sync settings are separate from media files. Local files may need to be selected again.</p></details></div></section>
 
     <section id="options-overlay" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
       <div class="panel-header compact-header">
         <div>
           <div class="panel-kicker">Settings</div>
-          <h2>MIDI and debug</h2>
+          <h2>Settings</h2>
         </div>
       </div>
 
@@ -387,7 +324,7 @@
           <div class="midi-panel-header">
             <div>
               <div class="status-label">MIDI input</div>
-              <div class="midi-panel-title">Debug foundation</div>
+              <div class="midi-panel-title">Device and channels</div>
             </div>
             <div id="midi-status-pill" class="status-pill">Waiting for MIDI…</div>
           </div>
@@ -401,14 +338,10 @@
               </select>
             </label>
 
-            <label class="field-group field-group--compact" for="midi-input-mode-select">
-              <span class="field-label">Input source</span>
-              <span class="field-help">Use a single MIDI channel or a consecutive per-string hexaphonic layout.</span>
-              <select id="midi-input-mode-select">
-                <option value="single-channel">Single channel</option>
-                <option value="hex-6ch">Hexaphonic (6 ch)</option>
-              </select>
-            </label>
+            <fieldset class="menu-radio-group"><legend>Input source</legend>
+              <label><input type="radio" name="midi-input-mode" value="single-channel" checked /><span>Single channel</span></label>
+              <label><input type="radio" name="midi-input-mode" value="hex-6ch" /><span>Hexaphonic (6 channels)</span></label>
+            </fieldset>
           </div>
 
           <div id="midi-single-channel-section" class="midi-mode-section">
@@ -441,7 +374,8 @@
                 <option value="11">11</option>
               </select>
             </label>
-            <p class="help-text">Works with guitar, bass, and other hex-style instruments as long as each string uses consecutive MIDI channels.</p>
+            <label class="toggle-row"><input id="hex-channel-reverse" type="checkbox" /><span>Reverse channel order — count downward from base</span></label>
+            <p id="hex-channel-order-help" class="help-text">Six-string mapping: lowest string uses the base channel.</p>
           </div>
 
           <div class="status-grid status-grid--two">
@@ -456,8 +390,7 @@
           </div>
         </div>
 
-        <div class="popup-card">
-          <div class="popup-card-title">Debug</div>
+        <details class="popup-card menu-debug"><summary>MIDI &amp; practice diagnostics</summary>
 
           <label class="toggle-row toggle-row--midi-debug" for="midi-debug-toggle">
             <input id="midi-debug-toggle" type="checkbox" />
@@ -466,6 +399,41 @@
               <span class="toggle-row-help">Display the latest MIDI event details for troubleshooting.</span>
             </span>
           </label>
+
+        <div class="popup-card">
+          <div class="midi-panel-header">
+            <div>
+              <div class="status-label">Practice feedback</div>
+              <div class="midi-panel-title">Note attacks and results</div>
+            </div>
+            <div id="trainer-match-pill" class="status-pill">Idle</div>
+          </div>
+
+          <div class="status-grid status-grid--two">
+            <div>
+              <div class="status-label">Trainer status</div>
+              <div id="trainer-status" class="status-value">Load a score to begin</div>
+            </div>
+            <div>
+              <div class="status-label">Trainer summary</div>
+              <div id="trainer-summary" class="status-value">No trainer events yet</div>
+              <ul id="trainer-error-history" class="trainer-error-history" aria-label="Completed Wait target wrong-pitch history"></ul>
+            </div>
+          </div>
+
+          <div class="info-stack">
+            <div>
+              <div class="status-label">Current expected event</div>
+              <div id="trainer-expected-notes" class="status-value">—</div>
+              <div id="trainer-expected-meta" class="track-meta">Load a score and choose a practice track.</div>
+            </div>
+            <div>
+              <div class="status-label">Detected MIDI notes</div>
+              <div id="trainer-detected-notes" class="status-value">—</div>
+              <div class="track-meta">Pitch-only for now. String and fret enforcement come later.</div>
+            </div>
+          </div>
+        </div>
 
           <div id="midi-debug-details" class="midi-debug-details is-hidden">
             <div class="midi-debug-card">
@@ -508,7 +476,7 @@
               <li class="midi-placeholder">Play a note to see recent MIDI events.</li>
             </ul>
           </div>
-        </div>
+        </details>
       </div>
     </section>
 

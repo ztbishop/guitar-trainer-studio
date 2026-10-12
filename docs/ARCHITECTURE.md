@@ -1,5 +1,13 @@
 # Guitar Trainer Studio Architecture
 
+## Menu follow-up boundaries — 2026-10-11
+
+Display mode and MIDI input source are native radio groups. Host UI synchronization enables/selects display radios; bootstrap dispatches the same existing display/input intents. Toolbar touch enlargement depends on the primary pointer rather than any available pointer, avoiding oversized buttons on desktop touchscreen systems. Popup touch controls and collapse thresholds remain unchanged.
+
+`display-controls.js` owns zoom/scroll/fullscreen form state. `alphatab-host.js` applies native scale and scroll mode, rerendering only for scale changes. Bootstrap requests fullscreen on a ready player's start/resume gesture, then follows existing transport handling. Preferences stay in AppState for the page session.
+
+Practice and Wait chord modes are named native radio groups; chord-controls.js gates chord inputs while WaitSession owns matching. Reverse Hex (`midi.hexChannelReverse`) is input normalization, independent of mirroring: lowest string uses base and subsequent strings use base−1 through base−5. Valid bases are 6–16 reversed or 1–11 forward. Router filtering and normalized hints share channelToStringHint; pitch grading is unchanged.
+
 ## Loop/count-in contract — 2026-10-11
 
 - loop-controls.js owns the persistent enabled highlight on Loop and its More shortcut, plus a More marker when the toolbar collapses. Bootstrap routes native drag selections through transport-controls to selectByDrag. Only an off-to-on drag shows the nonblocking, polite status notice for three seconds; subsequent enabled drags stay silent. Disabling/loading or further range edits clear stale notices. Presentation uses menu-controls.css and does not change native selection, transport or grading.
@@ -149,6 +157,14 @@ The app should preserve native alphaTab features wherever possible and layer cus
 - realtime / wait-for-me mode behavior
 - fretboard rendering and overlays
 - saved preferences and app-specific UI
+
+## Menu organization — 2026-10-11
+
+index.html composes existing controls without changing their IDs or business logic. Practice contains mode/track/timing and visual-feedback switches; Display contains visible-track scope and existing custom six-string fretboard controls; Audio contains selected/backing playback switches. Settings hosts a closed native details disclosure for MIDI/practice diagnostics and full retained history. Clear practice results is the renamed existing attempt action, preserving position and playing/paused state. Help supplies basic setup guidance.
+
+menu-controls.css remains the shared touch-friendly menu design owner, including compact remaining-menu composition and Piano-style toolbar appearance. toolbar-ui.js uses 1060/960/620px collapse/condense/stack boundaries and publishes measured toolbar height for popup positioning. All alphaTab integration remains in alphatab-host.js.
+
+Library, mixer/output, pitch/transposition and Media & Sync are disabled/explicit future destinations. Planned persistence separates IndexedDB score bytes/folders from small localStorage preferences, with portable backups; sync profiles belong to score/media identities and do not implicitly store media. Generalizing the custom fretboard to score-defined string counts is separate from extending six-channel positional input mapping. Playback-only transpose does not update trainer expectations or written score; full transpose/practice offsets require separate coordinated design. No Follow/virtual piano implementation is planned in this menu pass.
 
 ## Module responsibilities
 

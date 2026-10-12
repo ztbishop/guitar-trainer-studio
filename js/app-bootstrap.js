@@ -30,6 +30,8 @@ import { initToolbar } from './toolbar-ui.js';
 import { initTransportControls } from './transport-controls.js';
 import { initChordControls } from './chord-controls.js';
 import { initAttemptControls } from './attempt-controls.js';
+import { initDisplayControls } from './display-controls.js';
+import { applyScoreDisplay } from './alphatab-host.js';
 
 let transportControls=null;
 let chordControls=null;
@@ -111,6 +113,7 @@ function syncTrainerFoundation() {
 
 
 function wireScoreStageUi() {
+  initDisplayControls(applyScoreDisplay);
   const fullscreenButton = document.getElementById('btn-score-fullscreen');
   const scoreStage = document.querySelector('.score-stage.viewer-panel');
   const fretboardContainer = document.getElementById('fretboard-container');
@@ -183,6 +186,10 @@ function wireFilePicker() {
 
 function wireTransportButtons() {
   document.getElementById('play-pause-button')?.addEventListener('click', () => {
+    const starting=AppState.mode==='wait' ? !waitController.active || waitController.phase==='paused' : !AppState.isPlaying && !AppState.countInActive;
+    if(starting && AppState.playerReady && AppState.ui.fullscreenOnPlay && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(error=>console.error('Could not enter fullscreen.',error));
+    }
     if(AppState.mode==='wait')waitController.toggle(AppState.tickPosition);
     else play();
   });
@@ -208,7 +215,7 @@ function wirePracticeControls() {
     clearActiveMidiNotes();configureWaitSession();renderTrainerUi();
   });
   chordControls.sync();
-  document.getElementById('practice-mode-select')?.addEventListener('change', event => {
+  for(const mode of document.querySelectorAll('input[name="practice-mode"]'))mode.addEventListener('change', event => {
     waitController.stop();pauseWaitTransport();
     AppState.mode=event.target.value==='wait'?'wait':'realtime';
     clearActiveMidiNotes();resetRealtimeSession('mode-change');
@@ -225,7 +232,7 @@ function wirePracticeControls() {
   const practiceTrackSelect = document.getElementById('practice-track-select');
   const playSelectedTrackToggle = document.getElementById('play-selected-track-toggle');
   const playOtherTracksToggle = document.getElementById('play-other-tracks-toggle');
-  const viewModeSelect = document.getElementById('view-mode-select');
+  const viewModes = [...document.querySelectorAll('input[name="view-mode"]')];
 
   function applyFromUi() {
     const previousTrack = AppState.practiceTrackId;
@@ -233,7 +240,7 @@ function wirePracticeControls() {
       practiceTrackId: practiceTrackSelect?.value || AppState.practiceTrackId,
       playSelectedTrack: Boolean(playSelectedTrackToggle?.checked),
       playOtherTracks: Boolean(playOtherTracksToggle?.checked),
-      viewMode: viewModeSelect?.value || AppState.viewMode,
+      viewMode: viewModes.find(mode=>mode.checked)?.value || AppState.viewMode,
     });
     if (previousTrack !== AppState.practiceTrackId) syncTrainerFoundation();
     else renderTrainerUi();
@@ -242,10 +249,10 @@ function wirePracticeControls() {
   practiceTrackSelect?.addEventListener('change', applyFromUi);
   playSelectedTrackToggle?.addEventListener('change', applyFromUi);
   playOtherTracksToggle?.addEventListener('change', applyFromUi);
-  viewModeSelect?.addEventListener('change', applyFromUi);
+  for(const mode of viewModes)mode.addEventListener('change', applyFromUi);
 }
 
-function populateMidiChannelOptions(selectElement, { includeAny = false, max = 16 } = {}) {
+function populateMidiChannelOptions(selectElement, { includeAny = false, min = 1, max = 16 } = {}) {
   if (!selectElement) return;
   selectElement.innerHTML = '';
 
@@ -256,7 +263,7 @@ function populateMidiChannelOptions(selectElement, { includeAny = false, max = 1
     selectElement.appendChild(anyOption);
   }
 
-  for (let channel = 1; channel <= max; channel += 1) {
+  for (let channel = min; channel <= max; channel += 1) {
     const option = document.createElement('option');
     option.value = String(channel);
     option.textContent = String(channel);
@@ -269,7 +276,7 @@ function renderMidiUi() {
   const statusEl = document.getElementById('midi-status');
   const statusPillEl = document.getElementById('midi-status-pill');
   const inputSelect = document.getElementById('midi-input-select');
-  const modeSelect = document.getElementById('midi-input-mode-select');
+  const inputModes = document.querySelectorAll('input[name="midi-input-mode"]');
   const singleSection = document.getElementById('midi-single-channel-section');
   const singleChannelSelect = document.getElementById('midi-single-channel-select');
   const hexSection = document.getElementById('midi-hex-channel-section');
@@ -301,9 +308,9 @@ function renderMidiUi() {
   if (debugDetailsEl) {
     debugDetailsEl.classList.toggle('is-hidden', !AppState.ui.showMidiDebug);
   }
-  if (modeSelect) {
-    modeSelect.value = AppState.inputMode;
-    modeSelect.disabled = !AppState.midi.supported;
+  for(const mode of inputModes) {
+    mode.checked = mode.value === AppState.inputMode;
+    mode.disabled = !AppState.midi.supported;
   }
   if (singleSection) {
     singleSection.classList.toggle('is-hidden', AppState.inputMode !== 'single-channel');
@@ -317,9 +324,15 @@ function renderMidiUi() {
     singleChannelSelect.disabled = !AppState.midi.supported || AppState.inputMode !== 'single-channel';
   }
   if (baseSelect) {
+    const reverse=AppState.midi.hexChannelReverse;
+    populateMidiChannelOptions(baseSelect,{min:reverse?6:1,max:reverse?16:11});
     baseSelect.value = String(AppState.midi.hexChannelBase ?? 1);
     baseSelect.disabled = !AppState.midi.supported || AppState.inputMode !== 'hex-6ch';
   }
+  const reverseControl=document.getElementById('hex-channel-reverse');
+  if(reverseControl){reverseControl.checked=AppState.midi.hexChannelReverse;reverseControl.disabled=!AppState.midi.supported || AppState.inputMode!=='hex-6ch';}
+  const orderHelp=document.getElementById('hex-channel-order-help');
+  if(orderHelp){const base=AppState.midi.hexChannelBase;orderHelp.textContent=`Six-string mapping, lowest to highest: ${Array.from({length:6},(_,i)=>base+(AppState.midi.hexChannelReverse?-i:i)).join(', ')}. Base choices keep all six channels within 1–16.`;}
   if (inputSelect) {
     inputSelect.innerHTML = '';
     if (!AppState.midi.availableInputs.length) {
@@ -517,7 +530,7 @@ function wireMidiControls() {
     renderTrainerUi();
   });
 
-  document.getElementById('midi-input-mode-select')?.addEventListener('change', (event) => {
+  for(const mode of document.querySelectorAll('input[name="midi-input-mode"]'))mode.addEventListener('change', (event) => {
     AppState.inputMode = event.target.value;
     clearActiveMidiNotes();
     resetRealtimeSession('input-settings-change');
@@ -548,6 +561,14 @@ function wireMidiControls() {
     refreshTrainerMatchState(AppState.tickPosition);
     renderMidiUi();
     renderTrainerUi();
+  });
+
+  document.getElementById('hex-channel-reverse')?.addEventListener('change', event=>{
+    AppState.midi.hexChannelReverse=Boolean(event.target.checked);
+    const reverse=AppState.midi.hexChannelReverse;
+    AppState.midi.hexChannelBase=Math.max(reverse?6:1,Math.min(reverse?16:11,AppState.midi.hexChannelBase));
+    clearActiveMidiNotes();resetRealtimeSession('input-settings-change');configureWaitSession();
+    refreshTrainerMatchState(AppState.tickPosition);renderMidiUi();renderTrainerUi();
   });
 
   document.getElementById('midi-debug-toggle')?.addEventListener('change', (event) => {

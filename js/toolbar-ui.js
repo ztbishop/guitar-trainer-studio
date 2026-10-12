@@ -12,10 +12,10 @@ const PANEL_BY_BUTTON = {
 };
 
 const TOOLBAR_BREAKPOINTS = {
-  compact: 1100,
-  collapseToMore: 1035,
-  condensed: 945,
-  stacked: 680,
+  compact: 1060,
+  collapseToMore: 1060,
+  condensed: 960,
+  stacked: 620,
 };
 
 function setPopupState(element, isOpen) {
@@ -32,6 +32,7 @@ function applyToolbarResponsiveState(toolbar) {
   toolbar.classList.toggle('is-collapse-to-more', width <= TOOLBAR_BREAKPOINTS.collapseToMore);
   toolbar.classList.toggle('is-condensed', width <= TOOLBAR_BREAKPOINTS.condensed);
   toolbar.classList.toggle('is-stacked', width <= TOOLBAR_BREAKPOINTS.stacked);
+  document.documentElement?.style?.setProperty('--toolbar-height', `${toolbar.getBoundingClientRect().height}px`);
 }
 
 export function initToolbar({ onIntent } = {}) {

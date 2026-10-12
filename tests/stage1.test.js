@@ -7,7 +7,7 @@ import { buildExpectedEventsFromPracticeTrack, updateActiveTargetsFromPlayback, 
 import { normalizeMidiMessage, initMidiRouter, clearActiveMidiNotes, setActiveMidiInput } from '../js/midi-router.js';
 import { channelToStringHint, formatStringHint } from '../js/note-utils.js';
 import { initToolbar } from '../js/toolbar-ui.js';
-import { initAlphaTab, updateAlphaTabSettings, loadScoreFile, play, stop, acquireWaitTransport, holdWaitAtTick, playWaitSegment, releaseWaitTransport, setPlaybackSpeed, applyPracticeLoop, setNotationFeedback } from '../js/alphatab-host.js';
+import { initAlphaTab, updateAlphaTabSettings, applyScoreDisplay, loadScoreFile, play, stop, acquireWaitTransport, holdWaitAtTick, playWaitSegment, releaseWaitTransport, setPlaybackSpeed, applyPracticeLoop, setNotationFeedback } from '../js/alphatab-host.js';
 
 function targets() {
   AppState.inputMode = 'single-channel';
@@ -78,6 +78,17 @@ test('hex channel order agrees with displayed string labels', () => {
   assert.equal(channelToStringHint(7), null);
   assert.equal(normalizeMidiMessage({data:[0x93,60,100]}, {inputMode:'hex-6ch', hexChannelBase:4}).stringHint,6);
 });
+
+test('reversed Hex counts downward from the lowest-string base, with valid six-channel bounds',()=>{
+  for(const base of [6,10,16])for(let offset=0;offset<6;offset++) {
+    const channel=base-offset;
+    assert.equal(channelToStringHint(channel,base,true),6-offset);
+    for(const status of [0x90,0x80])assert.equal(normalizeMidiMessage({data:[status+channel-1,60,100]},
+      {inputMode:'hex-6ch',hexChannelBase:base,hexChannelReverse:true}).stringHint,6-offset);
+  }
+  for(const [channel,base,reverse] of [[1,1,true],[16,12,false],[0,6,true],[17,16,true],[7,6,true],[1.5,6,true]])
+    assert.equal(channelToStringHint(channel,base,reverse),null);
+});
 class Element {
   constructor(id) {
     this.id=id; this.dataset={}; this.listeners={}; this.attrs={}; this.classes=new Set(['hidden']);
@@ -110,6 +121,12 @@ test('router clears on filter/device changes, releases filtered notes, and prese
   assert.equal(AppState.midi.activeNotesByChannel.size,0);
   first.send([0x90,60,100]); setActiveMidiInput('second');
   assert.equal(AppState.midi.activeNotes.size,0); assert.equal(first.listeners.midimessage,undefined);
+  AppState.inputMode='hex-6ch';AppState.midi.hexChannelBase=10;AppState.midi.hexChannelReverse=true;
+  second.send([0x99,62,100]);assert.equal(AppState.midi.lastEvent.stringHint,6);
+  second.send([0x94,64,100]);assert.equal(AppState.midi.lastEvent.stringHint,1);
+  second.send([0x93,65,100]);second.send([0x9a,66,100]);assert.equal(AppState.midi.activeNotes.size,2);
+  second.send([0x89,62,0]);second.send([0x84,64,0]);assert.equal(AppState.midi.activeNotes.size,0);
+  AppState.inputMode='single-channel';AppState.midi.hexChannelBase=1;AppState.midi.hexChannelReverse=false;
   second.send([0x90,62,100]); access.inputs.clear(); access.onstatechange();
   assert.equal(AppState.midi.activeNotes.size,0); assert.equal(second.listeners.midimessage,undefined);
 });
@@ -162,9 +179,17 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   assert.equal(elements.get('toolbar-score-value').textContent,'—');
   const originalSoundFont=api.settings.player.soundFont;
   assert.equal(updateAlphaTabSettings({display:{scale:1.25}}),true);
+  assert.deepEqual(api.calls,['update','render']);
+  AppState.ui.zoomPercent=150;AppState.ui.autoScroll=false;
+  applyScoreDisplay();assert.equal(api.settings.display.scale,1.5);assert.equal(api.settings.player.scrollMode,context.alphaTab.ScrollMode.Off);
+  const renderCount=api.calls.filter(call=>call==='render').length;
+  AppState.ui.autoScroll=true;applyScoreDisplay();
+  assert.equal(api.settings.player.scrollMode,context.alphaTab.ScrollMode.Continuous);
+  assert.equal(api.calls.filter(call=>call==='render').length,renderCount);
+  AppState.ui.zoomPercent=125;
+  applyScoreDisplay();
   assert.equal(api.settings.display.scale,1.25);
   assert.equal(api.settings.player.soundFont,originalSoundFont);
-  assert.deepEqual(api.calls,['update','render']);
   globalThis.FileReader=class {readAsArrayBuffer(){this.result=new Uint8Array([1,2,3]).buffer; this.onload();}};
   assert.equal(await loadScoreFile({name:'sample.gp'}),true);
   assert.equal(timelineChanges.at(-1),null);

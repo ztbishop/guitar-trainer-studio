@@ -81,13 +81,14 @@ test('chord settings validate modes and supported real-millisecond limits',()=>{
 test('chord controls are Wait-only, validate input and enable the window only for Together',()=>{
  const previous=globalThis.document,elements=new Map();
  const get=id=>{if(!elements.has(id))elements.set(id,{value:'',handlers:{},addEventListener(name,fn){this.handlers[name]=fn}});return elements.get(id)};
- globalThis.document={getElementById:get,activeElement:null};
+ const modes=[get('collect'),get('together')];modes.forEach(mode=>mode.value=mode===modes[0]?'collect':'together');
+ globalThis.document={getElementById:get,querySelectorAll:()=>modes,activeElement:null};
  try {
   AppState.mode='realtime';AppState.waitChord={mode:'collect',windowMs:200};const changes=[];
   const controls=initChordControls(settings=>{changes.push(settings);AppState.waitChord=settings});controls.sync();
-  const mode=get('wait-chord-mode'),input=get('wait-chord-window');assert.equal(mode.disabled,true);
+  const mode=modes[1],input=get('wait-chord-window');assert.equal(mode.disabled,true);assert.equal(modes[0].checked,true);
   AppState.mode='wait';controls.sync();assert.equal(mode.disabled,false);assert.equal(input.disabled,true);
-  mode.value='together';mode.handlers.change();assert.equal(input.disabled,false);assert.equal(changes.length,1);
+  modes[0].checked=false;mode.checked=true;mode.handlers.change();assert.equal(input.disabled,false);assert.equal(changes.length,1);
   input.value='0';input.handlers.change();assert.equal(changes.length,1);assert.equal(input.value,'200');
   input.value='350';input.handlers.change();assert.equal(AppState.waitChord.windowMs,350);assert.match(get('wait-chord-status').textContent,/350 ms/);
  } finally {globalThis.document=previous;}

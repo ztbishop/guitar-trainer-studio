@@ -176,3 +176,81 @@
   .tempo-metronome-row { grid-template-columns: minmax(0, 1fr) var(--menu-number-group); }
   .tempo-metronome-row > label { grid-column: 1 / -1; }
 }
+
+/* Piano-style toolbar and remaining menu compositions. */
+.app-toolbar { padding: 10px 20px; gap: 20px; }
+.app-toolbar button { min-height: 36px; padding: 7px 13px; font-size: 14px; border-radius: 8px; box-shadow: inset 0 1px 0 rgba(255,255,255,.35); }
+.app-toolbar.is-compact { padding: 10px; gap: 12px; }
+.app-toolbar.is-compact button { padding: 7px 12px; }
+.toolbar-popup { top: calc(var(--toolbar-height, 58px) + 12px) !important; max-height: calc(100dvh - var(--toolbar-height, 58px) - 28px) !important; border-radius: 16px !important; background: #f5f7f9 !important; }
+.toolbar-popup .panel-kicker { display: none; }
+.toolbar-popup .compact-header h2 { font-size: 1.15rem; font-weight: 500; }
+.toolbar-popup .popup-card { align-content: start; border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 0; }
+.toolbar-popup .popup-card + .popup-card { border-top: 1px solid var(--section-rule); padding-top: 16px; }
+.toolbar-popup .popup-card-title, .toolbar-popup .midi-panel-title { font-size: 1rem; }
+.toolbar-popup .field-label, .toolbar-popup .status-label { font-size: .78rem; }
+.toolbar-popup .field-help, .toolbar-popup .help-text, .toolbar-popup .track-meta, .toolbar-popup .practice-visual-legend { font-size: .82rem; line-height: 1.45; }
+.toolbar-popup .toggle-row { min-height: 44px; padding: 6px 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.toolbar-popup .toggle-row:hover, .toolbar-popup .toggle-row:active { transform: none; box-shadow: none; background: transparent; }
+.toolbar-popup select, .toolbar-popup input[type='number'] { border-radius: 7px; box-shadow: none; padding-top: 6px; padding-bottom: 6px; }
+#practice-popup, #display-popup, #options-overlay { width: min(780px, calc(100vw - 32px)); }
+#scores-panel { width: min(900px, calc(100vw - 32px)); }
+#scores-panel .popup-panel-grid--two { grid-template-columns: minmax(0, 1fr); }
+#scores-panel .file-picker { display: block; }
+#scores-panel .button-like { min-height: 44px; padding: 8px 16px; border-radius: 7px; }
+#scores-panel .status-stack { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#practice-popup .form-grid--practice { grid-template-columns: minmax(0, 1fr); }
+#display-popup .toggle-row { align-self: start; }
+#display-popup .field-group--compact { max-width: none; justify-self: stretch; }
+#more-popup { width: min(520px, calc(100vw - 32px)); }
+#more-popup .panel-header--more { padding-bottom: 12px; }
+#more-popup .more-popup-grid { padding: 0 var(--menu-padding) var(--menu-padding); gap: 10px; }
+#more-popup .more-shortcut-button { min-height: 44px; padding: 8px 14px; border: 1px solid var(--menu-input-border); border-radius: 7px; box-shadow: none; display: flex; align-items: center; gap: 10px; }
+#media-popup, #audio-popup, #transpose-popup, #help-popup { width: min(740px, calc(100vw - 32px)); }
+.menu-content h3 { font-size: 1rem; margin: 0 0 12px; }
+.menu-content p { line-height: 1.5; }
+.menu-content fieldset { min-width: 0; padding: 12px; border: 1px solid var(--menu-input-border); border-radius: 7px; }
+.menu-content fieldset:disabled { opacity: .55; }
+.menu-content legend { font-size: .85rem; font-weight: 600; }
+.menu-setting { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.menu-setting input { width: 90px; }
+.menu-status { font-size: .75rem; color: var(--muted); font-weight: 400; }
+.more-shortcut-button .menu-status { margin-left: auto; text-align: right; }
+.menu-future, .menu-track-details { margin: 12px 0; }
+.toolbar-popup summary { min-height: 44px; padding: 10px 0; cursor: pointer; font-weight: 600; }
+.menu-debug:not([open]) { display: block; }
+.menu-debug > .popup-card { margin: 12px 0; }
+.menu-library-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.menu-action-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--section-rule); padding-top: 12px; }
+.menu-action-row button { min-height: 44px; padding: 6px 10px; font-size: .85rem; border-radius: 7px; box-shadow: none; }
+.menu-action-row .field-help { flex: 1 1 220px; }
+.menu-help-list { padding-left: 22px; line-height: 1.6; }
+.practice-setup { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.practice-setup > .form-grid { margin: 0; }
+.practice-setup > #wait-chord-status { grid-column: 1 / -1; margin: 0; }
+.practice-setup > label[for='midi-latency-ms'] { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 90px; align-items: center; }
+.practice-setup > label[for='midi-latency-ms'] .field-help { grid-column: 1; grid-row: 2; }
+.practice-setup > label[for='midi-latency-ms'] input { grid-column: 2; grid-row: 1 / 3; width: 90px; }
+@media (min-width: 961px) { .toolbar-score-group { display: flex; } .toolbar-separator--score { display: block; } }
+@media (max-width: 1000px) { .app-toolbar:not(.is-stacked) { padding-left: 6px; padding-right: 6px; gap: 8px; } .app-toolbar:not(.is-stacked) button { padding-left: 10px; padding-right: 10px; } }
+@media (max-width: 620px) {
+  .app-toolbar.is-stacked { grid-template-columns: 1fr 1fr; grid-template-areas: 'left right' 'center center'; gap: 8px; padding: 8px 10px; }
+  .app-toolbar.is-stacked .toolbar-left { width: auto; justify-content: flex-start; }
+  .app-toolbar.is-stacked .toolbar-right { width: auto; justify-content: flex-end; }
+  .app-toolbar.is-stacked .toolbar-center { width: 100%; justify-content: center; }
+  #scores-panel .status-stack { grid-template-columns: minmax(0, 1fr); }
+  .practice-setup { grid-template-columns: minmax(0, 1fr); }
+}
+/* A secondary touchscreen must not enlarge a mouse-driven desktop toolbar. */
+@media (pointer: coarse) { .app-toolbar button { min-height: 44px; } }
+
+.toolbar-popup .menu-radio-group { min-width: 0; margin: 0; padding: 0; border: 0; }
+.menu-radio-group legend { font-size: .78rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+.menu-radio-group label { display: flex; align-items: center; gap: 9px; min-height: 44px; font-size: .85rem; cursor: pointer; }
+.menu-radio-group input { flex: 0 0 auto; width: 18px; height: 18px; color-scheme: light; accent-color: var(--menu-accent); }
+.menu-radio-group label:has(input:disabled) { opacity: .55; cursor: default; }
+#practice-popup .popup-panel-grid { gap: 12px; padding-top: 12px; }
+#practice-popup .popup-card { gap: 8px; }
+#practice-popup .feedback-group { margin: 0; padding: 0; }
+#practice-popup .help-text, #practice-popup .menu-future { margin: 4px 0; }
+#wait-chord-status:empty, #tab-feedback-status:empty { display: none; }
