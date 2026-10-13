@@ -1,5 +1,6 @@
 // Original score bytes and folder metadata only; no renderer/trainer dependency.
 export const LIBRARY_FORMAT='guitar-trainer-library';
+import {validateProfile} from './media-sync.js';
 export const SCORE_EXTENSIONS=/\.(gp|gp3|gp4|gp5|gpx|xml|musicxml|mxl)$/i;
 const id=()=>crypto.randomUUID();
 const name=value=>String(value || '').trim().slice(0,240);
@@ -17,7 +18,10 @@ export function decodeBytes(text) {
 }
 
 export async function validateBackup(data) {
-  if(data?.format!==LIBRARY_FORMAT || data.version!==1 || !Array.isArray(data.folders) || !Array.isArray(data.scores))throw new Error('Choose a Guitar Trainer library backup (version 1).');
+  if(data?.format!==LIBRARY_FORMAT || ![1,2].includes(data.version) || !Array.isArray(data.folders) || !Array.isArray(data.scores))throw new Error('Choose a Guitar Trainer library backup (version 1 or 2).');
+  if(data.version===2 && !Array.isArray(data.mediaProfiles))throw new Error('The backup is missing media sync profiles.');
+  const mediaProfiles=(data.mediaProfiles || []).map(validateProfile);
+  if(new Set(mediaProfiles.map(profile=>profile.id)).size!==mediaProfiles.length)throw new Error('Duplicate sync profile IDs.');
   const folderIds=new Set(),scoreIds=new Set();
   const folders=data.folders.map(folder=>{
     if(!folder || typeof folder.id!=='string' || !folder.id || folderIds.has(folder.id) || !name(folder.name))throw new Error('Invalid or duplicate backup folder.');
@@ -31,7 +35,7 @@ export async function validateBackup(data) {
     const bytes=decodeBytes(score.data);
     scores.push({id:score.id,title:name(score.title),fileName:String(score.fileName),folderId:score.folderId || null,bytes,hash:await fingerprint(bytes)});
   }
-  return {folders,scores};
+  return {folders,scores,mediaProfiles};
 }
 
 export class LibraryStore {
@@ -39,8 +43,8 @@ export class LibraryStore {
   async open() {
     if(!this.factory)throw new Error('This browser cannot store a score library. Open File still works.');
     if(!this.dbPromise)this.dbPromise=new Promise((resolve,reject)=>{
-      const request=this.factory.open('guitarTrainerLibrary',1);
-      request.onupgradeneeded=()=>{for(const store of ['folders','scores'])if(!request.result.objectStoreNames.contains(store))request.result.createObjectStore(store,{keyPath:'id'});};
+      const request=this.factory.open('guitarTrainerLibrary',2);
+      request.onupgradeneeded=()=>{for(const store of ['folders','scores','mediaProfiles'])if(!request.result.objectStoreNames.contains(store))request.result.createObjectStore(store,{keyPath:'id'});};
       request.onerror=()=>{this.dbPromise=null;reject(request.error || new Error('Could not open the score library.'));};
       request.onblocked=()=>{this.dbPromise=null;reject(new Error('Close other Guitar Trainer tabs and retry.'));};
       request.onsuccess=()=>{const db=request.result;db.onversionchange=()=>{db.close();this.dbPromise=null;};resolve(db);};
@@ -60,6 +64,19 @@ export class LibraryStore {
     return this.transaction(['folders','scores'],'readonly',(stores,done)=>{
       const result={folders:[],scores:[]};
       for(const key of ['folders','scores'])stores[key].getAll().onsuccess=event=>{result[key]=event.target.result;done(result);};
+    });
+  }
+  listProfiles() {return this.transaction(['mediaProfiles'],'readonly',({mediaProfiles},done)=>{mediaProfiles.getAll().onsuccess=event=>done(event.target.result);});}
+  saveProfile(profile) {const checked=validateProfile(profile);return this.transaction(['mediaProfiles'],'readwrite',({mediaProfiles})=>mediaProfiles.put(checked));}
+  deleteProfile(profileId) {return this.transaction(['mediaProfiles'],'readwrite',({mediaProfiles})=>mediaProfiles.delete(profileId));}
+  async mergeProfiles(profiles) {
+    const checked=profiles.map(validateProfile);
+    return this.transaction(['mediaProfiles'],'readwrite',({mediaProfiles},done)=>{
+      mediaProfiles.getAll().onsuccess=event=>{
+        const keys=new Set(event.target.result.map(profile=>profileSignature(profile)));let added=0;
+        for(const profile of checked)if(!keys.has(profileSignature(profile))) {mediaProfiles.put({...profile,id:id()});keys.add(profileSignature(profile));added++;}
+        done(added);
+      };
     });
   }
   async save({title,fileName,bytes,folderId=null}) {
@@ -112,16 +129,17 @@ export class LibraryStore {
   }
   async backup() {
     const {folders,scores}=await this.list();
-    return {format:LIBRARY_FORMAT,version:1,exportedAt:new Date().toISOString(),folders,
+    const mediaProfiles=await this.listProfiles();
+    return {format:LIBRARY_FORMAT,version:2,exportedAt:new Date().toISOString(),folders,mediaProfiles,
       scores:scores.map(({bytes,...score})=>({...score,data:encodeBytes(bytes)}))};
   }
   async merge(data) {
     // Validate every entry before starting the single atomic write transaction.
     const incoming=await validateBackup(data);
-    return this.transaction(['scores','folders'],'readwrite',(stores,done)=>{
-      const folderRequest=stores.folders.getAll(),scoreRequest=stores.scores.getAll();let folders,scores;
+    return this.transaction(['scores','folders','mediaProfiles'],'readwrite',(stores,done)=>{
+      const folderRequest=stores.folders.getAll(),scoreRequest=stores.scores.getAll(),profileRequest=stores.mediaProfiles.getAll();let folders,scores,profiles;
       const merge=()=>{
-        if(!folders || !scores)return;
+        if(!folders || !scores || !profiles)return;
         const folderMap=new Map(),hashes=new Set(scores.map(score=>score.hash));let added=0,skipped=0;
         for(const folder of incoming.folders) {
           let target=folders.find(item=>item.name.toLowerCase()===folder.name.toLowerCase());
@@ -133,10 +151,16 @@ export class LibraryStore {
           stores.scores.put({...score,id:id(),folderId:folderMap.get(score.folderId)||null,createdAt:Date.now()});
           hashes.add(score.hash);added++;
         }
-        done({added,skipped});
+        const profileKeys=new Set(profiles.map(profileSignature));let profilesAdded=0;
+        for(const profile of incoming.mediaProfiles)if(!profileKeys.has(profileSignature(profile))) {
+          stores.mediaProfiles.put({...profile,id:id()});profileKeys.add(profileSignature(profile));profilesAdded++;
+        }
+        done({added,skipped,profilesAdded});
       };
       folderRequest.onsuccess=event=>{folders=event.target.result;merge();};scoreRequest.onsuccess=event=>{scores=event.target.result;merge();};
+      profileRequest.onsuccess=event=>{profiles=event.target.result;merge();};
     });
   }
 }
+function profileSignature({id:profileId,...profile}) {return JSON.stringify(profile);}
 function throwTransactionError(store){store.transaction.abort();}

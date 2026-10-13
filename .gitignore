@@ -7,3 +7,4 @@ Thumbs.db
 .vscode/
 tools/alphatab/.work/
 tools/alphatab/.backups/
+tests/.media-fixtures/

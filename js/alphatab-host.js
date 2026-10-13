@@ -10,6 +10,74 @@ import { notationFeedbackGeometry, accidentalPath } from './notation-feedback.js
 import {outsideLoopBounds,wholeMeasureSelection} from './loop-visuals.js';
 import {countInTiming,scheduleCountIn} from './count-in.js';
 import {playbackGroups} from './audio-controls.js';
+import {validatePoints} from './media-sync.js';
+
+let mediaSnapshot=null,mediaHandler=null,mediaPoints=[],mediaRestoreTick=null;
+
+// Upstream 1.8.4's worker getter returns itself rather than its cached field.
+// Guard the exact defect; later fixed bundles retain their own implementation.
+export function installAlphaTabCompatibility(at) {
+  const prototype=at?.synth?.AlphaSynthWebWorkerApi?.prototype;
+  const property=prototype && Object.getOwnPropertyDescriptor(prototype,'loadedMidiInfo');
+  if(property?.get && /return this\.loadedMidiInfo\s*;/.test(String(property.get))) {
+    Object.defineProperty(prototype,'loadedMidiInfo',{...property,get(){return this._loadedMidiInfo;}});
+    return true;
+  }
+  return false;
+}
+
+// Recording playback is an isolated listening transport; the original practice
+// timeline, sync data and position are restored before MIDI practice resumes.
+export function beginMediaPlayback(handler,points) {
+  if(!alphaTabApi || !AppState.score || !AppState.playerReady || AppState.media.returning)return false;
+  const validated=validatePoints(points,AppState.playbackTimeline,handler.backingTrackDuration);
+  if(validated.length<2)throw new Error('Add a start and end sync point first.');
+  if(AppState.media.preview) {mediaHandler=handler;mediaPoints=validated;alphaTabApi.player.output.handler=handler;applyMediaSyncPoints(validated);return true;}
+  const pausedWait=savedWaitTransport;
+  cancelCountIn();releaseWaitTransport();alphaTabApi.pause();
+  waitMetronome?.stop();waitMetronome=null;nativeClickBuffer=null;
+  mediaSnapshot={tick:AppState.tickPosition,speed:AppState.playbackSpeed,points:AppState.score.exportFlatSyncPoints(),wait:pausedWait};
+  mediaHandler=handler;mediaPoints=validated;
+  AppState.media.preview=true;
+  AppState.playbackSpeed=handler.playbackRate;
+  AppState.playerReady=false;
+  AppState.score.applyFlatSyncPoints(validated);
+  alphaTabApi.settings.player.playerMode=window.alphaTab.PlayerMode.EnabledExternalMedia;
+  alphaTabApi.updateSettings();
+  // The wrapper exposes the new output immediately; playerReady may fire later.
+  alphaTabApi.player.output.handler=handler;
+  alphaTabApi.playbackSpeed=AppState.playbackSpeed;
+  applyMasterVolume();
+  hostCallbacks.onMediaChanged?.();
+  return true;
+}
+export function applyMediaSyncPoints(points) {
+  if(!AppState.media.preview)return;
+  alphaTabApi.pause();
+  mediaPoints=validatePoints(points,AppState.playbackTimeline,mediaHandler.backingTrackDuration);
+  AppState.score.applyFlatSyncPoints(mediaPoints);alphaTabApi.updateSyncPoints();
+}
+export function endMediaPlayback() {
+  if(!AppState.media.preview || AppState.media.returning)return;
+  alphaTabApi.pause();mediaHandler?.pause();
+  AppState.media.returning=true;AppState.playerReady=false;
+  AppState.score.applyFlatSyncPoints(mediaSnapshot.points);
+  alphaTabApi.settings.player.playerMode=window.alphaTab.PlayerMode.EnabledSynthesizer;
+  alphaTabApi.updateSettings();
+}
+export function toggleMediaPlayback() {
+  if(!AppState.media.preview || AppState.media.returning || !AppState.playerReady)return false;
+  alphaTabApi.playPause();return true;
+}
+export function pauseMediaPlayback() {if(AppState.media.preview)alphaTabApi?.pause();}
+export function updateMediaPosition(timeMs) {
+  if(AppState.media.preview && !AppState.media.returning && Number.isFinite(timeMs))alphaTabApi.player.output.updatePosition(timeMs);
+}
+export function seekMediaTick(tick) {if(AppState.media.preview && !AppState.media.returning)alphaTabApi.tickPosition=tick;}
+export function embeddedMedia() {
+  const bytes=AppState.score?.backingTrack?.rawAudioFile;
+  return bytes?.length?{bytes,points:AppState.score.exportFlatSyncPoints()}:null;
+}
 
 let pendingScoreFile=null,scoreLoadGeneration=0;
 
@@ -124,7 +192,7 @@ let hostCallbacks = {
 };
 
 function getAssetUrl(relativePath) {
-  return new URL(relativePath, window.location.href).href;
+  return new URL(relativePath,new URL('../',import.meta.url)).href;
 }
 
 function setStatus(message) {
@@ -414,6 +482,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     onMetronomeError: callbacks.onMetronomeError || null,
     onLoopSelection: callbacks.onLoopSelection || null,
     onCountInChanged: callbacks.onCountInChanged || null,
+    onMediaChanged: callbacks.onMediaChanged || null,
   };
 
   ui = {
@@ -450,6 +519,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     renderMissingLibraryMessage();
     return null;
   }
+  installAlphaTabCompatibility(alphaTabGlobal);
 
   const wrapperEl = document.getElementById('alphatab-wrapper');
 
@@ -493,6 +563,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     },
     player: {
       enablePlayer: true,
+      playerMode: alphaTabGlobal.PlayerMode?.EnabledSynthesizer,
       enableCursor: true,
       enableAnimatedBeatCursor: false,
       enableElementHighlighting: VISUAL_MODES.playbackHighlight,
@@ -506,7 +577,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   const metronomeType = alphaTabGlobal.midi.MidiEventType.AlphaTabMetronome;
   alphaTabApi.midiEventsPlayedFilter = [...new Set([...(alphaTabApi.midiEventsPlayedFilter || []), metronomeType])];
   alphaTabApi.midiEventsPlayed?.on(event => {
-    if (!AppState.isPlaying || AppState.mode === 'wait' || !AppState.playerReady || !AppState.metronome.enabled) return;
+    if (AppState.media.preview || !AppState.isPlaying || AppState.mode === 'wait' || !AppState.playerReady || !AppState.metronome.enabled) return;
     for (const midi of event.events || []) {
       if (midi.type !== metronomeType) continue;
       const output = alphaTabApi.player?.output;
@@ -565,6 +636,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   });
 
   alphaTabApi.midiLoaded.on(() => {
+    if(AppState.media.preview)return;
     AppState.playbackTimeline = buildPlaybackTimeline(alphaTabApi.tickCache, {
       tempo: AppState.score?.tempo || 120,
       ticksPerQuarter: new alphaTabGlobal.midi.MidiFile().division,
@@ -580,6 +652,20 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     updatePracticeControlsEnabled(AppState.tracks.length > 0);
     applyTrackState();
     setStatus('Player ready');
+    if(AppState.media.preview) {
+      if(AppState.media.returning) {
+        AppState.playbackSpeed=mediaSnapshot.speed;
+        alphaTabApi.playbackSpeed=mediaSnapshot.speed;
+        // Restoring the range can seek to its start; restore the saved cursor last.
+        applyPracticeLoop(AppState.practiceLoop.range);
+        applyTrackPlaybackStateInternal();
+        savedWaitTransport=mediaSnapshot.wait;
+        if(savedWaitTransport){alphaTabApi.isLooping=false;alphaTabApi.countInVolume=0;alphaTabApi.playbackRange=null;}
+        mediaRestoreTick=mediaSnapshot.tick;
+        alphaTabApi.tickPosition=mediaRestoreTick;
+      } else {alphaTabApi.player.output.handler=mediaHandler;alphaTabApi.updateSyncPoints();}
+      hostCallbacks.onMediaChanged?.();
+    }
     hostCallbacks.onPlayerReady?.();
   });
 
@@ -587,7 +673,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     hostCallbacks.onPlayerFinished?.();
     // Native continuous loops do not insert count-ins. With this option on,
     // let native playback finish, then pre-roll before starting the next pass.
-    if(AppState.mode==='realtime' && AppState.practiceLoop.enabled && AppState.practiceLoop.countIn) {
+    if(!AppState.media.preview && AppState.mode==='realtime' && AppState.practiceLoop.enabled && AppState.practiceLoop.countIn) {
       startCountIn(AppState.practiceLoop.range.startTick,ok=>{if(ok)alphaTabApi.play();});
     }
   });
@@ -605,6 +691,17 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   });
 
   alphaTabApi.playerPositionChanged.on((event) => {
+    // A recreated synthesizer sends initial zero-position messages before its
+    // saved seek acknowledgement. Keep those out of both practice controllers.
+    if(AppState.media.returning) {
+      if(mediaRestoreTick!==null && Math.abs(event.currentTick-mediaRestoreTick)<=3) {
+        AppState.tickPosition=event.currentTick;AppState.timePositionMs=event.currentTime;
+        AppState.media.preview=false;AppState.media.returning=false;
+        mediaSnapshot=null;mediaHandler=null;mediaRestoreTick=null;
+        hostCallbacks.onMediaChanged?.();
+      }
+      return;
+    }
     const range=AppState.practiceLoop.range;
     if(event?.isSeek && range && !scoreDragging && (event.currentTick<range.startTick || event.currentTick>=range.endTick)) {
       alphaTabApi.tickPosition=range.startTick;return;
@@ -661,6 +758,11 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 export async function loadScoreFile(file) {
   if (!alphaTabApi) throw new Error('alphaTab is not ready yet. Fix the alphaTab asset path first.');
   if (!file) return false;
+  if(AppState.media.preview) {
+    endMediaPlayback();
+    // A new score supersedes restoration of the previous practice position.
+    AppState.media.preview=false;AppState.media.returning=false;mediaSnapshot=null;mediaHandler=null;mediaRestoreTick=null;
+  }
   const generation=++scoreLoadGeneration;
   AppState.currentScoreFile=null;
   pendingScoreFile=null;
@@ -748,6 +850,7 @@ export function applyScoreDisplay() {
 }
 
 export function play() {
+  if(AppState.media.preview)return toggleMediaPlayback();
   if (!alphaTabApi || !AppState.playerReady) return false;
   if(AppState.countInActive){cancelCountIn();return true;}
   const range=AppState.practiceLoop.range;
@@ -823,6 +926,8 @@ async function prepareWaitMetronome() {
       channels[0][frame] = chunk[i]; channels[1][frame] = chunk[i + 1];
     }
     synth.destroy(); synth = null;
+    // A media source switch can destroy this context while the soundfont loads.
+    if(context!==alphaTabApi?.player?.output?.context)return;
     nativeClickBuffer=buffer;
     waitMetronome = createMetronomeClock(context, buffer, () => {
       if (waitMetronomeState.enabled && waitMetronomeState.running && AppState.mode === 'wait') hostCallbacks.onMetronomeTick?.();
@@ -856,6 +961,9 @@ export function startCountIn(tick,onComplete) {
     if(!nativeClickBuffer) {
       if(!waitMetronomeLoading)waitMetronomeLoading=prepareWaitMetronome();
       await waitMetronomeLoading;
+      if(!nativeClickBuffer && generation===countInGeneration && alphaTabApi?.player?.output?.context) {
+        waitMetronomeLoading=prepareWaitMetronome();await waitMetronomeLoading;
+      }
     }
     if(generation!==countInGeneration)return;
     const context=alphaTabApi?.player?.output?.context;

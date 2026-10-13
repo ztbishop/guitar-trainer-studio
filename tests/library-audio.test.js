@@ -17,7 +17,7 @@ test('library backup preserves every original byte and computes identity from co
 });
 
 test('invalid backup versions, references, repeated ids and data reject before any database access',async()=>{
-  for(const mutate of [data=>data.version=2,data=>data.format='piano',data=>data.scores[0].folderId='missing',data=>data.folders.push(data.folders[0]),data=>data.scores.push(data.scores[0]),data=>data.scores[0].data='broken!',data=>data.scores[0].fileName='song.exe']) {
+  for(const mutate of [data=>data.version=99,data=>data.format='piano',data=>data.scores[0].folderId='missing',data=>data.folders.push(data.folders[0]),data=>data.scores.push(data.scores[0]),data=>data.scores[0].data='broken!',data=>data.scores[0].fileName='song.exe']) {
     const data=backup();mutate(data);let writes=0;
     const store=new LibraryStore();store.transaction=()=>{writes++;};
     await assert.rejects(store.merge(data));assert.equal(writes,0);

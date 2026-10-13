@@ -94,11 +94,11 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
     });
   });
   get('library-backup').addEventListener('click',()=>run(async()=>{
-    const backup=await store.backup();download(JSON.stringify(backup),'guitar-trainer-library.json');message(`Backup downloaded: ${backup.scores.length} scores. Keep it somewhere safe.`);
+    const backup=await store.backup();download(JSON.stringify(backup),'guitar-trainer-library.json');message(`Backup downloaded: ${backup.scores.length} scores, ${backup.mediaProfiles.length} sync profiles. Recordings are not included.`);
   }));
   get('library-backup-input').addEventListener('change',event=>{
     const file=event.target.files?.[0];if(!file)return;
-    run(async()=>{const result=await store.merge(JSON.parse(await file.text()));await refresh();message(`Backup merged: added ${result.added}; already saved ${result.skipped}.`);});
+    run(async()=>{const result=await store.merge(JSON.parse(await file.text()));await refresh();message(`Backup merged: added ${result.added}; already saved ${result.skipped}; sync profiles added ${result.profilesAdded}.`);});
   });
   run(async()=>{await refresh();message(`${snapshot.scores.length} saved scores. Choose a file or open a saved score.`);});
   return {sync,scoreLoaded(){sync();message('Score opened. Save to library to keep it in this browser.');}};

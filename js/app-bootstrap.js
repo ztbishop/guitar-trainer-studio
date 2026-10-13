@@ -37,11 +37,13 @@ import {applyMasterVolume,applyTrackMixer} from './alphatab-host.js';
 import {initAudioControls} from './audio-controls.js';
 import {readPracticePreferences,savePracticePreferences,FEEDBACK_PREFERENCE_KEYS} from './practice-preferences.js';
 import {readDisplayPreferences,saveDisplayPreferences} from './display-preferences.js';
+import {initMediaControls} from './media-controls.js';
+import {beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTick,embeddedMedia,applyMediaSyncPoints} from './alphatab-host.js';
 
 let transportControls=null;
 let chordControls=null;
 let attemptControls=null;
-let audioControls=null,scoreLibrary=null;
+let audioControls=null,scoreLibrary=null,mediaControls=null;
 
 const waitController = new WaitController({
   acquire:acquireWaitTransport,hold:holdWaitAtTick,
@@ -194,6 +196,7 @@ function wireFilePicker() {
 
 function wireTransportButtons() {
   document.getElementById('play-pause-button')?.addEventListener('click', () => {
+    if(AppState.media.preview){toggleMediaPlayback();return;}
     const starting=AppState.mode==='wait' ? !waitController.active || waitController.phase==='paused' : !AppState.isPlaying && !AppState.countInActive;
     if(starting && AppState.playerReady && AppState.ui.fullscreenOnPlay && !document.fullscreenElement) {
       document.documentElement.requestFullscreen?.().catch(error=>console.error('Could not enter fullscreen.',error));
@@ -202,6 +205,7 @@ function wireTransportButtons() {
     else play();
   });
   document.getElementById('stop-button')?.addEventListener('click', () => {
+    if(AppState.media.preview){pauseMediaPlayback();seekMediaTick(AppState.practiceLoop.range?.startTick ?? 0);return;}
     waitController.stop();
     stop();
     const start=AppState.practiceLoop.range?.startTick ?? 0;
@@ -431,6 +435,15 @@ function renderMidiUi() {
 }
 
 function renderTrainerUi() {
+  for(const id of ['practice-popup','tempo-popup','looper-popup']) {
+    const panel=document.getElementById(id);if(panel)panel.inert=AppState.media.preview;
+  }
+  if(AppState.media.preview) {
+    mediaControls?.sync();
+    const value=document.getElementById('toolbar-score-value');if(value){value.textContent='Listen';value.title='Recording playback: MIDI grading paused';}
+    const button=document.getElementById('play-pause-button');if(button){button.textContent=AppState.isPlaying?'⏸ Pause':'▶ Listen';button.title='Listen and align recording';}
+    setNotationFeedback([]);return;
+  }
   attemptControls?.sync();
   transportControls?.sync();
   chordControls?.sync();
@@ -604,6 +617,8 @@ async function bootstrap() {
   initToolbar();
   scoreLibrary=initScoreLibrary(loadScoreFile);
   audioControls=initAudioControls(kind=>{if(kind==='master')applyMasterVolume();else applyTrackMixer();});
+  mediaControls=initMediaControls({beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setSpeed:setPlaybackSpeed},
+    {beforeListen(){if(AppState.mode==='wait' && waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);pauseWaitTransport();clearActiveMidiNotes();},afterPractice(){clearActiveMidiNotes();if(AppState.mode==='realtime')handlePlaybackState();renderTrainerUi();}});
   initFretboard(document.getElementById('fretboard-container'),document.getElementById('fretboard-help-status'));
   wireScoreStageUi();
   wireFilePicker();
@@ -623,8 +638,10 @@ async function bootstrap() {
       onPlaybackTimelineChanged: () => {
         transportControls?.clearPulse();
         syncTrainerFoundation();
+        mediaControls?.timelineReady().catch(error=>console.error('Media profile lookup failed.',error));
       },
       onPlayerPositionChanged: (position) => {
+        if(AppState.media.preview){mediaControls?.sync();return;}
         if(position.isSeek && AppState.mode!=='wait')transportControls?.clearPulse();
         if(AppState.mode==='wait')waitController.positionChanged(position);
         else handlePlaybackPosition(position);
@@ -632,20 +649,21 @@ async function bootstrap() {
       },
       onPlayerFinished: () => {
         transportControls?.clearPulse();
-        if(AppState.mode==='realtime')finishRealtimeSession();
+        if(!AppState.media.preview && AppState.mode==='realtime')finishRealtimeSession();
         renderTrainerUi();
       },
       onPlayerStateChanged: () => {
-        if(AppState.mode==='realtime')handlePlaybackState();
+        if(!AppState.media.preview && AppState.mode==='realtime')handlePlaybackState();
         renderTrainerUi();
       },
       onPlayerReady: () => {audioControls?.sync();renderTrainerUi();},
-      onScoreLoading: () => {scoreLibrary?.sync();audioControls?.sync();},
+      onScoreLoading: () => {mediaControls?.scoreLoading();scoreLibrary?.sync();audioControls?.sync();},
       onScoreLoadError: () => scoreLibrary?.sync(),
       onMetronomeTick: () => transportControls?.pulse(),
       onMetronomeError: () => renderTrainerUi(),
       onCountInChanged: () => renderTrainerUi(),
-      onLoopSelection: selection => transportControls?.selectLoopByDrag(selection),
+      onLoopSelection: selection => {if(!AppState.media.preview)transportControls?.selectLoopByDrag(selection);},
+      onMediaChanged: () => {mediaControls?.mediaChanged();renderTrainerUi();},
     });
   } catch (error) {
     console.error('Failed to bootstrap Guitar Trainer Studio.', error);
@@ -654,6 +672,7 @@ async function bootstrap() {
   let previousMidiInputId = AppState.midi.activeInputId;
   await initMidiRouter({
     onMidiEvent: (event) => {
+      if(AppState.media.preview){renderMidiUi();return null;}
       let outcome;
       if(AppState.mode==='wait')outcome=waitController.noteOn(event);
       else {
@@ -678,6 +697,7 @@ async function bootstrap() {
   });
 
   setInterval(() => {
+    if(AppState.media.preview)return;
     if(AppState.mode==='wait') {waitController.advance();return;}
     if (!AppState.isPlaying || AppState.mode!=='realtime') return;
     advanceRealtimeClock();

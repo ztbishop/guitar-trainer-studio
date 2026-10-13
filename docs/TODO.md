@@ -1,5 +1,17 @@
 # Guitar Trainer Studio: status and to-do
 
+### Media & Sync listening/alignment — 2026-10-13
+
+- [x] Local audio/video, direct media URLs, explicit YouTube loading and GP embedded audio using native external-media cursor/seek/sync points. Listening is separate from MIDI grading. Return retains original practice timing/position/results and paused Wait attempts; Wait remains silent.
+- [x] Saved Above/Below/Left/Right layout, mouse/touch/keyboard divider, panel/editor visibility and local/direct-video PiP. Grouped Recording/Layout menu explains side-by-side and disabled YouTube floating.
+- [x] Optional local waveform, zoom, measure/repeat/beat/time editing, marker drag, Undo/Redo, increasing-point validation and endpoint protection. Explicit Save retains edits.
+- [x] IndexedDB per-score/per-recording profiles: picker, all-profile search/rename/confirmed-delete/KB size list, JSON export/import, library backup v2 with profiles and v1 score-backup compatibility. No recording bytes/waveform storage.
+- [x] Narrow host compatibility fix for 1.8.4's recursive worker getter; immutable vendor files. Native transport/Wait-restoration and actual UI-wiring checks added; see MEDIA-SYNC.md for reproducible fixtures/evidence.
+- [x] 200 Node tests, 17 native/storage browser checks and 15 app UI checks pass; generated WAV/video-with-audio and profile restoration checked. Owner screenshots establish YouTube loading/playback, not full alignment/hardware acceptance.
+- [ ] Owner audible/Chrome/Fishman acceptance, actual recordings/GP backing tracks, YouTube restrictions and PiP. Graded stretched-media timing, TrueFire automation and desktop-player connections remain outside this increment. No Beta version/Git publishing change.
+
+Supersedes the earlier Media & Sync placeholder/broad deferral below for listening and alignment only.
+
 ### Repository alphaTab updater — 2026-10-13
 
 - [x] Optional `tools/alphatab` double-click launcher and PowerShell updater: choose latest stable or an exact version, verify official npm package SHA-512/version/assets, stage before replacement, retain ignored backups, and record asset hashes. No runtime updater/build dependency or Git publishing.
