@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Optional vendor maintenance — 2026-10-13
+
+tools/alphatab is repository maintenance tooling, independent of browser runtime. The updater resolves this checkout from its own path, downloads an explicit stable @coderline/alphatab package (latest suggested when omitted), checks SHA-512 registry integrity and staged asset/version completeness, then replaces assets/vendor/alphatab with rollback on installation-move failure. It installs the UMD library plus complete matching core/worker/worklet modules, Bravura fonts and Sonivox soundfont. vendor-manifest.json records version/source/integrity and per-file SHA-256 hashes. Tool-local .work/.backups are ignored; backups retain the full prior directory until manually removed. The tool never runs Git mutations, changes app version/state or edits application modules. alphatab-host.js remains the sole native runtime boundary and Live Server remains build-free. Tooling verification does not establish acceptance of an installed alphaTab upgrade; this task leaves 1.8.1 installed.
+
 ## Fretboard first-use defaults — 2026-10-13
 
 AppState.ui and display-preferences.js both default showFretboard to true and leftHanded to false. Existing gts.displayPreferences booleans override these defaults independently; no migration resets saved false visibility or true orientation. This supersedes older Display defaults without changing persistence, native rendering or grading.

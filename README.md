@@ -18,6 +18,8 @@ No build step or npm dependency installation is required to run the app. Serve t
 
 ## Current capabilities
 
+To update bundled alphaTab assets, open `tools/alphatab` and run `update-alphatab.cmd`. See [Updater instructions](tools/alphatab/README.md) for version selection, download-only verification, backups and post-update checks. This is optional maintenance tooling; the app still runs from local assets without a build step. The owner reviews, commits and pushes updates.
+
 - Native alphaTab score/tab rendering, playback, track display, and selected/backing track routing.
 - Repeat-aware Realtime pitch/timing grading and silent Wait stepping as each target is solved.
 - Linked BPM/speed controls, native metronome volume and visual pulse, occurrence-aware section loops, MIDI latency adjustment, and Wait Collect notes/Together chord settings. Wait's metronome runs independently at the set BPM.

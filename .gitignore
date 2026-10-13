@@ -5,3 +5,5 @@ build/
 .DS_Store
 Thumbs.db
 .vscode/
+tools/alphatab/.work/
+tools/alphatab/.backups/

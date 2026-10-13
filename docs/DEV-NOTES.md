@@ -1,5 +1,11 @@
 # Development notes
 
+## Repository alphaTab updater — 2026-10-13
+
+Owner supplied the original fixed-version downloader ZIP and requested a reusable updater run from the repository. Added optional tools/alphatab launcher, PowerShell script, instructions and isolated maintenance tests. Registry latest stable is suggested interactively; exact stable versions and noninteractive CheckOnly are supported. One versioned npm tarball is checked against registry SHA-512 integrity; extracted package/version headers and 10 required assets are verified before moving the previous vendor directory to an ignored backup and installing the prepared directory. Matching alphaTab.core.mjs is included for the worker/worklet modules, correcting the old downloader's incomplete module set. A tracked vendor-manifest.json is produced only on installation; temporary data/backups are ignored. Interrupted downloads never replace assets; a failed installation move attempts rollback. No runtime UI, grading, MIDI, media sync, app version or Git publishing changes.
+
+Evidence: real alphaTab 1.8.4 package verified with Windows PowerShell 5.1 in CheckOnly, leaving installed 1.8.1 untouched. Fixture checks latest suggestion, no-install mode, full install/backup/manifest, integrity rejection, missing core rejection and simulated installation failure with restored bundle. Existing 189 regression tests pass. Actual upgrade and browser/Fishman acceptance remain owner actions; after installation, record the new version and acceptance evidence before committing/pushing. See tools/alphatab/README.md.
+
 ## Fretboard first-use defaults — 2026-10-13
 
 Owner requested Show virtual fretboard on and left-handed off for first use, retaining both in localStorage. Updated AppState and readDisplayPreferences defaults together. Existing boolean validation/save/restore remains unchanged: a saved false for visibility is respected, and a saved true for orientation is respected. No storage migration or forced override of existing preferences. 189 regression tests pass, including empty/malformed/inaccessible storage and saved opposite/default choices. Supersedes earlier default-off fretboard guidance; no native/MIDI/grading changes.

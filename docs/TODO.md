@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+### Repository alphaTab updater — 2026-10-13
+
+- [x] Optional `tools/alphatab` double-click launcher and PowerShell updater: choose latest stable or an exact version, verify official npm package SHA-512/version/assets, stage before replacement, retain ignored backups, and record asset hashes. No runtime updater/build dependency or Git publishing.
+- [x] Real 1.8.4 package download verified in check-only mode using Windows PowerShell 5.1. Isolated fixture covers latest lookup, check-only, install/backup, invalid integrity, missing core module and failed-move rollback. Existing 189 regression tests pass.
+- [ ] Owner runs the installer when ready, then accepts rendering/feedback, count-in, loops, tempo/metronome, Pause/Resume and Fishman Realtime/Wait locally before committing/pushing. Installed alphaTab remains 1.8.1; no actual upgrade or Guitar Trainer version bump in this tooling task.
+
 ### Fretboard first-use defaults — 2026-10-13
 
 - [x] Show virtual fretboard defaults on; left-handed defaults off. Both retain existing validated localStorage persistence across sessions/score loads. Saved explicit choices override defaults, including fretboard off.
