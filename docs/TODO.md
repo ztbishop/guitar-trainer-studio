@@ -1,5 +1,16 @@
 # Guitar Trainer Studio: status and to-do
 
+### Practice/Display, Audio and score library — 2026-10-13
+
+- [x] Shorter feedback/track labels; occasional timing/Poly/help controls in disclosures. Independent feedback switches and native Display/fretboard behavior retained. Chord-window edits commit on Enter/blur without repeating unchanged pause/reset intents.
+- [x] Saved master volume includes native playback, Wait metronome and count-in. Native track volume/mute follows practice/backing switches and groups shared MIDI channels; track settings reset on score load. Mixer edits leave grading/transport state intact.
+- [x] IndexedDB scores/folders: save, bulk import, open/search, rename/move/delete, folder create/rename/remove, JSON backup and validated atomic merge with content deduplication. Removing folders keeps scores. Original bytes pass unchanged to alphaTab.
+- [x] 169 regression tests and 12 real-browser IndexedDB checks pass. Live Server checked two-track MusicXML, save/reopen after reload, folder creation, rename/move/search, actual backup download/reimport, audio and native Display controls. See SCORE-LIBRARY.md for workflows/storage boundaries.
+- [x] Phone/tablet/desktop layouts checked without horizontal overflow; bulk import and invalid-version backup handling verified. Library removals use explicit in-page confirmations with Cancel focused.
+- [ ] Owner listening/Fishman/tablet acceptance, real GP/MXL save/reopen, fullscreen and storage quota behavior. Keep the same browser/address/port and make backups.
+
+Supersedes older audio/library placeholders below. Grading, deferred pitch/media/exercise features, Piano Trainer, version metadata and Git publishing remain outside this update.
+
 ### TriplePlay Wait diagnostic recording — 2026-10-12
 
 - [x] Opt-in MIDI/feedback recording in Settings with screenshot markers, selectable text, clipboard fallback and .txt download; no grading or spacing changes. 166 automated tests pass; browser controls checked.
@@ -31,7 +42,7 @@ Updated 2026-10-11. This is the central status and priority list. Stage files re
 - [x] Live trainer status, expected/detected notes and mistake history moved to collapsed Settings MIDI/practice diagnostics. Display owns practice-only/all-track visibility and the existing six-string/left-handed fretboard. Audio owns existing selected/backing-track playback toggles; Wait accompaniment stays paused.
 - [x] Scores keeps working Open File, compact metadata and expandable track list. Library/folder/backup controls, Audio volume/mixer/output, Pitch & Transpose and Media & Sync are explicitly **Not implemented yet**. Help now provides a basic guitar-specific quick start.
 - [x] 160 regression tests and toolbar syntax check pass. Browser smoke checks cover menu movement, tablet collapse, phone stacking, diagnostics disclosure and Media shortcut; no horizontal overflow in checked layouts. Physical Fishman/tablet and loaded-score playback acceptance remain local.
-- [ ] Later: audio volume/mixer wiring; IndexedDB score/folder library with JSON backups, small preferences in localStorage. Native zoom/scroll is implemented; no library persistence is added in this layout pass.
+- [x] Audio mixer/master volume and IndexedDB score/folder library with JSON backups implemented 2026-10-13. The earlier layout pass itself added no persistence.
 - [ ] Later: define playback-only semitone offset versus coordinated practice pitch offset versus full key/semitone score transpose. Do not present audio-only shift as capo/down-tuning grading support.
 - [ ] Later: Media & Sync for local audio/video and supported online providers, score/media-specific saved sync profiles, export/import and inclusion in library backups. Media files are separate from settings; backing-media/synth mixing and Wait behavior need focused validation.
 - [ ] Later: custom fretboard automatically follows score string count/tuning (bass/7-string); separately scope positional MIDI mapping. Future dots/exercise overlays stay display-only. No Follow or virtual piano addition in the guitar menu plan.

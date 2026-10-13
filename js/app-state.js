@@ -4,6 +4,8 @@
 
 export const AppState = {
   score: null,
+  currentScoreFile: null,
+  audio: { masterPercent: 100, tracks: {} },
   tracks: [],
   practiceTrackId: null,
   playbackTrackIds: [],

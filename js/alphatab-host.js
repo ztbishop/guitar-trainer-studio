@@ -9,6 +9,9 @@ import { wrongFretGeometry } from './tab-feedback.js';
 import { notationFeedbackGeometry, accidentalPath } from './notation-feedback.js';
 import {outsideLoopBounds,wholeMeasureSelection} from './loop-visuals.js';
 import {countInTiming,scheduleCountIn} from './count-in.js';
+import {playbackGroups} from './audio-controls.js';
+
+let pendingScoreFile=null,scoreLoadGeneration=0;
 
 let loopOverlay=null;
 function drawLoopShading() {
@@ -376,17 +379,14 @@ function applyTrackRenderState() {
 function applyTrackPlaybackStateInternal() {
   if (!alphaTabApi || !AppState.tracks.length) return false;
 
-  // First unmute everything to clear prior state.
-  AppState.tracks.forEach((track) => {
-    alphaTabApi.changeTrackMute([track], false);
-  });
-
-  AppState.tracks.forEach((track, index) => {
-    const trackId = getTrackId(track, index);
-    const isPractice = String(AppState.practiceTrackId) === trackId;
-    const shouldPlay = isPractice ? AppState.playSelectedTrack : AppState.playOtherTracks;
-    alphaTabApi.changeTrackMute([track], !shouldPlay);
-  });
+  // Each channel group receives its final state directly; do not briefly
+  // unmute other groups during live volume edits.
+  for(const group of playbackGroups(AppState.tracks)) {
+    const settings=AppState.audio.tracks[group.id] ?? {volumePercent:100,muted:false};
+    const shouldPlay=group.tracks.some(track=>String(track.index)===String(AppState.practiceTrackId) ? AppState.playSelectedTrack : AppState.playOtherTracks);
+    alphaTabApi.changeTrackMute(group.tracks, settings.muted || !shouldPlay);
+    alphaTabApi.changeTrackVolume?.(group.tracks,settings.volumePercent/100);
+  }
 
   renderTrackList();
   return true;
@@ -533,6 +533,9 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     const loadedScore = score || alphaTabApi.score || null;
     AppState.playbackTimeline = null;
     AppState.score = loadedScore;
+    AppState.currentScoreFile=pendingScoreFile;
+    pendingScoreFile=null;
+    AppState.audio.tracks={};
     AppState.tracks = loadedScore?.tracks ?? [];
     scoreNoteLookup=new Map();notationMarks=[];notationSignature='';notationOverlay?.replaceChildren();
     for(const track of AppState.tracks)for(const staff of track.staves||[])for(const bar of staff.bars||[])
@@ -572,6 +575,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 
   alphaTabApi.playerReady.on(() => {
     AppState.playerReady = true;
+    applyMasterVolume();
     alphaTabApi.playbackSpeed=AppState.playbackSpeed;
     setTransportEnabled(true);
     updatePracticeControlsEnabled(AppState.tracks.length > 0);
@@ -645,6 +649,8 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   });
 
   alphaTabApi.error.on((error) => {
+    pendingScoreFile=null;
+    hostCallbacks.onScoreLoadError?.(error);
     console.error('alphaTab error:', error);
     setStatus(error?.message || 'alphaTab error');
   });
@@ -656,6 +662,9 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 export async function loadScoreFile(file) {
   if (!alphaTabApi) throw new Error('alphaTab is not ready yet. Fix the alphaTab asset path first.');
   if (!file) return false;
+  const generation=++scoreLoadGeneration;
+  AppState.currentScoreFile=null;
+  pendingScoreFile=null;
   pauseSeekPending = false;
   cancelCountIn();
   releaseWaitTransport();
@@ -668,6 +677,7 @@ export async function loadScoreFile(file) {
   // Invalidate the previous score's targets before asynchronous loading starts.
   AppState.playbackTimeline = null;
   AppState.playerReady = false;
+  hostCallbacks.onScoreLoading?.();
   hostCallbacks.onPlaybackTimelineChanged?.(null);
   setLoadedFileName(file.name);
   setScoreLoadedUiState(false);
@@ -678,10 +688,14 @@ export async function loadScoreFile(file) {
   setPlaybackPosition(0);
 
   const buffer = await readFileAsArrayBuffer(file);
+  if(generation!==scoreLoadGeneration)return false;
   const bytes = new Uint8Array(buffer);
+  pendingScoreFile={fileName:file.name,bytes};
   const wrapperEl = document.getElementById('alphatab-wrapper');
   if (wrapperEl) wrapperEl.scrollTop = 0;
-  return alphaTabApi.load(bytes);
+  const accepted=alphaTabApi.load(bytes);
+  if(!accepted)pendingScoreFile=null;
+  return accepted;
 }
 
 export function setRenderedTracks(trackIds) {
@@ -691,6 +705,15 @@ export function setRenderedTracks(trackIds) {
   alphaTabApi.renderTracks(tracks);
   return true;
 }
+
+export function applyMasterVolume() {
+  const volume=AppState.audio.masterPercent/100;
+  if(alphaTabApi?.player)alphaTabApi.masterVolume=volume;
+  syncWaitMetronome();
+  stopCountInAudio?.setVolume?.(AppState.metronome.volumePercent/100*volume);
+}
+
+export function applyTrackMixer() {return AppState.playerReady && applyTrackPlaybackStateInternal();}
 
 export function applyPlaybackTrackState({ practiceTrackId, playSelectedTrack = AppState.playSelectedTrack, playOtherTracks = AppState.playOtherTracks, viewMode = AppState.viewMode } = {}) {
   if (practiceTrackId != null) {
@@ -755,7 +778,7 @@ let waitMetronome = null, waitMetronomeLoading = null, nativeClickBuffer=null;
 let waitMetronomeState = { enabled: false, running: false, bpm: 120, volume: 0 };
 
 function syncWaitMetronome() {
-  waitMetronome?.sync(waitMetronomeState);
+  waitMetronome?.sync({...waitMetronomeState,volume:waitMetronomeState.volume*AppState.audio.masterPercent/100});
 }
 
 async function prepareWaitMetronome() {
@@ -840,7 +863,7 @@ export function startCountIn(tick,onComplete) {
     if(!nativeClickBuffer || !context){cancelCountIn();onComplete(false);return;}
     if(context.state!=='running'){setStatus('Count-in • waiting for browser audio');await context.resume();}
     if(generation!==countInGeneration)return;
-    stopCountInAudio=scheduleCountIn(context,nativeClickBuffer,timing,AppState.metronome.volumePercent/100,
+    stopCountInAudio=scheduleCountIn(context,nativeClickBuffer,timing,AppState.metronome.volumePercent/100*AppState.audio.masterPercent/100,
       (beat,beats)=>{setStatus(`Count-in ${beat} / ${beats}`);},()=>{
         stopCountInAudio=null;
         if(generation!==countInGeneration)return;

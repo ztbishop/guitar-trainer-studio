@@ -13,10 +13,13 @@ export function initChordControls(onChange) {
       for(const mode of modes)mode.checked=mode.value===AppState.waitChord.mode;
       windowInput.value=String(AppState.waitChord.windowMs);return;
     }
-    onChange(settings);sync();
+    if(settings.mode!==AppState.waitChord.mode || settings.windowMs!==AppState.waitChord.windowMs)onChange(settings);
+    sync();
   }
   for(const mode of modes)mode.addEventListener('change',change);
   windowInput.addEventListener('change',change);
+  windowInput.addEventListener('blur',change);
+  windowInput.addEventListener('keydown',event=>{if(event.key==='Enter')change();});
   function sync() {
     const wait=AppState.mode==='wait';
     for(const mode of modes){mode.disabled=!wait;mode.checked=mode.value===AppState.waitChord.mode;}

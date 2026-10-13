@@ -33,10 +33,13 @@ import { initChordControls } from './chord-controls.js';
 import { initAttemptControls } from './attempt-controls.js';
 import { initDisplayControls } from './display-controls.js';
 import { applyScoreDisplay } from './alphatab-host.js';
+import {applyMasterVolume,applyTrackMixer} from './alphatab-host.js';
+import {initAudioControls} from './audio-controls.js';
 
 let transportControls=null;
 let chordControls=null;
 let attemptControls=null;
+let audioControls=null,scoreLibrary=null;
 
 const waitController = new WaitController({
   acquire:acquireWaitTransport,hold:holdWaitAtTick,
@@ -583,7 +586,8 @@ function wireMidiControls() {
 async function bootstrap() {
   loadMidiDebugPreference();
   initToolbar();
-  initScoreLibrary();
+  scoreLibrary=initScoreLibrary(loadScoreFile);
+  audioControls=initAudioControls(kind=>{if(kind==='master')applyMasterVolume();else applyTrackMixer();});
   initFretboard(document.getElementById('fretboard-container'));
   wireScoreStageUi();
   wireFilePicker();
@@ -596,6 +600,7 @@ async function bootstrap() {
   try {
     await initAlphaTab(document.getElementById('alphatab-container'), {
       onScoreLoaded: () => {
+        scoreLibrary?.scoreLoaded();audioControls?.sync();
         transportControls?.clearPulse();
         syncTrainerFoundation();
       },
@@ -618,7 +623,9 @@ async function bootstrap() {
         if(AppState.mode==='realtime')handlePlaybackState();
         renderTrainerUi();
       },
-      onPlayerReady: () => renderTrainerUi(),
+      onPlayerReady: () => {audioControls?.sync();renderTrainerUi();},
+      onScoreLoading: () => {scoreLibrary?.sync();audioControls?.sync();},
+      onScoreLoadError: () => scoreLibrary?.sync(),
       onMetronomeTick: () => transportControls?.pulse(),
       onMetronomeError: () => renderTrainerUi(),
       onCountInChanged: () => renderTrainerUi(),

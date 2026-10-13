@@ -29,5 +29,6 @@ export function scheduleCountIn(context, buffer, timing, volume, onBeat, onCompl
     callbacks.push(timers.setTimeout(()=>{if(!cancelled)onBeat(i+1,timing.beats);},audibleDelayMs(context,at)));
   }
   callbacks.push(timers.setTimeout(()=>{if(!cancelled){stop();onComplete();}},audibleDelayMs(context,first+timing.beats*timing.secondsPerBeat)));
+  stop.setVolume=value=>{gain.gain.value=value;};
   return stop;
 }
