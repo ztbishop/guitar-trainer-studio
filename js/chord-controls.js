@@ -6,6 +6,7 @@ export function initChordControls(onChange) {
   const modes=[...document.querySelectorAll('input[name="wait-chord-mode"]')];
   const windowInput=document.getElementById('wait-chord-window');
   const status=document.getElementById('wait-chord-status');
+  const waitControls=document.getElementById('practice-wait-controls');
   function change() {
     const settings=normalizeWaitChordSettings(modes.find(mode=>mode.checked)?.value,windowInput.value);
     if(!settings) {
@@ -22,12 +23,12 @@ export function initChordControls(onChange) {
   windowInput.addEventListener('keydown',event=>{if(event.key==='Enter')change();});
   function sync() {
     const wait=AppState.mode==='wait';
+    if(waitControls)waitControls.hidden=!wait;
     for(const mode of modes){mode.disabled=!wait;mode.checked=mode.value===AppState.waitChord.mode;}
     windowInput.disabled=!wait || AppState.waitChord.mode!=='together';
     if(document.activeElement!==windowInput)windowInput.value=String(AppState.waitChord.windowMs);
-    status.textContent=!wait ? 'Chord options apply to Wait mode only.' :
-      AppState.waitChord.mode==='collect' ? '' :
-      `${AppState.waitChord.windowMs} ms from the first correct note. Pause freezes the window; expired chords can be retried without a missed-note penalty.`;
+    status.textContent=!wait || AppState.waitChord.mode==='collect' ? '' :
+      `${AppState.waitChord.windowMs} ms from the first correct note.`;
   }
   return {sync};
 }

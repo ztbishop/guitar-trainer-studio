@@ -20,8 +20,9 @@
 - Runtime alphaTab integration belongs in `js/alphatab-host.js`. Existing tests may inspect the bundled native API directly.
 - Keep MIDI normalization, grading/session logic, UI wiring, and visual projections separate. Visual feedback and Poly inference must not silently change grading.
 - Both Poly and Hex currently grade pitch. Exact-string/position grading is deferred and must be explicitly scoped.
-- Preserve independent Staff, tab highlight, and tab fret-number controls. Poly inference defaults off and is a conservative display estimate, never a detected physical position.
+- Preserve independent Staff, tab highlight, and tab fret-number controls. All four Score feedback choices, including Poly inference, default on and persist independently (owner decision 2026-10-13). Poly inference remains a conservative display estimate, never a detected physical position. Restore the saved Practice mode (Realtime on first use) and Wait chord settings (One at a time/200 ms on first use) across score loads and sessions.
 - Do not add deferred features or edit Piano Trainer as part of an unrelated stage.
+- Display preferences persist across sessions/score loads: zoom, auto-scroll, fullscreen-on-Play, visible tracks, fretboard visibility and orientation. First-use defaults remain 100%, auto-scroll on, practice-only, and the other switches off. Disabling orientation while fretboard is hidden must retain its choice; restoring fullscreen preference must not request fullscreen outside the existing Play gesture.
 
 ## Verification and handoff
 

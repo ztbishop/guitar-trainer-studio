@@ -1,5 +1,30 @@
 # Guitar Trainer Studio: status and to-do
 
+### Display cleanup and persistence — 2026-10-13
+
+- [x] Shorter auto-scroll label, tighter sections, indented left-handed checkbox disabled while fretboard hidden (choice retained), collapsed Fretboard help.
+- [x] Save zoom, auto-scroll, fullscreen-on-Play, visible-track view, fretboard visibility and left-handed orientation across sessions/score loads. First-use defaults unchanged. Native score loading preserves chosen view; fullscreen still requires Play.
+- [x] 175 tests pass; Live Server reload/native score reopening, orientation availability, help and laptop/phone layouts verified. Owner fullscreen/orientation acceptance remains local.
+
+- [x] Audio Master volume (%) label stays on one line with a content-sized desktop label column and existing phone stacking; Live Server desktop/phone checked, 2026-10-13.
+
+### Compact Practice menu — 2026-10-13
+
+- [x] Hide Wait chord controls in Realtime, retaining saved choices/window when returning to Wait. Shorter radio descriptions and collapsed Chord timing help replace long permanent explanations.
+- [x] Tighter Practice section spacing retains 44px controls. 172 tests pass; Live Server verified mode round trips, window gating, help disclosure and laptop/phone layout. At 1280 × 720, Realtime feedback choices/help are visible without scrolling; the final results action still needs slight scrolling.
+
+### Persistent Practice preferences — 2026-10-13
+
+- [x] All four Score feedback options default checked, with independent saved true/false choices, including Poly estimates. Estimates remain conservative visual guidance.
+- [x] Remember Practice mode across sessions/score loads; Realtime on first use. Remember Wait chord choice and window; One at a time/200 ms on first use.
+- [x] Validated localStorage preferences restore before UI/native startup. 172 tests pass; Live Server verified defaults, reload, fresh tab and score-load retention. Supersedes earlier default-off Poly/session-only feedback notes.
+
+### Practice menu composition follow-up — 2026-10-13
+
+- [x] Track selector first/full width; mode above Wait chord choices, with window beside chords on wider screens and stacked on phones. Unavailable chord-window label/help dims with its existing disabled input.
+- [x] Direct, indented Poly estimate checkbox below Incorrect fret numbers, short dependency help and fuller explanation in the existing feedback disclosure. Feedback stays vertical and independently controlled; estimates default off.
+- [x] 169 tests pass; Live Server chord gating and desktop/phone/tablet layout verified. Owner appearance/touch review remains local.
+
 ### Practice/Display, Audio and score library — 2026-10-13
 
 - [x] Shorter feedback/track labels; occasional timing/Poly/help controls in disclosures. Independent feedback switches and native Display/fretboard behavior retained. Chord-window edits commit on Enter/blur without repeating unchanged pause/reset intents.

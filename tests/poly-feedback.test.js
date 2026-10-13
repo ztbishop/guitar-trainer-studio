@@ -16,8 +16,8 @@ const track={staves:[{tuning:[64,59,55,50,45,40],capo:0,transpositionPitch:0}]};
 const projection=(s,extra={})=>buildPolyMistakeMarks({events:[event],currentEvent:event,
   history:s.feedbackHistory(),liveWrongNotes:[...s.liveWrong.values()],noteStates:noteStatesFromRecords(s.records),enabled:true,...extra});
 
-test('Poly inference defaults off and identifies only a single distinct remaining written note',()=>{
-  assert.equal(AppState.ui.inferPolyMistakes,false);
+test('Poly inference defaults on and identifies only a single distinct remaining written note',()=>{
+  assert.equal(AppState.ui.inferPolyMistakes,true);
   assert.deepEqual(inferPolyExpectedNoteIds([{noteIds:['a'],hit:true},{noteIds:['b'],hit:false}]),['b']);
   for(const slots of [[],[{noteIds:['a','b'],hit:false}],[{noteIds:['a'],missed:true}],
     [{noteIds:['a'],hit:false},{noteIds:['b'],hit:false}]])assert.deepEqual(inferPolyExpectedNoteIds(slots),[]);

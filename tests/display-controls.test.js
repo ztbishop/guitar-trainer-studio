@@ -10,7 +10,7 @@ test('zoom inputs share state, clamp limits and restore invalid values; scroll a
   globalThis.document={getElementById:get,documentElement:{requestFullscreen(){}}};
   try {
     AppState.ui.zoomPercent=100;AppState.ui.autoScroll=true;AppState.ui.fullscreenOnPlay=false;
-    let changes=0;initDisplayControls(()=>changes++);
+    let changes=0;const controls=initDisplayControls(()=>changes++);
     const number=get('score-zoom-number'),slider=get('score-zoom');
     number.value='999';number.handlers.change();assert.equal(slider.value,'200');assert.equal(get('score-zoom-up').disabled,true);
     number.value='';number.handlers.change();assert.equal(number.value,'200');assert.equal(changes,1);
@@ -21,5 +21,12 @@ test('zoom inputs share state, clamp limits and restore invalid values; scroll a
     get('score-auto-scroll').checked=false;get('score-auto-scroll').handlers.change();assert.equal(AppState.ui.autoScroll,false);
     const before=changes;get('fullscreen-on-play').checked=true;get('fullscreen-on-play').handlers.change();
     assert.equal(AppState.ui.fullscreenOnPlay,true);assert.equal(changes,before);assert.equal(AppState.ui.zoomPercent,115);
+    AppState.ui.leftHanded=true;AppState.ui.showFretboard=false;
+    controls.sync();
+    assert.equal(get('left-handed-fretboard').disabled,true);
+    assert.equal(get('left-handed-fretboard').checked,true);
+    AppState.ui.showFretboard=true;controls.sync();
+    assert.equal(get('left-handed-fretboard').disabled,false);
+    assert.equal(get('left-handed-fretboard').checked,true);
   } finally {globalThis.document=previous;Object.assign(AppState.ui,ui);}
 });

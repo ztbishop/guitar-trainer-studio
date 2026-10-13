@@ -1,5 +1,6 @@
 // Display preferences and form wiring; native rendering stays in the host.
 import {AppState} from './app-state.js';
+import {saveDisplayPreferences} from './display-preferences.js';
 
 export function initDisplayControls(onChange) {
   const slider=document.getElementById('score-zoom');
@@ -8,14 +9,19 @@ export function initDisplayControls(onChange) {
   const up=document.getElementById('score-zoom-up');
   const scroll=document.getElementById('score-auto-scroll');
   const fullscreen=document.getElementById('fullscreen-on-play');
+  const fretboard=document.getElementById('show-fretboard');
+  const leftHanded=document.getElementById('left-handed-fretboard');
   function sync() {
     slider.value=number.value=String(AppState.ui.zoomPercent);
     down.disabled=AppState.ui.zoomPercent<=50;up.disabled=AppState.ui.zoomPercent>=200;
     scroll.checked=AppState.ui.autoScroll;fullscreen.checked=AppState.ui.fullscreenOnPlay;
+    if(fretboard)fretboard.checked=AppState.ui.showFretboard;
+    if(leftHanded){leftHanded.checked=AppState.ui.leftHanded;leftHanded.disabled=!AppState.ui.showFretboard;}
   }
   function zoom(value) {
     if(String(value).trim()!=='' && Number.isFinite(Number(value))) {
       AppState.ui.zoomPercent=Math.max(50,Math.min(200,Number(value)));
+      saveDisplayPreferences(AppState);
       onChange();
     }
     sync();
@@ -31,9 +37,9 @@ export function initDisplayControls(onChange) {
   }
   down.addEventListener('click',()=>step(-1));
   up.addEventListener('click',()=>step(1));
-  scroll.addEventListener('change',()=>{AppState.ui.autoScroll=scroll.checked;onChange();sync();});
+  scroll.addEventListener('change',()=>{AppState.ui.autoScroll=scroll.checked;saveDisplayPreferences(AppState);onChange();sync();});
   fullscreen.disabled=typeof document.documentElement?.requestFullscreen!=='function';
-  fullscreen.addEventListener('change',()=>{AppState.ui.fullscreenOnPlay=fullscreen.checked;sync();});
+  fullscreen.addEventListener('change',()=>{AppState.ui.fullscreenOnPlay=fullscreen.checked;saveDisplayPreferences(AppState);sync();});
   sync();
   return {sync};
 }

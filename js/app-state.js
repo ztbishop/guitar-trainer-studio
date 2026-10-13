@@ -66,7 +66,7 @@ export const AppState = {
     showNotationFeedback: true,
     showTabCircles: true,
     showTabMistakes: true,
-    inferPolyMistakes: false,
+    inferPolyMistakes: true,
     leftHanded: false,
     loadedFileName: '',
     playerStatus: 'Waiting for score',

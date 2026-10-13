@@ -1,5 +1,17 @@
 # Guitar Trainer Studio Architecture
 
+## Display preferences — 2026-10-13
+
+display-preferences.js owns validated gts.displayPreferences localStorage data for zoom, auto-scroll, fullscreen-on-Play, view mode, fretboard visibility and left-handed orientation. bootstrap restores before control/native startup; display-controls.js persists zoom/scroll/fullscreen, bootstrap persists view/fretboard intents. Orientation availability follows visibility without clearing orientation. alphatab-host.js's native track initialization keeps AppState.viewMode instead of overwriting it. Native zoom/render/scroll and gesture-based fullscreen remain unchanged; persistence never starts playback or fullscreen. Preferences exclude track identities, audio, scores and results. This supersedes prior session-only Display persistence notes.
+
+## Compact Practice composition — 2026-10-13
+
+chord-controls.js synchronizes visibility of the practice-wait-controls wrapper with AppState.mode, hiding it in Realtime without clearing or rewriting saved settings. Existing chord enablement/commits and native/grade intents remain unchanged. index.html keeps detailed timing guidance in a collapsed disclosure and menu-controls.css reduces Practice-only spacing while preserving touch-target heights and phone stacking.
+
+## Persistent Practice preferences — 2026-10-13
+
+practice-preferences.js owns validated localStorage data under gts.practicePreferences: Practice mode, four independent Score feedback booleans and Wait chord mode/window. bootstrap restores these before wiring controls and native initialization; existing UI intents save after setting state. Score-load handling keeps them. First-use defaults are Realtime, collect/200 ms and all feedback on, superseding older default-off Poly guidance. Reads tolerate malformed/inaccessible storage and invalid fields; writes tolerate storage failures. Session results, MIDI, track selection, other Display preferences and transport state are excluded. No preference read invokes playback, grading or alphaTab.
+
 ## Library and mixer boundaries — 2026-10-13
 
 - library-store.js owns IndexedDB transactions, original-byte fingerprints, versioned backup validation/serialization and atomic additive merge. guitarTrainerLibrary v1 has folders/scores keyed by id; scores carry title/fileName/folderId/hash/original Uint8Array bytes. Imported ids remap and content deduplicates without replacing existing metadata. This is separate from score-playback.js's parsed timeline and Piano storage.
@@ -7,6 +19,7 @@
 - audio-controls.js owns saved master-volume preference/form state and connected groups of overlapping native primary/secondary MIDI channels. AppState.audio.tracks holds session percentages/mutes keyed by group indices; scoreLoaded resets the mix. Backups exclude preferences/results.
 - alphatab-host.js remains the native boundary for masterVolume/changeTrackVolume/changeTrackMute. Mixer edits apply without rerender/seek/grade reset. Practice/backing gates combine with group Mute; any enabled member permits a shared group. Independent Wait/count-in gain multiplies by master. count-in.js exposes gain-only setVolume on its cancellation function, retaining timing/cancellation behavior.
 - Practice/Display changes affect labels/composition/disclosures. chord-controls.js adds Enter/blur commits and ignores unchanged intents; WaitSession matching is unchanged. See SCORE-LIBRARY.md for workflows, browser-origin boundaries and acceptance. No build/vendor/deferred-feature changes.
+- Practice composition follow-up puts track selection first and exposes the existing Poly checkbox directly under incorrect fret numbers. Responsive CSS places the chord window beside Wait choices and dims unavailable fields; chord-controls.js retains its existing enablement rules. This is markup/CSS only, with the same IDs and feedback/grading intents.
 
 ## MIDI and feedback text recording — 2026-10-12
 
@@ -54,7 +67,7 @@ Root README.md describes running and checking the app; AGENTS.md records standin
 
 Current baseline: **Beta v0.0.3**, with `version.json` value `0.0.3`; owner creation of the `v0.0.3` tag follows the version-update commit. The previous `v0.0.2` tag remains a historical checkpoint. This metadata update introduces no runtime or architectural changes. Git publishing and deployment remain owner actions unless requested. Project documentation is the durable handoff between chats; earlier ChatGPT **Guitar Trainer** history is optional context if accessible.
 
-Current feedback contract: one Staff visibility control; independent tab highlights and numbers; default-off conservative Poly inference; no mandatory Hex string-check gate. Numeric Hex/Poly feedback is plain red at the native tab font size beside the score string, with translucent backing and no prefix/border/pointer or custom spacing. Both input modes grade pitch; strict-position grading remains deferred. Historical entries below preserve earlier designs and validation results, not current instructions where superseded.
+Current feedback contract: one Staff visibility control; independent tab highlights and numbers; saved conservative Poly inference enabled on first use; no mandatory Hex string-check gate. Numeric Hex/Poly feedback is plain red at the native tab font size beside the score string, with translucent backing and no prefix/border/pointer or custom spacing. Both input modes grade pitch; strict-position grading remains deferred. Historical entries below preserve earlier designs and validation results, not current instructions where superseded.
 
 ## Dated implementation history
 

@@ -133,10 +133,6 @@
 
       <div class="popup-panel-grid">
         <div class="popup-card practice-setup">
-          <fieldset class="menu-radio-group"><legend>Practice mode</legend>
-            <label><input type="radio" name="practice-mode" value="realtime" checked /><span><strong>Realtime</strong> — play along at the set tempo</span></label>
-            <label><input type="radio" name="practice-mode" value="wait" /><span><strong>Wait for Me</strong> — advance after correct notes</span></label>
-          </fieldset>
           <div class="form-grid form-grid--practice">
             <label class="field-group" for="practice-track-select">
               <span class="field-label">Track to practice</span>
@@ -146,16 +142,23 @@
             </label>
           </div>
 
+          <fieldset class="menu-radio-group practice-mode-options"><legend>Practice mode</legend>
+            <label><input type="radio" name="practice-mode" value="realtime" checked /><span><strong>Realtime</strong> — follow the tempo</span></label>
+            <label><input type="radio" name="practice-mode" value="wait" /><span><strong>Wait for Me</strong> — advance after correct notes</span></label>
+          </fieldset>
+          <div id="practice-wait-controls" class="practice-wait-controls" hidden>
           <fieldset class="menu-radio-group"><legend>Wait chords</legend>
-            <label><input type="radio" name="wait-chord-mode" value="collect" checked disabled /><span><strong>One at a time</strong> — collect correct notes, no time limit</span></label>
-            <label><input type="radio" name="wait-chord-mode" value="together" disabled /><span><strong>Together</strong> — complete the chord within the window</span></label>
+            <label><input type="radio" name="wait-chord-mode" value="collect" checked disabled /><span><strong>One at a time</strong> — no time limit</span></label>
+            <label><input type="radio" name="wait-chord-mode" value="together" disabled /><span><strong>Together</strong> — within the chord window</span></label>
           </fieldset>
           <label class="field-group" for="wait-chord-window">
             <span class="field-label">Chord window (ms)</span>
             <input id="wait-chord-window" type="number" min="50" max="1000" step="25" value="200" disabled />
-            <span class="field-help">Together only. Changes pause practice and clear Wait results.</span>
+            <span class="field-help">Together only.</span>
           </label>
-          <p id="wait-chord-status" class="field-help" role="status">These controls apply to Wait Mode.</p>
+          <p id="wait-chord-status" class="field-help" role="status"></p>
+          <details class="practice-advanced"><summary>Chord timing help</summary><p class="field-help">One at a time collects correct notes without a time limit. Together starts its window at the first correct note. Pause freezes the window; expired chords can be retried without a missed-note penalty. Changing the chord choice or window pauses practice and clears Wait results.</p></details>
+          </div>
 
           <details class="practice-advanced"><summary>MIDI timing adjustment</summary><label class="field-group" for="midi-latency-ms">
             <span class="field-label">MIDI input latency (ms)</span>
@@ -174,10 +177,10 @@
           <div class="feedback-group feedback-group--tabs">
             <label class="toggle-row" for="show-tab-circles"><input id="show-tab-circles" type="checkbox" checked /><span>Tab highlights</span></label>
             <label class="toggle-row" for="show-tab-mistakes"><input id="show-tab-mistakes" type="checkbox" checked /><span>Incorrect fret numbers</span></label>
-            <details><summary>Poly fret estimates</summary><label class="toggle-row" for="infer-poly-mistakes"><input id="infer-poly-mistakes" type="checkbox" /><span>Estimate incorrect frets (Poly input)</span></label>
-            <p class="help-text">Optional estimates for one unambiguous remaining note. Enable incorrect fret numbers to see them; these are not detected positions.</p></details>
+            <div class="practice-poly-option"><label class="toggle-row" for="infer-poly-mistakes"><input id="infer-poly-mistakes" type="checkbox" checked aria-describedby="poly-estimate-help" /><span>Estimate incorrect frets (Poly)</span></label>
+            <p id="poly-estimate-help" class="help-text">Estimates for one unambiguous remaining note; requires Incorrect fret numbers.</p></div>
           </div>
-          <details class="menu-future"><summary>Feedback colors and positions</summary><p id="tab-feedback-status" class="help-text" role="status"></p><p class="practice-visual-legend">Blue: current target • Green: correct • Red: Hex string errors, optional inferred Poly errors, or Realtime missed. Clean chord tones stay green. Pitch grading accepts correct notes on any string. Notation shows actual wrong pitches with explicit accidentals. Tab preserves original frets; detected Hex wrong frets appear beside their strings.</p></details>
+          <details class="menu-future"><summary>Feedback colors and positions</summary><p id="tab-feedback-status" class="help-text" role="status"></p><p class="help-text">Poly fret estimates are optional guidance for one unambiguous remaining written note, not detected physical positions. Enable Incorrect fret numbers to display them.</p><p class="practice-visual-legend">Blue: current target • Green: correct • Red: Hex string errors, optional inferred Poly errors, or Realtime missed. Clean chord tones stay green. Pitch grading accepts correct notes on any string. Notation shows actual wrong pitches with explicit accidentals. Tab preserves original frets; detected Hex wrong frets appear beside their strings.</p></details>
         </div>
         <div class="menu-action-row"><button id="new-attempt-here" type="button" disabled aria-describedby="new-attempt-help">Clear practice results</button><span id="new-attempt-help" class="field-help">Keeps your current position. Play/Pause preserves results; Reset returns to the start.</span></div>
       </div>
@@ -315,7 +318,7 @@
             <input id="score-zoom" type="range" min="50" max="200" step="5" value="100" />
             <div class="menu-number"><input id="score-zoom-number" aria-label="Zoom percent" type="number" min="50" max="200" step="5" value="100" /><div class="menu-steppers"><button id="score-zoom-down" type="button" aria-label="Zoom out">−</button><button id="score-zoom-up" type="button" aria-label="Zoom in">+</button></div></div>
           </div>
-          <label class="toggle-row"><input id="score-auto-scroll" type="checkbox" checked /><span>Follow playback with auto-scroll</span></label>
+          <label class="toggle-row"><input id="score-auto-scroll" type="checkbox" checked /><span>Auto-scroll during playback</span></label>
           <label class="toggle-row"><input id="fullscreen-on-play" type="checkbox" /><span>Full screen on Play</span></label>
         </div>
         <div class="popup-card">
@@ -325,8 +328,8 @@
           </fieldset>
           <div class="popup-card-title">Virtual fretboard</div>
           <label class="toggle-row" for="show-fretboard"><input id="show-fretboard" type="checkbox" /><span>Show virtual fretboard</span></label>
-          <label class="toggle-row" for="left-handed-fretboard"><input id="left-handed-fretboard" type="checkbox" /><span>Left-handed fretboard</span></label>
-          <p class="field-help">Six-string tracks use the score tuning and capo. Single-channel input shows possible played positions.</p>
+          <label class="toggle-row display-fretboard-orientation" for="left-handed-fretboard"><input id="left-handed-fretboard" type="checkbox" disabled /><span>Left-handed fretboard</span></label>
+          <details class="display-fretboard-help"><summary>Fretboard help</summary><p class="field-help">Six-string tracks use the score tuning and capo. Single-channel input shows possible played positions.</p></details>
         </div>
       </div>
     </section>

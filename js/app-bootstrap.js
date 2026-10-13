@@ -35,6 +35,8 @@ import { initDisplayControls } from './display-controls.js';
 import { applyScoreDisplay } from './alphatab-host.js';
 import {applyMasterVolume,applyTrackMixer} from './alphatab-host.js';
 import {initAudioControls} from './audio-controls.js';
+import {readPracticePreferences,savePracticePreferences,FEEDBACK_PREFERENCE_KEYS} from './practice-preferences.js';
+import {readDisplayPreferences,saveDisplayPreferences} from './display-preferences.js';
 
 let transportControls=null;
 let chordControls=null;
@@ -117,7 +119,7 @@ function syncTrainerFoundation() {
 
 
 function wireScoreStageUi() {
-  initDisplayControls(applyScoreDisplay);
+  const displayControls=initDisplayControls(applyScoreDisplay);
   const fullscreenButton = document.getElementById('btn-score-fullscreen');
   const scoreStage = document.querySelector('.score-stage.viewer-panel');
   const fretboardContainer = document.getElementById('fretboard-container');
@@ -127,6 +129,8 @@ function wireScoreStageUi() {
     if(control)control.checked=Boolean(AppState.ui[key]);
     control?.addEventListener('change',()=>{
       AppState.ui[key]=control.checked;
+      if(FEEDBACK_PREFERENCE_KEYS.includes(key))savePracticePreferences(AppState);
+      if(key==='showFretboard' || key==='leftHanded') {saveDisplayPreferences(AppState);displayControls.sync();}
       if(fretboardContainer) {
         fretboardContainer.classList.toggle('hidden',!AppState.ui.showFretboard);
         fretboardContainer.setAttribute('aria-hidden',String(!AppState.ui.showFretboard));
@@ -216,12 +220,15 @@ function wirePracticeControls() {
   });
   chordControls=initChordControls(settings=>{
     waitController.stop();pauseWaitTransport();AppState.waitChord=settings;
+    savePracticePreferences(AppState);
     clearActiveMidiNotes();configureWaitSession();renderTrainerUi();
   });
   chordControls.sync();
+  for(const mode of document.querySelectorAll('input[name="practice-mode"]'))mode.checked=mode.value===AppState.mode;
   for(const mode of document.querySelectorAll('input[name="practice-mode"]'))mode.addEventListener('change', event => {
     waitController.stop();pauseWaitTransport();
     AppState.mode=event.target.value==='wait'?'wait':'realtime';
+    savePracticePreferences(AppState);
     clearActiveMidiNotes();resetRealtimeSession('mode-change');
     configureWaitSession();
     renderTrainerUi();
@@ -240,12 +247,14 @@ function wirePracticeControls() {
 
   function applyFromUi() {
     const previousTrack = AppState.practiceTrackId;
+    const previousView = AppState.viewMode;
     applyPlaybackTrackState({
       practiceTrackId: practiceTrackSelect?.value || AppState.practiceTrackId,
       playSelectedTrack: Boolean(playSelectedTrackToggle?.checked),
       playOtherTracks: Boolean(playOtherTracksToggle?.checked),
       viewMode: viewModes.find(mode=>mode.checked)?.value || AppState.viewMode,
     });
+    if(previousView!==AppState.viewMode)saveDisplayPreferences(AppState);
     if (previousTrack !== AppState.practiceTrackId) syncTrainerFoundation();
     else renderTrainerUi();
   }
@@ -584,6 +593,13 @@ function wireMidiControls() {
 }
 
 async function bootstrap() {
+  const preferences=readPracticePreferences();
+  AppState.mode=preferences.mode;
+  Object.assign(AppState.ui,preferences.feedback);
+  AppState.waitChord=preferences.waitChord;
+  const displayPreferences=readDisplayPreferences();
+  AppState.viewMode=displayPreferences.viewMode;
+  Object.assign(AppState.ui,displayPreferences.ui);
   loadMidiDebugPreference();
   initToolbar();
   scoreLibrary=initScoreLibrary(loadScoreFile);

@@ -197,7 +197,9 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   const parser=new alpha.importer.AlphaTexImporter();
   parser.initFromString(String.raw`\tempo 120 . \ro 0.6.1 | \rc 2 2.6.1`,new alpha.Settings());
   const score=parser.readScore();
+  AppState.viewMode='all-tracks';
   api.scoreLoaded.emit(score);
+  assert.equal(AppState.viewMode,'all-tracks');
   const renderedNote=score.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0];
   api.boundsLookup={isFinished:true,findBeats:()=>[{notes:[{note:renderedNote,noteHeadBounds:{x:20,y:30,w:10,h:8}}]}]};
   const marks=[{sourceNoteId:String(renderedNote.id),state:'correct',label:'Correct E2'}];

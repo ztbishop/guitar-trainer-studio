@@ -357,7 +357,6 @@ function setDefaultTrackState() {
 
   AppState.practiceTrackId = getTrackId(AppState.tracks[0], 0);
   AppState.playbackTrackIds = AppState.tracks.slice(1).map((track, index) => getTrackId(track, index + 1));
-  AppState.viewMode = 'practice-only';
 }
 
 function getRenderedTracks() {

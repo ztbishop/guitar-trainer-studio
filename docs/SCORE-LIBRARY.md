@@ -25,7 +25,7 @@ Backups exclude grading/results, MIDI configuration, audio preferences and defer
 - **Track volume & mute** adjusts native track-channel playback. 100% keeps the score's mix; settings reset on score load and survive practice-track/view/mode changes. Explicit Mute overrides the playback switches.
 - Tracks sharing primary/secondary MIDI channels have one mixer row, including transitive overlaps. Native alphaTab cannot distinguish their audio. If practice/backing switches disagree in a shared row, it plays when any member is enabled; row Mute wins.
 
-Practice keeps independent Staff feedback, tab highlights and incorrect fret numbers. MIDI timing adjustment, default-off Poly estimates and feedback explanations are disclosures. Display keeps native zoom/scroll/fullscreen, track visibility and the existing six-string fretboard. Pitch matching/grading is unchanged.
+Practice keeps independent Staff feedback, tab highlights and incorrect fret numbers. All four feedback switches, including the direct Poly estimates checkbox, start checked and retain each choice in localStorage. Practice mode also remembers your last choice (Realtime on first use), along with Wait chord choice/window (One at a time/200 ms on first use). MIDI timing adjustment and feedback explanations remain disclosures. Display keeps native zoom/scroll/fullscreen, track visibility and the existing six-string fretboard. Pitch matching/grading is unchanged.
 
 ## Verification
 
