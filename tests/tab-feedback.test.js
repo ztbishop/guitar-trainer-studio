@@ -159,7 +159,10 @@ test('retained double digits stay beside each detected string across zoom',()=>{
     assert.ok(badges.every(b=>b.fontSize===14*scale && b.retained && b.y+b.height/2===b.targetY));
     assert.equal(new Set(badges.map(b=>b.y)).size,6);
     const live=wrongFretGeometry(marks.map(m=>({...m,retained:false})),h.lookup,h.renderer.boundsLookup,h.metrics);
-    assert.deepEqual(badges.map(b=>[b.x,b.y,b.width,b.height]),live.map(b=>[b.x,b.y,b.width,b.height]));
+    for(const [i,badge] of badges.entries()) {
+      assert.ok(Math.abs(live[i].x-badge.x-2*scale)<.001);
+      assert.deepEqual([badge.y,badge.width,badge.height],[live[i].y,live[i].width,live[i].height]);
+    }
   }
 });
 

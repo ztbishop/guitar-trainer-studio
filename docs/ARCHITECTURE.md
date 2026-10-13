@@ -1,5 +1,11 @@
 # Guitar Trainer Studio Architecture
 
+## Historical fret-number horizontal nudge — 2026-10-12
+
+Historical wrong fret numbers now sit 2px left of their previous position at 100% zoom (scaled with score zoom), closer to the right edge of the corresponding tab outline. Their vertical alignment, live numbers, Hex/Poly inference, grading and native score spacing are unchanged. This is a small horizontal adjustment, with no collision hiding, stacking or padding.
+
+Validation: 162 automated tests and module syntax/diff checks pass. Owner browser acceptance remains pending: hard-refresh and compare retained numbers with live feedback at normal and enlarged zoom.
+
 ## Menu follow-up boundaries — 2026-10-11
 
 Display mode and MIDI input source are native radio groups. Host UI synchronization enables/selects display radios; bootstrap dispatches the same existing display/input intents. Toolbar touch enlargement depends on the primary pointer rather than any available pointer, avoiding oversized buttons on desktop touchscreen systems. Popup touch controls and collapse thresholds remain unchanged.

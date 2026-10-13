@@ -1,5 +1,10 @@
 # Guitar Trainer Studio: status and to-do
 
+### Historical fret placement — 2026-10-12
+
+- [x] Small left-only nudge: retained red fret numbers move 2 scaled pixels closer to their tab outlines; live numbers and vertical string alignment stay unchanged. 162 automated tests pass.
+- [ ] Owner hard-refresh/zoom acceptance on the actual score. No layout padding or collision omission added.
+
 Updated 2026-10-11. This is the central status and priority list. Stage files retain implementation details and checks; DEV-NOTES records decisions. Proposed items below are recommendations, not implemented changes. The next implementation stage should be scoped from this ordered list.
 
 ## Current workflow and specification — 2026-10-11

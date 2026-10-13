@@ -91,9 +91,10 @@ export function wrongFretGeometry(marks,lookup,bounds,{profile=0,scale=1,tabLine
       width=(String(mark.displayFret??mark.fret).length*nativeFontSize*0.65+5)*scale;
     const anchorString=note.beat.voice.bar.staff.tuning.length+1-note.string;
     const targetX=b.x+b.w+3*scale,targetY=b.y+b.h/2+(mark.string-anchorString)*tabLineSpacing*scale;
-    // Always place detail beside the detected string, live or retained.
+    // Retained detail sits two scaled pixels closer to its tab outline.
+    // Live placement and vertical string alignment remain unchanged.
     // Keep double digits visible; do not route pointers or reserve staff space.
-    result.push({...mark,x:b.x+b.w+5*scale,y:targetY-height/2,width,height,fontSize,targetX,targetY});
+    result.push({...mark,x:b.x+b.w+(mark.retained?3:5)*scale,y:targetY-height/2,width,height,fontSize,targetX,targetY});
   }
   return result;
 }

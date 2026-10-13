@@ -1,5 +1,11 @@
 # Development notes
 
+## Historical fret-number horizontal nudge — 2026-10-12
+
+Historical wrong fret numbers now sit 2px left of their previous position at 100% zoom (scaled with score zoom), closer to the right edge of the corresponding tab outline. Their vertical alignment, live numbers, Hex/Poly inference, grading and native score spacing are unchanged. This is a small horizontal adjustment, with no collision hiding, stacking or padding.
+
+Validation: 162 automated tests and module syntax/diff checks pass. Owner browser acceptance remains pending: hard-refresh and compare retained numbers with live feedback at normal and enlarged zoom.
+
 ## Toolbar touch detection and remaining binary selectors — 2026-10-11
 
 Owner's comparison showed toolbar buttons still taller than Piano. The cause was `any-pointer: coarse`: a secondary touchscreen enlarged desktop buttons to 44px. Toolbar sizing now uses the primary pointer (`pointer: coarse`), so mouse-driven layouts use Piano's 36px minimum height and 7px/13px padding even with a touchscreen attached. Touch-driven layouts retain 44px targets; shared popup touch sizing and responsive thresholds remain unchanged.
