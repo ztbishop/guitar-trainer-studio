@@ -1,5 +1,19 @@
 # Guitar Trainer Studio Architecture
 
+## Fretboard first-use defaults — 2026-10-13
+
+AppState.ui and display-preferences.js both default showFretboard to true and leftHanded to false. Existing gts.displayPreferences booleans override these defaults independently; no migration resets saved false visibility or true orientation. This supersedes older Display defaults without changing persistence, native rendering or grading.
+
+## Compact fretboard/help ownership — 2026-10-13
+
+initFretboard accepts a Display help status element alongside the neck container. renderFretboard projects explanatory/model status there while the neck container contains only its accessible SVG/scroll wrapper. index.html owns static Display help text. fretboard-geometry.js owns compact string spacing and symmetric inlay gap positions; six-string double inlays are between 2–3 and 4–5. Rendering still consumes existing model/session evidence and never changes MIDI, native score geometry, grading or preferences.
+
+
+## Score-defined fretboard — 2026-10-13
+
+practice-visuals.js projects selected-staff tuning length, capo/transposition, tab targets, accepted note states and live wrong-note evidence into the neck model. Arbitrary usable tuning counts are supported; six-channel hints restrict positions only for six-string tracks. Pitch-only output enumerates possible positions without new inference or grading. fretboard-geometry.js owns equal-temperament wire spacing, distinct note centers, adaptive width and left-handed reflection. fretboard-ui.js consumes this model for SVG neck/inlays/strings/markers and preserves scroll during feedback. Bootstrap passes existing liveWrongNotes so multiple held wrong pitches remain red. No alphaTab integration or MIDI/session rules moved. See FRETBOARD.md for tests and limits; original Stage 6 six-string restrictions are superseded for this visual only.
+
+
 ## Display preferences — 2026-10-13
 
 display-preferences.js owns validated gts.displayPreferences localStorage data for zoom, auto-scroll, fullscreen-on-Play, view mode, fretboard visibility and left-handed orientation. bootstrap restores before control/native startup; display-controls.js persists zoom/scroll/fullscreen, bootstrap persists view/fretboard intents. Orientation availability follows visibility without clearing orientation. alphatab-host.js's native track initialization keeps AppState.viewMode instead of overwriting it. Native zoom/render/scroll and gesture-based fullscreen remain unchanged; persistence never starts playback or fullscreen. Preferences exclude track identities, audio, scores and results. This supersedes prior session-only Display persistence notes.

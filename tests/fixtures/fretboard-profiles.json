@@ -1,0 +1,1669 @@
+[
+  {
+    "name": "One string",
+    "track": {
+      "staves": [
+        {
+          "tuning": [
+            64
+          ],
+          "capo": 0,
+          "transpositionPitch": 0
+        }
+      ]
+    },
+    "events": [
+      {
+        "id": "0:attack:0",
+        "sourceBeatId": "0",
+        "trackId": "0",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 0,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 0,
+        "startTick": 0,
+        "endTick": 960,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "0:0:0:note:0",
+            "sourceNoteId": "0",
+            "sourceBeatId": "0",
+            "midi": 64,
+            "noteName": "E4",
+            "sourceString": 1,
+            "string": 1,
+            "fret": 0,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "0:0:0:note:0",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          },
+          {
+            "id": "0:0:0:note:1",
+            "sourceNoteId": "1",
+            "sourceBeatId": "0",
+            "midi": 67,
+            "noteName": "G4",
+            "sourceString": 1,
+            "string": 1,
+            "fret": 3,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "0:0:0:note:1",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 0,
+        "endTimeMs": 500,
+        "beatIds": [
+          "0"
+        ],
+        "pitches": [
+          64,
+          67
+        ],
+        "pitchNames": [
+          "E4",
+          "G4"
+        ],
+        "targetEndTick": 960
+      },
+      {
+        "id": "0:attack:960",
+        "sourceBeatId": "1",
+        "trackId": "0",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 1,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 960,
+        "startTick": 960,
+        "endTick": 1920,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "0:1:960:note:2",
+            "sourceNoteId": "2",
+            "sourceBeatId": "1",
+            "midi": 76,
+            "noteName": "E5",
+            "sourceString": 1,
+            "string": 1,
+            "fret": 12,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 960,
+            "endTick": 1920,
+            "durationTicks": 960,
+            "attackNoteId": "0:1:960:note:2",
+            "startTimeMs": 500,
+            "endTimeMs": 1000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 500,
+        "endTimeMs": 1000,
+        "beatIds": [
+          "1"
+        ],
+        "pitches": [
+          76
+        ],
+        "pitchNames": [
+          "E5"
+        ],
+        "targetEndTick": 1920
+      },
+      {
+        "id": "0:attack:1920",
+        "sourceBeatId": "2",
+        "trackId": "0",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 2,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 1920,
+        "startTick": 1920,
+        "endTick": 2880,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "0:2:1920:note:3",
+            "sourceNoteId": "3",
+            "sourceBeatId": "2",
+            "midi": 88,
+            "noteName": "E6",
+            "sourceString": 1,
+            "string": 1,
+            "fret": 24,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 1920,
+            "endTick": 2880,
+            "durationTicks": 960,
+            "attackNoteId": "0:2:1920:note:3",
+            "startTimeMs": 1000,
+            "endTimeMs": 1500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1000,
+        "endTimeMs": 1500,
+        "beatIds": [
+          "2"
+        ],
+        "pitches": [
+          88
+        ],
+        "pitchNames": [
+          "E6"
+        ],
+        "targetEndTick": 2880
+      },
+      {
+        "id": "0:attack:2880",
+        "sourceBeatId": "3",
+        "trackId": "0",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 3,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 2880,
+        "startTick": 2880,
+        "endTick": 3840,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "0:3:2880:note:4",
+            "sourceNoteId": "4",
+            "sourceBeatId": "3",
+            "midi": 100,
+            "noteName": "E7",
+            "sourceString": 1,
+            "string": 1,
+            "fret": 36,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 2880,
+            "endTick": 3840,
+            "durationTicks": 960,
+            "attackNoteId": "0:3:2880:note:4",
+            "startTimeMs": 1500,
+            "endTimeMs": 2000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1500,
+        "endTimeMs": 2000,
+        "beatIds": [
+          "3"
+        ],
+        "pitches": [
+          100
+        ],
+        "pitchNames": [
+          "E7"
+        ],
+        "targetEndTick": 3840
+      }
+    ]
+  },
+  {
+    "name": "Four strings",
+    "track": {
+      "staves": [
+        {
+          "tuning": [
+            43,
+            38,
+            33,
+            28
+          ],
+          "capo": 0,
+          "transpositionPitch": 0
+        }
+      ]
+    },
+    "events": [
+      {
+        "id": "1:attack:0",
+        "sourceBeatId": "4",
+        "trackId": "1",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 0,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 0,
+        "startTick": 0,
+        "endTick": 960,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "1:4:0:note:5",
+            "sourceNoteId": "5",
+            "sourceBeatId": "4",
+            "midi": 43,
+            "noteName": "G2",
+            "sourceString": 4,
+            "string": 1,
+            "fret": 0,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "1:4:0:note:5",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          },
+          {
+            "id": "1:4:0:note:6",
+            "sourceNoteId": "6",
+            "sourceBeatId": "4",
+            "midi": 31,
+            "noteName": "G1",
+            "sourceString": 1,
+            "string": 4,
+            "fret": 3,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "1:4:0:note:6",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 0,
+        "endTimeMs": 500,
+        "beatIds": [
+          "4"
+        ],
+        "pitches": [
+          31,
+          43
+        ],
+        "pitchNames": [
+          "G1",
+          "G2"
+        ],
+        "targetEndTick": 960
+      },
+      {
+        "id": "1:attack:960",
+        "sourceBeatId": "5",
+        "trackId": "1",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 1,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 960,
+        "startTick": 960,
+        "endTick": 1920,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "1:5:960:note:7",
+            "sourceNoteId": "7",
+            "sourceBeatId": "5",
+            "midi": 55,
+            "noteName": "G3",
+            "sourceString": 4,
+            "string": 1,
+            "fret": 12,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 960,
+            "endTick": 1920,
+            "durationTicks": 960,
+            "attackNoteId": "1:5:960:note:7",
+            "startTimeMs": 500,
+            "endTimeMs": 1000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 500,
+        "endTimeMs": 1000,
+        "beatIds": [
+          "5"
+        ],
+        "pitches": [
+          55
+        ],
+        "pitchNames": [
+          "G3"
+        ],
+        "targetEndTick": 1920
+      },
+      {
+        "id": "1:attack:1920",
+        "sourceBeatId": "6",
+        "trackId": "1",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 2,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 1920,
+        "startTick": 1920,
+        "endTick": 2880,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "1:6:1920:note:8",
+            "sourceNoteId": "8",
+            "sourceBeatId": "6",
+            "midi": 52,
+            "noteName": "E3",
+            "sourceString": 1,
+            "string": 4,
+            "fret": 24,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 1920,
+            "endTick": 2880,
+            "durationTicks": 960,
+            "attackNoteId": "1:6:1920:note:8",
+            "startTimeMs": 1000,
+            "endTimeMs": 1500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1000,
+        "endTimeMs": 1500,
+        "beatIds": [
+          "6"
+        ],
+        "pitches": [
+          52
+        ],
+        "pitchNames": [
+          "E3"
+        ],
+        "targetEndTick": 2880
+      },
+      {
+        "id": "1:attack:2880",
+        "sourceBeatId": "7",
+        "trackId": "1",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 3,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 2880,
+        "startTick": 2880,
+        "endTick": 3840,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "1:7:2880:note:9",
+            "sourceNoteId": "9",
+            "sourceBeatId": "7",
+            "midi": 79,
+            "noteName": "G5",
+            "sourceString": 4,
+            "string": 1,
+            "fret": 36,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 2880,
+            "endTick": 3840,
+            "durationTicks": 960,
+            "attackNoteId": "1:7:2880:note:9",
+            "startTimeMs": 1500,
+            "endTimeMs": 2000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1500,
+        "endTimeMs": 2000,
+        "beatIds": [
+          "7"
+        ],
+        "pitches": [
+          79
+        ],
+        "pitchNames": [
+          "G5"
+        ],
+        "targetEndTick": 3840
+      }
+    ]
+  },
+  {
+    "name": "Five strings",
+    "track": {
+      "staves": [
+        {
+          "tuning": [
+            43,
+            38,
+            33,
+            28,
+            23
+          ],
+          "capo": 0,
+          "transpositionPitch": 0
+        }
+      ]
+    },
+    "events": [
+      {
+        "id": "2:attack:0",
+        "sourceBeatId": "8",
+        "trackId": "2",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 0,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 0,
+        "startTick": 0,
+        "endTick": 960,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "2:8:0:note:10",
+            "sourceNoteId": "10",
+            "sourceBeatId": "8",
+            "midi": 43,
+            "noteName": "G2",
+            "sourceString": 5,
+            "string": 1,
+            "fret": 0,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "2:8:0:note:10",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          },
+          {
+            "id": "2:8:0:note:11",
+            "sourceNoteId": "11",
+            "sourceBeatId": "8",
+            "midi": 26,
+            "noteName": "D1",
+            "sourceString": 1,
+            "string": 5,
+            "fret": 3,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "2:8:0:note:11",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 0,
+        "endTimeMs": 500,
+        "beatIds": [
+          "8"
+        ],
+        "pitches": [
+          26,
+          43
+        ],
+        "pitchNames": [
+          "D1",
+          "G2"
+        ],
+        "targetEndTick": 960
+      },
+      {
+        "id": "2:attack:960",
+        "sourceBeatId": "9",
+        "trackId": "2",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 1,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 960,
+        "startTick": 960,
+        "endTick": 1920,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "2:9:960:note:12",
+            "sourceNoteId": "12",
+            "sourceBeatId": "9",
+            "midi": 55,
+            "noteName": "G3",
+            "sourceString": 5,
+            "string": 1,
+            "fret": 12,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 960,
+            "endTick": 1920,
+            "durationTicks": 960,
+            "attackNoteId": "2:9:960:note:12",
+            "startTimeMs": 500,
+            "endTimeMs": 1000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 500,
+        "endTimeMs": 1000,
+        "beatIds": [
+          "9"
+        ],
+        "pitches": [
+          55
+        ],
+        "pitchNames": [
+          "G3"
+        ],
+        "targetEndTick": 1920
+      },
+      {
+        "id": "2:attack:1920",
+        "sourceBeatId": "10",
+        "trackId": "2",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 2,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 1920,
+        "startTick": 1920,
+        "endTick": 2880,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "2:10:1920:note:13",
+            "sourceNoteId": "13",
+            "sourceBeatId": "10",
+            "midi": 47,
+            "noteName": "B2",
+            "sourceString": 1,
+            "string": 5,
+            "fret": 24,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 1920,
+            "endTick": 2880,
+            "durationTicks": 960,
+            "attackNoteId": "2:10:1920:note:13",
+            "startTimeMs": 1000,
+            "endTimeMs": 1500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1000,
+        "endTimeMs": 1500,
+        "beatIds": [
+          "10"
+        ],
+        "pitches": [
+          47
+        ],
+        "pitchNames": [
+          "B2"
+        ],
+        "targetEndTick": 2880
+      },
+      {
+        "id": "2:attack:2880",
+        "sourceBeatId": "11",
+        "trackId": "2",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 3,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 2880,
+        "startTick": 2880,
+        "endTick": 3840,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "2:11:2880:note:14",
+            "sourceNoteId": "14",
+            "sourceBeatId": "11",
+            "midi": 79,
+            "noteName": "G5",
+            "sourceString": 5,
+            "string": 1,
+            "fret": 36,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 2880,
+            "endTick": 3840,
+            "durationTicks": 960,
+            "attackNoteId": "2:11:2880:note:14",
+            "startTimeMs": 1500,
+            "endTimeMs": 2000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1500,
+        "endTimeMs": 2000,
+        "beatIds": [
+          "11"
+        ],
+        "pitches": [
+          79
+        ],
+        "pitchNames": [
+          "G5"
+        ],
+        "targetEndTick": 3840
+      }
+    ]
+  },
+  {
+    "name": "Six strings drop D capo 2",
+    "track": {
+      "staves": [
+        {
+          "tuning": [
+            64,
+            59,
+            55,
+            50,
+            45,
+            38
+          ],
+          "capo": 2,
+          "transpositionPitch": 0
+        }
+      ]
+    },
+    "events": [
+      {
+        "id": "3:attack:0",
+        "sourceBeatId": "12",
+        "trackId": "3",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 0,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 0,
+        "startTick": 0,
+        "endTick": 960,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "3:12:0:note:15",
+            "sourceNoteId": "15",
+            "sourceBeatId": "12",
+            "midi": 66,
+            "noteName": "F#4",
+            "sourceString": 6,
+            "string": 1,
+            "fret": 0,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "3:12:0:note:15",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          },
+          {
+            "id": "3:12:0:note:16",
+            "sourceNoteId": "16",
+            "sourceBeatId": "12",
+            "midi": 43,
+            "noteName": "G2",
+            "sourceString": 1,
+            "string": 6,
+            "fret": 3,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "3:12:0:note:16",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 0,
+        "endTimeMs": 500,
+        "beatIds": [
+          "12"
+        ],
+        "pitches": [
+          43,
+          66
+        ],
+        "pitchNames": [
+          "G2",
+          "F#4"
+        ],
+        "targetEndTick": 960
+      },
+      {
+        "id": "3:attack:960",
+        "sourceBeatId": "13",
+        "trackId": "3",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 1,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 960,
+        "startTick": 960,
+        "endTick": 1920,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "3:13:960:note:17",
+            "sourceNoteId": "17",
+            "sourceBeatId": "13",
+            "midi": 78,
+            "noteName": "F#5",
+            "sourceString": 6,
+            "string": 1,
+            "fret": 12,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 960,
+            "endTick": 1920,
+            "durationTicks": 960,
+            "attackNoteId": "3:13:960:note:17",
+            "startTimeMs": 500,
+            "endTimeMs": 1000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 500,
+        "endTimeMs": 1000,
+        "beatIds": [
+          "13"
+        ],
+        "pitches": [
+          78
+        ],
+        "pitchNames": [
+          "F#5"
+        ],
+        "targetEndTick": 1920
+      },
+      {
+        "id": "3:attack:1920",
+        "sourceBeatId": "14",
+        "trackId": "3",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 2,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 1920,
+        "startTick": 1920,
+        "endTick": 2880,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "3:14:1920:note:18",
+            "sourceNoteId": "18",
+            "sourceBeatId": "14",
+            "midi": 64,
+            "noteName": "E4",
+            "sourceString": 1,
+            "string": 6,
+            "fret": 24,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 1920,
+            "endTick": 2880,
+            "durationTicks": 960,
+            "attackNoteId": "3:14:1920:note:18",
+            "startTimeMs": 1000,
+            "endTimeMs": 1500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1000,
+        "endTimeMs": 1500,
+        "beatIds": [
+          "14"
+        ],
+        "pitches": [
+          64
+        ],
+        "pitchNames": [
+          "E4"
+        ],
+        "targetEndTick": 2880
+      },
+      {
+        "id": "3:attack:2880",
+        "sourceBeatId": "15",
+        "trackId": "3",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 3,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 2880,
+        "startTick": 2880,
+        "endTick": 3840,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "3:15:2880:note:19",
+            "sourceNoteId": "19",
+            "sourceBeatId": "15",
+            "midi": 102,
+            "noteName": "F#7",
+            "sourceString": 6,
+            "string": 1,
+            "fret": 36,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 2880,
+            "endTick": 3840,
+            "durationTicks": 960,
+            "attackNoteId": "3:15:2880:note:19",
+            "startTimeMs": 1500,
+            "endTimeMs": 2000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1500,
+        "endTimeMs": 2000,
+        "beatIds": [
+          "15"
+        ],
+        "pitches": [
+          102
+        ],
+        "pitchNames": [
+          "F#7"
+        ],
+        "targetEndTick": 3840
+      }
+    ]
+  },
+  {
+    "name": "Seven strings",
+    "track": {
+      "staves": [
+        {
+          "tuning": [
+            64,
+            59,
+            55,
+            50,
+            45,
+            40,
+            35
+          ],
+          "capo": 0,
+          "transpositionPitch": 0
+        }
+      ]
+    },
+    "events": [
+      {
+        "id": "4:attack:0",
+        "sourceBeatId": "16",
+        "trackId": "4",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 0,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 0,
+        "startTick": 0,
+        "endTick": 960,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "4:16:0:note:20",
+            "sourceNoteId": "20",
+            "sourceBeatId": "16",
+            "midi": 64,
+            "noteName": "E4",
+            "sourceString": 7,
+            "string": 1,
+            "fret": 0,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "4:16:0:note:20",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          },
+          {
+            "id": "4:16:0:note:21",
+            "sourceNoteId": "21",
+            "sourceBeatId": "16",
+            "midi": 38,
+            "noteName": "D2",
+            "sourceString": 1,
+            "string": 7,
+            "fret": 3,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "4:16:0:note:21",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 0,
+        "endTimeMs": 500,
+        "beatIds": [
+          "16"
+        ],
+        "pitches": [
+          38,
+          64
+        ],
+        "pitchNames": [
+          "D2",
+          "E4"
+        ],
+        "targetEndTick": 960
+      },
+      {
+        "id": "4:attack:960",
+        "sourceBeatId": "17",
+        "trackId": "4",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 1,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 960,
+        "startTick": 960,
+        "endTick": 1920,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "4:17:960:note:22",
+            "sourceNoteId": "22",
+            "sourceBeatId": "17",
+            "midi": 76,
+            "noteName": "E5",
+            "sourceString": 7,
+            "string": 1,
+            "fret": 12,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 960,
+            "endTick": 1920,
+            "durationTicks": 960,
+            "attackNoteId": "4:17:960:note:22",
+            "startTimeMs": 500,
+            "endTimeMs": 1000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 500,
+        "endTimeMs": 1000,
+        "beatIds": [
+          "17"
+        ],
+        "pitches": [
+          76
+        ],
+        "pitchNames": [
+          "E5"
+        ],
+        "targetEndTick": 1920
+      },
+      {
+        "id": "4:attack:1920",
+        "sourceBeatId": "18",
+        "trackId": "4",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 2,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 1920,
+        "startTick": 1920,
+        "endTick": 2880,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "4:18:1920:note:23",
+            "sourceNoteId": "23",
+            "sourceBeatId": "18",
+            "midi": 59,
+            "noteName": "B3",
+            "sourceString": 1,
+            "string": 7,
+            "fret": 24,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 1920,
+            "endTick": 2880,
+            "durationTicks": 960,
+            "attackNoteId": "4:18:1920:note:23",
+            "startTimeMs": 1000,
+            "endTimeMs": 1500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1000,
+        "endTimeMs": 1500,
+        "beatIds": [
+          "18"
+        ],
+        "pitches": [
+          59
+        ],
+        "pitchNames": [
+          "B3"
+        ],
+        "targetEndTick": 2880
+      },
+      {
+        "id": "4:attack:2880",
+        "sourceBeatId": "19",
+        "trackId": "4",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 3,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 2880,
+        "startTick": 2880,
+        "endTick": 3840,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "4:19:2880:note:24",
+            "sourceNoteId": "24",
+            "sourceBeatId": "19",
+            "midi": 100,
+            "noteName": "E7",
+            "sourceString": 7,
+            "string": 1,
+            "fret": 36,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 2880,
+            "endTick": 3840,
+            "durationTicks": 960,
+            "attackNoteId": "4:19:2880:note:24",
+            "startTimeMs": 1500,
+            "endTimeMs": 2000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1500,
+        "endTimeMs": 2000,
+        "beatIds": [
+          "19"
+        ],
+        "pitches": [
+          100
+        ],
+        "pitchNames": [
+          "E7"
+        ],
+        "targetEndTick": 3840
+      }
+    ]
+  },
+  {
+    "name": "Eight strings",
+    "track": {
+      "staves": [
+        {
+          "tuning": [
+            64,
+            59,
+            55,
+            50,
+            45,
+            40,
+            35,
+            30
+          ],
+          "capo": 0,
+          "transpositionPitch": 0
+        }
+      ]
+    },
+    "events": [
+      {
+        "id": "5:attack:0",
+        "sourceBeatId": "20",
+        "trackId": "5",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 0,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 0,
+        "startTick": 0,
+        "endTick": 960,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "5:20:0:note:25",
+            "sourceNoteId": "25",
+            "sourceBeatId": "20",
+            "midi": 64,
+            "noteName": "E4",
+            "sourceString": 8,
+            "string": 1,
+            "fret": 0,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "5:20:0:note:25",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          },
+          {
+            "id": "5:20:0:note:26",
+            "sourceNoteId": "26",
+            "sourceBeatId": "20",
+            "midi": 33,
+            "noteName": "A1",
+            "sourceString": 1,
+            "string": 8,
+            "fret": 3,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "5:20:0:note:26",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 0,
+        "endTimeMs": 500,
+        "beatIds": [
+          "20"
+        ],
+        "pitches": [
+          33,
+          64
+        ],
+        "pitchNames": [
+          "A1",
+          "E4"
+        ],
+        "targetEndTick": 960
+      },
+      {
+        "id": "5:attack:960",
+        "sourceBeatId": "21",
+        "trackId": "5",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 1,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 960,
+        "startTick": 960,
+        "endTick": 1920,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "5:21:960:note:27",
+            "sourceNoteId": "27",
+            "sourceBeatId": "21",
+            "midi": 76,
+            "noteName": "E5",
+            "sourceString": 8,
+            "string": 1,
+            "fret": 12,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 960,
+            "endTick": 1920,
+            "durationTicks": 960,
+            "attackNoteId": "5:21:960:note:27",
+            "startTimeMs": 500,
+            "endTimeMs": 1000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 500,
+        "endTimeMs": 1000,
+        "beatIds": [
+          "21"
+        ],
+        "pitches": [
+          76
+        ],
+        "pitchNames": [
+          "E5"
+        ],
+        "targetEndTick": 1920
+      },
+      {
+        "id": "5:attack:1920",
+        "sourceBeatId": "22",
+        "trackId": "5",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 2,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 1920,
+        "startTick": 1920,
+        "endTick": 2880,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "5:22:1920:note:28",
+            "sourceNoteId": "28",
+            "sourceBeatId": "22",
+            "midi": 54,
+            "noteName": "F#3",
+            "sourceString": 1,
+            "string": 8,
+            "fret": 24,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 1920,
+            "endTick": 2880,
+            "durationTicks": 960,
+            "attackNoteId": "5:22:1920:note:28",
+            "startTimeMs": 1000,
+            "endTimeMs": 1500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1000,
+        "endTimeMs": 1500,
+        "beatIds": [
+          "22"
+        ],
+        "pitches": [
+          54
+        ],
+        "pitchNames": [
+          "F#3"
+        ],
+        "targetEndTick": 2880
+      },
+      {
+        "id": "5:attack:2880",
+        "sourceBeatId": "23",
+        "trackId": "5",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 3,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 2880,
+        "startTick": 2880,
+        "endTick": 3840,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "5:23:2880:note:29",
+            "sourceNoteId": "29",
+            "sourceBeatId": "23",
+            "midi": 100,
+            "noteName": "E7",
+            "sourceString": 8,
+            "string": 1,
+            "fret": 36,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 2880,
+            "endTick": 3840,
+            "durationTicks": 960,
+            "attackNoteId": "5:23:2880:note:29",
+            "startTimeMs": 1500,
+            "endTimeMs": 2000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1500,
+        "endTimeMs": 2000,
+        "beatIds": [
+          "23"
+        ],
+        "pitches": [
+          100
+        ],
+        "pitchNames": [
+          "E7"
+        ],
+        "targetEndTick": 3840
+      }
+    ]
+  },
+  {
+    "name": "Twelve strings",
+    "track": {
+      "staves": [
+        {
+          "tuning": [
+            64,
+            64,
+            59,
+            59,
+            55,
+            55,
+            50,
+            50,
+            45,
+            45,
+            40,
+            40
+          ],
+          "capo": 0,
+          "transpositionPitch": 0
+        }
+      ]
+    },
+    "events": [
+      {
+        "id": "6:attack:0",
+        "sourceBeatId": "24",
+        "trackId": "6",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 0,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 0,
+        "startTick": 0,
+        "endTick": 960,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "6:24:0:note:30",
+            "sourceNoteId": "30",
+            "sourceBeatId": "24",
+            "midi": 64,
+            "noteName": "E4",
+            "sourceString": 12,
+            "string": 1,
+            "fret": 0,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "6:24:0:note:30",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          },
+          {
+            "id": "6:24:0:note:31",
+            "sourceNoteId": "31",
+            "sourceBeatId": "24",
+            "midi": 43,
+            "noteName": "G2",
+            "sourceString": 1,
+            "string": 12,
+            "fret": 3,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 0,
+            "endTick": 960,
+            "durationTicks": 960,
+            "attackNoteId": "6:24:0:note:31",
+            "startTimeMs": 0,
+            "endTimeMs": 500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 0,
+        "endTimeMs": 500,
+        "beatIds": [
+          "24"
+        ],
+        "pitches": [
+          43,
+          64
+        ],
+        "pitchNames": [
+          "G2",
+          "E4"
+        ],
+        "targetEndTick": 960
+      },
+      {
+        "id": "6:attack:960",
+        "sourceBeatId": "25",
+        "trackId": "6",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 1,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 960,
+        "startTick": 960,
+        "endTick": 1920,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "6:25:960:note:32",
+            "sourceNoteId": "32",
+            "sourceBeatId": "25",
+            "midi": 76,
+            "noteName": "E5",
+            "sourceString": 12,
+            "string": 1,
+            "fret": 12,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 960,
+            "endTick": 1920,
+            "durationTicks": 960,
+            "attackNoteId": "6:25:960:note:32",
+            "startTimeMs": 500,
+            "endTimeMs": 1000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 500,
+        "endTimeMs": 1000,
+        "beatIds": [
+          "25"
+        ],
+        "pitches": [
+          76
+        ],
+        "pitchNames": [
+          "E5"
+        ],
+        "targetEndTick": 1920
+      },
+      {
+        "id": "6:attack:1920",
+        "sourceBeatId": "26",
+        "trackId": "6",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 2,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 1920,
+        "startTick": 1920,
+        "endTick": 2880,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "6:26:1920:note:33",
+            "sourceNoteId": "33",
+            "sourceBeatId": "26",
+            "midi": 64,
+            "noteName": "E4",
+            "sourceString": 1,
+            "string": 12,
+            "fret": 24,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 1920,
+            "endTick": 2880,
+            "durationTicks": 960,
+            "attackNoteId": "6:26:1920:note:33",
+            "startTimeMs": 1000,
+            "endTimeMs": 1500
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1000,
+        "endTimeMs": 1500,
+        "beatIds": [
+          "26"
+        ],
+        "pitches": [
+          64
+        ],
+        "pitchNames": [
+          "E4"
+        ],
+        "targetEndTick": 2880
+      },
+      {
+        "id": "6:attack:2880",
+        "sourceBeatId": "27",
+        "trackId": "6",
+        "measureNumber": 1,
+        "occurrence": 1,
+        "playbackMeasureIndex": 0,
+        "beatIndex": 3,
+        "voiceIndex": 0,
+        "staffIndex": 0,
+        "writtenStartTick": 2880,
+        "startTick": 2880,
+        "endTick": 3840,
+        "isRest": false,
+        "notes": [
+          {
+            "id": "6:27:2880:note:34",
+            "sourceNoteId": "34",
+            "sourceBeatId": "27",
+            "midi": 100,
+            "noteName": "E7",
+            "sourceString": 12,
+            "string": 1,
+            "fret": 36,
+            "attack": true,
+            "tieOriginId": null,
+            "tieDestinationId": null,
+            "startTick": 2880,
+            "endTick": 3840,
+            "durationTicks": 960,
+            "attackNoteId": "6:27:2880:note:34",
+            "startTimeMs": 1500,
+            "endTimeMs": 2000
+          }
+        ],
+        "durationTicks": 960,
+        "startTimeMs": 1500,
+        "endTimeMs": 2000,
+        "beatIds": [
+          "27"
+        ],
+        "pitches": [
+          100
+        ],
+        "pitchNames": [
+          "E7"
+        ],
+        "targetEndTick": 3840
+      }
+    ]
+  }
+]

@@ -329,14 +329,20 @@
           <div class="popup-card-title">Virtual fretboard</div>
           <label class="toggle-row" for="show-fretboard"><input id="show-fretboard" type="checkbox" /><span>Show virtual fretboard</span></label>
           <label class="toggle-row display-fretboard-orientation" for="left-handed-fretboard"><input id="left-handed-fretboard" type="checkbox" disabled /><span>Left-handed fretboard</span></label>
-          <details class="display-fretboard-help"><summary>Fretboard help</summary><p class="field-help">Six-string tracks use the score tuning and capo. Single-channel input shows possible played positions.</p></details>
+          <details class="display-fretboard-help"><summary>Fretboard help</summary>
+            <p class="field-help">Blue: expected note. Green ✓: accepted note. Red × / !: missed note or completed with errors. Separate rings show held played pitches: green for accepted, red for wrong, purple when no current result applies. Rings disappear on release.</p>
+            <p class="field-help">The selected tablature supplies string count, tuning and capo. Fret numbers are relative to the capo; position inlays follow physical frets. Open notes appear outside the nut. String thickness is a visual pitch cue.</p>
+            <p class="field-help">Poly/pitch-only input shows possible positions, not detected strings. Configured six-channel input maps displayed strings only on six-string tracks; other string counts show possible positions. Both modes still grade pitch.</p>
+            <p class="field-help">Scroll the neck horizontally for higher frets. Left-handed display mirrors the neck without reversing MIDI channel mapping. Targets needing frets above 24 extend the display through fret 36; unsupported positions remain in score feedback.</p>
+            <p id="fretboard-help-status" class="field-help">Select a tablature track with usable string tuning to show its fretboard.</p>
+          </details>
         </div>
       </div>
     </section>
 
     <section id="transpose-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content"><h2>Pitch &amp; Transpose</h2><fieldset disabled><legend>Playback pitch offset — Not implemented yet</legend><label class="menu-setting">Semitones <input type="number" min="-12" max="12" value="0" /></label></fieldset><p class="field-help">A playback-only offset shifts synthesized sound; it does not change written music or expected MIDI pitches. Capo/down-tuning practice needs coordinated expected-pitch handling.</p><hr /><fieldset disabled><legend>Transpose score — Not implemented yet</legend><label class="menu-setting">Transpose by <select><option>Semitones</option><option>Target key</option></select></label></fieldset><p class="field-help">Future transposition must keep notation, key signatures, tab positions and practice targets consistent.</p></div></section>
 
-    <section id="help-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content"><h2>Help &amp; Guide</h2><ol class="menu-help-list"><li>Open a Guitar Pro or MusicXML score from Scores.</li><li>Select your Fishman or other MIDI input in Settings. Choose Poly/single-channel or your configured six-channel Hex layout.</li><li>In Practice, choose a track and Realtime or Wait. Both currently grade pitch.</li><li>Use Tempo and Loop to work on a section. Play starts with a count-in; Pause preserves results.</li></ol><p>Visual feedback is in Practice; track visibility and the optional six-string fretboard are in Display. Audio controls selected/backing-track playback.</p><p class="field-help">Poly fret estimates are optional guidance, not detected positions. Left-handed fretboard orientation does not reverse MIDI channel mapping.</p><a href="./README.md" target="_blank" rel="noopener">Project setup and current limitations</a></div></section>
+    <section id="help-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content"><h2>Help &amp; Guide</h2><ol class="menu-help-list"><li>Open a Guitar Pro or MusicXML score from Scores.</li><li>Select your Fishman or other MIDI input in Settings. Choose Poly/single-channel or your configured six-channel Hex layout.</li><li>In Practice, choose a track and Realtime or Wait. Both currently grade pitch.</li><li>Use Tempo and Loop to work on a section. Play starts with a count-in; Pause preserves results.</li></ol><p>Visual feedback is in Practice; track visibility and the optional fretboard are in Display. Audio controls selected/backing-track playback.</p><p class="field-help">Poly fret estimates are optional guidance, not detected positions. Left-handed fretboard orientation does not reverse MIDI channel mapping.</p><a href="./README.md" target="_blank" rel="noopener">Project setup and current limitations</a></div></section>
 
     <section id="media-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content"><h2>Media &amp; Sync</h2><p class="menu-status">Not implemented yet</p><p>Future support for syncing scores with local audio/video and supported online media.</p><details class="menu-future"><summary>Planned media and sync controls</summary><ul><li>Select media and align score/media sync points.</li><li>Save sync profiles for each score and media source.</li><li>Export/import sync settings and include profiles in library backups.</li></ul><p class="field-help">Sync settings are separate from media files. Local files may need to be selected again.</p></details></div></section>
 
@@ -540,8 +546,7 @@
         </div>
       </section>
 
-      <section id="fretboard-container" class="panel fretboard-panel hidden" aria-hidden="true">
-        <p class="placeholder">Select a six-string guitar track to show its fretboard.</p>
+      <section id="fretboard-container" class="panel fretboard-panel hidden" aria-hidden="true" aria-label="Practice fretboard">
       </section>
     </main>
 

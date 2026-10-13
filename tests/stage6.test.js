@@ -41,7 +41,7 @@ test('hex channel string hint limits played positions; tuning and capo are respe
  assert.ok(Math.abs(fretX(3,24,true)+fretX(3,24,false)-1200)<0.001);
 });
 test('unsupported tracks and out-of-range pitches do not fabricate playable positions',()=>{
- assert.equal(buildFretboardModel({track:{staves:[{tuning:[43,38,33,28]}]}}).supported,false);
+ assert.equal(buildFretboardModel({track:{staves:[{tuning:[]}]}}).supported,false);
  const model=buildFretboardModel({track,activeNotes:[{midi:20}]});assert.deepEqual(model.played,[]);assert.deepEqual(model.unmappedPitches,[20]);
 });
 test('Wait correct feedback persists after immediate advancement and clears on Stop and loop restart',()=>{

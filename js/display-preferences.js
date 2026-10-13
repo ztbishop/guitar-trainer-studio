@@ -3,7 +3,7 @@ export const DISPLAY_PREFERENCES_KEY = 'gts.displayPreferences';
 export const DISPLAY_BOOLEAN_KEYS = ['autoScroll', 'fullscreenOnPlay', 'showFretboard', 'leftHanded'];
 
 export function readDisplayPreferences(storage) {
-  const defaults = {viewMode: 'practice-only', ui: {zoomPercent: 100, autoScroll: true, fullscreenOnPlay: false, showFretboard: false, leftHanded: false}};
+  const defaults = {viewMode: 'practice-only', ui: {zoomPercent: 100, autoScroll: true, fullscreenOnPlay: false, showFretboard: true, leftHanded: false}};
   try {
     storage ??= globalThis.window?.localStorage;
     const saved = JSON.parse(storage?.getItem(DISPLAY_PREFERENCES_KEY) ?? 'null');

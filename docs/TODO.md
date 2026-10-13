@@ -1,5 +1,27 @@
 # Guitar Trainer Studio: status and to-do
 
+### Fretboard first-use defaults — 2026-10-13
+
+- [x] Show virtual fretboard defaults on; left-handed defaults off. Both retain existing validated localStorage persistence across sessions/score loads. Saved explicit choices override defaults, including fretboard off.
+- [x] Defaults, malformed/empty storage and both saved true/false choices checked; 189 regression tests pass. Supersedes earlier default-off fretboard notes.
+
+### Compact fretboard and relocated help — 2026-10-13
+
+- [x] Neck panel contains only the neck and functional fret/string/note labels. Title, legend, explanations, track/capo details and out-of-range pitch messages are in Display → Fretboard help.
+- [x] Reduced padding, string spacing and marker size. At 1280 × 720, six-string panel is about 170px and seven-string panel about 190px; neither scrolls vertically. Phone 390 × 844 seven-string panel also fits without vertical/page horizontal overflow.
+- [x] Double inlays sit between strings 2–3 and 4–5 on six strings; other counts use symmetric available string gaps. Capo-aware physical frets and left-handed reflection retained.
+- [x] 189 regression tests pass; 56 real-DOM scenarios rerun at laptop and phone sizes, including corrected inlays. Native help, Wait targets, panel fit and phone mirroring checked. Owner appearance acceptance pending.
+
+
+### Score-defined fretboard — 2026-10-13
+
+- [x] Narrowing fret spaces, nut, capo-aware inlays, variable string thickness, target note names, separate held-note rings and complete left-handed mirroring.
+- [x] Selected tablature defines string count/tuning. Non-six-string Hex input explicitly uses possible pitch positions; grading/hardware mapping unchanged.
+- [x] 188 regression tests pass; native GP import/track switching verified for 1/4/5/6/7/8/12 strings. 56 browser scenarios pass at desktop/phone widths. Reproducible tabs included; see FRETBOARD.md.
+- [ ] Owner Fishman, appearance/orientation and real extended-range/bass tab acceptance.
+- [ ] Discussed follow-up: note-name/fret-number/off marker labels and optional conservative Poly position inference. No new inference/label controls in this pass.
+
+
 ### Display cleanup and persistence — 2026-10-13
 
 - [x] Shorter auto-scroll label, tighter sections, indented left-handed checkbox disabled while fretboard hidden (choice retained), collapsed Fretboard help.

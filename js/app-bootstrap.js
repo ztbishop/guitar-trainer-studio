@@ -464,7 +464,7 @@ function renderTrainerUi() {
   if(AppState.ui.showFretboard) {
     const track=AppState.tracks.find((item,index)=>getTrackId(item,index)===String(AppState.practiceTrackId));
     renderFretboard(buildFretboardModel({track,currentEvent:trainer.currentEvent,noteStates:trainer.noteStates,
-      activeNotes:[...AppState.midi.activeNotes.values()],inputMode:AppState.inputMode,leftHanded:AppState.ui.leftHanded,lastFeedback:trainer.lastFeedback}));
+      activeNotes:[...AppState.midi.activeNotes.values()],liveWrongNotes:trainer.liveWrongNotes,inputMode:AppState.inputMode,leftHanded:AppState.ui.leftHanded,lastFeedback:trainer.lastFeedback}));
   }
   const playButton=document.getElementById('play-pause-button');
   if(playButton) {
@@ -604,7 +604,7 @@ async function bootstrap() {
   initToolbar();
   scoreLibrary=initScoreLibrary(loadScoreFile);
   audioControls=initAudioControls(kind=>{if(kind==='master')applyMasterVolume();else applyTrackMixer();});
-  initFretboard(document.getElementById('fretboard-container'));
+  initFretboard(document.getElementById('fretboard-container'),document.getElementById('fretboard-help-status'));
   wireScoreStageUi();
   wireFilePicker();
   wireTransportButtons();

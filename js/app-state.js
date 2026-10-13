@@ -62,7 +62,7 @@ export const AppState = {
     autoScroll: true,
     fullscreenOnPlay: false,
     layoutMode: 'page',
-    showFretboard: false,
+    showFretboard: true,
     showNotationFeedback: true,
     showTabCircles: true,
     showTabMistakes: true,

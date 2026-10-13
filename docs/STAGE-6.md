@@ -1,5 +1,7 @@
 # Stage 6: notation feedback and virtual fretboard
 
+Historical notes: the 2026-10-13 [fretboard update](FRETBOARD.md) supersedes this stage's six-string-only virtual neck and original geometry. Session-only preference descriptions are also superseded by current README/TODO.
+
 Builds on Stage 5, including the latest TODO entry for later Tempo/Loop menu refinement. Vendor alphaTab is unchanged; style additions are limited to the new visuals. No push or deployment has been performed. The ZIP excludes `.git`.
 
 ## Try locally

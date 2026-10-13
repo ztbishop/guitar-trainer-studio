@@ -1,5 +1,27 @@
 # Development notes
 
+## Fretboard first-use defaults — 2026-10-13
+
+Owner requested Show virtual fretboard on and left-handed off for first use, retaining both in localStorage. Updated AppState and readDisplayPreferences defaults together. Existing boolean validation/save/restore remains unchanged: a saved false for visibility is respected, and a saved true for orientation is respected. No storage migration or forced override of existing preferences. 189 regression tests pass, including empty/malformed/inaccessible storage and saved opposite/default choices. Supersedes earlier default-off fretboard guidance; no native/MIDI/grading changes.
+
+## Compact fretboard and relocated help — 2026-10-13
+
+Owner requested removing explanatory text from the neck and correcting double inlays. Panel now contains only its scrollable SVG, retaining accessible labels and functional fret/string/note labels. Display → Fretboard help contains the legend, pitch-position limitations, capo/physical-fret explanation, range/scroll guidance and model-specific status/out-of-range pitches. Bootstrap passes the help status element to the renderer. No preference, MIDI, grading or native alphaTab changes.
+
+String spacing decreases from 24 to 20 units, target/played radii from 9/12 to 8/10 and padding from 18px to 8px vertically. Removed heading/paragraph/disclosure space and reduced SVG top/bottom margins. Double inlays use symmetric string gaps near quarter points: on six strings, 2–3 and 4–5; one/two-string necks use a single available center. Capo-aware fret selection and mirroring remain intact.
+
+189 regression tests pass; geometry covers counts 1–12 and renderer verifies text relocation, unsupported tuning and out-of-range help. 56 real-DOM cases pass at 1280 × 720 and 390 × 844. Native six-string panel measures about 170px, seven-string 190px at laptop size, with no vertical scroll. Phone seven-string panel is 200px including its horizontal scrollbar, with no vertical/document horizontal overflow. Native relocated help and left-handed phone scroll-to-nut checked. Physical MIDI/owner appearance acceptance remain local; no commits/version/publishing changes.
+
+
+## Score-defined fretboard — 2026-10-13
+
+At the final status check, earlier menu/library changes were already in HEAD; the working diff contains this fretboard pass. Replaced six-string rendering gate with selected-staff tuning length, without instrument-name checks. Added physical fret spacing, inside-cell note centers, nut, capo-aware inlays, pitch-based string widths, note-name targets and mirrored left-handed geometry. Long necks retain readable high-fret cells via horizontal scrolling; feedback retains scroll position. Played rings preserve accepted chord tones and all held wrong pitches using existing session evidence, without new grading decisions. Six-channel hints apply only on six-string tracks; other counts explicitly display possible pitch positions.
+
+188 regression tests pass, including native multi-track GP import, existing Wait/Realtime acceptance, geometry through fret 36, renderer/state/release checks and tuning/capo/transposition. Synthetic native fixtures cover 1/4/5/6/7/8/12 strings and regenerate locally. 56 real-DOM browser scenarios pass on desktop and 390px phones. Native app imported the fixture and drew each selected track's correct string count. Physical Fishman, representative real files and owner visual acceptance remain pending. See FRETBOARD.md for boundaries and repeatable checks.
+
+Owner suggested optional inference similar to tablature estimates. Discussed conservative unambiguous-target inference and marker label choices as follow-ups; neither added in this rendering pass. Pitch-only rings remain clearly labeled possible positions. Grading, native alphaTab, MIDI settings, Piano, deferred features, version and publishing are unchanged.
+
+
 ## Display cleanup and persistence — 2026-10-13
 
 Owner approved shorter Auto-scroll during playback wording, tighter section spacing, indented left-handed orientation and collapsed Fretboard help. Orientation disables while the virtual fretboard is hidden without clearing its choice. display-preferences.js validates gts.displayPreferences: zoom (50–200), autoScroll, fullscreenOnPlay, showFretboard, leftHanded and viewMode. First-use defaults remain 100%, auto-scroll on, fullscreen/fretboard/left-handed off and practice-only. Restore happens before UI/native startup; changes persist through existing control intents. Native score loading no longer forces practice-only. Fullscreen preference restoration never requests fullscreen; the existing ready-player Play gesture still does. No changes to audio persistence, MIDI, grading or vendor behavior.
