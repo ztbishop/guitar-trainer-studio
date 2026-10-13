@@ -29,6 +29,12 @@
 .toolbar-popup .toggle-grid, .toolbar-popup .status-stack, .toolbar-popup .info-stack { gap: var(--menu-gap); }
 .toolbar-popup input[type='number'], .toolbar-popup select { min-height: var(--menu-control-height); }
 .menu-content { padding: 18px var(--menu-padding) 22px; }
+.toolbar-popup #midi-capture-report {
+  width: 100%; box-sizing: border-box; min-height: 160px; resize: vertical;
+  padding: var(--menu-field-gap); border: 1px solid var(--menu-input-border);
+  border-radius: var(--menu-radius); background: #fff; color: inherit;
+  font: 12px/1.5 monospace;
+}
 .menu-content h2 { margin: 0 0 20px; font-size: 1.15rem; font-weight: 500; }
 .menu-row {
   display: grid;

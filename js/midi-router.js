@@ -2,6 +2,8 @@
 // Owns: MIDI device setup and normalized note events
 // Do NOT: decide correctness here
 
+import {captureMidiEvent,captureMidiOutcome} from './midi-capture.js';
+
 import { AppState } from './app-state.js';
 import { channelToStringHint, midiToNoteName } from './note-utils.js';
 
@@ -92,10 +94,13 @@ function setActiveInput(input) {
       });
 
       if (!normalized) return;
+      const accepted=isEventInSelectedChannelRange(normalized);
+      const capture=captureMidiEvent(normalized,{input:activeInput,accepted});
       // Release tracked notes even if the selected filter has changed.
       if (normalized.type === 'note-off') removeActiveNote(normalized);
-      if (!isEventInSelectedChannelRange(normalized)) {
+      if (!accepted) {
         updateStateChange();
+        captureMidiOutcome(capture,null);
         return;
       }
 
@@ -107,7 +112,8 @@ function setActiveInput(input) {
       AppState.midi.recentEvents = [normalized, ...AppState.midi.recentEvents].slice(0, 8);
       AppState.ui.midiStatus = `Receiving from ${activeInput.name || 'MIDI input'}`;
       updateStateChange();
-      callbacks.onMidiEvent?.(normalized);
+      const outcome=callbacks.onMidiEvent?.(normalized);
+      captureMidiOutcome(capture,outcome);
     };
 
     activeInput.addEventListener('midimessage', activeListener);

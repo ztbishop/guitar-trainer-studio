@@ -1,5 +1,17 @@
 # Development notes
 
+## Owner-confirmed Fishman adjustment — 2026-10-12
+
+Owner observed brief ghost notes in Fishman's app when using a thumbnail, with fewer errors using a pick. Moving Fishman's Play Style toward Finger fixed things overall in the owner's testing. This is hardware/software-setting acceptance reported by the owner, not an automated diagnosis; TriplePlay Realtime remains untested. No application grading or filtering change is needed. Owner also confirmed the historical fret-number spacing is fixed.
+
+Keep the diagnostic recorder for later use. It defaults off and collects no messages or feedback snapshots while off; recording is bounded and stays in page memory until copied/saved or refreshed. Existing 166-test result remains the latest automated evidence; this follow-up changes documentation only.
+
+## MIDI and feedback text recording — 2026-10-12
+
+Added opt-in Start/Stop recording, Mark screenshot, Copy report and Save text report in Settings → MIDI & practice diagnostics. The readonly text block contains a readable message timeline followed by complete JSON evidence in the same .txt report; no Chrome logs are needed. Capture records normalized raw channel bytes before filtering, pitches/channels/velocities, paired durations, duplicate held attacks, device/configuration, score/tuning context, target before/after and returned grading outcome. It also records relevant feedback projections after messages and up to 100 timestamped screenshot/stop snapshots with current target, visibility, results, live mistakes and overlay marks. Capture stays in page memory, defaults off, replaces the previous run on Start, and caps at 10,000 messages. No uploads, score-file content, saved preferences, filtering or grading changes. The accepted historical-number left nudge and native spacing are preserved.
+
+Validation: 166 tests pass, including routed Hex/Poly Wait evidence, 3ms octave attacks tied to retained fret 25, screenshot snapshots, limits and selectable-text clipboard fallback. Browser Start/Mark/Stop report generation and compact controls checked without physical MIDI. The cause of the owner's unexpected historical errors remains unconfirmed; TriplePlay Realtime has not been tested. Owner should hard-refresh, record a short Wait passage, pause at unexpected feedback, mark/take a screenshot, stop and copy/save the report; use separate Hex/Poly recordings.
+
 ## Historical fret-number horizontal nudge — 2026-10-12
 
 Historical wrong fret numbers now sit 2px left of their previous position at 100% zoom (scaled with score zoom), closer to the right edge of the corresponding tab outline. Their vertical alignment, live numbers, Hex/Poly inference, grading and native score spacing are unchanged. This is a small horizontal adjustment, with no collision hiding, stacking or padding.

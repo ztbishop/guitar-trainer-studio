@@ -1,3 +1,4 @@
+import {initMidiCaptureControls,captureFeedbackView} from './midi-capture.js';
 // app-bootstrap.js
 // Owns: startup wiring and module initialization order
 // Do NOT: let this grow into a giant logic file
@@ -446,6 +447,7 @@ function renderTrainerUi() {
     if(AppState.inputMode==='single-channel')marks.push(...buildPolyWrongFretMarks({track,events:AppState.expectedEvents,
       currentEvent:trainer.currentEvent,history:trainer.history,liveWrongNotes:trainer.liveWrongNotes,mode:AppState.mode,enabled:AppState.ui.inferPolyMistakes}));
   }
+  captureFeedbackView(marks,trainer);
   setNotationFeedback(marks,{notation:AppState.ui.showNotationFeedback,tabCircles:AppState.ui.showTabCircles,tabFrets:AppState.ui.showTabMistakes});
   if(AppState.ui.showFretboard) {
     const track=AppState.tracks.find((item,index)=>getTrackId(item,index)===String(AppState.practiceTrackId));
@@ -589,6 +591,7 @@ async function bootstrap() {
   wirePracticeControls();
   wireTempoAndLoopControls();
   wireMidiControls();
+  initMidiCaptureControls(()=>renderTrainerUi());
 
   try {
     await initAlphaTab(document.getElementById('alphatab-container'), {
@@ -628,10 +631,16 @@ async function bootstrap() {
   let previousMidiInputId = AppState.midi.activeInputId;
   await initMidiRouter({
     onMidiEvent: (event) => {
-      if(AppState.mode==='wait')waitController.noteOn(event);
-      else handleMidiEvent(event);
+      let outcome;
+      if(AppState.mode==='wait')outcome=waitController.noteOn(event);
+      else {
+        const previous=AppState.trainer.lastFeedback;
+        handleMidiEvent(event);
+        outcome=AppState.trainer.lastFeedback!==previous?AppState.trainer.lastFeedback:null;
+      }
       renderMidiUi();
       renderTrainerUi();
+      return outcome;
     },
     onStateChange: () => {
       if (previousMidiInputId !== AppState.midi.activeInputId) {

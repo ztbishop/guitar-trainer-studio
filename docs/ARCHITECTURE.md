@@ -1,5 +1,11 @@
 # Guitar Trainer Studio Architecture
 
+## MIDI and feedback text recording — 2026-10-12
+
+Added opt-in Start/Stop recording, Mark screenshot, Copy report and Save text report in Settings → MIDI & practice diagnostics. The readonly text block contains a readable message timeline followed by complete JSON evidence in the same .txt report; no Chrome logs are needed. Capture records normalized raw channel bytes before filtering, pitches/channels/velocities, paired durations, duplicate held attacks, device/configuration, score/tuning context, target before/after and returned grading outcome. It also records relevant feedback projections after messages and up to 100 timestamped screenshot/stop snapshots with current target, visibility, results, live mistakes and overlay marks. Capture stays in page memory, defaults off, replaces the previous run on Start, and caps at 10,000 messages. No uploads, score-file content, saved preferences, filtering or grading changes. The accepted historical-number left nudge and native spacing are preserved.
+
+Validation: 166 tests pass, including routed Hex/Poly Wait evidence, 3ms octave attacks tied to retained fret 25, screenshot snapshots, limits and selectable-text clipboard fallback. Browser Start/Mark/Stop report generation and compact controls checked without physical MIDI. The cause of the owner's unexpected historical errors remains unconfirmed; TriplePlay Realtime has not been tested. Owner should hard-refresh, record a short Wait passage, pause at unexpected feedback, mark/take a screenshot, stop and copy/save the report; use separate Hex/Poly recordings.
+
 ## Historical fret-number horizontal nudge — 2026-10-12
 
 Historical wrong fret numbers now sit 2px left of their previous position at 100% zoom (scaled with score zoom), closer to the right edge of the corresponding tab outline. Their vertical alignment, live numbers, Hex/Poly inference, grading and native score spacing are unchanged. This is a small horizontal adjustment, with no collision hiding, stacking or padding.

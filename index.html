@@ -391,6 +391,21 @@
         </div>
 
         <details class="popup-card menu-debug"><summary>MIDI &amp; practice diagnostics</summary>
+          <div class="menu-content">
+            <h3>Record MIDI and feedback</h3>
+            <p class="muted">Start before a short passage. When unexpected feedback appears, pause practice, mark the screenshot, and stop. Copy or save the report below. Recording does not filter notes or change grading.</p>
+            <div class="menu-action-row">
+              <button id="midi-capture-start" type="button">Start recording</button>
+              <button id="midi-capture-stop" type="button">Stop</button>
+              <button id="midi-capture-mark" type="button">Mark screenshot</button>
+              <button id="midi-capture-copy" type="button">Copy report</button>
+              <button id="midi-capture-save" type="button">Save text report</button>
+            </div>
+            <p id="midi-capture-status" class="muted" role="status"></p>
+            <label for="midi-capture-report">Recorded report (select and copy if clipboard access is unavailable)</label>
+            <textarea id="midi-capture-report" readonly rows="9" placeholder="Stop recording to show your report here."></textarea>
+            <p class="muted">Stored only in this page until copied or saved. Start replaces the previous recording; refresh clears it. Maximum 10,000 MIDI messages and 100 snapshots.</p>
+          </div>
 
           <label class="toggle-row toggle-row--midi-debug" for="midi-debug-toggle">
             <input id="midi-debug-toggle" type="checkbox" />

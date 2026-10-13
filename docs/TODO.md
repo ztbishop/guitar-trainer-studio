@@ -1,9 +1,14 @@
 # Guitar Trainer Studio: status and to-do
 
+### TriplePlay Wait diagnostic recording — 2026-10-12
+
+- [x] Opt-in MIDI/feedback recording in Settings with screenshot markers, selectable text, clipboard fallback and .txt download; no grading or spacing changes. 166 automated tests pass; browser controls checked.
+- [x] Owner observed brief ghost notes in Fishman's own app, particularly with thumbnail playing, and reports moving Play Style toward Finger fixed things overall. Retain opt-in diagnostics for future issues; no app-side filtering added. TriplePlay Realtime remains untested.
+
 ### Historical fret placement — 2026-10-12
 
 - [x] Small left-only nudge: retained red fret numbers move 2 scaled pixels closer to their tab outlines; live numbers and vertical string alignment stay unchanged. 162 automated tests pass.
-- [ ] Owner hard-refresh/zoom acceptance on the actual score. No layout padding or collision omission added.
+- [x] Owner confirmed the spacing is fixed. Additional zoom acceptance remains pending. No layout padding or collision omission added.
 
 Updated 2026-10-11. This is the central status and priority list. Stage files retain implementation details and checks; DEV-NOTES records decisions. Proposed items below are recommendations, not implemented changes. The next implementation stage should be scoped from this ordered list.
 
