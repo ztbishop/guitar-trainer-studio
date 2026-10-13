@@ -67,7 +67,33 @@
             <input id="score-file-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl" />
           </label>
 
-          <details class="menu-future"><summary>Score library — Not implemented yet</summary><div class="menu-library-actions"><button disabled>Save to Library</button><button disabled>Backup Library</button><button disabled>Import Library (Merge)</button><button disabled>Manage folders</button></div><p class="field-help">Planned: browser-stored scores and single-level folders, with downloadable backups.</p></details>
+          <div class="menu-library-actions">
+            <button id="library-save" type="button" disabled>Save open score</button>
+            <button id="library-import" type="button">Import score files</button>
+          </div>
+          <input id="library-import-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl" multiple hidden />
+          <div class="library-filter-row">
+            <label>Folder <select id="library-folder-filter" aria-label="Library folder"><option value="__all__">All scores</option></select></label>
+            <label>Search <input id="library-search" type="search" placeholder="Title or filename" /></label>
+          </div>
+          <div id="library-list" aria-label="Saved scores"></div>
+          <details id="library-editor"><summary id="library-edit-heading">Save location &amp; edit score</summary>
+            <div class="library-filter-row">
+              <label>Save / move to <select id="library-destination" aria-label="Save or move destination"><option value="">Unfiled</option></select></label>
+              <label>Score title <input id="library-score-title" type="text" maxlength="240" /></label>
+            </div>
+            <div class="menu-library-actions"><button id="library-update" type="button" disabled>Save changes</button><button id="library-delete" type="button" disabled>Delete saved score</button></div>
+            <p class="field-help">Choose Edit beside a saved score to rename, move or delete it. Save open score and file imports use the destination above.</p>
+          </details>
+          <details><summary>Folders &amp; backup</summary>
+            <label class="library-folder-label">Folder name <input id="library-folder-name" type="text" maxlength="240" /></label>
+            <div class="menu-library-actions"><button id="library-new-folder" type="button">Create folder</button><button id="library-rename-folder" type="button" disabled>Rename folder</button><button id="library-remove-folder" type="button" disabled>Remove folder</button></div>
+            <p class="field-help">Select a folder above to rename or remove it. Removing a folder keeps its scores in Unfiled.</p>
+            <div class="menu-library-actions"><button id="library-backup" type="button">Download backup</button><button id="library-restore" type="button">Import backup (merge)</button></div>
+            <input id="library-backup-input" type="file" accept=".json,application/json" hidden />
+            <p class="field-help">Scores stay in this browser at this address and port. Backups include original files and folders; import keeps existing scores and skips identical files. Export before clearing browser data or changing your Live Server address.</p>
+          </details>
+          <p id="library-status" class="field-help" role="status" aria-live="polite">Opening score library…</p>
           <div class="status-stack">
             <div>
               <div class="status-label">Loaded file</div>
@@ -114,14 +140,13 @@
           <div class="form-grid form-grid--practice">
             <label class="field-group" for="practice-track-select">
               <span class="field-label">Track to practice</span>
-              <span class="field-help">Choose which score track you want to play.</span>
               <select id="practice-track-select" disabled>
                 <option value="">Load a score first</option>
               </select>
             </label>
           </div>
 
-          <fieldset class="menu-radio-group"><legend>Wait Mode Chords</legend>
+          <fieldset class="menu-radio-group"><legend>Wait chords</legend>
             <label><input type="radio" name="wait-chord-mode" value="collect" checked disabled /><span><strong>One at a time</strong> — collect correct notes, no time limit</span></label>
             <label><input type="radio" name="wait-chord-mode" value="together" disabled /><span><strong>Together</strong> — complete the chord within the window</span></label>
           </fieldset>
@@ -132,28 +157,27 @@
           </label>
           <p id="wait-chord-status" class="field-help" role="status">These controls apply to Wait Mode.</p>
 
-          <label class="field-group" for="midi-latency-ms">
+          <details class="practice-advanced"><summary>MIDI timing adjustment</summary><label class="field-group" for="midi-latency-ms">
             <span class="field-label">MIDI input latency (ms)</span>
             <span class="field-help">Realtime only: increase if your MIDI guitar reports notes late. Changing this resets Realtime results.</span>
             <input id="midi-latency-ms" type="number" min="0" max="1000" step="5" value="0" />
-          </label>
+          </label></details>
 
 
         </div>
 
         <div class="popup-card">
-          <div class="popup-card-title">Visual Feedback</div>
+          <div class="popup-card-title">Score feedback</div>
           <div class="feedback-group">
-            <label class="toggle-row" for="show-notation-feedback"><input id="show-notation-feedback" type="checkbox" checked /><span>Staff: Highlight correct / incorrect notes</span></label>
+            <label class="toggle-row" for="show-notation-feedback"><input id="show-notation-feedback" type="checkbox" checked /><span>Staff feedback</span></label>
           </div>
           <div class="feedback-group feedback-group--tabs">
-            <label class="toggle-row" for="show-tab-circles"><input id="show-tab-circles" type="checkbox" checked /><span>Tabs: Highlight correct / incorrect notes</span></label>
-            <label class="toggle-row" for="show-tab-mistakes"><input id="show-tab-mistakes" type="checkbox" checked /><span>Tabs: Show incorrect fret numbers</span></label>
-            <label class="toggle-row" for="infer-poly-mistakes"><input id="infer-poly-mistakes" type="checkbox" /><span>Tabs: Infer incorrect frets for non-hex pickups</span></label>
-            <p class="help-text">Optional estimates for an unambiguous remaining note; not detected positions. Enable incorrect fret numbers to see them. Grading is unchanged.</p>
+            <label class="toggle-row" for="show-tab-circles"><input id="show-tab-circles" type="checkbox" checked /><span>Tab highlights</span></label>
+            <label class="toggle-row" for="show-tab-mistakes"><input id="show-tab-mistakes" type="checkbox" checked /><span>Incorrect fret numbers</span></label>
+            <details><summary>Poly fret estimates</summary><label class="toggle-row" for="infer-poly-mistakes"><input id="infer-poly-mistakes" type="checkbox" /><span>Estimate incorrect frets (Poly input)</span></label>
+            <p class="help-text">Optional estimates for one unambiguous remaining note. Enable incorrect fret numbers to see them; these are not detected positions.</p></details>
           </div>
-          <p id="tab-feedback-status" class="help-text" role="status"></p>
-          <details class="menu-future"><summary>Feedback colors and positions</summary><p class="practice-visual-legend">Blue: current target • Green: correct • Red: Hex string errors, optional inferred Poly errors, or Realtime missed. Clean chord tones stay green. Pitch grading accepts correct notes on any string. Notation shows actual wrong pitches with explicit accidentals. Tab preserves original frets; detected Hex wrong frets appear beside their strings.</p></details>
+          <details class="menu-future"><summary>Feedback colors and positions</summary><p id="tab-feedback-status" class="help-text" role="status"></p><p class="practice-visual-legend">Blue: current target • Green: correct • Red: Hex string errors, optional inferred Poly errors, or Realtime missed. Clean chord tones stay green. Pitch grading accepts correct notes on any string. Notation shows actual wrong pitches with explicit accidentals. Tab preserves original frets; detected Hex wrong frets appear beside their strings.</p></details>
         </div>
         <div class="menu-action-row"><button id="new-attempt-here" type="button" disabled aria-describedby="new-attempt-help">Clear practice results</button><span id="new-attempt-help" class="field-help">Keeps your current position. Play/Pause preserves results; Reset returns to the start.</span></div>
       </div>
@@ -261,19 +285,21 @@
             <label class="toggle-row" for="play-selected-track-toggle">
               <input id="play-selected-track-toggle" type="checkbox" checked disabled />
               <span class="toggle-row-text">
-                <span class="toggle-row-title">Play selected track</span>
-                <span class="toggle-row-help">Hear the track you are practicing during playback.</span>
+                <span class="toggle-row-title">Play practice track</span>
               </span>
             </label>
 
             <label class="toggle-row" for="play-other-tracks-toggle">
               <input id="play-other-tracks-toggle" type="checkbox" checked disabled />
               <span class="toggle-row-text">
-                <span class="toggle-row-title">Play other tracks</span>
-                <span class="toggle-row-help">Keep the rest of the arrangement audible while you practice.</span>
+                <span class="toggle-row-title">Play backing tracks</span>
               </span>
             </label>
-          </div><p class="field-help">Realtime playback choices. Score accompaniment stays paused in Wait mode.</p><hr /><fieldset disabled><legend>Playback volume — Not implemented yet</legend><label class="menu-option">Volume <input type="range" min="0" max="100" value="100" aria-label="Future playback volume" /></label></fieldset><details class="menu-future"><summary>Track mixer &amp; output — Not implemented yet</summary><p>Future controls: per-track sound, volume and mute/solo; supported output device and channel routing.</p></details></div></section>
+          </div><p class="field-help">Realtime playback choices. Score accompaniment stays paused in Wait mode.</p><hr />
+          <div class="menu-row"><label for="master-volume">Master volume (%)</label><input id="master-volume" type="range" min="0" max="100" step="1" value="100" /><div class="menu-number"><input id="master-volume-number" aria-label="Master volume percent" type="number" min="0" max="100" step="1" value="100" /></div></div>
+          <p class="field-help">Includes score playback, metronome and count-in. Saved for this browser.</p>
+          <details><summary>Track volume &amp; mute</summary><div id="track-mixer"></div><p class="field-help">Track levels start at 100% of the score's mix and reset when another score opens. Playback switches above still apply. Tracks sharing MIDI channels have one control.</p></details>
+          </div></section>
 
     <section id="display-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
       <div class="panel-header compact-header">
@@ -289,17 +315,17 @@
             <input id="score-zoom" type="range" min="50" max="200" step="5" value="100" />
             <div class="menu-number"><input id="score-zoom-number" aria-label="Zoom percent" type="number" min="50" max="200" step="5" value="100" /><div class="menu-steppers"><button id="score-zoom-down" type="button" aria-label="Zoom out">−</button><button id="score-zoom-up" type="button" aria-label="Zoom in">+</button></div></div>
           </div>
-          <label class="toggle-row"><input id="score-auto-scroll" type="checkbox" checked /><span>Auto scroll</span></label>
+          <label class="toggle-row"><input id="score-auto-scroll" type="checkbox" checked /><span>Follow playback with auto-scroll</span></label>
           <label class="toggle-row"><input id="fullscreen-on-play" type="checkbox" /><span>Full screen on Play</span></label>
         </div>
         <div class="popup-card">
-          <fieldset class="menu-radio-group"><legend>Display mode</legend>
-            <label><input id="view-practice-only" type="radio" name="view-mode" value="practice-only" checked disabled /><span>Practice only</span></label>
+          <fieldset class="menu-radio-group"><legend>Visible tracks</legend>
+            <label><input id="view-practice-only" type="radio" name="view-mode" value="practice-only" checked disabled /><span>Practice track only</span></label>
             <label><input id="view-all-tracks" type="radio" name="view-mode" value="all-tracks" disabled /><span>All tracks</span></label>
           </fieldset>
           <div class="popup-card-title">Virtual fretboard</div>
           <label class="toggle-row" for="show-fretboard"><input id="show-fretboard" type="checkbox" /><span>Show virtual fretboard</span></label>
-          <label class="toggle-row" for="left-handed-fretboard"><input id="left-handed-fretboard" type="checkbox" /><span>Left-handed orientation</span></label>
+          <label class="toggle-row" for="left-handed-fretboard"><input id="left-handed-fretboard" type="checkbox" /><span>Left-handed fretboard</span></label>
           <p class="field-help">Six-string tracks use the score tuning and capo. Single-channel input shows possible played positions.</p>
         </div>
       </div>
