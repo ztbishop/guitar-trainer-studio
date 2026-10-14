@@ -4,11 +4,11 @@ Implemented 2026-10-13. Keep using VS Code Live Server; no build or helper is re
 
 ## Scores
 
-- **Open File** loads Guitar Pro (`.gp`, `.gp3`, `.gp4`, `.gp5`, `.gpx`) or MusicXML (`.xml`, `.musicxml`, `.mxl`) through native alphaTab. Opening does not automatically save it.
-- **Save open score** stores a successfully parsed original file, using its score title. **Import score files** stores multiple original files without opening them, using filenames as initial titles. Import reports saved/duplicate/failed counts; native parsing happens when a saved file opens.
-- Choose a folder to browse and set the default save/import destination, or expand **Save location & edit score** to choose a destination explicitly. All scores defaults to Unfiled for new saves. Search matches title or filename.
-- Click a saved title to open it. **Edit** exposes its title/destination; **Save changes** renames/moves it without replacing bytes. Identical file bytes are saved once, even with another filename/folder; use Edit to move an existing duplicate.
-- **Folders & backup** creates single-level folders and renames the selected folder. Removing a folder keeps its scores in Unfiled. Deleting a saved score asks for confirmation and does not unload the current score or delete the original disk file.
+- **Open File**, **Save to Library**, **Backup Library**, and **Import Library (Merge)** are grouped at the top of Scores. Open File loads Guitar Pro (`.gp`, `.gp3`, `.gp4`, `.gp5`, `.gpx`) or MusicXML (`.xml`, `.musicxml`, `.mxl`) through native alphaTab; opening does not automatically save it.
+- **Add File(s)** accepts multiple score files and saves them without opening them. New files go into the selected folder; with All Scores selected, they go to Unfiled. Native parsing happens when a saved score opens.
+- The folder pane filters the score list. **New Folder** creates a single-level folder. The folder three-dot menu renames or removes it; removing a folder keeps its scores in Unfiled. Search matches title or filename.
+- Click a saved title to open it. Its three-dot menu renames, moves, or deletes it. Deletion asks for confirmation and does not unload the current score or delete the original disk file. Identical file bytes are saved once, even with another filename/folder.
+- The compact **Current score** area identifies the single score alphaTab has loaded. **Tracks in current score** stays collapsed until needed; playback position and player status are shown by the player controls rather than duplicated in Scores.
 
 The library belongs to this browser profile and origin (scheme, hostname, port). localhost, 127.0.0.1, another Live Server port and the published site have separate libraries. Browser data clearing/eviction or private browsing can remove it. Keep downloaded backups outside browser storage.
 

@@ -1,5 +1,9 @@
 # Development notes
 
+## Scores library menu cleanup — 2026-10-13
+
+Reorganized Scores using the Piano Trainer library as a UI reference while keeping Guitar Trainer's IndexedDB schema and native alphaTab load path. Open, save, backup and merge are grouped at the top; Add File(s) remains a multi-file library import. A folder pane sits beside the score list, and folder/score three-dot menus expose rename, move and delete actions in native dialogs. Removed duplicate loaded-file, playback-status and position statistics. Kept a compact Current score title and collapsed Tracks in current score controls. The selected folder is the destination for saves/imports; All Scores targets Unfiled. Current library matches receive a Loaded badge. No grading, media profiles, score bytes, alphaTab rendering or transport behavior changed. Local browser layout and import/save acceptance remains to be checked.
+
 ## Ignore duplicate Note-On while a pitch is held — 2026-10-13
 
 The supplied MIDI capture showed the same channel-4 E4 Note-On twice, 27 ms apart, with no Note-Off until about 1.28 seconds after the second message. The owner confirmed they held the note. `midi-router.js` now suppresses a repeated Note-On for an already-held channel/pitch before it reaches either Wait or Realtime grading. The duplicate remains visible in the optional MIDI capture report as `ignored-held-duplicate`; the original onset remains the start of the reported hold duration. A matching Note-Off releases the gate, so a later attack counts normally. This blocks the observed held-note from satisfying the next repeated-pitch target and does not add a wrong-note penalty. Router and capture regressions are automated; the owner still needs to check keyboard and Fishman behavior in Live Server/browser, especially deliberate repeated notes and Hex channel releases.

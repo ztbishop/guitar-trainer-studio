@@ -59,68 +59,50 @@
           <h2>Scores</h2>
         </div>
       </div>
-
-      <div class="popup-panel-grid popup-panel-grid--two">
-        <div class="popup-card">
-          <div class="popup-card-title">Open score</div>
-          <label class="file-picker" for="score-file-input">
+      <div class="scores-menu-content">
+        <div class="scores-library-actions" aria-label="Score library actions">
+          <label class="file-picker scores-action-button" for="score-file-input">
             <span class="button-like">Open File</span>
             <input id="score-file-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl" />
           </label>
+          <button id="library-save" type="button" disabled>Save to Library</button>
+          <button id="library-backup" type="button">Backup Library</button>
+          <button id="library-restore" type="button">Import Library (Merge)</button>
+        </div>
+        <input id="library-import-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl" multiple hidden />
+        <input id="library-backup-input" type="file" accept=".json,application/json" hidden />
+        <p id="library-status" class="field-help" role="status" aria-live="polite">Opening score library…</p>
 
-          <div class="menu-library-actions">
-            <button id="library-save" type="button" disabled>Save open score</button>
-            <button id="library-import" type="button">Import score files</button>
-          </div>
-          <input id="library-import-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl" multiple hidden />
-          <div class="library-filter-row">
-            <label>Folder <select id="library-folder-filter" aria-label="Library folder"><option value="__all__">All scores</option></select></label>
-            <label>Search <input id="library-search" type="search" placeholder="Title or filename" /></label>
-          </div>
-          <div id="library-list" aria-label="Saved scores"></div>
-          <details id="library-editor"><summary id="library-edit-heading">Save location &amp; edit score</summary>
-            <div class="library-filter-row">
-              <label>Save / move to <select id="library-destination" aria-label="Save or move destination"><option value="">Unfiled</option></select></label>
-              <label>Score title <input id="library-score-title" type="text" maxlength="240" /></label>
+        <div class="library-browser">
+          <section class="library-pane library-folders-pane" aria-labelledby="library-folders-heading">
+            <div class="library-pane-heading">
+              <h3 id="library-folders-heading">Folders</h3>
+              <button id="library-new-folder" type="button">New Folder</button>
             </div>
-            <div class="menu-library-actions"><button id="library-update" type="button" disabled>Save changes</button><button id="library-delete" type="button" disabled>Delete saved score</button></div>
-            <p class="field-help">Choose Edit beside a saved score to rename, move or delete it. Save open score and file imports use the destination above.</p>
-          </details>
-          <details><summary>Folders &amp; backup</summary>
-            <label class="library-folder-label">Folder name <input id="library-folder-name" type="text" maxlength="240" /></label>
-            <div class="menu-library-actions"><button id="library-new-folder" type="button">Create folder</button><button id="library-rename-folder" type="button" disabled>Rename folder</button><button id="library-remove-folder" type="button" disabled>Remove folder</button></div>
-            <p class="field-help">Select a folder above to rename or remove it. Removing a folder keeps its scores in Unfiled.</p>
-            <div class="menu-library-actions"><button id="library-backup" type="button">Download backup</button><button id="library-restore" type="button">Import backup (merge)</button></div>
-            <input id="library-backup-input" type="file" accept=".json,application/json" hidden />
-            <p class="field-help">Scores stay in this browser at this address and port. Backups include original files and folders; import keeps existing scores and skips identical files. Export before clearing browser data or changing your Live Server address.</p>
-          </details>
-          <p id="library-status" class="field-help" role="status" aria-live="polite">Opening score library…</p>
-          <div class="status-stack">
-            <div>
-              <div class="status-label">Loaded file</div>
-              <div id="loaded-file-name" class="status-value">None</div>
+            <div id="library-folder-list" class="library-folder-list" aria-label="Score folders"></div>
+          </section>
+          <section class="library-pane library-scores-pane" aria-labelledby="library-folder-title">
+            <div class="library-pane-heading library-scores-heading">
+              <h3 id="library-folder-title">All Scores</h3>
+              <span id="library-score-count" class="field-help library-score-count"></span>
             </div>
-            <div>
-              <div class="status-label">Score title</div>
-              <div id="score-title" class="status-value">No score loaded</div>
+            <div class="library-search-row">
+              <label for="library-search">Search scores</label>
+              <input id="library-search" type="search" placeholder="Title or filename" />
+              <button id="library-import" type="button">Add File(s)</button>
             </div>
-            <div>
-              <div class="status-label">Player status</div>
-              <div id="player-status" class="status-value">Waiting for score</div>
-            </div>
-            <div>
-              <div class="status-label">Current position</div>
-              <div id="playback-position" class="status-value">0 ms</div>
-            </div>
-          </div>
+            <div id="library-list" class="library-score-list" aria-label="Saved scores"></div>
+          </section>
         </div>
 
-        <div class="popup-card">
-          <details class="menu-track-details"><summary>Loaded score tracks</summary>
-          <ul id="track-list" class="track-list">
-            <li class="track-placeholder">Load a score to list its tracks here.</li>
-          </ul></details>
-        </div>
+        <section class="current-score-card" aria-label="Current score">
+          <div class="current-score-heading"><span>Current score</span><strong id="score-title">No score loaded</strong></div>
+          <details class="menu-track-details"><summary>Tracks in current score</summary>
+            <ul id="track-list" class="track-list">
+              <li class="track-placeholder">Load a score to list its tracks here.</li>
+            </ul>
+          </details>
+        </section>
       </div>
     </section>
 

@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+### Scores library menu cleanup — 2026-10-13
+
+- [x] Group Open File, Save to Library, Backup Library, and Import Library (Merge) at the top; keep Add File(s) as a multi-file import into the selected folder.
+- [x] Replace the folder dropdown/inline Edit controls with folder navigation and per-folder/per-score three-dot action menus. Keep the compact current-score title and collapsed track controls; remove duplicate loaded-file, playback-status, and current-position readouts.
+- [ ] Verify folder create/rename/remove, score rename/move/delete, multiple file import, backup merge, and current-score loaded badge in Live Server at desktop and phone widths. Confirm alphaTab still opens scores natively.
+
 ### Ignore duplicate held-note attacks — 2026-10-13
 
 - [x] Suppress repeated Note-On messages for the same MIDI channel/pitch while it remains held. The release still reaches feedback; the next Note-On is a fresh attack. The captured E4 case showed a duplicate 27 ms after its first Note-On and no release until about 1.28 seconds later; the owner confirmed the note stayed held. Duplicate events do not leak into the next Wait/Realtime target or count as mistakes.
