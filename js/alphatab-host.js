@@ -80,6 +80,46 @@ export function embeddedMedia() {
 }
 
 let pendingScoreFile=null,scoreLoadGeneration=0;
+let scoreChordDiagramDefaults=null;
+
+function copyTrackChordDiagramSettings(value) {
+  return value instanceof Map ? new Map(value) : value;
+}
+
+function sameTrackChordDiagramSettings(left,right) {
+  if(left===right)return true;
+  if(!(left instanceof Map) || !(right instanceof Map) || left.size!==right.size)return false;
+  for(const [key,value] of left)if(!right.has(key) || right.get(key)!==value)return false;
+  return true;
+}
+
+function rememberScoreChordDiagramDefaults(score) {
+  const stylesheet=score?.stylesheet;
+  scoreChordDiagramDefaults=stylesheet ? {
+    onTop:stylesheet.globalDisplayChordDiagramsOnTop,
+    inScore:stylesheet.globalDisplayChordDiagramsInScore,
+    perTrack:copyTrackChordDiagramSettings(stylesheet.perTrackChordDiagramsOnTop),
+  } : null;
+}
+
+function applyChordDiagramPlacement() {
+  const stylesheet=AppState.score?.stylesheet;
+  if(!stylesheet || !scoreChordDiagramDefaults)return false;
+  const placement=AppState.ui.chordDiagramPlacement;
+  let onTop=scoreChordDiagramDefaults.onTop;
+  let inScore=scoreChordDiagramDefaults.inScore;
+  let perTrack=copyTrackChordDiagramSettings(scoreChordDiagramDefaults.perTrack);
+  if(placement==='above-chord') {onTop=false;inScore=true;}
+  else if(placement==='top-of-score') {onTop=true;inScore=false;perTrack=null;}
+  else if(placement==='off') {onTop=false;inScore=false;}
+  if(stylesheet.globalDisplayChordDiagramsOnTop===onTop
+      && stylesheet.globalDisplayChordDiagramsInScore===inScore
+      && sameTrackChordDiagramSettings(stylesheet.perTrackChordDiagramsOnTop,perTrack))return false;
+  stylesheet.globalDisplayChordDiagramsOnTop=onTop;
+  stylesheet.globalDisplayChordDiagramsInScore=inScore;
+  stylesheet.perTrackChordDiagramsOnTop=copyTrackChordDiagramSettings(perTrack);
+  return true;
+}
 
 let loopOverlay=null;
 function drawLoopShading() {
@@ -606,8 +646,12 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   alphaTabApi.scoreLoaded.on((score) => {
     cancelRealtimePulses();
     const loadedScore = score || alphaTabApi.score || null;
+    rememberScoreChordDiagramDefaults(loadedScore);
     AppState.playbackTimeline = null;
     AppState.score = loadedScore;
+    // alphaTab raises scoreLoaded before MIDI generation and initial rendering,
+    // so apply a saved placement override before the native render begins.
+    applyChordDiagramPlacement();
     AppState.currentScoreFile=pendingScoreFile;
     pendingScoreFile=null;
     AppState.audio.tracks={};
@@ -858,10 +902,11 @@ export function applyScoreDisplay() {
   if(!alphaTabApi)return false;
   const scale=AppState.ui.zoomPercent/100;
   const zoomChanged=alphaTabApi.settings.display.scale!==scale;
+  const chordDiagramsChanged=applyChordDiagramPlacement();
   alphaTabApi.settings.display.scale=scale;
   alphaTabApi.settings.player.scrollMode=AppState.ui.autoScroll ? window.alphaTab.ScrollMode.Continuous : window.alphaTab.ScrollMode.Off;
   alphaTabApi.updateSettings();
-  if(zoomChanged)alphaTabApi.render();
+  if(zoomChanged || chordDiagramsChanged)alphaTabApi.render();
   return true;
 }
 

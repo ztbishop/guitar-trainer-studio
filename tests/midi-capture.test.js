@@ -69,7 +69,7 @@ test('capture is opt-in, bounded, restarts cleanly, and records duplicate held a
   captureMidiOutcome(second,null);
   const release=captureMidiEvent({...note,type:'note-off',at:note.at+100},{accepted:true});
   assert.equal(release.noteOnSequence,first.sequence,'held duration stays anchored to the original onset');
-  assert.equal(release.durationMs,100);
+  assert.ok(Math.abs(release.durationMs-100)<1e-9,'held duration is 100 ms within floating-point precision');
   for(let i=2;i<10001;i++)captureMidiEvent(note,{accepted:true});
   assert.equal(captureStatus().count,10000);assert.equal(captureStatus().recording,false);
   assert.equal(captureStatus().reason,'Capture limit reached');

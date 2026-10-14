@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Persistent chord-diagram placement — 2026-10-13
+
+- [x] Added Display choices in order: Score Default, Above Chord, Top of Score, Off. Score Default restores each loaded score's embedded alphaTab placement; the other choices override alphaTab's native diagram placement/visibility settings.
+- [x] Save the selection with Display preferences in localStorage and apply it after each score load. Chord names and score content remain native; no grading, MIDI, transport or deferred feature changes.
+- [x] Regression coverage checks preference validation/round-trip and each native stylesheet override plus restoring a score's original settings.
+- [ ] Owner visually checks all four choices on Guitar Pro and MusicXML scores in Live Server, confirms chord names remain useful with diagrams Off, reload persistence, and that score layout/playback still behave normally.
+
 ### Relink recovered local media to a saved sync profile — 2026-10-13
 
 - [x] Selecting a saved profile, then choosing a renamed/recovered local recording, reuses the saved sync points and updates that profile's source details after validation.

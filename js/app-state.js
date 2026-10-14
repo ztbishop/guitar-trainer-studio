@@ -63,6 +63,7 @@ export const AppState = {
     zoomPercent: 100,
     autoScroll: true,
     fullscreenOnPlay: false,
+    chordDiagramPlacement: 'score-default',
     layoutMode: 'page',
     showFretboard: true,
     showNotationFeedback: true,

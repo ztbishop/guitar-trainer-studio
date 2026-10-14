@@ -1,5 +1,9 @@
 # Development notes
 
+## Persistent chord-diagram placement — 2026-10-13
+
+Display now has a **Chord diagrams** selector in the agreed order: **Score Default**, **Above Chord**, **Top of Score**, **Off**. The selection persists in `gts.displayPreferences`. Score Default restores the current score's original native alphaTab stylesheet values for global top/inline diagrams and per-track top placement; a new score captures its own defaults before the user's saved override is applied. Above Chord uses alphaTab's in-score diagram rendering at chord beats; Top of Score enables the native deduplicated diagram area and clears per-track top restrictions for a consistent global choice; Off hides both diagram renderings without removing chord names. alphaTab remains the rendering/engraving owner. No score bytes, grading, MIDI, playback transport or deferred features change. Automated tests cover preference round-trip/validation, each override and restoration. Live Server visual checks remain for the owner.
+
 ## Relink sync profiles to recovered local media — 2026-10-13
 
 Selecting a saved profile for the current score and choosing a local recording now explicitly relinks that profile when the file name, size or modified date changed. This preserves existing sync points through drive recovery/renaming; the changed file metadata is saved to the selected profile after its points pass validation against the active score measures/repeats and media duration. Profiles from another score or source type are rejected, and a failed validation surfaces an error without applying invalid points. Automatic profile matching still uses existing local metadata until the user explicitly relinks. No recording bytes are stored and no score, alphaTab or grading behavior changed. Added matching-policy regressions; browser acceptance remains pending.

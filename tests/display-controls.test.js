@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import {AppState} from '../js/app-state.js';
 import {initDisplayControls} from '../js/display-controls.js';
 
-test('zoom inputs share state, clamp limits and restore invalid values; scroll and fullscreen are independent',()=>{
+test('zoom inputs share state, clamp limits and restore invalid values; scroll, fullscreen and chord diagram choices are independent',()=>{
   const previous=globalThis.document,ui={...AppState.ui};
   const elements=new Map();
   const get=id=>{if(!elements.has(id))elements.set(id,{value:'',handlers:{},addEventListener(type,fn){this.handlers[type]=fn;}});return elements.get(id);};
   globalThis.document={getElementById:get,documentElement:{requestFullscreen(){}}};
   try {
-    AppState.ui.zoomPercent=100;AppState.ui.autoScroll=true;AppState.ui.fullscreenOnPlay=false;
+    AppState.ui.zoomPercent=100;AppState.ui.autoScroll=true;AppState.ui.fullscreenOnPlay=false;AppState.ui.chordDiagramPlacement='score-default';
     let changes=0;const controls=initDisplayControls(()=>changes++);
     const number=get('score-zoom-number'),slider=get('score-zoom');
     number.value='999';number.handlers.change();assert.equal(slider.value,'200');assert.equal(get('score-zoom-up').disabled,true);
@@ -21,6 +21,8 @@ test('zoom inputs share state, clamp limits and restore invalid values; scroll a
     get('score-auto-scroll').checked=false;get('score-auto-scroll').handlers.change();assert.equal(AppState.ui.autoScroll,false);
     const before=changes;get('fullscreen-on-play').checked=true;get('fullscreen-on-play').handlers.change();
     assert.equal(AppState.ui.fullscreenOnPlay,true);assert.equal(changes,before);assert.equal(AppState.ui.zoomPercent,115);
+    const diagrams=get('chord-diagram-placement');diagrams.value='above-chord';diagrams.handlers.change();
+    assert.equal(AppState.ui.chordDiagramPlacement,'above-chord');assert.equal(diagrams.value,'above-chord');assert.equal(changes,before+1);
     AppState.ui.leftHanded=true;AppState.ui.showFretboard=false;
     controls.sync();
     assert.equal(get('left-handed-fretboard').disabled,true);
