@@ -615,6 +615,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     AppState.isPlaying = false;
     AppState.tickPosition = 0;
     AppState.timePositionMs = 0;
+    AppState.pitchOffsetSemitones = 0;
 
     setDefaultTrackState();
     syncPracticeTrackSelect();
@@ -647,6 +648,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   alphaTabApi.playerReady.on(() => {
     AppState.playerReady = true;
     applyMasterVolume();
+    applyPlaybackPitchOffset(AppState.pitchOffsetSemitones);
     alphaTabApi.playbackSpeed=AppState.playbackSpeed;
     setTransportEnabled(true);
     updatePracticeControlsEnabled(AppState.tracks.length > 0);
@@ -815,6 +817,15 @@ export function applyMasterVolume() {
 }
 
 export function applyTrackMixer() {return AppState.playerReady && applyTrackPlaybackStateInternal();}
+
+export function applyPlaybackPitchOffset(semitones) {
+  if(!Number.isInteger(semitones) || semitones < -12 || semitones > 12)return false;
+  AppState.pitchOffsetSemitones=semitones;
+  if(!AppState.playerReady || !alphaTabApi || !AppState.tracks.length)return true;
+  if(typeof alphaTabApi.changeTrackTranspositionPitch!=='function')return false;
+  alphaTabApi.changeTrackTranspositionPitch(AppState.tracks,semitones);
+  return true;
+}
 
 export function applyPlaybackTrackState({ practiceTrackId, playSelectedTrack = AppState.playSelectedTrack, playOtherTracks = AppState.playOtherTracks, viewMode = AppState.viewMode } = {}) {
   if (practiceTrackId != null) {

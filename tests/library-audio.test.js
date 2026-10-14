@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {validateBackup,encodeBytes,decodeBytes,fingerprint,LIBRARY_FORMAT,LibraryStore} from '../js/library-store.js';
-import {playbackGroups,clampVolume} from '../js/audio-controls.js';
+import {playbackGroups,clampVolume,initAudioControls} from '../js/audio-controls.js';
+import {AppState} from '../js/app-state.js';
 
 const bytes=new Uint8Array([0,255,128,1,12,48]);
 const backup=()=>({format:LIBRARY_FORMAT,version:1,folders:[{id:'folder',name:'Practice'}],scores:[{id:'score',title:'Song',fileName:'song.gp5',folderId:'folder',data:encodeBytes(bytes)}]});
@@ -35,4 +36,25 @@ test('shared MIDI channels form transitive groups, while independent tracks keep
   assert.equal(groups.find(group=>group.tracks.length===1).id,'3');
   assert.equal(clampVolume(''),100);assert.equal(clampVolume('bad',42),42);
   assert.equal(clampVolume(-5),0);assert.equal(clampVolume(125),100);assert.equal(clampVolume(0),0);
+});
+
+test('synced media volume is independent, saved, and dispatched separately from synth master',()=>{
+  const previous={document:globalThis.document,window:globalThis.window,audio:AppState.audio};
+  class Control extends EventTarget {value='';replaceChildren(){this.children=[];}textContent='';}
+  const ids=Object.fromEntries(['master-volume','master-volume-number','media-volume','media-volume-number','track-mixer'].map(id=>[id,new Control()]));
+  const values=new Map(),calls=[];
+  globalThis.document={getElementById:id=>ids[id]};
+  globalThis.window={localStorage:{getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)}};
+  AppState.audio={masterPercent:100,tracks:{}};
+  try {
+    const controls=initAudioControls((...args)=>calls.push(args));
+    assert.equal(AppState.audio.mediaPercent,100);
+    ids['media-volume'].value='35';ids['media-volume'].dispatchEvent(new Event('input'));
+    assert.equal(AppState.audio.mediaPercent,35);assert.equal(values.get('gts.mediaVolume'),'35');
+    assert.deepEqual(calls.at(-1),['media',35]);
+    assert.equal(AppState.audio.masterPercent,100,'media adjustment leaves synth master unchanged');
+    ids['media-volume-number'].value='0';ids['media-volume-number'].dispatchEvent(new Event('change'));
+    assert.equal(AppState.audio.mediaPercent,0);assert.equal(ids['media-volume'].value,'0');
+    controls.sync();assert.equal(ids['media-volume-number'].value,'0');
+  } finally {globalThis.document=previous.document;globalThis.window=previous.window;AppState.audio=previous.audio;}
 });

@@ -33,8 +33,9 @@ import { initChordControls } from './chord-controls.js';
 import { initAttemptControls } from './attempt-controls.js';
 import { initDisplayControls } from './display-controls.js';
 import { applyScoreDisplay } from './alphatab-host.js';
-import {applyMasterVolume,applyTrackMixer} from './alphatab-host.js';
+import {applyMasterVolume,applyTrackMixer,applyPlaybackPitchOffset} from './alphatab-host.js';
 import {initAudioControls} from './audio-controls.js';
+import {initPitchControls} from './pitch-controls.js';
 import {readPracticePreferences,savePracticePreferences,FEEDBACK_PREFERENCE_KEYS} from './practice-preferences.js';
 import {readDisplayPreferences,saveDisplayPreferences} from './display-preferences.js';
 import {initMediaControls} from './media-controls.js';
@@ -43,7 +44,7 @@ import {beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayba
 let transportControls=null;
 let chordControls=null;
 let attemptControls=null;
-let audioControls=null,scoreLibrary=null,mediaControls=null;
+let audioControls=null,scoreLibrary=null,mediaControls=null,pitchControls=null;
 
 const waitController = new WaitController({
   acquire:acquireWaitTransport,hold:holdWaitAtTick,
@@ -616,7 +617,8 @@ async function bootstrap() {
   loadMidiDebugPreference();
   initToolbar();
   scoreLibrary=initScoreLibrary(loadScoreFile);
-  audioControls=initAudioControls(kind=>{if(kind==='master')applyMasterVolume();else applyTrackMixer();});
+  audioControls=initAudioControls((kind,value)=>{if(kind==='master')applyMasterVolume();else if(kind==='media')mediaControls?.setVolume(value);else applyTrackMixer();});
+  pitchControls=initPitchControls(applyPlaybackPitchOffset);
   mediaControls=initMediaControls({beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setSpeed:setPlaybackSpeed},
     {beforeListen(){if(AppState.mode==='wait' && waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);pauseWaitTransport();clearActiveMidiNotes();},afterPractice(){clearActiveMidiNotes();if(AppState.mode==='realtime')handlePlaybackState();renderTrainerUi();}});
   initFretboard(document.getElementById('fretboard-container'),document.getElementById('fretboard-help-status'));
@@ -632,6 +634,7 @@ async function bootstrap() {
     await initAlphaTab(document.getElementById('alphatab-container'), {
       onScoreLoaded: () => {
         scoreLibrary?.scoreLoaded();audioControls?.sync();
+        pitchControls?.sync({enabled:false,value:0});
         transportControls?.clearPulse();
         syncTrainerFoundation();
       },
@@ -656,8 +659,8 @@ async function bootstrap() {
         if(!AppState.media.preview && AppState.mode==='realtime')handlePlaybackState();
         renderTrainerUi();
       },
-      onPlayerReady: () => {audioControls?.sync();renderTrainerUi();},
-      onScoreLoading: () => {mediaControls?.scoreLoading();scoreLibrary?.sync();audioControls?.sync();},
+      onPlayerReady: () => {audioControls?.sync();pitchControls?.sync({enabled:true,value:AppState.pitchOffsetSemitones});renderTrainerUi();},
+      onScoreLoading: () => {mediaControls?.scoreLoading();scoreLibrary?.sync();audioControls?.sync();pitchControls?.sync({enabled:false,value:AppState.pitchOffsetSemitones});},
       onScoreLoadError: () => scoreLibrary?.sync(),
       onMetronomeTick: () => transportControls?.pulse(),
       onMetronomeError: () => renderTrainerUi(),

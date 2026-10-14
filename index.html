@@ -279,7 +279,6 @@
         <button id="more-loop-shortcut" type="button" class="more-shortcut-button" data-launch-panel="looper-popup">🔁 Loop</button>
         <button type="button" class="more-shortcut-button" data-launch-panel="audio-popup">🎚 Audio</button>
         <button type="button" class="more-shortcut-button" data-launch-panel="display-popup">🖥 Display</button>
-        <button type="button" class="more-shortcut-button" data-launch-panel="transpose-popup">↕ Pitch &amp; Transpose <span class="menu-status">Not implemented yet</span></button>
         <button type="button" class="more-shortcut-button" data-launch-panel="media-popup">▶ Media &amp; Sync</button>
         <button type="button" class="more-shortcut-button" data-launch-panel="help-popup">ℹ Help &amp; Guide</button>
       </div>
@@ -300,8 +299,11 @@
               </span>
             </label>
           </div><p class="field-help">Realtime playback choices. Score accompaniment stays paused in Wait mode.</p><hr />
-          <div class="menu-row"><label for="master-volume">Master volume (%)</label><input id="master-volume" type="range" min="0" max="100" step="1" value="100" /><div class="menu-number"><input id="master-volume-number" aria-label="Master volume percent" type="number" min="0" max="100" step="1" value="100" /></div></div>
-          <p class="field-help">Includes score playback, metronome and count-in. Saved for this browser.</p>
+          <div class="menu-row"><label for="master-volume">Synth master volume (%)</label><input id="master-volume" type="range" min="0" max="100" step="1" value="100" /><div class="menu-number"><input id="master-volume-number" aria-label="Synth master volume percent" type="number" min="0" max="100" step="1" value="100" /></div></div>
+          <p class="field-help">Controls synthesized score playback, metronome and count-in. Saved for this browser.</p>
+          <div class="menu-row"><label for="media-volume">Synced media volume (%)</label><input id="media-volume" type="range" min="0" max="100" step="1" value="100" /><div class="menu-number"><input id="media-volume-number" aria-label="Synced media volume percent" type="number" min="0" max="100" step="1" value="100" /></div></div>
+          <p class="field-help">Controls local, linked, embedded and YouTube recordings independently. Saved for this browser.</p>
+          <fieldset id="playback-pitch-controls" disabled><legend>Synth playback pitch</legend><div class="pitch-offset-row"><label for="playback-pitch-semitones">Semitones</label><input id="playback-pitch-semitones" type="number" min="-12" max="12" step="1" value="0" /><button id="reset-playback-pitch" type="button" aria-label="Reset pitch to written pitch">Reset</button></div></fieldset><p id="pitch-offset-status" class="field-help" role="status">Load a score to enable pitch shifting.</p><p class="field-help">Changes synthesized score sound only. Notation, tab, MIDI targets and synced recordings stay unchanged.</p>
           <details><summary>Track volume &amp; mute</summary><div id="track-mixer"></div><p class="field-help">Track levels start at 100% of the score's mix and reset when another score opens. Playback switches above still apply. Tracks sharing MIDI channels have one control.</p></details>
           </div></section>
 
@@ -340,8 +342,6 @@
         </div>
       </div>
     </section>
-
-    <section id="transpose-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content"><h2>Pitch &amp; Transpose</h2><fieldset disabled><legend>Playback pitch offset — Not implemented yet</legend><label class="menu-setting">Semitones <input type="number" min="-12" max="12" value="0" /></label></fieldset><p class="field-help">A playback-only offset shifts synthesized sound; it does not change written music or expected MIDI pitches. Capo/down-tuning practice needs coordinated expected-pitch handling.</p><hr /><fieldset disabled><legend>Transpose score — Not implemented yet</legend><label class="menu-setting">Transpose by <select><option>Semitones</option><option>Target key</option></select></label></fieldset><p class="field-help">Future transposition must keep notation, key signatures, tab positions and practice targets consistent.</p></div></section>
 
     <section id="help-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content"><h2>Help &amp; Guide</h2><ol class="menu-help-list"><li>Open a Guitar Pro or MusicXML score from Scores.</li><li>Select your Fishman or other MIDI input in Settings. Choose Poly/single-channel or your configured six-channel Hex layout.</li><li>In Practice, choose a track and Realtime or Wait. Both currently grade pitch.</li><li>Use Tempo and Loop to work on a section. Play starts with a count-in; Pause preserves results.</li></ol><p>Visual feedback is in Practice; track visibility and the optional fretboard are in Display. Audio controls selected/backing-track playback.</p><p class="field-help">Poly fret estimates are optional guidance, not detected positions. Left-handed fretboard orientation does not reverse MIDI channel mapping.</p><a href="./README.md" target="_blank" rel="noopener">Project setup and current limitations</a></div></section>
 

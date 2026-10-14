@@ -26,20 +26,35 @@ export function playbackGroups(tracks) {
 export function initAudioControls(onChange) {
   const slider=document.getElementById('master-volume');
   const number=document.getElementById('master-volume-number');
+  const mediaSlider=document.getElementById('media-volume');
+  const mediaNumber=document.getElementById('media-volume-number');
   const mixer=document.getElementById('track-mixer');
+  AppState.audio.mediaPercent=clampVolume(AppState.audio.mediaPercent,100);
   try { const saved=window.localStorage.getItem('gts.masterVolume'); if(saved!==null)AppState.audio.masterPercent=clampVolume(saved); } catch {}
+  try { const saved=window.localStorage.getItem('gts.mediaVolume'); if(saved!==null)AppState.audio.mediaPercent=clampVolume(saved); } catch {}
   function commit(value) {
     AppState.audio.masterPercent=clampVolume(value,AppState.audio.masterPercent);
     slider.value=number.value=String(AppState.audio.masterPercent);
     try {window.localStorage.setItem('gts.masterVolume',String(AppState.audio.masterPercent));} catch {}
     onChange('master');
   }
+  function commitMedia(value) {
+    AppState.audio.mediaPercent=clampVolume(value,AppState.audio.mediaPercent);
+    mediaSlider.value=mediaNumber.value=String(AppState.audio.mediaPercent);
+    try {window.localStorage.setItem('gts.mediaVolume',String(AppState.audio.mediaPercent));} catch {}
+    onChange('media',AppState.audio.mediaPercent);
+  }
   slider.addEventListener('input',()=>commit(slider.value));
   number.addEventListener('change',()=>commit(number.value));
   number.addEventListener('blur',()=>commit(number.value));
   number.addEventListener('keydown',event=>{if(event.key==='Enter')commit(number.value);});
+  mediaSlider.addEventListener('input',()=>commitMedia(mediaSlider.value));
+  mediaNumber.addEventListener('change',()=>commitMedia(mediaNumber.value));
+  mediaNumber.addEventListener('blur',()=>commitMedia(mediaNumber.value));
+  mediaNumber.addEventListener('keydown',event=>{if(event.key==='Enter')commitMedia(mediaNumber.value);});
   function sync() {
     slider.value=number.value=String(AppState.audio.masterPercent);
+    mediaSlider.value=mediaNumber.value=String(AppState.audio.mediaPercent);
     mixer.replaceChildren();
     if(!AppState.tracks.length){mixer.textContent='Load a score to adjust its tracks.';return;}
     for(const group of playbackGroups(AppState.tracks)) {

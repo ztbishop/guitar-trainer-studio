@@ -92,6 +92,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
         player=htmlMediaPlayer(get('video'),url,events);
       }
       await player.ready;if(token!==generation)return;
+      player.masterVolume=AppState.audio.mediaPercent/100;
       if(!(player.backingTrackDuration>0))throw new Error('Choose a recording with a known duration.');
       get('player-panel').classList.toggle('audio-only',source.kind!=='youtube' && !get('video').videoWidth);
       const matched=pendingProfile && sourceMatches(pendingProfile.source,source)?pendingProfile:
@@ -271,6 +272,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   renderLayout();sourceControls();sync();refreshProfiles().catch(error=>message(error.message));
   return {sync,timelineReady,async returnToPractice(){await returnToPractice();},
+    setVolume(percent){
+      if(!Number.isFinite(percent) || percent<0 || percent>100)return false;
+      AppState.audio.mediaPercent=percent;
+      if(player && !busy)player.masterVolume=percent/100;
+      return true;
+    },
     scoreLoading(){generation++;disposal();points=[];undo=[];redo=[];scoreBytes=null;scoreHash='';profileId='';pendingProfile=null;selected=-1;busy=false;renderPoints();renderLayout();sync();},
     mediaChanged(){sync();if(!AppState.media.preview)afterPractice();},
     get dirty(){return dirty;},

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { AppState } from '../js/app-state.js';
-import { initAlphaTab, setMetronomeVolume, startCountIn, cancelCountIn, applyMasterVolume, applyTrackMixer } from '../js/alphatab-host.js';
+import { initAlphaTab, setMetronomeVolume, startCountIn, cancelCountIn, applyMasterVolume, applyTrackMixer, applyPlaybackPitchOffset } from '../js/alphatab-host.js';
 
 class Emitter {
   handlers = [];
@@ -13,8 +13,8 @@ class Emitter {
 
 test('Wait reuses an audible native click, survives repeated restart, and never moves or grades the score', async () => {
   const previous = { document: globalThis.document, window: globalThis.window, fetch: globalThis.fetch };
-  const saved = {mode:AppState.mode,metronome:AppState.metronome,tickPosition:AppState.tickPosition,isPlaying:AppState.isPlaying,playerReady:AppState.playerReady,results:AppState.trainer.results,audio:AppState.audio,tracks:AppState.tracks,practiceTrackId:AppState.practiceTrackId,playSelectedTrack:AppState.playSelectedTrack,playOtherTracks:AppState.playOtherTracks};
-  const sources = [], gains=[],mutes=[],volumes=[],audio = {
+  const saved = {mode:AppState.mode,metronome:AppState.metronome,tickPosition:AppState.tickPosition,isPlaying:AppState.isPlaying,playerReady:AppState.playerReady,results:AppState.trainer.results,audio:AppState.audio,tracks:AppState.tracks,practiceTrackId:AppState.practiceTrackId,playSelectedTrack:AppState.playSelectedTrack,playOtherTracks:AppState.playOtherTracks,pitchOffsetSemitones:AppState.pitchOffsetSemitones};
+  const sources = [], gains=[],mutes=[],volumes=[],transpositions=[],audio = {
     sampleRate:44100,currentTime:0,state:'running',destination:{},
     createGain() { const gain={gain:{value:1},connect(){}};gains.push(gain);return gain; },
     createBuffer(channels, frames) {
@@ -33,6 +33,7 @@ test('Wait reuses an audible native click, survives repeated restart, and never 
   class Api {
     changeTrackMute(tracks,muted){mutes.push({ids:tracks.map(track=>track.index),muted});}
     changeTrackVolume(tracks,volume){volumes.push({ids:tracks.map(track=>track.index),volume});}
+    changeTrackTranspositionPitch(tracks,semitones){transpositions.push({ids:tracks.map(track=>track.index),semitones});}
     constructor() {
       api=this;this.player={output:{context:audio,activate(){}}};this.metronomeVolume=0;this.midiEventsPlayedFilter=[];
       for(const name of ['midiEventsPlayed','renderStarted','postRenderFinished','scoreLoaded','midiLoaded','playerReady','playerFinished','playerStateChanged','playerPositionChanged','beatMouseDown','error'])this[name]=new Emitter();
@@ -102,6 +103,13 @@ test('Wait reuses an audible native click, survives repeated restart, and never 
     assert.deepEqual(volumes.slice(-2),[{ids:[0],volume:1},{ids:[2,1],volume:0.35}]);
     AppState.audio.tracks['1:2'].muted=false;applyTrackMixer();assert.equal(mutes.at(-1).muted,false);
     assert.equal(AppState.trainer.results,grades);assert.equal(AppState.tickPosition,tick);
+    AppState.playerReady=true;
+    assert.equal(applyPlaybackPitchOffset(-3),true);
+    assert.deepEqual(transpositions.at(-1),{ids:[0,1,2],semitones:-3},'pitch offset applies to every synthesized score track');
+    assert.equal(AppState.pitchOffsetSemitones,-3);
+    assert.equal(applyPlaybackPitchOffset(13),false,'pitch offset is limited to the exposed semitone range');
+    assert.equal(transpositions.length,1);
+    assert.equal(AppState.trainer.results,grades);assert.equal(AppState.tickPosition,tick,'pitch changes do not reset grading or position');
     AppState.playbackTimeline=savedTimeline;AppState.score=savedScore;AppState.playbackSpeed=savedSpeed;
   } finally {
     cancelCountIn();

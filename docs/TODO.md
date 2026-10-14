@@ -1,5 +1,16 @@
 # Guitar Trainer Studio: status and to-do
 
+### Synth playback pitch offset — 2026-10-13
+
+- [x] Audio exposes a whole-semitone -12 to +12 offset for all alphaTab synthesized score tracks, with a reset-to-written-pitch action. The offset resets when a different score loads.
+- [x] Native alphaTab live channel transposition is used. Written notation/tab and MIDI grading targets are unaffected. Automated host check confirms all tracks receive the offset without moving practice position or clearing results. Synth master volume applies to synth/metronome/count-in; separate Synced media volume controls recordings and YouTube.
+- [ ] Owner checks synth/media volume and pitch audibly in Live Server/browser, including local media and YouTube, and confirms the Fishman Realtime/Wait workflow still behaves as expected. Score transposition by semitones/key remains deferred until notation, key signatures, guitar tab positions and expected practice pitches can be kept consistent. Media pitch shift is a separate feature; browser extensions may cover provider media that this app cannot process directly.
+
+### Audio menu pitch-control cleanup — 2026-10-13
+
+- [x] Tightened the Synth playback pitch group: semitone input and Reset stay together on one row when space permits, the live status is concise, and one static sentence explains its scope. This removes repeated wording without changing volume or pitch behavior.
+- [ ] Owner reviews Audio menu spacing in Live Server on desktop and phone widths.
+
 ### Media & Sync listening/alignment — 2026-10-13
 
 - [x] Local audio/video, direct media URLs, explicit YouTube loading and GP embedded audio using native external-media cursor/seek/sync points. Listening is separate from MIDI grading. Return retains original practice timing/position/results and paused Wait attempts; Wait remains silent.

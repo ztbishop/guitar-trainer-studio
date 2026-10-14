@@ -20,7 +20,8 @@ Backups exclude recordings, waveforms, grades/results, MIDI configuration and au
 
 ## Audio
 
-- **Master volume** covers native score playback/metronome and independent Wait metronome/count-in, including edits during count-in. Its percentage persists in localStorage. Zero silences synthesized output without stopping transport or visual pulses. It does not control Fishman's own sounds or external software audio.
+- **Synth master volume** covers native score playback/metronome and independent Wait metronome/count-in, including edits during count-in. Its percentage persists in localStorage. Zero silences synthesized output without stopping transport or visual pulses. It does not control Fishman's own sounds or external software audio.
+- **Synced media volume** independently controls local files, direct media URLs, embedded score recordings and YouTube playback. It persists in localStorage and applies when another recording is loaded. YouTube's own player controls remain available as well.
 - **Play practice track / Play backing tracks** preserve existing Realtime routing. Wait accompaniment stays paused.
 - **Track volume & mute** adjusts native track-channel playback. 100% keeps the score's mix; settings reset on score load and survive practice-track/view/mode changes. Explicit Mute overrides the playback switches.
 - Tracks sharing primary/secondary MIDI channels have one mixer row, including transitive overlaps. Native alphaTab cannot distinguish their audio. If practice/backing switches disagree in a shared row, it plays when any member is enabled; row Mute wins.
@@ -29,6 +30,6 @@ Practice keeps independent Staff feedback, tab highlights and incorrect fret num
 
 ## Verification
 
-Run node --test tests/*.test.js (169 passing tests on 2026-10-13). Open tests/library-browser.html through Live Server and click **Run library checks** for 12 real IndexedDB checks; these use/remove a separate temporary database and leave the saved library untouched. Tests cover original bytes, validation-before-write, duplicate/additive merge, folder removal, persistence, restoration, channel grouping, native mixer calls, Wait/count-in master gain and unchanged grading state.
+Run `node --test tests/*.test.js` (201 passing tests on 2026-10-13). Open tests/library-browser.html through Live Server and click **Run library checks** for 12 real IndexedDB checks; these use/remove a separate temporary database and leave the saved library untouched. Tests cover original bytes, validation-before-write, duplicate/additive merge, folder removal, persistence, restoration, channel grouping, native mixer calls, independent synth/media volume and Wait/count-in synth master gain without grading changes.
 
 Owner acceptance remains: save/reopen actual GP/MXL scores, listen while adjusting master/track controls, check both modes with Fishman and test fullscreen/tablet controls. Preview/automated checks do not establish physical MIDI, audible balance, quota handling or every native score format.

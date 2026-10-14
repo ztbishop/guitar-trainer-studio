@@ -1,5 +1,13 @@
 # Development notes
 
+## Audio menu pitch-control cleanup — 2026-10-13
+
+Grouped the semitone input and short Reset button in one responsive row. Replaced the repetitive live pitch explanation with a concise status (`Pitch: written` or signed semitones) and one static scope note. No behavior or audio routing changed. Desktop/phone appearance acceptance remains with the owner.
+
+## Synth playback pitch offset — 2026-10-13
+
+Replaced the disabled playback-offset placeholder with a whole-semitone -12 to +12 control and reset action in Audio. `pitch-controls.js` owns the form; `alphatab-host.js` calls alphaTab 1.8.4 `changeTrackTranspositionPitch` for every loaded track and reapplies the selected offset when the player becomes ready. The value resets on score load. This only shifts synthesized score sound: written score/tab, media output, MIDI grading targets/results and score position do not change. Audio now has separate saved Synth master volume and Synced media volume controls; the latter routes to the loaded HTML media or YouTube player and applies to subsequent recordings. The pitch control is not a system-wide output processor. Full written-score transposition by semitones/key remains deferred because tab positions and practice targets require coordinated changes. No vendor files or Piano Trainer code changed. Automated coverage includes independent volume persistence/routing and all-track pitch routing without practice-state changes; owner audible/browser/Fishman acceptance remains pending. Media pitch shift for MP3/video/YouTube was not implemented.
+
 ## Media & Sync listening/alignment — 2026-10-13
 
 Verification: 200 Node tests, 17 isolated native/IndexedDB checks, 15 actual app UI checks and the existing 12 library browser checks pass. Generated WAV/WebM playback and saved-profile restore were checked; owner supplied YouTube screenshots during implementation. Actual app frames at 1280 × 720 and 390 × 844 verify side-by-side placement and phone stacking with no horizontal overflow (390px body/scroll width). Native restoration tests also catch initial zero-position messages resetting Wait history; expected aborted Play errors on Pause/Return are suppressed and current errors still surface. Audio timing, physical Fishman and Chrome PiP remain owner acceptance.

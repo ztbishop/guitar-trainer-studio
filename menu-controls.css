@@ -229,6 +229,9 @@
 .menu-content legend { font-size: .85rem; font-weight: 600; }
 .menu-setting { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .menu-setting input { width: 90px; }
+.pitch-offset-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.pitch-offset-row input { width: 90px; }
+.pitch-offset-row button { min-height: 40px; padding: 6px 12px; font-size: .85rem; border-radius: 7px; box-shadow: none; }
 .menu-status { font-size: .75rem; color: var(--muted); font-weight: 400; }
 .more-shortcut-button .menu-status { margin-left: auto; text-align: right; }
 .menu-future, .menu-track-details { margin: 12px 0; }
