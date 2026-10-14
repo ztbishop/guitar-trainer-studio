@@ -1,5 +1,18 @@
 # Guitar Trainer Studio: status and to-do
 
+### Match Piano Trainer folder deletion — 2026-10-14
+
+- [x] Single and bulk folder Delete now warn that contained saved scores will also be deleted, with their count, focused Cancel and Escape dismissal. Confirmed deletion removes folders and their contents atomically. This supersedes earlier move-to-Unfiled deletion behavior.
+- [x] All 207 Node tests and changed-module syntax checks pass; regressions cover selected contents, other folders, Unfiled and invalid/system IDs.
+- [ ] Owner checks Cancel/Escape and confirmed deletion with disposable folders/scores in Live Server. Browser dialog acceptance remains pending.
+
+### Bulk library management — 2026-10-14
+
+- [x] Add compact Manage/Done controls to both library panes, checkboxes, selection counts, Select All/Deselect All, bulk score move/delete and folder removal to Unfiled. Keep extra actions hidden during normal browsing and retain per-item menus.
+- [x] Scores header groups the folder name and count on the left, with Add File(s) immediately before Manage on the right. Search uses a full row; header groups wrap at narrow widths.
+- [x] Atomic database operations preserve unselected records and original score data. Full Node suite: 205 passing; changed-module syntax checks pass.
+- [ ] Owner checks Manage at desktop/phone widths in Live Server, search/folder selection clearing, cancel/confirm dialogs, multi-score moves and folder removal. Browser visual acceptance remains pending.
+
 ### Chord placement fallback for scores without diagrams — 2026-10-14
 
 - [x] Only scores with zero chord diagram shapes use Score Default temporarily. Display shows Score Default with the selector disabled and a short explanation; any score containing at least one diagram, including mixed name/diagram scores, uses the saved preference.

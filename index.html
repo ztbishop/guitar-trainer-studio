@@ -78,18 +78,26 @@
             <div class="library-pane-heading">
               <h3 id="library-folders-heading">Folders</h3>
               <button id="library-new-folder" type="button">New Folder</button>
+              <button id="library-manage-folders" type="button" aria-pressed="false">Manage</button>
             </div>
+            <div id="library-folders-bulk" class="library-bulk-toolbar" hidden></div>
             <div id="library-folder-list" class="library-folder-list" aria-label="Score folders"></div>
           </section>
           <section class="library-pane library-scores-pane" aria-labelledby="library-folder-title">
             <div class="library-pane-heading library-scores-heading">
+              <div class="library-scores-context">
               <h3 id="library-folder-title">All Scores</h3>
               <span id="library-score-count" class="field-help library-score-count"></span>
+              </div>
+              <div class="library-scores-actions">
+              <button id="library-import" type="button">Add File(s)</button>
+              <button id="library-manage-scores" type="button" aria-pressed="false">Manage</button>
+              </div>
             </div>
+            <div id="library-scores-bulk" class="library-bulk-toolbar" hidden></div>
             <div class="library-search-row">
               <label for="library-search">Search scores</label>
               <input id="library-search" type="search" placeholder="Title or filename" />
-              <button id="library-import" type="button">Add File(s)</button>
             </div>
             <div id="library-list" class="library-score-list" aria-label="Saved scores"></div>
           </section>

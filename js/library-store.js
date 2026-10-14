@@ -115,6 +115,43 @@ export class LibraryStore {
     });
   }
   deleteScore(scoreId){return this.transaction(['scores'],'readwrite',({scores})=>scores.delete(scoreId));}
+  deleteScores(ids) {
+    return this.transaction(['scores'],'readwrite',({scores})=>{
+      for(const scoreId of new Set(ids))scores.delete(scoreId);
+    });
+  }
+  moveScores(ids,folderId=null) {
+    const selected=new Set(ids);
+    return this.transaction(['scores','folders'],'readwrite',({scores,folders})=>{
+      const move=()=>{scores.getAll().onsuccess=event=>{
+        for(const score of event.target.result)if(selected.has(score.id))scores.put({...score,folderId:folderId||null});
+      };};
+      if(folderId)folders.get(folderId).onsuccess=event=>{if(event.target.result)move();else throwTransactionError(scores);};
+      else move();
+    });
+  }
+  deleteFolders(ids) {
+    const selected=new Set(ids);
+    return this.transaction(['scores','folders'],'readwrite',({scores,folders})=>{
+      scores.getAll().onsuccess=event=>{
+        for(const score of event.target.result)if(selected.has(score.folderId))scores.put({...score,folderId:null});
+        for(const folderId of selected)folders.delete(folderId);
+      };
+    });
+  }
+  deleteFolderAndScores(folderId) {return this.deleteFoldersAndScores([folderId]);}
+  deleteFoldersAndScores(ids) {
+    const selected=new Set(ids.filter(folderId=>typeof folderId==='string' && folderId && folderId!=='__all__'));
+    return this.transaction(['scores','folders'],'readwrite',({scores,folders})=>{
+      folders.getAll().onsuccess=event=>{
+        const existing=new Set(event.target.result.filter(folder=>selected.has(folder.id)).map(folder=>folder.id));
+        scores.getAll().onsuccess=event=>{
+          for(const score of event.target.result)if(existing.has(score.folderId))scores.delete(score.id);
+          for(const folderId of existing)folders.delete(folderId);
+        };
+      };
+    });
+  }
   renameFolder(folderId,value) {
     if(!name(value))throw new Error('Enter a folder name.');
     return this.transaction(['folders'],'readwrite',({folders})=>{

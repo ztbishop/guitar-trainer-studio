@@ -1,5 +1,15 @@
 # Development notes
 
+## Piano-style folder deletion — 2026-10-14
+
+Owner requested matching Piano Trainer after asking about folder contents. Read its single/bulk deletion handlers: both confirm deletion of the folder and contained saved scores, offering Cancel; there is no keep-in-Unfiled choice. Guitar now matches these semantics in its existing in-page dialogs. The warning includes the affected score count, irreversible-library-change text and original/open-file scope. Cancel is focused and Escape dismisses without storage calls. Single/bulk deletion uses a shared atomic folders/scores transaction, ignores system and nonexistent folder IDs, and leaves sync profiles and loaded score state available. Earlier folder-removal-to-Unfiled entries are superseded for UI deletion; legacy retention store methods remain for existing callers/tests. Started with prior task edits present and preserved them.
+
+Validation: 207 Node tests, changed-module syntax checks and whitespace checks pass. New storage regressions verify selected-folder contents deleted while other folders, Unfiled, bytes and nonexistent-folder records remain. Owner Live Server Cancel/confirm acceptance remains pending.
+
+## Scores header spacing — 2026-10-14
+
+Moved Add File(s) to the scores header immediately before Manage, and grouped the count beside the active folder name on the left. Search now spans its full row. Header groups wrap on narrow screens or long folder names. Existing element IDs, import handlers and singular/plural count formatting are retained. Reviewed the HTML/CSS diff and checked whitespace; owner browser layout acceptance remains pending.
+
 ## Chord placement fallback without changing preferences — 2026-10-14
 
 Validation: all 203 regression tests, changed-module syntax checks and git diff --check pass. Automated evidence includes preserving the stored placement after an automatic fallback and a zoom save, then restoring it for a mixed score. Browser appearance acceptance remains pending.
@@ -433,3 +443,8 @@ Recommendation: retain the stable Collect notes behavior for now; add a Together
 The supplied PianoApp ZIP uses per-note `hit` flags and advances when all expected notes are hit. Note-off does not clear those flags. The current GitHub code could not be retrieved, so this comparison applies only to that supplied ZIP.
 
 This note records a recommendation for later development. No chord timing option has been implemented. See TODO.md for proposed behavior and unresolved scoring choices.
+## Bulk library management — 2026-10-14
+
+Started from clean Git. Read PianoApp/js/scores-ui.js as a reference without editing Piano Trainer. Added independent folder/score Manage modes with native checkboxes, counts, Select All/Deselect All and Done. Score selections clear on search/folder navigation; system folders remain navigation-only. Ordinary rows retain three-dot menus. Folder removal keeps Guitar Trainer's existing Unfiled behavior; bulk score deletion leaves the loaded score, original disk files and sync profiles intact. Dialogs confirm removals and select move destinations; one IndexedDB transaction applies each bulk action. Temporary UI selections do not use localStorage.
+
+Validation: 205 Node tests pass, including bulk move metadata/byte preservation, invalid destination rejection, unselected-record retention and folder removal preserving scores. Changed JavaScript syntax checks pass. Live Server layout, keyboard and real IndexedDB UI acceptance remain pending; no browser or physical MIDI acceptance claimed.

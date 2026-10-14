@@ -289,9 +289,23 @@
 .library-pane { min-width: 0; border: 1px solid var(--menu-input-border); border-radius: 12px; background: rgba(255,255,255,.56); overflow: hidden; }
 .library-pane-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 52px; padding: 8px 12px; border-bottom: 1px solid var(--section-rule); }
 .library-pane-heading h3 { margin: 0; font-size: .98rem; color: var(--text); }
-.library-pane-heading > button { min-height: 40px; padding: 6px 10px; border-radius: 8px; box-shadow: none; white-space: nowrap; }
-.library-scores-heading { justify-content: flex-start; }
-.library-score-count { margin-left: auto; }
+.library-folders-pane .library-pane-heading { flex-wrap: wrap; gap: 6px; }
+.library-folders-pane .library-pane-heading h3 { flex: 1 1 100%; }
+.library-bulk-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(77,174,234,.07); border-bottom: 1px solid var(--section-rule); }
+.library-bulk-toolbar[hidden] { display: none; }
+.library-bulk-toolbar > span { flex-basis: 100%; font-size: .8rem; color: var(--muted); }
+.library-bulk-toolbar button { min-height: 40px; padding: 6px 9px; border-radius: 8px; box-shadow: none; font-size: .85rem; }
+.library-bulk-toolbar .is-danger { color: #a43232; border-color: #e7aaa4; }
+.library-selection-row { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid var(--menu-input-border); border-radius: 9px; cursor: pointer; box-sizing: border-box; }
+.library-selection-row:has(input:checked) { background: rgba(77,174,234,.14); border-color: rgba(77,174,234,.65); }
+.library-selection-row input { width: 20px; height: 20px; flex: 0 0 20px; }
+.library-selection-row span { min-width: 0; overflow-wrap: anywhere; }
+.library-pane-heading button { min-height: 40px; padding: 6px 10px; border-radius: 8px; box-shadow: none; white-space: nowrap; }
+.library-scores-heading { flex-wrap: wrap; }
+.library-scores-context { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; min-width: 0; }
+.library-scores-context h3 { overflow-wrap: anywhere; }
+.library-scores-actions { display: flex; gap: 8px; margin-left: auto; }
+.library-score-count { margin: 0; white-space: nowrap; }
 .library-folder-list, .library-score-list { max-height: min(42vh,420px); min-height: 245px; overflow: auto; padding: 8px; }
 .library-folder-row { display: grid; grid-template-columns: minmax(0,1fr) 40px; align-items: center; gap: 6px; margin-bottom: 6px; }
 .library-folder-open { min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--text); text-align: left; box-shadow: none; overflow-wrap: anywhere; }
@@ -304,7 +318,7 @@
 .library-score-title { min-width: 0; max-width: 100%; overflow-wrap: anywhere; font-weight: 700; }
 .library-loaded-badge { padding: 3px 9px; border: 1px solid rgba(77,174,234,.32); border-radius: 999px; background: rgba(77,174,234,.13); color: #28658d; font-size: .76rem; font-weight: 700; }
 .library-score-filename { flex-basis: 100%; overflow-wrap: anywhere; color: var(--muted); font-size: .78rem; }
-.library-search-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 7px 10px; padding: 10px 12px 2px; }
+.library-search-row { display: grid; grid-template-columns: minmax(0,1fr); align-items: end; gap: 7px 10px; padding: 10px 12px 2px; }
 .library-search-row label { grid-column: 1 / -1; font-size: .8rem; color: var(--muted); }
 .library-search-row input { min-width: 0; width: 100%; min-height: 42px; padding: 8px 10px; border: 1px solid var(--menu-input-border); border-radius: 8px; background: #fff; color: inherit; color-scheme: light; box-sizing: border-box; }
 .library-search-row > button { min-height: 42px; padding: 7px 12px; border-radius: 8px; box-shadow: none; white-space: nowrap; }
@@ -335,5 +349,4 @@
   .library-folder-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 5px; max-height: 150px; min-height: 0; }
   .library-folder-row { margin: 0; }
   .library-score-list { max-height: 34vh; min-height: 170px; }
-  .library-search-row { grid-template-columns: minmax(0,1fr) auto; }
 }

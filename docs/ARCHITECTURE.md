@@ -321,6 +321,9 @@ Library, mixer/output and Media & Sync were future destinations and are now impl
 
 ### `js/score-library.js`
 - Owns file-browser and score-library behavior.
+- Folder UI deletion now matches Piano Trainer (2026-10-14): a Cancel-first warning precedes deleting selected folders and their contained saved scores through library-store.js's atomic `deleteFoldersAndScores` transaction. The loaded score and sync profiles are independent. This supersedes UI removal-to-Unfiled behavior below; legacy storage retention methods remain available.
+- Scores-pane header composition groups folder title/count separately from Add File(s)/Manage actions; existing IDs retain their handlers. Search spans its own full row, and CSS wraps header groups at narrow widths.
+- Owns transient independent folder/score Manage modes and selection sets. Search/folder changes clear score selection; bulk controls appear only while managing. `library-store.js` owns atomic bulk moves/deletes and folder removal that retains scores in Unfiled. These operations do not change loaded score state, sync profiles or display preferences.
 - Can later mirror the Piano Trainer Studio library model.
 
 ### `js/app-bootstrap.js`
