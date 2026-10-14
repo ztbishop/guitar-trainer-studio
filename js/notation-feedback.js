@@ -105,7 +105,8 @@ export function notationFeedbackGeometry(marks,noteLookup,boundsLookup,metrics) 
         if(beat===standard) {
           if(mark.kind!=='tab-error')targets.push({...mark,kind:'notehead',cx:b.x+b.w/2,cy:b.y+b.h/2,rx:b.w/2,ry:b.h/2});
         }
-        else if(mark.kind==='tab-error' || !tabErrors.has(mark.sourceNoteId))targets.push({...mark,kind:'outline',x:b.x-3,y:b.y-3,width:b.w+6,height:b.h+6});
+        else if(mark.kind==='tab-error' || !tabErrors.has(mark.sourceNoteId) || mark.state==='correct' && mark.active)
+          targets.push({...mark,kind:'outline',x:b.x-1.25,y:b.y-2.75,width:b.w+2.5,height:b.h+1.5});
       }
     }
   }

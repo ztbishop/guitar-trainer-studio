@@ -94,7 +94,7 @@ Root README.md describes running and checking the app; AGENTS.md records standin
 
 Current baseline: **Beta v0.0.3**, with `version.json` value `0.0.3`; owner creation of the `v0.0.3` tag follows the version-update commit. The previous `v0.0.2` tag remains a historical checkpoint. This metadata update introduces no runtime or architectural changes. Git publishing and deployment remain owner actions unless requested. Project documentation is the durable handoff between chats; earlier ChatGPT **Guitar Trainer** history is optional context if accessible.
 
-Current feedback contract: one Staff visibility control; independent tab highlights and numbers; saved conservative Poly inference enabled on first use; no mandatory Hex string-check gate. Numeric Hex/Poly feedback is plain red at the native tab font size beside the score string, with translucent backing and no prefix/border/pointer or custom spacing. Both input modes grade pitch; strict-position grading remains deferred. Historical entries below preserve earlier designs and validation results, not current instructions where superseded.
+Current feedback contract: one Staff visibility control; independent tab feedback highlights and incorrect fret numbers; saved conservative Poly inference enabled on first use; no mandatory Hex string-check gate. Staff feedback draws green correct history and red mistakes; thin blue expected-note outlines are omitted. The narrower, faded light-blue cursor marks the active beat. Tab draws compact translucent red error marks and darker green correct marks for the active target only, above the cursor; historical correct tab frets remain unmarked. Numeric Hex/Poly feedback is plain red at the native tab font size beside the score string, with translucent backing and no prefix/border/pointer or custom spacing. Both input modes grade pitch; strict-position grading remains deferred. Historical entries below preserve earlier designs and validation results, not current instructions where superseded.
 
 ## Dated implementation history
 
@@ -218,6 +218,10 @@ The app should preserve native alphaTab features wherever possible and layer cus
 - fretboard rendering and overlays
 - saved preferences and app-specific UI
 
+## Cleaner tablature feedback — 2026-10-13
+
+The alphaTab host still uses native bounds for custom feedback but filters expected/correct tab outlines; staff notehead feedback remains intact. The independent tab highlight preference now gates red error-state targets only. Those marks use compact, upward-shifted translucent rounded fills without a border, snug to native fret bounds. A CSS pseudo-element widens the visible green beat band with a horizontal fade on both sides and replaces the narrow center fill, compensating alphaTab's cursor scaling without changing its native bounds, timing or positioning. Fret-number overlays remain independently controlled. The in-app legend distinguishes staff, tab, cursor and fretboard colors. No grading, MIDI/history, Poly inference, native score rendering or transport behavior changes. 201 Node tests and changed-module syntax checks pass; visual/browser/Fishman acceptance remains pending.
+
 ## Menu organization — 2026-10-11
 
 index.html composes existing controls without changing their IDs or business logic. Practice contains mode/track/timing and visual-feedback switches; Display contains visible-track scope and existing custom six-string fretboard controls; Audio contains selected/backing playback switches. Settings hosts a closed native details disclosure for MIDI/practice diagnostics and full retained history. Clear practice results is the renamed existing attempt action, preserving position and playing/paused state. Help supplies basic setup guidance.
@@ -240,6 +244,7 @@ Library, mixer/output and Media & Sync were future destinations and are now impl
 
 ### `js/midi-router.js`
 - Owns MIDI device setup and note event normalization.
+- Tracks held channel/pitch pairs and suppresses duplicate Note-On messages until the matching Note-Off; it records no grading decision, and forwards the release and next fresh attack normally.
 - Emits normalized note-on/note-off events for the practice engine.
 - Must not decide whether an event is correct.
 
@@ -300,7 +305,7 @@ Library, mixer/output and Media & Sync were future destinations and are now impl
 - Owns pure wrong-pitch spelling and notation-overlay geometry. Host supplies native note bounds, stave profile, zoom and engraving metrics; this module never calls alphaTab.
 - Chooses spelling using the local bar key signature. Explicit vector accidentals (including naturals), notehead-sized red dots and ledger lines show wrong pitches without long score text. All wrong pitches use the target anchor’s single horizontal cursor column, with a fixed adjacent accidental position. Same-line/neighboring pitches may overlap; never spread them horizontally into other targets. Repeated identical pitches share a dot, while Practice retains the complete attack history.
 - Projects sounding MIDI to displayed pitch with beat/clef ottava and staff display transposition, using native five-line treble/bass/alto/tenor staff coordinates. Checks the projection against actual rendered original notehead bounds and omits unsupported/inconsistent wrong-note geometry. Never uses the native accidental helper's unregistered-pitch fallback or mutates renderer/model accidental state.
-- Returns filled-overlay bounds for standard expected noteheads and unchanged outlines for tab targets. The host renders SVG and rebuilds on native post-render completion; grading/lifecycle stay in Wait/Realtime modules.
+- Returns native staff notehead and tab target bounds; the host filters historical clean targets, draws compact active-correct green and error-red tab marks, then renders SVG after native post-render completion. Grading/lifecycle stay in Wait/Realtime modules.
 
 ### `js/tab-feedback.js` and `js/poly-feedback.js`
 - Tab-feedback projects live/completed Hex errors to expected strings and validates sounding pitch, tuning/capo/transposition, and native tab bounds before deriving wrong-fret display geometry. Accepted clean tones retain their mode-specific green feedback; unknown Hex string metadata uses conservative target summaries.
@@ -330,7 +335,7 @@ Library, mixer/output and Media & Sync were future destinations and are now impl
 6. `score-playback.js` normalizes the generated timeline; `practice-engine.js` selects expected events for the configured practice scope.
 7. `midi-router.js` emits normalized user input events.
 8. Bootstrap routes input to the Realtime engine or Wait controller/session. Those modules evaluate correctness.
-9. Bootstrap prepares visual data through practice-visuals.js. Fretboard-ui renders the neck, while alphatab-host places non-interactive SVG outlines at native note bounds. These displays do not grade input.
+9. Bootstrap prepares visual data through practice-visuals.js. Fretboard-ui renders the neck, while alphatab-host places non-interactive staff feedback and compact tab error marks at native note bounds. These displays do not grade input.
 
 ## Key rules
 

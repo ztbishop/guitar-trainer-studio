@@ -17,7 +17,11 @@ test('visual records distinguish correct, missed, pending and skipped without ch
 test('current repeated occurrence replaces old green feedback on the same written note',()=>{
  const a=event('first'),b=event('repeat','written',2);
  const marks=buildNotationMarks([a,b],b,{[a.notes[0].id]:'correct'});
- assert.equal(marks.length,1);assert.equal(marks[0].state,'expected');assert.match(marks[0].label,/occurrence 2/);
+ assert.equal(marks.length,1);assert.equal(marks[0].state,'expected');assert.equal(marks[0].active,true);assert.match(marks[0].label,/occurrence 2/);
+ const completed=buildNotationMarks([a,b],null,{[a.notes[0].id]:'correct'});
+ assert.equal(completed[0].state,'correct');assert.equal(completed[0].active,false);
+ const activeCorrect=buildNotationMarks([a,b],b,{[b.notes[0].id]:'correct'});
+ assert.equal(activeCorrect[0].state,'correct');assert.equal(activeCorrect[0].active,true);
  assert.equal(buildNotationMarks([a,b],b,{[b.notes[0].id]:'missed'})[0].state,'missed');
  assert.deepEqual(buildNotationMarks([a,b],null,{}),[]);
 });

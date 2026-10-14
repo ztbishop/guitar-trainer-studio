@@ -1,5 +1,18 @@
 # Guitar Trainer Studio: status and to-do
 
+### Ignore duplicate held-note attacks — 2026-10-13
+
+- [x] Suppress repeated Note-On messages for the same MIDI channel/pitch while it remains held. The release still reaches feedback; the next Note-On is a fresh attack. The captured E4 case showed a duplicate 27 ms after its first Note-On and no release until about 1.28 seconds later; the owner confirmed the note stayed held. Duplicate events do not leak into the next Wait/Realtime target or count as mistakes.
+- [x] Keep the original onset when calculating captured hold duration; mark suppressed duplicates as `ignored-held-duplicate` in the optional MIDI report.
+- [ ] Owner verifies held repeated pitches and deliberate retriggers after release with keyboard and Fishman in Poly and Hex, in Wait and Realtime. Normal guitar re-plucks should produce a release before the next Note-On.
+
+### Cleaner tablature practice feedback — 2026-10-13
+
+- [x] Removed blue expected outlines and historical green correct outlines from tablature; retained those states on standard notation. The tab visibility switch controls red error marks and green correct marks only on the active target. Historical correct tab frets stay unmarked. Marks are compact, translucent rounded rectangles without a solid border, preserving fret readability.
+- [x] Added a narrower, lighter-blue cursor band with a horizontal fade on both edges, removed the narrow center fill and suppressed thin blue expected-note rings on the staff. The in-app legend describes cursor position separately from green correct and red error feedback. alphaTab cursor positioning, score rendering and grading behavior remain unchanged.
+- [x] Automated tests cover active versus historical correct tab feedback, error marks, and unchanged notation feedback. JavaScript syntax checks and `git diff --check` pass.
+- [ ] Owner checks clean/error chord feedback, retained mistakes, cursor visibility, zoom and narrow/wide layouts in Live Server/browser with Fishman Realtime and Wait. Then consider Poly inference improvements as a separate change.
+
 ### Synth playback pitch offset — 2026-10-13
 
 - [x] Audio exposes a whole-semitone -12 to +12 offset for all alphaTab synthesized score tracks, with a reset-to-written-pitch action. The offset resets when a different score loads.
@@ -152,7 +165,7 @@ The current baseline is **Beta v0.0.3**; `version.json` records `0.0.3`. The own
 
 Read root README.md and AGENTS.md when starting a task. Work directly in this folder, preserve VS Code Live Server and the owner's normal browser/Fishman Connect testing, and leave commits/tags/pushes/deployment to the owner unless requested. Documentation carries durable decisions between chats; full chat history is not assumed to be available. Earlier ChatGPT history is in **Guitar Trainer** if accessible.
 
-Current feedback uses one Staff control, independent tab highlights/fret numbers, and optional default-off Poly inference. Hex numbers require configured channels and valid score interpretation, not a mandatory setup/verification button. Poly numeric inference is implemented for an unambiguous remaining written note; it is not physical string detection or strict-position grading. Both Hex and inferred Poly numbers are plain red numbers with translucent backing, native tab font size, and side placement; no tilde, numeric border, pointer, or custom staff spacing. Accepted tones stay green under the latest mode-specific rules; genuine wrong-pitch history is retained.
+Current feedback uses one Staff control, independent tab error highlights/fret numbers, and saved conservative Poly inference. Hex numbers require configured channels and valid score interpretation, not a mandatory setup/verification button. Poly numeric inference is implemented for an unambiguous remaining written note; it is not physical string detection or strict-position grading. Both Hex and inferred Poly numbers are plain red numbers with translucent backing, native tab font size, and side placement; no tilde, numeric border, pointer, or custom staff spacing. Accepted tones retain green notation feedback; tab itself shows red error marks only. Genuine wrong-pitch history is retained.
 
 This summary and the latest user instructions override older dated entries below. Those entries and stage documents preserve historical ZIP instructions, control labels, whole-chord error rules, and earlier inference limitations; do not treat them as current requirements. The latest agreed Wait feedback table remains applicable with these clarifications.
 
@@ -256,11 +269,11 @@ This specification includes the user's final clarification and overrides earlier
 
 | Moment/view | Planned behavior |
 | --- | --- |
-| Active target | Keep original expected frets readable. Configured Hex wrong pitches held on pending written strings circle those expected frets red immediately; accepted partial chord tones stay green. Release restores pending guidance. No expected fret on the detected string means no invented circle. Poly does not identify physical strings. Optional remaining-note inference can mark a pending expected note/fret red without claiming string detection. |
+| Active target | Keep original expected frets readable. Configured Hex wrong pitches held on pending written strings receive a compact red translucent mark at that fret; accepted partial chord tones retain their notation feedback without tab outlines. Release removes the live error mark. No expected fret on the detected string means no invented mark. Poly does not identify physical strings. Optional remaining-note inference can mark a pending expected note/fret red without claiming string detection. |
 | Wrong note held, configured Hex | Show one latest active red detected fret per string beside the expected fret, with a translucent background. Use the native tablature font size (14px by default) at normal zoom; keep full digits visible even when crowded; no live pointer; for example, expected B-string fret 1, detected fret 2. Never replace the written 1. Derive fret only when configured channel/string, tuning/capo/transposition, and pitch interpretation are valid. |
 | Wrong note released, configured Hex | Remove its temporary wrong-fret marker. Keep the internal error record. Multiple held notes require independent release handling. |
 | Wrong note, Poly/unverified mapping | Do not display a guessed fret as confirmed. Poly retains green accepted tones and actual received-pitch notation history. Optional inference marks only the sole remaining written note captured at a wrong attack; ambiguous cases stay unassigned. Unknown Hex string metadata retains its target-level summary. |
-| Target completed, tab | Remove temporary wrong-fret markers; in Hex circle only expected tones on detected strings with wrong-pitch history red; clean tones remain green. Unknown Hex string errors keep the whole-target red summary. Poly accepted tones stay green by default; when inference is enabled, only uniquely associated wrong-note targets retain red in Wait. Red means completed after errors, not that the target was never solved. Retain only the last wrong fret per detected string beside that string, without pointers. Do not accumulate all attempts. |
+| Target completed, tab | Remove temporary wrong-fret markers; show compact red marks only for target notes with wrong-pitch history. Clean tones have no tab outline. Unknown Hex string errors keep the whole-target red summary. Poly accepted tones stay green on notation; when inference is enabled, only uniquely associated wrong-note targets retain red in Wait. Red means completed after errors, not that the target was never solved. Retain only the last wrong fret per detected string beside that string, without pointers. Do not accumulate all attempts. |
 | Wrong note held/released, standard notation | Show its actual pitch in red while held; hide that live marker on release. |
 | Target completed, standard notation | Show the retained wrong-pitch history at that target's score position for later review. Keep this independent of the compact tab summary and feedback visibility settings. |
 

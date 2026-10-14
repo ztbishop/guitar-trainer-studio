@@ -18,14 +18,14 @@ export function noteStatesFromRecords(records=[],summarizeErrors=true,{hex=false
 
 export function buildNotationMarks(events,currentEvent,noteStates={}) {
   const marks=new Map();
-  const put=(event,note,state)=>{
+  const put=(event,note,state,active=false)=>{
     if(note.sourceNoteId==null)return;
-    marks.set(String(note.sourceNoteId),{sourceNoteId:String(note.sourceNoteId),state,
+    marks.set(String(note.sourceNoteId),{sourceNoteId:String(note.sourceNoteId),state,active,
       label:`${state} • ${note.noteName||note.midi} • measure ${event.measureNumber} • occurrence ${event.occurrence||1}`});
   };
   for(const event of events)for(const note of event.notes)if(noteStates[note.id])put(event,note,noteStates[note.id]);
   // The current occurrence wins over older results on the same written note.
-  if(currentEvent)for(const note of currentEvent.notes)put(currentEvent,note,noteStates[note.id]||'expected');
+  if(currentEvent)for(const note of currentEvent.notes)put(currentEvent,note,noteStates[note.id]||'expected',true);
   return [...marks.values()];
 }
 

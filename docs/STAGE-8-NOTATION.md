@@ -1,6 +1,6 @@
 # Stage 8 notation feedback refinement — 2026-10-10
 
-Latest tab/Realtime feedback and guided string setup are described in STAGE-8-TAB.md. Actual wrong-pitch noteheads/history now also consume Realtime target-attributed records; notation correct/missed colors are preserved while tab error targets retain red outlines.
+Latest tab/Realtime feedback and guided string setup are described in STAGE-8-TAB.md. Actual wrong-pitch noteheads/history now also consume Realtime target-attributed records; notation correct/missed colors are preserved while tab errors use compact red marks.
 
 ## Delivered behavior
 
@@ -9,7 +9,7 @@ Latest tab/Realtime feedback and guided string setup are described in STAGE-8-TA
 - Wrong-pitch spelling uses the local bar's key signature. In Bb major, a received Bb appears on the B line with a flat rather than on the A line with a sharp. Chromatic spelling remains a key-based inference, since MIDI supplies no enharmonic spelling. Explicit accidentals, including naturals, are shown on supplemental mistake markers even when the key signature supplies them; they never alter native score accidental state.
 - Ledger lines are drawn for wrong notes outside the staff. All wrong pitches stay vertically aligned at their own target’s horizontal cursor position. Same-line or neighboring-space dots/accidentals may overlap; no collision avoidance moves them into another beat. Dense clusters can still require local layout acceptance.
 - Expected standard-notation noteheads receive filled green/red overlays, while current ungraded targets retain blue outline guidance. In Wait, completing after wrong pitches still leaves red on the expected target even if the final attack was correct. Realtime correct/missed targets also use filled notehead overlays. Additional received-wrong pitch dots remain the existing Wait feature; Realtime grading is unchanged.
-- Tab feedback stays as readable outlines around the written fret numbers. Completed-with-errors stays red, clean completion green; no wrong-fret inference or permanent detected-fret replacement is included.
+- At the time of this notation-stage update, tab feedback used readable outlines around written fret numbers. The later tab-visual cleanup in STAGE-8-TAB.md supersedes that presentation with compact red error marks only.
 
 ## Placement and limits
 

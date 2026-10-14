@@ -1,5 +1,25 @@
 # Development notes
 
+## Ignore duplicate Note-On while a pitch is held — 2026-10-13
+
+The supplied MIDI capture showed the same channel-4 E4 Note-On twice, 27 ms apart, with no Note-Off until about 1.28 seconds after the second message. The owner confirmed they held the note. `midi-router.js` now suppresses a repeated Note-On for an already-held channel/pitch before it reaches either Wait or Realtime grading. The duplicate remains visible in the optional MIDI capture report as `ignored-held-duplicate`; the original onset remains the start of the reported hold duration. A matching Note-Off releases the gate, so a later attack counts normally. This blocks the observed held-note from satisfying the next repeated-pitch target and does not add a wrong-note penalty. Router and capture regressions are automated; the owner still needs to check keyboard and Fishman behavior in Live Server/browser, especially deliberate repeated notes and Hex channel releases.
+
+## Cursor shade and width refinement — 2026-10-13
+
+Lightened the broad blue beat cursor to a softer sky blue and halved its CSS pseudo-element width to better match the Piano Marvel reference. The horizontal edge fade and vertical soft fade remain. The overlay stays above alphaTab's native cursor wrapper, so note feedback retains its contrast. This is a CSS-only appearance refinement; native cursor geometry/positioning and all practice behavior are unchanged. Automated checks pass; Live Server visual acceptance remains local.
+
+## Blue beat cursor and distinct correctness feedback — 2026-10-13
+
+Changed the broad faded beat cursor from green to blue so green consistently signals correct notes. Removed blue expected-notehead outlines from the staff; the cursor locates the active beat and the written notation shows the expected pitches. Raised the SVG feedback overlay above alphaTab's cursor wrapper (`z-index: 1001` over the native wrapper's `1000`) so green correct and red error marks remain legible where they cross the cursor. Active correct tab marks use a darker, more opaque green fill with no border to preserve fret readability. The alphaTab cursor implementation/position, score model, grading and MIDI history are unchanged. All 201 tests pass; local visual/Fishman acceptance remains pending.
+
+## Active correct tablature feedback — 2026-10-13
+
+Restored green tab feedback only for correct notes in the active practice target. It uses the compact translucent, borderless mark shape used for red errors. Historical correct fret numbers remain unmarked; red error feedback remains retained as before. The existing tab feedback visibility choice now controls both red errors and active correct marks. The written score still retains its correct-note history. `buildNotationMarks` tags the active occurrence for display only; grading, MIDI records and alphaTab behavior are unchanged. Updated the in-app label and legend plus the current tab contract. Validation and subsequent cursor/overlay refinements are recorded above.
+
+## Cleaner tablature feedback — 2026-10-13
+
+Removed blue expected and green correct outlines from tablature so they no longer stack around chord fret numbers. Staff feedback remains unchanged. The tab highlight preference now controls only red error-state marks, rendered as vertically snug, upward-shifted translucent rounded fills without a solid border; incorrect fret-number detail remains independent. The broad green beat band has horizontal fades, uses an alphaTab-scale-compensated CSS pseudo-element, and no longer has a skinny center fill. Native cursor dimensions/positioning, score renderer and transport stay untouched. The in-app legend distinguishes staff, tab, cursor and fretboard colors. Poly attribution rules, grading and MIDI records did not change. All 201 Node tests, changed-module syntax checks and `git diff --check` pass; visual/browser/Fishman owner acceptance remains pending.
+
 ## Audio menu pitch-control cleanup — 2026-10-13
 
 Grouped the semitone input and short Reset button in one responsive row. Replaced the repetitive live pitch explanation with a concise status (`Pitch: written` or signed semitones) and one static scope note. No behavior or audio routing changed. Desktop/phone appearance acceptance remains with the owner.

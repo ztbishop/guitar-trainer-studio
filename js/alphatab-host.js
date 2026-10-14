@@ -103,7 +103,11 @@ function drawNotationFeedback() {
     tabFontSize:settings?.display?.resources?.tablatureFont?.size,
     noteHeadWidth:engraving?.glyphWidths?.get(0xe0a4),noteHeadHeight:engraving?.glyphHeights?.get(0xe0a4)};
   const geometry=notationFeedbackGeometry(notationMarks,scoreNoteLookup,alphaTabApi?.boundsLookup,metrics);
-  const targets=geometry.targets.filter(target=>target.kind==='notehead'?feedbackVisibility.notation:feedbackVisibility.tabCircles);
+  const activeCorrect=new Set(notationMarks.filter(mark=>mark.state==='correct' && mark.active).map(mark=>mark.sourceNoteId));
+  const targets=geometry.targets.filter(target=>target.kind==='notehead'
+    ?feedbackVisibility.notation && target.state!=='expected'
+    :feedbackVisibility.tabCircles && (target.state==='correct' && target.active
+      || ['wrong','missed','completed-with-errors'].includes(target.state) && !activeCorrect.has(target.sourceNoteId)));
   const wrongNotes=feedbackVisibility.notation?geometry.wrongNotes:[];
   const wrongFrets=feedbackVisibility.tabFrets?wrongFretGeometry(notationMarks,scoreNoteLookup,alphaTabApi?.boundsLookup,metrics):[];
   if(!targets.length && !wrongNotes.length && !wrongFrets.length) {notationOverlay?.replaceChildren();return;}
@@ -116,7 +120,8 @@ function drawNotationFeedback() {
   for(const target of targets) {
     const node=svgElement(target.kind==='notehead'?'ellipse':'rect',target.kind==='notehead'
       ?{cx:target.cx,cy:target.cy,rx:target.rx,ry:target.ry,class:'target-notehead','data-state':target.state}
-      :{x:target.x,y:target.y,width:target.width,height:target.height,rx:4,'data-state':target.state});
+      :{x:target.x,y:target.y,width:target.width,height:target.height,rx:3.5,
+        class:target.state==='correct'?'tab-correct-highlight':'tab-error-highlight','data-state':target.state});
     if(target.inferred)node.setAttribute('data-inferred','true');
     node.appendChild(svgElement('title',{},target.label));notationOverlay.appendChild(node);
   }

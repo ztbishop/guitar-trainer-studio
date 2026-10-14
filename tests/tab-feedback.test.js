@@ -83,7 +83,8 @@ test('Wait MIDI to native tab geometry shows immediate red with green partial to
     assert.deepEqual(geometry().map(m=>m.state).sort(),['correct','expected','wrong']);
     const red=geometry().find(m=>m.state==='wrong');
     const native=h.renderer.boundsLookup.findBeats(h.notes[1].beat).at(-1).notes.find(b=>String(b.note.id)===notes[1].sourceNoteId).noteHeadBounds;
-    assert.equal(red.x,native.x-3);assert.equal(red.width,native.w+6);
+    assert.equal(red.x,native.x-1.25);assert.equal(red.y,native.y-2.75);
+    assert.equal(red.width,native.w+2.5);assert.equal(red.height,native.h+1.5);
     s.noteOff(bad);assert.deepEqual(geometry().map(m=>m.state).sort(),['correct','expected','expected']);
     for(const n of notes.slice(1))s.noteOn(0,{midi:n.midi,channel:n.string,stringHint:n.string});
     assert.deepEqual(geometry().map(m=>m.state).sort(),['completed-with-errors','correct','correct']);

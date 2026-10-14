@@ -105,6 +105,17 @@ function setActiveInput(input) {
       }
 
       if (normalized.type === 'note-on') {
+        const key=getActiveNoteKey(normalized.channel,normalized.midi);
+        if(AppState.midi.activeNotes.has(key)) {
+          // Some MIDI sources emit another Note-On for a pitch that is still
+          // held. It is not a fresh attack and must not grade the next target.
+          AppState.midi.lastEvent=normalized;
+          AppState.midi.recentEvents=[normalized,...AppState.midi.recentEvents].slice(0,8);
+          AppState.ui.midiStatus=`Receiving from ${activeInput.name || 'MIDI input'}`;
+          updateStateChange();
+          captureMidiOutcome(capture,{type:'ignored-held-duplicate',eventId:null,midi:normalized.midi});
+          return;
+        }
         addActiveNote(normalized);
       }
 

@@ -29,7 +29,11 @@ export function captureMidiEvent(note,{input,accepted}={}) {
     phase:AppState.mode==='wait'?AppState.waitTrainer?.phase:(AppState.isPlaying?'playing':'paused')};
   const key=`${input?.id}:${note.channel}:${note.midi}`;
   if(note.type==='note-on') {
-    row.previousHeldSequence=held.get(key)?.sequence??null;held.set(key,row);
+    const previous=held.get(key);
+    row.previousHeldSequence=previous?.sequence??null;
+    // Keep the first onset so a duplicate Note-On cannot shorten the held
+    // duration reported when the eventual Note-Off arrives.
+    if(!previous)held.set(key,row);
   } else if(note.type==='note-off') {
     const onset=held.get(key);
     if(onset){row.noteOnSequence=onset.sequence;row.durationMs=onset.durationMs=Math.max(0,note.at-onset.at);held.delete(key);}
