@@ -11,6 +11,7 @@ import {outsideLoopBounds,wholeMeasureSelection} from './loop-visuals.js';
 import {countInTiming,scheduleCountIn} from './count-in.js';
 import {playbackGroups} from './audio-controls.js';
 import {validatePoints} from './media-sync.js';
+import {effectiveChordDiagramPlacement} from './display-preferences.js';
 
 let mediaSnapshot=null,mediaHandler=null,mediaPoints=[],mediaRestoreTick=null;
 
@@ -102,10 +103,21 @@ function rememberScoreChordDiagramDefaults(score) {
   } : null;
 }
 
+function hasChordDiagramData(score) {
+  // GP name-only chords may have showDiagram=true but no string/fret data.
+  // Include all tracks and definitions, including diagrams in the top list.
+  for(const track of score?.tracks || [])for(const staff of track.staves || []) {
+    for(const chord of staff.chords?.values?.() || [])if(chord.strings?.length>0)return true;
+    for(const bar of staff.bars || [])for(const voice of bar.voices || [])
+      for(const beat of voice.beats || [])if(beat.chord?.strings?.length>0)return true;
+  }
+  return false;
+}
+
 function applyChordDiagramPlacement() {
   const stylesheet=AppState.score?.stylesheet;
   if(!stylesheet || !scoreChordDiagramDefaults)return false;
-  const placement=AppState.ui.chordDiagramPlacement;
+  const placement=effectiveChordDiagramPlacement(AppState);
   let onTop=scoreChordDiagramDefaults.onTop;
   let inScore=scoreChordDiagramDefaults.inScore;
   let perTrack=copyTrackChordDiagramSettings(scoreChordDiagramDefaults.perTrack);
@@ -649,6 +661,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     rememberScoreChordDiagramDefaults(loadedScore);
     AppState.playbackTimeline = null;
     AppState.score = loadedScore;
+    AppState.scoreHasChordDiagrams=loadedScore ? hasChordDiagramData(loadedScore) : null;
     // alphaTab raises scoreLoaded before MIDI generation and initial rendering,
     // so apply a saved placement override before the native render begins.
     applyChordDiagramPlacement();

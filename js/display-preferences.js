@@ -3,6 +3,11 @@ export const DISPLAY_PREFERENCES_KEY = 'gts.displayPreferences';
 export const DISPLAY_BOOLEAN_KEYS = ['autoScroll', 'fullscreenOnPlay', 'showFretboard', 'leftHanded'];
 export const CHORD_DIAGRAM_PLACEMENTS = ['score-default', 'above-chord', 'top-of-score', 'off'];
 
+// A score-specific fallback never replaces the saved viewing preference.
+export function effectiveChordDiagramPlacement(state) {
+  return state.scoreHasChordDiagrams === false ? 'score-default' : state.ui.chordDiagramPlacement;
+}
+
 export function readDisplayPreferences(storage) {
   const defaults = {viewMode: 'practice-only', ui: {zoomPercent: 100, autoScroll: true, fullscreenOnPlay: false, chordDiagramPlacement: 'score-default', showFretboard: true, leftHanded: false}};
   try {

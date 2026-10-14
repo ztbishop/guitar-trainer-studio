@@ -177,6 +177,7 @@ function wireScoreStageUi() {
 
   document.addEventListener('fullscreenchange', syncFullscreenButton);
   syncFullscreenButton();
+  return displayControls;
 }
 
 function wireFilePicker() {
@@ -622,7 +623,7 @@ async function bootstrap() {
   mediaControls=initMediaControls({beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setSpeed:setPlaybackSpeed},
     {beforeListen(){if(AppState.mode==='wait' && waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);pauseWaitTransport();clearActiveMidiNotes();},afterPractice(){clearActiveMidiNotes();if(AppState.mode==='realtime')handlePlaybackState();renderTrainerUi();}});
   initFretboard(document.getElementById('fretboard-container'),document.getElementById('fretboard-help-status'));
-  wireScoreStageUi();
+  const displayControls=wireScoreStageUi();
   wireFilePicker();
   wireTransportButtons();
   wirePracticeControls();
@@ -633,6 +634,7 @@ async function bootstrap() {
   try {
     await initAlphaTab(document.getElementById('alphatab-container'), {
       onScoreLoaded: () => {
+        displayControls.sync();
         scoreLibrary?.scoreLoaded();audioControls?.sync();
         pitchControls?.sync({enabled:false,value:0});
         transportControls?.clearPulse();

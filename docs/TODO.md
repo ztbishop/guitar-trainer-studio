@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+### Chord placement fallback for scores without diagrams — 2026-10-14
+
+- [x] Only scores with zero chord diagram shapes use Score Default temporarily. Display shows Score Default with the selector disabled and a short explanation; any score containing at least one diagram, including mixed name/diagram scores, uses the saved preference.
+- [x] The automatic fallback never changes or saves the preferred placement. Saving other Display options retains it; loading a score with diagrams restores it. Native host and storage/UI regressions cover these transitions.
+- [ ] Owner checks a name-only score followed by a mixed score in Live Server, including changing zoom and reloading the page. Score Default restores the source stylesheet exactly.
+
 ### Persistent chord-diagram placement — 2026-10-13
 
 - [x] Added Display choices in order: Score Default, Above Chord, Top of Score, Off. Score Default restores each loaded score's embedded alphaTab placement; the other choices override alphaTab's native diagram placement/visibility settings.

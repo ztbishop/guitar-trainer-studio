@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {AppState} from '../js/app-state.js';
 import {initDisplayControls} from '../js/display-controls.js';
+import {DISPLAY_PREFERENCES_KEY,readDisplayPreferences,saveDisplayPreferences} from '../js/display-preferences.js';
 
 test('zoom inputs share state, clamp limits and restore invalid values; scroll, fullscreen and chord diagram choices are independent',()=>{
   const previous=globalThis.document,ui={...AppState.ui};
@@ -31,4 +32,31 @@ test('zoom inputs share state, clamp limits and restore invalid values; scroll, 
     assert.equal(get('left-handed-fretboard').disabled,false);
     assert.equal(get('left-handed-fretboard').checked,true);
   } finally {globalThis.document=previous;Object.assign(AppState.ui,ui);}
+});
+
+test('no-diagram fallback shows Score Default without saving it, including when another Display preference is saved',()=>{
+  const previousDocument=globalThis.document,previousWindow=globalThis.window;
+  const ui={...AppState.ui},hasDiagrams=AppState.scoreHasChordDiagrams;
+  const entries=new Map(),elements=new Map();
+  const storage={getItem:key=>entries.get(key)??null,setItem:(key,value)=>entries.set(key,value)};
+  const get=id=>{if(!elements.has(id))elements.set(id,{value:'',handlers:{},addEventListener(type,fn){this.handlers[type]=fn;}});return elements.get(id);};
+  globalThis.document={getElementById:get,documentElement:{requestFullscreen(){}}};
+  globalThis.window={localStorage:storage};
+  try {
+    AppState.ui.chordDiagramPlacement='above-chord';AppState.scoreHasChordDiagrams=false;
+    saveDisplayPreferences(AppState);const saved=entries.get(DISPLAY_PREFERENCES_KEY);
+    const controls=initDisplayControls(()=>{}),select=get('chord-diagram-placement');
+    assert.equal(select.value,'score-default');assert.equal(select.disabled,true);
+    assert.equal(entries.get(DISPLAY_PREFERENCES_KEY),saved,'loading/syncing must not write the fallback');
+    get('score-zoom').value='150';get('score-zoom').handlers.input();
+    assert.equal(readDisplayPreferences(storage).ui.chordDiagramPlacement,'above-chord','saving zoom must preserve the original placement');
+    select.value='off';select.handlers.change();
+    assert.equal(AppState.ui.chordDiagramPlacement,'above-chord');assert.equal(select.value,'score-default');
+    AppState.scoreHasChordDiagrams=true;controls.sync();
+    assert.equal(select.value,'above-chord');assert.equal(select.disabled,false);
+    assert.equal(readDisplayPreferences(storage).ui.chordDiagramPlacement,'above-chord');
+  } finally {
+    globalThis.document=previousDocument;globalThis.window=previousWindow;
+    Object.assign(AppState.ui,ui);AppState.scoreHasChordDiagrams=hasDiagrams;
+  }
 });

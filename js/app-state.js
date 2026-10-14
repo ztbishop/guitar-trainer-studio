@@ -4,6 +4,7 @@
 
 export const AppState = {
   score: null,
+  scoreHasChordDiagrams: null,
   currentScoreFile: null,
   media: { preview: false, returning: false },
   audio: { masterPercent: 100, mediaPercent: 100, tracks: {} },
