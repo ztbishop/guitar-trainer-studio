@@ -125,7 +125,7 @@ test('SVG renders all strings, capo-aware inlays, separate wire/note coordinates
       assert.ok(!container.querySelector().children[0].children.some(c=>c.attrs.class==='fretboard-marker fretboard-marker-played'));
       renderFretboard({...model,unmappedPitches:[0]});assert.match(help.textContent,/Outside displayed positions: C-1/);
       renderFretboard({supported:false,message:'No tuning'});assert.equal(container.querySelector(),undefined);
-      assert.equal(container.children.length,0);assert.equal(help.textContent,'No tuning');
+      assert.equal(container.children.length,1);assert.equal(container.children[0].textContent,'No tuning');assert.equal(help.textContent,'No tuning');
     }
   } finally {globalThis.document=previous;}
 });

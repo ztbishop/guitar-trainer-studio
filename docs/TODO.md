@@ -1,5 +1,38 @@
 # Guitar Trainer Studio: status and to-do
 
+### Shared media transport, grading and point capture — 2026-10-14
+
+- [x] Media Sync only in More. One main Play/Pause uses Synth audio or Recording; Tempo percentage is shared, and the optional panel is for video. Duplicate media Play/speed controls removed.
+- [x] Realtime grades MIDI against recording sync-point timing at the selected percentage; Wait pauses/mutes the source while its target seeks update the media frame. Original pitch rules and score timeline retained. This explicitly supersedes earlier recording-grading deferral.
+- [x] Paused waveform seeking positions audio and native cursor together; guide hit areas no longer cover the waveform body.
+- [x] Add / update point uses the playhead by default. Adjacent seconds/Use typed time is the single alternative, with no duplicate playhead button or redundant Undo for identical updates.
+- [x] 221 Node tests and 65 desktop / 64 phone app checks pass, including recording-clock MIDI acceptance, shared Tempo and silent Wait advancement.
+- [ ] Owner checks Fishman Realtime accuracy with representative media, silent Wait video positioning, real YouTube seek/rate/buffering and normal Live Server/browser acceptance. No version or Git publishing change.
+
+### Compact, discoverable sync editing — 2026-10-14
+
+- [x] Visible Add point creates the selected measure/beat at its estimated time for dragging; existing positions select their point without duplication. Use playhead time is the immediate timestamp alternative. One inline Apply time and adjacent nudges replace the hidden two-button fine adjustment.
+- [x] MIDI practice/Use recording and Show whole recording replace ambiguous labels. Save stays visible; profile fields, waveform retry and duplicate point list move to Load/options. First-pass and point-list labels are plain language.
+- [x] 217 Node tests, 59 desktop / 58 phone browser checks pass; desktop essential editing/save actions verified visible without scrolling. Current contract is in MEDIA-SYNC.
+- [ ] Owner verifies the revised Add-and-drag MP3 workflow and physical/browser acceptance. This supersedes the earlier unified editor layout below.
+
+### Unified Media Sync editor — 2026-10-14
+
+- [x] Direct Media Sync toolbar/More action opens the editor. Source loading, Practice/Recording selection and profile picker/name/save live there; layout and profile management remain secondary options. Selecting Recording does not autoplay or overwrite saved visibility. Main transport keeps native media behavior and Practice restoration.
+- [x] Estimated repeat-aware measure/beat guides are distinct from anchors. Capture immediately creates/updates the selected score position at recording time and pauses. Fine adjustment, pointer preview/bounds, 10/100 ms nudges, magnifier zoom/Fit, timeline seeking and Undo/Redo retain native point validation.
+- [x] Automatic detailed stereo waveform for supported local files; visible-column rendering, resource limits and stale-result protection. Existing profiles/backups remain compatible; save status distinguishes unsaved edits.
+- [x] 217 Node tests pass; browser validation and remaining acceptance are recorded in DEV-NOTES and MEDIA-SYNC.
+- [ ] Owner checks audible alignment, real MP3/video/YouTube/direct URLs, touch interaction and Fishman Realtime/Wait restoration in the usual Live Server/browser. Graded recording practice, GP export/code generation and other deferred features remain outside scope.
+
+### Workspace panel cleanup and UX review — 2026-10-14
+
+- [x] Listen reveals recording and dismisses the menu; Edit sync opens the editor separately. Direct × controls hide recording/editor/fretboard and synchronize saved visibility without discarding work.
+- [x] Editor/fretboard dividers support pointer/keyboard resizing, bounded persistence, viewport fitting and resets. Recording divider keyboard direction follows right/bottom placement correctly.
+- [x] Collapsed alignment help, unsupported-score fretboard explanation and desktop fretboard fitting. Phone fretboard retains readable horizontal scrolling.
+- [x] Fixed missing host score-loading/error callback registration: changing scores clears old recording/alignment and updates library loading/error state.
+- [x] 209 Node tests pass. Expanded browser checks cover close/reopen, resizing, score switching, embedded media, menu width/Escape and reload persistence; see UX review for browser evidence.
+- [ ] Owner Chrome/PiP, touch divider and Fishman Realtime/Wait acceptance. TrueFire integration, media pitch shifting and grading changes remain deferred.
+
 ### Match Piano Trainer folder deletion — 2026-10-14
 
 - [x] Single and bulk folder Delete now warn that contained saved scores will also be deleted, with their count, focused Cancel and Escape dismissal. Confirmed deletion removes folders and their contents atomically. This supersedes earlier move-to-Unfiled deletion behavior.

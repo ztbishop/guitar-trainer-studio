@@ -1,5 +1,31 @@
 # Guitar Trainer Studio Architecture
 
+## Shared media practice clock and native seek — 2026-10-14
+
+Latest owner scope includes Realtime grading with external media. AppState.media.preview remains the internal flag for external source selection; it no longer means ungraded listening. media-practice.js projects attack onsets via existing flat sync points and exposes provider-clock interpolation, bounded to 100 ms and stopped during pause/buffering. practice-engine uses these projections only for Realtime timing; original expected events, note IDs/pitches and playback timeline are retained. Bootstrap routes MIDI/position/state callbacks in either source, suppressing them only during asynchronous source restoration. Source/alignment edits reset the Realtime attempt.
+
+alphatab-host.js remains the only runtime native boundary. seekMediaTime explicitly sets media time and native tick position while paused. Shared Tempo updates handler rate/native speed together; rejected provider rates leave AppState unchanged. Source switches retain current Tempo percentage. Wait uses native paused target seeks with the recording muted; a separate click context supports its existing count-in/metronome when external output lacks a synth context. Media clock/sync-point state clears on source restoration or score change. YouTube's adapter applies cued seeks immediately, guarding seek-triggered autoplay until main Play.
+
+Media Sync is More-only. The optional panel contains video/scrubbing, with no duplicate transport or rate selector. Audio-only playback uses the editor timeline. Add / update point captures the actual playhead; grouped Use typed time is the alternative upsert. Arrowhead-only selection hit regions allow waveform-body seeking. Existing saved profiles and visibility preferences remain compatible. This supersedes earlier listening-only architecture and estimated-time Add behavior below.
+
+## Compact sync editor follow-up — 2026-10-14
+
+The owner superseded the first unified layout. media-controls.js now keeps source/profile fields in media-popup; only mode choices, Save/status, zoom, inline point tools and waveform remain in the main editor. Add point projects the selected measure/beat via mediaTimeAtTick/pointTick and upserts only after explicit activation; an existing position is selected rather than modified by Add. Use playhead time and Apply time share the existing validated upsert path; the separate selected-update action was removed. Inline seconds/nudges and point controls precede the waveform. Popup point chips are a secondary selection aid, not another synchronization mechanism. Native calls, grading, flat point/profile formats and preference ownership are unchanged.
+
+## Unified Media Sync workspace — 2026-10-14
+
+media-controls.js moves existing source/mode/profile controls into the editor while retaining their IDs and storage handlers. Direct toolbar/More actions toggle editor visibility; secondary media-popup retains layout and profile management. Practice/Recording select the existing host modes; selection does not autoplay or alter panel visibility. Main transport retains existing native calls and practice-state restoration. This supersedes the earlier Listen/reveal contract.
+
+media-timeline.js projects repeat-aware beat guides from the existing playback timeline and flat points, maps padded SVG coordinates, bounds anchor moves, preserves zoom focus and reduces detailed waveform envelopes to visible columns. Guides do not change grading or become saved anchors until explicitly activated. media-controls owns capture, selection, pointer preview, keyboard nudges and zoom. SVG preserveAspectRatio=none avoids the old centered-drawing/rect-width mismatch; endpoint padding preserves hit targets. Source changes invalidate waveform work. media-player.js decodes a bounded detailed multi-channel envelope; no raw audio or waveform enters profiles. Existing flat sync point/profile formats and alphatab-host.js runtime boundary remain unchanged.
+
+Known audio/embedded sources use a dedicated HTML audio element outside the optional video panel. HTML media readiness waits for playable data; rapid native seeks coalesce until the current seek finishes, retaining the last requested target. Handler disposal removes seek listeners and pending work. The expanded editor's first-use/reset preferred height is 400 px; existing saved heights and viewport fitting remain intact.
+
+## Workspace panel lifecycle — 2026-10-14
+
+workspace-panels.js owns bounded editor/fretboard size preferences (`gts.workspacePanelSizes`), pointer/keyboard dividers and viewport fitting. workspace-panels.css uses a flexible vertical workspace with scroll fallback below minimum usable sizes; preferred sizes survive fitting to smaller viewports. The fretboard renderer targets a separate content element so its close/resize controls survive rendering. Unsupported tracks show a short explanation. Media visibility remains in gts.mediaLayout; fretboard visibility uses the existing Display change handler. Toolbar exposes its existing close operation for Listen. No sizing code calls alphaTab or grading.
+
+The host forwards supplied onScoreLoading/onScoreLoadError callbacks during registration, fixing omitted lifecycle notifications that could retain old media on a new score. Browser regression covers ordinary score switching after alignment editing.
+
 ## Media listening, alignment and profiles — 2026-10-13
 
 - media-sync.js validates sources, repeat-aware FlatSyncPoints and profile JSON and creates tempo-aware initial alignment. It has no player or grading calls. media-player.js owns HTML/YouTube handlers and optional waveform decoding; third-party scripts load only on explicit source loading.

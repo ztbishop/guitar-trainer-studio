@@ -1,8 +1,9 @@
 // Media UI, browser players and profile intents. Native calls stay in the host.
 import {AppState} from './app-state.js';
 import {LibraryStore,fingerprint} from './library-store.js';
-import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport} from './media-sync.js';
+import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport,mediaTimeAtTick,pointTick} from './media-sync.js';
 import {htmlMediaPlayer,youtubeMediaPlayer,waveformPeaks} from './media-player.js';
+import {timelineGuides,boundedAnchorTime,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform} from './media-timeline.js';
 
 const svg=(tag,attrs={},text)=>{const node=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,String(value));if(text!==undefined)node.textContent=text;return node;};
 const clock=ms=>{const seconds=Math.max(0,ms/1000);return `${Math.floor(seconds/60)}:${(seconds%60).toFixed(1).padStart(4,'0')}`;};
@@ -11,33 +12,47 @@ function download(data,fileName) {
   const link=document.createElement('a');link.href=url;link.download=fileName;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
 
-export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}}={},store=new LibraryStore()) {
+export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{},closeMenu=()=>{}}={},store=new LibraryStore()) {
   const get=id=>document.getElementById('media-'+id);
+  // Move existing controls, retaining their IDs and all storage/source wiring.
+  get('editor-toolbar').append(get('mode-controls'));
+  get('editor-toolbar').append(get('save-profile'),get('dirty'));
+  get('extra-tools').append(get('unload'));
+  get('popup').firstElementChild.append(get('extra-tools'));
   let player=null,source=null,localFile=null,blobUrl=null,points=[],peaks=[],selected=-1,undo=[],redo=[],profiles=[],scoreHash='',profileId='',pendingProfile=null;
   let generation=0,scoreBytes=null,busy=false,pendingDelete=null,playhead=null,dirty=false;
+  let zoom=1,waveformBusy=false,waveformGeneration=0,dragging=false,lastTimelineInteraction=0,buffering=false;
   let layout='above',share=35,showPlayer=true,showEditor=false;
   try {const saved=JSON.parse(localStorage.getItem('gts.mediaLayout') || '{}');if(MEDIA_LAYOUTS.includes(saved.layout))layout=saved.layout;if(saved.share>=20 && saved.share<=65)share=saved.share;if(typeof saved.showPlayer==='boolean')showPlayer=saved.showPlayer;if(typeof saved.showEditor==='boolean')showEditor=saved.showEditor;}catch{}
   const message=text=>{get('status').textContent=text;get('action-status').textContent=text;};
   function persistLayout() {try{localStorage.setItem('gts.mediaLayout',JSON.stringify({layout,share,showPlayer,showEditor}));}catch{}}
   function renderLayout() {
-    const workspace=get('workspace'),visible=Boolean(player && showPlayer);
+    const workspace=get('workspace'),visible=Boolean(player && showPlayer && !get('player-panel').classList.contains('audio-only'));
     workspace.classList.toggle('has-media',visible);workspace.dataset.layout=layout;workspace.style.setProperty('--media-share',share+'%');
     get('player-panel').hidden=get('divider').hidden=!visible;get('divider').setAttribute('aria-valuenow',String(share));
     get('divider').setAttribute('aria-orientation',['left','right'].includes(layout) && window.innerWidth>700?'vertical':'horizontal');
     get('editor').hidden=!showEditor;document.body.classList.toggle('media-editor-visible',showEditor);
     get('layout').value=layout;get('show-player').checked=showPlayer;get('show-editor').checked=showEditor;
+    get('edit-sync').setAttribute('aria-expanded',String(showEditor));
+    document.querySelectorAll('[data-open-media-editor]').forEach(button=>button.setAttribute('aria-expanded',String(showEditor)));
+    renderPoints();
   }
   function sync() {
+    const silent=AppState.media.preview && AppState.mode==='wait';
+    get('audio').muted=get('video').muted=silent;
+    if(silent && player?.masterVolume)player.masterVolume=0;
     const ready=Boolean(player && player.backingTrackDuration>0 && points.length>=2 && AppState.playbackTimeline && !busy && !AppState.media.returning && (!AppState.media.preview || AppState.playerReady));
-    for(const key of ['listen','panel-listen']) {get(key).disabled=!ready;get(key).textContent=AppState.media.preview && AppState.isPlaying?'⏸ Pause recording':'▶ Listen & sync';}
-    for(const key of ['practice','panel-practice'])get(key).disabled=!AppState.media.preview || AppState.media.returning;
+    get('listen').disabled=!ready;get('listen').setAttribute('aria-pressed',String(AppState.media.preview));
+    get('practice').disabled=busy || AppState.media.returning;get('practice').setAttribute('aria-pressed',String(!AppState.media.preview));
     get('unload').disabled=!player || busy;get('save-profile').disabled=!ready || !scoreHash;
     get('delete-profile').disabled=!profileId || busy;get('export-profile').disabled=!profiles.length || busy;
-    get('waveform').disabled=!localFile || busy;get('undo').disabled=!undo.length;get('redo').disabled=!redo.length;
-    get('update-point').disabled=get('remove-point').disabled=selected<0;
-    get('add-point').disabled=get('capture-time').disabled=!player || !AppState.playbackTimeline;
+    get('waveform').disabled=!localFile || busy || waveformBusy;get('undo').disabled=!undo.length || busy;get('redo').disabled=!redo.length || busy;
+    get('remove-point').disabled=selected<0 || !ready;
+    get('apply-time').disabled=get('add-point').disabled=!ready;
+    for(const key of ['nudge-left','nudge-right'])get(key).disabled=selected<0 || !ready;
+    get('dirty').textContent=dirty?'Unsaved changes':profileId?'Saved profile':'Not saved';
+    get('save-profile').textContent=profileId?'Save changes':'Save profile';
     get('seek').disabled=!player || busy;
-    get('speed').disabled=!AppState.media.preview || busy;
     get('load-embedded').disabled=!host.embeddedMedia();
     for(const key of ['source-kind','choose-file','load-link','load-embedded','profile-select'])get(key).disabled=busy || (key==='load-embedded' && !host.embeddedMedia());
     get('pip').disabled=!player || source?.kind==='youtube' || !document.pictureInPictureEnabled || !get('video').videoWidth;
@@ -54,6 +69,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   function disposal() {
     player?.destroy();player=null;source=null;localFile=null;peaks=[];
+    waveformGeneration++;waveformBusy=false;get('waveform-status').textContent='';
     if(blobUrl)URL.revokeObjectURL(blobUrl);blobUrl=null;
     get('youtube').replaceChildren();get('youtube').hidden=true;get('video').hidden=false;
   }
@@ -75,7 +91,9 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       const events={isCurrent:()=>token===generation,onState(state){
         if(token!==generation)return;
         if(!AppState.media.preview) {player?.pause();return;}
-        if(state==='ratechange') {if(player && player.playbackRate!==AppState.playbackSpeed)host.setSpeed(player.playbackRate);if(player)get('speed').value=String(player.playbackRate);sync();return;}
+        buffering=state==='buffering';
+        if(state==='ratechange') {if(player && player.playbackRate!==AppState.playbackSpeed)host.setSpeed(player.playbackRate);sync();return;}
+        if(state==='playing' && AppState.mode==='wait'){player.pause();return;}
         if(state==='playing' && !AppState.isPlaying && !AppState.media.returning)host.toggleMediaPlayback();
         // Buffering must not pause the media element: that aborts its pending play.
         if(['ended','paused'].includes(state))host.pauseMediaPlayback();
@@ -89,12 +107,14 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
         let url=source.url;
         if(file){blobUrl=URL.createObjectURL(file);url=blobUrl;}
         if(source.kind==='embedded'){const embedded=host.embeddedMedia();if(!embedded)throw new Error('This score has no embedded backing recording.');blobUrl=URL.createObjectURL(new Blob([embedded.bytes]));url=blobUrl;}
-        player=htmlMediaPlayer(get('video'),url,events);
+        const audioOnly=source.kind==='embedded' || file?.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac|flac)(?:[?#]|$)/i.test(file?.name || url || '');
+        player=htmlMediaPlayer(get(audioOnly?'audio':'video'),url,events);
+        get('video').hidden=audioOnly;
       }
       await player.ready;if(token!==generation)return;
       player.masterVolume=AppState.audio.mediaPercent/100;
       if(!(player.backingTrackDuration>0))throw new Error('Choose a recording with a known duration.');
-      get('player-panel').classList.toggle('audio-only',source.kind!=='youtube' && !get('video').videoWidth);
+      get('player-panel').classList.toggle('audio-only',source.kind!=='youtube' && (get('video').hidden || !get('video').videoWidth));
       let matched=matchMediaProfile(profiles,scoreHash,source,pendingProfile);
       points=matched?validatePoints(matched.points,AppState.playbackTimeline,player.backingTrackDuration):
         source.kind==='embedded' && host.embeddedMedia().points.length>=2?validatePoints(host.embeddedMedia().points,AppState.playbackTimeline,player.backingTrackDuration):tempoAlignedPoints(AppState.playbackTimeline,player.backingTrackDuration);
@@ -106,13 +126,16 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       profileId=matched?.id || '';get('profile-name').value=matched?.name || source.label;
       if(matched)layout=matched.layout;
       pendingProfile=null;selected=-1;undo=[];redo=[];dirty=false;
-      get('seek').max=String(player.backingTrackDuration/1000);get('speed').value='1';
+      get('seek').max=String(player.backingTrackDuration/1000);
       renderPoints();await refreshProfiles();renderLayout();
-      message(relinked?'Saved alignment restored and linked to this local file. Press Listen & sync.':matched?'Saved alignment restored. Press Listen & sync.':'Recording ready. Initial alignment spans the recording; adjust its start/end and add points where needed.');
+      closeMenu();
+      message(relinked?'Saved alignment restored and linked to this local file.':matched?'Saved alignment restored.':'Recording ready. Select Recording as playback source, then use the main Play button.');
+      if(localFile)buildWaveform();
+      else get('waveform-status').textContent='Waveform unavailable for this source; alignment controls still work.';
     } catch(error) {if(token===generation){disposal();message(error.message);renderLayout();throw error;}}
     finally {if(token===generation){busy=false;sync();}}
   }
-  async function listen() {
+  async function selectRecording() {
     if(!player || busy)return;
     if(!AppState.media.preview) {
       beforeListen();
@@ -121,14 +144,15 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       while(!AppState.playerReady && performance.now()<deadline)await new Promise(resolve=>setTimeout(resolve,20));
       if(token!==generation)return;
       if(!AppState.playerReady)throw new Error('The sync player is still preparing. Try Listen again.');
-      get('speed').value=String(player.playbackRate);
     }
     if(!AppState.media.preview || AppState.media.returning)return;
-    host.toggleMediaPlayback();message('Listening & alignment — MIDI grading paused. Return to practice to use Realtime or Wait.');sync();
+    message(AppState.mode==='wait'?'Recording selected. Wait stays silent and seeks the video as you solve each target.':'Recording selected. Main Play/Pause and Tempo control it; Realtime grading remains active.');sync();
   }
+  function openEditor() {showEditor=true;renderLayout();persistLayout();closeMenu();get('add-point').focus();}
   function edit(next) {
     const checked=validatePoints(next,AppState.playbackTimeline,player?.backingTrackDuration);
     if(checked.length<2)throw new Error('Keep at least a start and end point.');
+    if(JSON.stringify(checked)===JSON.stringify(points))return;
     undo.push(structuredClone(points));if(undo.length>100)undo.shift();redo=[];
     points=checked;dirty=true;host.applyMediaSyncPoints(points);renderPoints();sync();message('Alignment edited. Save profile to keep these changes.');
   }
@@ -147,21 +171,99 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('beat').value=String(1+point.barPosition*AppState.score.masterBars[point.barIndex].timeSignatureNumerator);
     get('point-time').value=(point.millisecondOffset/1000).toFixed(3);renderPoints();sync();
   }
+  function chooseGuide(measureIndex,beat,time) {
+    get('measure').value=String(measureIndex);get('beat').value=String(beat);
+    get('point-time').value=(time/1000).toFixed(3);
+    selected=anchorIndex(points,formPoint(),AppState.playbackTimeline);
+    // Keep clicked guide nodes alive so the browser can deliver double-clicks.
+    get('timeline').querySelectorAll('[data-guide]').forEach(node=>node.classList.toggle('is-selected',Number(node.dataset.guide)===measureIndex && Number(node.dataset.beat)===beat));
+    get('timeline').querySelectorAll('[data-point]').forEach(node=>node.classList.toggle('is-selected',Number(node.dataset.point)===selected));
+    const measure=AppState.playbackTimeline.measures[measureIndex];
+    get('selection').textContent=`Measure ${measure.measureNumber}${measure.occurrence>1?` (repeat ${measure.occurrence})`:''}, beat ${beat}. Add / update point uses the recording playhead; Use typed time uses the seconds field.`;
+    sync();
+  }
+  function applyForm() {
+    const point=formPoint(),existing=anchorIndex(points,point,AppState.playbackTimeline);
+    const next=structuredClone(points);
+    if(existing>=0)next[existing]=point;
+    else next.push(point);
+    try{edit(next);}catch(error){if(error.message.includes('move forward'))throw new Error('This time crosses a neighboring point. Choose a time between the previous and next points.');throw error;}
+    selectPoint(anchorIndex(points,point,AppState.playbackTimeline));
+    message(`Point ${existing>=0?'updated':'added'}: measure ${point.barIndex+1}${point.barOccurence?`, repeat ${point.barOccurence+1}`:''} at ${clock(point.millisecondOffset)}. Drag it to fine tune; Save profile keeps your edits.`);
+  }
+  function addPoint() {
+    if(!player)return;
+    const time=player.currentTime;host.pauseMediaPlayback();player.pause();
+    get('point-time').value=(time/1000).toFixed(3);applyForm();
+  }
+  function nudge(delta) {
+    if(selected<0 || !player)return;
+    const next=structuredClone(points),index=selected;
+    next[index].millisecondOffset=boundedAnchorTime(points,index,points[index].millisecondOffset+delta,player.backingTrackDuration);
+    edit(next);selectPoint(index);
+  }
+  async function buildWaveform() {
+    if(!localFile || waveformBusy)return;
+    if(player.backingTrackDuration>15*60*1000 || localFile.size>80*1024*1024) {
+      get('waveform-status').textContent='Waveform skipped for large recordings; use timeline anchors and timestamps.';return;
+    }
+    const token=generation,waveToken=++waveformGeneration,file=localFile;
+    waveformBusy=true;get('waveform-status').textContent='Building waveform…';sync();
+    try {
+      const result=await waveformPeaks(file,Math.min(900000,Math.max(1800,Math.ceil(player.backingTrackDuration))));
+      if(token===generation && waveToken===waveformGeneration){peaks=result;renderPoints();get('waveform-status').textContent='Waveform ready';}
+    } catch(error) {if(token===generation && waveToken===waveformGeneration)get('waveform-status').textContent=`Waveform unavailable: ${error.message}. Alignment still works.`;}
+    finally {if(token===generation && waveToken===waveformGeneration){waveformBusy=false;sync();}}
+  }
+  function changeZoom(next) {
+    const scroll=get('timeline').parentElement,width=scroll.clientWidth;
+    const ratio=selected>=0?points[selected].millisecondOffset/(player?.backingTrackDuration || 1):(player?.currentTime || 0)/(player?.backingTrackDuration || 1);
+    const nextZoom=Math.max(1,Math.min(256,next));
+    const left=zoomWindow(zoom,nextZoom,scroll.scrollLeft,width,(12+ratio*1000)/1024);
+    zoom=nextZoom;renderPoints();scroll.scrollLeft=left;renderWaveform();
+  }
+  function renderWaveform() {
+    const timeline=get('timeline');timeline.querySelector('.media-wave')?.remove();
+    if(!peaks.length)return;
+    const scroll=timeline.parentElement,width=timeline.getBoundingClientRect().width;
+    if(!width)return;
+    const start=Math.max(0,(scroll.scrollLeft/width*1024-12)/1000);
+    const end=Math.min(1,((scroll.scrollLeft+scroll.clientWidth)/width*1024-12)/1000);
+    const samples=visibleWaveform(peaks,start,end,Math.max(1,Math.ceil(scroll.clientWidth)));
+    const wave=svg('path',{d:samples.map((peak,i)=>`M${(start+(end-start)*i/samples.length)*1000},${55-peak*22}v${peak*44}`).join(' '),class:'media-wave',fill:'none'});
+    timeline.prepend(wave);
+  }
   function renderPoints() {
+    if(dragging)return;
+    if(selected>=points.length)selected=-1;
     const timeline=get('timeline'),duration=player?.backingTrackDuration || 1;
-    timeline.replaceChildren();timeline.style.width=(Number(get('timeline-zoom').value)*100)+'%';
-    for(let i=0;i<=10;i++)timeline.append(svg('text',{x:i*98,y:98},clock(duration*i/10)));
-    if(peaks.length)timeline.append(svg('path',{d:peaks.map((peak,i)=>`M${i/peaks.length*1000},${50-peak*30}v${peak*60}`).join(' '),class:'media-wave',fill:'none'}));
+    timeline.replaceChildren();timeline.style.width=(zoom*100)+'%';get('timeline-zoom').textContent=`${Math.round(zoom*100)}%`;
+    const unit=1024/(timeline.getBoundingClientRect().width || 1000);
+    for(let i=0;i<=10*zoom;i++)timeline.append(svg('text',{x:i/(10*zoom)*1000,y:98,'font-size':12*unit},clock(duration*i/(10*zoom))));
+    for(const guide of timelineGuides(AppState.score,AppState.playbackTimeline,points)) {
+      if(guide.anchor>=0)continue;
+      const x=guide.millisecondOffset/duration*1000;
+      const active=Number(get('measure').value)===guide.measureIndex && Number(get('beat').value)===guide.beat;
+      const marker=svg('g',{class:'media-guide'+(active?' is-selected':''),transform:`translate(${x} 0)`,'data-guide':guide.measureIndex,'data-beat':guide.beat,'data-time':guide.millisecondOffset});
+      marker.append(svg('line',{x1:0,x2:0,y1:16,y2:84,'pointer-events':'none'}),svg('rect',{x:-6*unit,y:0,width:12*unit,height:30,fill:'transparent'}));
+      if(guide.beat===1)marker.append(svg('path',{d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}),svg('text',{x:4*unit,y:28,'font-size':12*unit},`${guide.barIndex+1}${guide.barOccurence?` (${guide.barOccurence+1})`:''}`));
+      timeline.append(marker);
+    }
     points.forEach((point,index)=>{
       const x=point.millisecondOffset/duration*1000;
       const marker=svg('g',{class:'media-marker'+(selected===index?' is-selected':''),transform:`translate(${x} 0)`,'data-point':index});
-      marker.append(svg('line',{x1:0,x2:0,y1:16,y2:84}),svg('path',{d:'M-7 2 L7 2 L0 16 Z'}),svg('text',{x:4,y:28},`${point.barIndex+1}${point.barOccurence?` (${point.barOccurence+1})`:''}`),svg('rect',{x:-9,y:0,width:18,height:85,fill:'transparent'}));
+      marker.append(svg('line',{x1:0,x2:0,y1:16,y2:84,'pointer-events':'none'}),svg('path',{d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}),svg('text',{x:4*unit,y:28,'font-size':12*unit},`${point.barIndex+1}${point.barOccurence?` (${point.barOccurence+1})`:''}`),svg('rect',{x:-9*unit,y:0,width:18*unit,height:30,fill:'transparent'}));
       timeline.append(marker);
     });
     playhead=svg('line',{class:'media-playhead',x1:0,x2:0,y1:0,y2:90});timeline.append(playhead);
+    get('selection').textContent=selected>=0?`Selected point: measure ${points[selected].barIndex+1}${points[selected].barOccurence?`, repeat ${points[selected].barOccurence+1}`:''} at ${clock(points[selected].millisecondOffset)}. Drag its arrow to fine tune.`:'Choose the measure/beat you hear. Add / update point captures the current recording playhead and pauses.';
+    renderWaveform();
     get('point-list').replaceChildren();points.forEach((point,index)=>{
       const button=document.createElement('button');button.type='button';button.setAttribute('aria-pressed',String(index===selected));
-      button.textContent=`M${point.barIndex+1} · pass ${point.barOccurence+1} · ${clock(point.millisecondOffset)}`;
+      const beat=1+point.barPosition*AppState.score.masterBars[point.barIndex].timeSignatureNumerator;
+      const position=index===0?'Start':index===points.length-1?'End':`Measure ${point.barIndex+1}, beat ${Number(beat.toFixed(2))}`;
+      button.textContent=`${position}${point.barOccurence?` (repeat ${point.barOccurence+1})`:''} → ${clock(point.millisecondOffset)}`;
+      button.title=`Measure ${point.barIndex+1}, beat ${Number(beat.toFixed(2))} matches ${clock(point.millisecondOffset)} in the recording. Click to select.`;
       button.addEventListener('click',()=>selectPoint(index));get('point-list').append(button);
     });
   }
@@ -195,39 +297,66 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     return loadRecording(kind==='youtube'?{kind,videoId:youtubeId(value),label:'YouTube '+youtubeId(value)}:{kind:'url',url:mediaUrl(value),label:mediaUrl(value)});
   }));
   get('load-embedded').addEventListener('click',action(()=>loadRecording({kind:'embedded',label:'Embedded backing audio'})));
-  for(const key of ['listen','panel-listen'])get(key).addEventListener('click',action(listen));
-  for(const key of ['practice','panel-practice'])get(key).addEventListener('click',action(async()=>{await returnToPractice();message('Practice restored at its previous position. Recording alignment is retained.');}));
+  get('listen').addEventListener('click',action(selectRecording));
+  get('practice').addEventListener('click',action(async()=>{await returnToPractice();message('Practice restored with synthesized audio. Recording alignment is retained.');}));
   get('unload').addEventListener('click',action(async()=>{await returnToPractice();generation++;disposal();points=[];profileId='';pendingProfile=null;renderPoints();renderLayout();sync();message('Recording unloaded. Saved profiles are kept.');}));
   get('pip').addEventListener('click',action(()=>document.pictureInPictureElement?document.exitPictureInPicture():get('video').requestPictureInPicture()));
+  get('close-player').addEventListener('click',()=>{showPlayer=false;renderLayout();persistLayout();document.getElementById('play-pause-button').focus();});
+  get('close-editor').addEventListener('click',()=>{showEditor=false;renderLayout();persistLayout();(showPlayer && player?get('edit-sync'):document.getElementById('btn-more')).focus();});
+  get('edit-sync').addEventListener('click',()=>{showEditor=!showEditor;renderLayout();persistLayout();if(showEditor)get('close-editor').focus();});
+  document.querySelectorAll('[data-open-media-editor]').forEach(button=>button.addEventListener('click',event=>{event.stopPropagation();if(showEditor){showEditor=false;renderLayout();persistLayout();closeMenu();}else openEditor();}));
+  get('reset-layout').addEventListener('click',()=>{share=35;renderLayout();persistLayout();document.dispatchEvent(new Event('reset-panel-sizes'));});
   for(const key of ['layout','show-player','show-editor'])get(key).addEventListener('change',()=>{layout=get('layout').value;showPlayer=get('show-player').checked;showEditor=get('show-editor').checked;renderLayout();persistLayout();});
-  get('speed').addEventListener('change',action(()=>{if(!player || !AppState.media.preview)return;const value=Number(get('speed').value);try{player.playbackRate=value;host.setSpeed(value);}catch(error){get('speed').value=String(player.playbackRate);throw error;}}));
-  get('seek').addEventListener('input',action(async()=>{if(!AppState.media.preview){beforeListen();if(!host.beginMediaPlayback(player,points))throw new Error('Wait for the score player.');}host.pauseMediaPlayback();player.seekTo(Number(get('seek').value)*1000);host.updateMediaPosition(player.currentTime);sync();}));
-  get('capture-time').addEventListener('click',()=>{if(player)get('point-time').value=(player.currentTime/1000).toFixed(3);});
-  get('add-point').addEventListener('click',action(()=>{edit([...points,formPoint()]);selected=-1;renderPoints();sync();}));
-  get('update-point').addEventListener('click',action(()=>{const next=structuredClone(points);next[selected]=formPoint();edit(next);selected=-1;renderPoints();sync();}));
+  get('seek').addEventListener('input',action(async()=>{await selectRecording();host.seekMediaTime(Number(get('seek').value)*1000);sync();}));
+  get('add-point').addEventListener('click',action(addPoint));
+  get('apply-time').addEventListener('click',action(()=>applyForm()));
+  for(const key of ['measure','beat'])get(key).addEventListener('change',()=>{
+    try{const point=formPoint(),index=anchorIndex(points,point,AppState.playbackTimeline);if(index>=0)selectPoint(index);else chooseGuide(Number(get('measure').value),Number(get('beat').value),mediaTimeAtTick(points,AppState.playbackTimeline,pointTick(point,AppState.playbackTimeline)));}catch(error){selected=-1;sync();message(error.message);}
+  });
+  get('nudge-left').addEventListener('click',action(()=>nudge(-10)));
+  get('nudge-right').addEventListener('click',action(()=>nudge(10)));
   get('remove-point').addEventListener('click',action(()=>{edit(points.filter((_,index)=>index!==selected));selected=-1;renderPoints();sync();}));
   for(const key of ['undo','redo'])get(key).addEventListener('click',action(()=>{
     const from=key==='undo'?undo:redo,to=key==='undo'?redo:undo;if(!from.length)return;
     to.push(structuredClone(points));points=from.pop();selected=-1;dirty=true;host.applyMediaSyncPoints(points);renderPoints();sync();message('Alignment edited. Save profile to keep changes.');
   }));
-  get('timeline-zoom').addEventListener('change',renderPoints);
-  get('waveform').addEventListener('click',action(async()=>{if(player.backingTrackDuration>15*60*1000)throw new Error('For recordings over 15 minutes, use timestamp editing or a shorter clip; waveform generation is optional.');const token=generation;busy=true;sync();message('Building optional waveform…');try{const result=await waveformPeaks(localFile);if(token===generation){peaks=result;renderPoints();message('Waveform ready. Drag a marker or edit its time.');}}finally{if(token===generation){busy=false;sync();}}}));
+  get('zoom-in').addEventListener('click',()=>changeZoom(zoom*1.2));
+  get('zoom-out').addEventListener('click',()=>changeZoom(zoom/1.2));
+  for(const key of ['timeline-zoom','zoom-fit'])get(key).addEventListener('click',()=>changeZoom(1));
+  get('timeline').parentElement.addEventListener('scroll',renderWaveform);
+  get('timeline').parentElement.addEventListener('wheel',()=>{lastTimelineInteraction=performance.now();},{passive:true});
+  get('waveform').addEventListener('click',buildWaveform);
+  get('timeline').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key) || selected<0)return;event.preventDefault();try{nudge((event.key==='ArrowLeft'?-1:1)*(event.shiftKey?100:10));}catch(error){message(error.message);}});
+  get('timeline').addEventListener('dblclick',event=>{
+    const guide=event.target.closest('[data-guide]');if(!guide || !player || busy)return;
+    chooseGuide(Number(guide.dataset.guide),Number(guide.dataset.beat),Number(guide.dataset.time));
+    try{applyForm();}catch(error){message(error.message);}
+  });
   get('timeline').addEventListener('pointerdown',event=>{
-    const marker=event.target.closest('[data-point]');if(!marker || !player)return;
+    lastTimelineInteraction=performance.now();
+    if(event.button!==0 || !player || busy || AppState.media.returning)return;
+    const marker=event.target.closest('[data-point]'),guide=event.target.closest('[data-guide]');
+    if(!marker) {
+      if(guide)chooseGuide(Number(guide.dataset.guide),Number(guide.dataset.beat),Number(guide.dataset.time));
+      else {const time=timeFromClientX(event.clientX,get('timeline').getBoundingClientRect(),player.backingTrackDuration);action(async()=>{await selectRecording();if(!AppState.media.preview)return;host.seekMediaTime(time);sync();})();}
+      return;
+    }
     event.preventDefault();host.pauseMediaPlayback();const index=Number(marker.dataset.point);selectPoint(index);
     const timeline=get('timeline'),initial=structuredClone(points),token=generation;timeline.setPointerCapture(event.pointerId);
+    dragging=true;const startX=event.clientX,startTime=initial[index].millisecondOffset,rect=timeline.getBoundingClientRect();
     let nextTime=initial[index].millisecondOffset;
-    const move=e=>{const rect=timeline.getBoundingClientRect();nextTime=Math.max(0,Math.min(player.backingTrackDuration,(e.clientX-rect.left)/rect.width*player.backingTrackDuration));get('point-time').value=(nextTime/1000).toFixed(3);};
-    const finish=e=>{timeline.removeEventListener('pointermove',move);timeline.removeEventListener('pointerup',finish);timeline.removeEventListener('pointercancel',cancel);if(token!==generation)return;const next=initial;next[index].millisecondOffset=nextTime;try{edit(next);}catch(error){message(error.message);renderPoints();}sync();};
-    const cancel=()=>{timeline.removeEventListener('pointermove',move);timeline.removeEventListener('pointerup',finish);timeline.removeEventListener('pointercancel',cancel);renderPoints();};
+    const move=e=>{if(e.pointerId!==event.pointerId || token!==generation)return;nextTime=boundedAnchorTime(initial,index,startTime+(e.clientX-startX)/rect.width*1024/1000*player.backingTrackDuration,player.backingTrackDuration);get('point-time').value=(nextTime/1000).toFixed(3);timeline.querySelector(`[data-point="${index}"]`)?.setAttribute('transform',`translate(${nextTime/player.backingTrackDuration*1000} 0)`);};
+    const cleanup=()=>{dragging=false;timeline.removeEventListener('pointermove',move);timeline.removeEventListener('pointerup',finish);timeline.removeEventListener('pointercancel',cancel);if(timeline.hasPointerCapture(event.pointerId))timeline.releasePointerCapture(event.pointerId);};
+    const finish=e=>{if(e.pointerId!==event.pointerId)return;move(e);cleanup();if(token!==generation)return;const next=initial;next[index].millisecondOffset=nextTime;try{if(nextTime!==startTime)edit(next);selectPoint(index);}catch(error){message(error.message);renderPoints();}sync();};
+    const cancel=()=>{cleanup();if(token===generation)selectPoint(index);};
     timeline.addEventListener('pointermove',move);timeline.addEventListener('pointerup',finish);timeline.addEventListener('pointercancel',cancel);
   });
   get('save-profile').addEventListener('click',action(async()=>{
-    const snapshotHash=scoreHash,valid=validatePoints(points,AppState.playbackTimeline,player.backingTrackDuration);
+    const snapshotHash=scoreHash,token=generation,snapshot=JSON.stringify(points),valid=validatePoints(points,AppState.playbackTimeline,player.backingTrackDuration);
     const name=get('profile-name').value.trim();if(!name)throw new Error('Enter a profile name.');
     const existing=profiles.find(profile=>profile.id===profileId);
     const profile={id:existing && sourceMatches(existing.source,source)?profileId:crypto.randomUUID(),scoreHash,scoreName:AppState.score.title || AppState.currentScoreFile.fileName,name,source,durationMs:player.backingTrackDuration,points:valid,layout};
-    await store.saveProfile(profile);if(snapshotHash!==scoreHash)return;profileId=profile.id;dirty=false;await refreshProfiles();message('Sync profile saved. Recordings are not copied into browser storage.');
+    await store.saveProfile(profile);if(snapshotHash!==scoreHash || token!==generation)return;profileId=profile.id;dirty=JSON.stringify(points)!==snapshot;await refreshProfiles();message(dirty?'Sync profile saved; newer alignment edits still need saving.':'Sync profile saved. Recordings are not copied into browser storage.');
   }));
   get('profile-select').addEventListener('change',action(async()=>{
     await returnToPractice();profileId=get('profile-select').value;
@@ -255,15 +384,20 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     const finish=()=>{divider.removeEventListener('pointermove',move);divider.removeEventListener('pointerup',finish);divider.removeEventListener('pointercancel',finish);persistLayout();};
     divider.addEventListener('pointermove',move);divider.addEventListener('pointerup',finish);divider.addEventListener('pointercancel',finish);
   });
-  divider.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();share=Math.max(20,Math.min(65,share+(['ArrowRight','ArrowDown'].includes(event.key)?2:-2)));renderLayout();persistLayout();});
-  window.addEventListener('resize',renderLayout);
+  divider.addEventListener('keydown',event=>{const horizontal=['left','right'].includes(layout) && window.innerWidth>700;if(!(horizontal?['ArrowLeft','ArrowRight']:['ArrowUp','ArrowDown']).includes(event.key))return;event.preventDefault();const reversed=layout==='below' || (layout==='right' && horizontal);share=Math.max(20,Math.min(65,share+(['ArrowRight','ArrowDown'].includes(event.key)?2:-2)*(reversed?-1:1)));
+    renderLayout();persistLayout();});
+  window.addEventListener('resize',()=>{renderLayout();if(!dragging)renderPoints();});
   setInterval(()=>{
     if(!player)return;const duration=player.backingTrackDuration,time=player.currentTime;
     get('clock').textContent=`${clock(time)} / ${clock(duration)}`;
     if(document.activeElement!==get('seek'))get('seek').value=String(time/1000);
     const x=duration>0?time/duration*1000:0;playhead?.setAttribute('x1',x);playhead?.setAttribute('x2',x);
-    if(AppState.media.preview && !AppState.media.returning && player.playing) {
-      host.updateMediaPosition(Math.min(time,duration-0.1));
+    if(showEditor && player.playing && !dragging && performance.now()-lastTimelineInteraction>1000) {
+      const scroll=get('timeline').parentElement,position=(x+12)/1024*get('timeline').clientWidth;
+      if(position<scroll.scrollLeft || position>scroll.scrollLeft+scroll.clientWidth)scroll.scrollLeft=Math.max(0,position-scroll.clientWidth/2);
+    }
+    if(AppState.media.preview && !AppState.media.returning) {
+      host.updateMediaPosition(Math.min(time,duration-0.1),player.playing && !buffering);
     }
   },50);
   async function timelineReady() {
@@ -271,7 +405,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     scoreBytes=AppState.currentScoreFile.bytes;const current=scoreBytes,token=generation;
     const hash=await fingerprint(current);if(current!==scoreBytes || token!==generation)return;scoreHash=hash;
     const select=get('measure');select.replaceChildren();
-    AppState.playbackTimeline.measures.forEach((measure,index)=>select.append(new Option(`Measure ${measure.measureNumber} · pass ${measure.occurrence}`,String(index))));
+    AppState.playbackTimeline.measures.forEach((measure,index)=>select.append(new Option(`Measure ${measure.measureNumber}${measure.occurrence>1?` (repeat ${measure.occurrence})`:''}`,String(index))));
     await refreshProfiles();message('Score ready. Choose a recording or a saved profile.');sync();
   }
   renderLayout();sourceControls();sync();refreshProfiles().catch(error=>message(error.message));
@@ -279,10 +413,10 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     setVolume(percent){
       if(!Number.isFinite(percent) || percent<0 || percent>100)return false;
       AppState.audio.mediaPercent=percent;
-      if(player && !busy)player.masterVolume=percent/100;
+      if(player && !busy)player.masterVolume=AppState.media.preview && AppState.mode==='wait'?0:percent/100;
       return true;
     },
-    scoreLoading(){generation++;disposal();points=[];undo=[];redo=[];scoreBytes=null;scoreHash='';profileId='';pendingProfile=null;selected=-1;busy=false;renderPoints();renderLayout();sync();},
+    scoreLoading(){generation++;disposal();points=[];undo=[];redo=[];scoreBytes=null;scoreHash='';profileId='';pendingProfile=null;selected=-1;busy=false;dirty=false;renderPoints();renderLayout();sync();},
     mediaChanged(){sync();if(!AppState.media.preview)afterPractice();},
     get dirty(){return dirty;},
   };

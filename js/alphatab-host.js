@@ -10,7 +10,7 @@ import { notationFeedbackGeometry, accidentalPath } from './notation-feedback.js
 import {outsideLoopBounds,wholeMeasureSelection} from './loop-visuals.js';
 import {countInTiming,scheduleCountIn} from './count-in.js';
 import {playbackGroups} from './audio-controls.js';
-import {validatePoints} from './media-sync.js';
+import {validatePoints,tickAtMediaTime} from './media-sync.js';
 import {effectiveChordDiagramPlacement} from './display-preferences.js';
 
 let mediaSnapshot=null,mediaHandler=null,mediaPoints=[],mediaRestoreTick=null;
@@ -27,20 +27,22 @@ export function installAlphaTabCompatibility(at) {
   return false;
 }
 
-// Recording playback is an isolated listening transport; the original practice
-// timeline, sync data and position are restored before MIDI practice resumes.
+// Select external playback while retaining the original score timeline and
+// source data. Grading consumes a separate recording-time projection.
 export function beginMediaPlayback(handler,points) {
   if(!alphaTabApi || !AppState.score || !AppState.playerReady || AppState.media.returning)return false;
   const validated=validatePoints(points,AppState.playbackTimeline,handler.backingTrackDuration);
   if(validated.length<2)throw new Error('Add a start and end sync point first.');
+  handler.playbackRate=AppState.playbackSpeed;
   if(AppState.media.preview) {mediaHandler=handler;mediaPoints=validated;alphaTabApi.player.output.handler=handler;applyMediaSyncPoints(validated);return true;}
   const pausedWait=savedWaitTransport;
   cancelCountIn();releaseWaitTransport();alphaTabApi.pause();
   waitMetronome?.stop();waitMetronome=null;nativeClickBuffer=null;
-  mediaSnapshot={tick:AppState.tickPosition,speed:AppState.playbackSpeed,points:AppState.score.exportFlatSyncPoints(),wait:pausedWait};
+  mediaSnapshot={tick:AppState.tickPosition,points:AppState.score.exportFlatSyncPoints(),wait:pausedWait};
   mediaHandler=handler;mediaPoints=validated;
   AppState.media.preview=true;
-  AppState.playbackSpeed=handler.playbackRate;
+  AppState.media.points=validated;
+  AppState.media.clock={timeMs:handler.currentTime || 0,at:performance.now(),playing:false};
   AppState.playerReady=false;
   AppState.score.applyFlatSyncPoints(validated);
   alphaTabApi.settings.player.playerMode=window.alphaTab.PlayerMode.EnabledExternalMedia;
@@ -56,7 +58,9 @@ export function applyMediaSyncPoints(points) {
   if(!AppState.media.preview)return;
   alphaTabApi.pause();
   mediaPoints=validatePoints(points,AppState.playbackTimeline,mediaHandler.backingTrackDuration);
+  AppState.media.points=mediaPoints;
   AppState.score.applyFlatSyncPoints(mediaPoints);alphaTabApi.updateSyncPoints();
+  hostCallbacks.onMediaChanged?.();
 }
 export function endMediaPlayback() {
   if(!AppState.media.preview || AppState.media.returning)return;
@@ -68,11 +72,25 @@ export function endMediaPlayback() {
 }
 export function toggleMediaPlayback() {
   if(!AppState.media.preview || AppState.media.returning || !AppState.playerReady)return false;
+  if(AppState.mode==='wait')return false;
+  applyMasterVolume();
   alphaTabApi.playPause();return true;
 }
 export function pauseMediaPlayback() {if(AppState.media.preview)alphaTabApi?.pause();}
-export function updateMediaPosition(timeMs) {
-  if(AppState.media.preview && !AppState.media.returning && Number.isFinite(timeMs))alphaTabApi.player.output.updatePosition(timeMs);
+export function updateMediaPosition(timeMs,playing=mediaHandler?.playing ?? AppState.isPlaying) {
+  if(AppState.media.preview && !AppState.media.returning && Number.isFinite(timeMs)) {
+    AppState.media.clock={timeMs,at:performance.now(),playing:Boolean(playing)};
+    if(AppState.mode!=='wait')alphaTabApi.player.output.updatePosition(timeMs);
+  }
+}
+export function seekMediaTime(timeMs) {
+  if(!AppState.media.preview || AppState.media.returning || !Number.isFinite(timeMs))return false;
+  alphaTabApi.pause();
+  const time=Math.max(0,Math.min(mediaHandler.backingTrackDuration,timeMs));
+  mediaHandler.seekTo(time);
+  AppState.media.clock={timeMs:time,at:performance.now(),playing:false};
+  alphaTabApi.tickPosition=tickAtMediaTime(mediaPoints,AppState.playbackTimeline,time);
+  return true;
 }
 export function seekMediaTick(tick) {if(AppState.media.preview && !AppState.media.returning)alphaTabApi.tickPosition=tick;}
 export function embeddedMedia() {
@@ -529,6 +547,8 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   if (!containerEl) throw new Error('alphaTab container was not found.');
 
   hostCallbacks = {
+    onScoreLoading: callbacks.onScoreLoading || null,
+    onScoreLoadError: callbacks.onScoreLoadError || null,
     onScoreLoaded: callbacks.onScoreLoaded || null,
     onPlaybackTimelineChanged: callbacks.onPlaybackTimelineChanged || null,
     onPlayerFinished: callbacks.onPlayerFinished || null,
@@ -718,8 +738,6 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     setStatus('Player ready');
     if(AppState.media.preview) {
       if(AppState.media.returning) {
-        AppState.playbackSpeed=mediaSnapshot.speed;
-        alphaTabApi.playbackSpeed=mediaSnapshot.speed;
         // Restoring the range can seek to its start; restore the saved cursor last.
         applyPracticeLoop(AppState.practiceLoop.range);
         applyTrackPlaybackStateInternal();
@@ -737,7 +755,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     hostCallbacks.onPlayerFinished?.();
     // Native continuous loops do not insert count-ins. With this option on,
     // let native playback finish, then pre-roll before starting the next pass.
-    if(!AppState.media.preview && AppState.mode==='realtime' && AppState.practiceLoop.enabled && AppState.practiceLoop.countIn) {
+    if(AppState.mode==='realtime' && AppState.practiceLoop.enabled && AppState.practiceLoop.countIn) {
       startCountIn(AppState.practiceLoop.range.startTick,ok=>{if(ok)alphaTabApi.play();});
     }
   });
@@ -761,6 +779,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
       if(mediaRestoreTick!==null && Math.abs(event.currentTick-mediaRestoreTick)<=3) {
         AppState.tickPosition=event.currentTick;AppState.timePositionMs=event.currentTime;
         AppState.media.preview=false;AppState.media.returning=false;
+        AppState.media.points=null;AppState.media.clock=null;
         mediaSnapshot=null;mediaHandler=null;mediaRestoreTick=null;
         hostCallbacks.onMediaChanged?.();
       }
@@ -825,7 +844,7 @@ export async function loadScoreFile(file) {
   if(AppState.media.preview) {
     endMediaPlayback();
     // A new score supersedes restoration of the previous practice position.
-    AppState.media.preview=false;AppState.media.returning=false;mediaSnapshot=null;mediaHandler=null;mediaRestoreTick=null;
+    AppState.media.preview=false;AppState.media.returning=false;AppState.media.points=null;AppState.media.clock=null;mediaSnapshot=null;mediaHandler=null;mediaRestoreTick=null;
   }
   const generation=++scoreLoadGeneration;
   AppState.currentScoreFile=null;
@@ -873,7 +892,7 @@ export function setRenderedTracks(trackIds) {
 
 export function applyMasterVolume() {
   const volume=AppState.audio.masterPercent/100;
-  if(alphaTabApi?.player)alphaTabApi.masterVolume=volume;
+  if(alphaTabApi?.player)alphaTabApi.masterVolume=AppState.media.preview?(AppState.mode==='wait'?0:AppState.audio.mediaPercent/100):volume;
   syncWaitMetronome();
   stopCountInAudio?.setVolume?.(AppState.metronome.volumePercent/100*volume);
 }
@@ -937,6 +956,9 @@ export function play() {
 
 export function setPlaybackSpeed(speed) {
   if (!alphaTabApi || !Number.isFinite(speed) || speed < 0.25 || speed > 2) return false;
+  if(AppState.media.preview) {
+    try{mediaHandler.playbackRate=speed;}catch(error){setStatus(error.message);return false;}
+  }
   AppState.playbackSpeed=speed;
   alphaTabApi.playbackSpeed=speed;
   return true;
@@ -951,6 +973,12 @@ function cancelRealtimePulses() {
 // Render one native Sonivox click once; schedule copies on the audio clock.
 // This avoids the live ScriptProcessor loop's buffer starvation on restarts.
 let waitMetronome = null, waitMetronomeLoading = null, nativeClickBuffer=null;
+let mediaClickContext=null;
+function clickContext() {
+  if(alphaTabApi?.player?.output?.context)return alphaTabApi.player.output.context;
+  if(!mediaClickContext || mediaClickContext.state==='closed')mediaClickContext=new AudioContext();
+  return mediaClickContext;
+}
 let waitMetronomeState = { enabled: false, running: false, bpm: 120, volume: 0 };
 
 function syncWaitMetronome() {
@@ -961,7 +989,7 @@ async function prepareWaitMetronome() {
   let synth;
   try {
     const at = window.alphaTab;
-    const context = alphaTabApi.player.output.context;
+    const context = clickContext();
     class ClickOutput extends at.synth.AlphaSynthWebAudioOutputBase {
       chunks = [];
       get sampleRate() { return context.sampleRate; }
@@ -1001,7 +1029,7 @@ async function prepareWaitMetronome() {
     }
     synth.destroy(); synth = null;
     // A media source switch can destroy this context while the soundfont loads.
-    if(context!==alphaTabApi?.player?.output?.context)return;
+    if(context!==clickContext())return;
     nativeClickBuffer=buffer;
     waitMetronome = createMetronomeClock(context, buffer, () => {
       if (waitMetronomeState.enabled && waitMetronomeState.running && AppState.mode === 'wait') hostCallbacks.onMetronomeTick?.();
@@ -1040,7 +1068,7 @@ export function startCountIn(tick,onComplete) {
       }
     }
     if(generation!==countInGeneration)return;
-    const context=alphaTabApi?.player?.output?.context;
+    const context=clickContext();
     if(!nativeClickBuffer || !context){cancelCountIn();onComplete(false);return;}
     if(context.state!=='running'){setStatus('Count-in • waiting for browser audio');await context.resume();}
     if(generation!==countInGeneration)return;
@@ -1121,6 +1149,7 @@ export function acquireWaitTransport() {
 }
 export function holdWaitAtTick(tick) {
   if(!alphaTabApi)return;
+  if(AppState.media.preview){mediaHandler?.pause();mediaHandler.masterVolume=0;}
   alphaTabApi.pause();
   alphaTabApi.playbackRange=null;
   alphaTabApi.tickPosition=tick;

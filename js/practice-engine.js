@@ -8,6 +8,9 @@ import { getPracticeEvents, tickToTimeMs } from './score-playback.js';
 import { RealtimeSession } from './realtime-session.js';
 import { eventsInRange } from './practice-range.js';
 import { noteStatesFromRecords } from './practice-visuals.js';
+import {practiceEvents,practiceTimeAtTick,mediaPracticeTime} from './media-practice.js';
+
+const timeAtTick=tick=>practiceTimeAtTick(AppState,tick,tickToTimeMs(AppState.playbackTimeline,tick));
 
 let realtime = null;
 let lastPositionTick = null;
@@ -16,10 +19,10 @@ let finishedAwaitingRewind = false;
 export function resetRealtimeSession(reason = 'reset', tick = AppState.tickPosition) {
   lastPositionTick = tick;
   finishedAwaitingRewind = false;
-  realtime = new RealtimeSession(AppState.expectedEvents, {
+  realtime = new RealtimeSession(practiceEvents(AppState), {
     hex: AppState.inputMode === 'hex-6ch', latencyMs: AppState.trainer.latencyMs || 0,
   });
-  realtime.reset(tickToTimeMs(AppState.playbackTimeline, tick) ?? 0, AppState.playbackSpeed || 1);
+  realtime.reset(timeAtTick(tick) ?? 0, AppState.playbackSpeed || 1);
   AppState.trainer.sessionReason = reason;
   publishRealtimeStats();
 }
@@ -38,13 +41,13 @@ export function newRealtimeAttemptHere(at = performance.now()) {
   const started = Boolean(realtime?.started || AppState.isPlaying);
   resetRealtimeSession('new-attempt-here', AppState.tickPosition);
   realtime.started = started;
-  realtime.anchorPosition(tickToTimeMs(AppState.playbackTimeline,AppState.tickPosition) ?? 0,at,AppState.playbackSpeed || 1);
+  realtime.anchorPosition(mediaPracticeTime(AppState,at,timeAtTick(AppState.tickPosition) ?? 0),at,AppState.playbackSpeed || 1);
   publishRealtimeStats();
   updateActiveTargetsFromPlayback(AppState.tickPosition);
 }
 
 export function handlePlaybackPosition({currentTick, at = performance.now(), speed = 1, isSeek = false, isPauseSnap = false}) {
-  const scoreMs = tickToTimeMs(AppState.playbackTimeline,currentTick);
+  const scoreMs = mediaPracticeTime(AppState,at,timeAtTick(currentTick));
   if (scoreMs === null) return;
   if (!realtime) resetRealtimeSession('playback-ready', currentTick);
   if (isPauseSnap) {
@@ -85,14 +88,15 @@ export function handlePlaybackState() {
     if (realtime.completed) resetRealtimeSession('restart');
     realtime.started = true;
   }
-  realtime.anchorPosition(tickToTimeMs(AppState.playbackTimeline,AppState.tickPosition)??0,performance.now(),AppState.playbackSpeed||1);
+  const at=performance.now();
+  realtime.anchorPosition(mediaPracticeTime(AppState,at,timeAtTick(AppState.tickPosition)??0),at,AppState.playbackSpeed||1);
   publishRealtimeStats();
   refreshTrainerMatchState();
 }
 
 export function advanceRealtimeClock(at = performance.now()) {
   if (!realtime?.started || !AppState.isPlaying || realtime.completed) return;
-  const scoreMs = realtime.scoreTime(at);
+  const scoreMs = mediaPracticeTime(AppState,at,realtime.scoreTime(at));
   if (scoreMs === null) return;
   realtime.advance(scoreMs-realtime.latencyMs*realtime.anchor.speed,realtime.anchor.speed);
   publishRealtimeStats();
@@ -355,7 +359,7 @@ export function handleMidiEvent(midiEvent) {
   if(midiEvent?.type==='note-off' && realtime?.noteOff(midiEvent))publishRealtimeStats();
   if (midiEvent?.type === 'note-on' && AppState.isPlaying && realtime?.started) {
     const at = Number.isFinite(midiEvent.at) ? midiEvent.at : performance.now();
-    realtime.noteOn(midiEvent,realtime.scoreTime(at),realtime.anchor?.speed || 1);
+    realtime.noteOn(midiEvent,mediaPracticeTime(AppState,at,realtime.scoreTime(at)),realtime.anchor?.speed || 1);
     publishRealtimeStats();
   }
   return refreshTrainerMatchState(AppState.tickPosition);

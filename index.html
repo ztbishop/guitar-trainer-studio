@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="./style.css" />
     <link rel="stylesheet" href="./menu-controls.css" />
     <link rel="stylesheet" href="./media-sync.css" />
+    <link rel="stylesheet" href="./workspace-panels.css" />
     <script src="./assets/vendor/alphatab/alphaTab.js"></script>
   </head>
   <body>
@@ -269,7 +270,7 @@
         <button id="more-loop-shortcut" type="button" class="more-shortcut-button" data-launch-panel="looper-popup">🔁 Loop</button>
         <button type="button" class="more-shortcut-button" data-launch-panel="audio-popup">🎚 Audio</button>
         <button type="button" class="more-shortcut-button" data-launch-panel="display-popup">🖥 Display</button>
-        <button type="button" class="more-shortcut-button" data-launch-panel="media-popup">▶ Media &amp; Sync</button>
+        <button type="button" class="more-shortcut-button" data-open-media-editor aria-controls="media-editor">Media Sync</button>
         <button type="button" class="more-shortcut-button" data-launch-panel="help-popup">ℹ Help &amp; Guide</button>
       </div>
     </section>
@@ -339,26 +340,27 @@
 
     <section id="media-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content">
       <h2>Media &amp; Sync</h2>
-      <p class="field-help">Listen and align recordings with the score. MIDI practice uses the synthesizer; recordings are not graded.</p>
-      <div class="popup-card media-source-card"><div class="popup-card-title">Recording</div>
+      <p class="field-help">Choose the playback source here. Main Play/Pause and Tempo control it. Realtime grades with either source; Wait stays silent and keeps video aligned.</p>
+      <div id="media-source-card" class="popup-card media-source-card"><div class="popup-card-title">Recording</div>
       <label class="field-group"><span class="field-label">Recording source</span><select id="media-source-kind"><option value="local">Local audio / video</option><option value="url">Audio / video URL</option><option value="youtube">YouTube video</option><option value="embedded">Score's embedded backing audio</option></select></label>
       <div id="media-local-controls"><button id="media-choose-file" type="button">Choose audio / video</button><input id="media-file" type="file" accept="audio/*,video/*,.mp3,.wav,.ogg,.m4a,.mp4,.webm" hidden /></div>
       <div id="media-link-controls" hidden><label class="field-group"><span class="field-label">Media link</span><input id="media-url" type="url" placeholder="https://…" /></label><button id="media-load-link" type="button">Load link</button><details class="menu-future"><summary>Supported links</summary><p class="field-help">Use a direct audio/video URL or a YouTube video link. A lesson webpage/share link may not expose a playable file. YouTube loads its online player only when requested.</p></details></div>
       <div id="media-embedded-controls" hidden><button id="media-load-embedded" type="button">Load embedded audio</button></div>
-      <div class="media-actions"><button id="media-listen" type="button" disabled>▶ Listen &amp; sync</button><button id="media-practice" type="button" disabled>Return to practice</button><button id="media-unload" type="button" disabled>Unload recording</button></div>
+      <div id="media-mode-controls" class="media-actions" aria-label="Playback source"><span>Playback:</span><button id="media-practice" type="button" aria-pressed="true" title="Use synthesized score audio with the main Play button">Synth audio</button><button id="media-listen" type="button" aria-pressed="false" title="Use this recording with the main Play button and Tempo percentage; Realtime grading stays active" disabled>Recording</button><button id="media-unload" type="button" disabled>Unload recording</button></div>
       <p id="media-status" role="status" class="field-help">Load a score, then choose a recording.</p>
       </div>
       <div class="popup-card media-view-card"><div class="popup-card-title">Video &amp; editor layout</div>
       <label class="field-group"><span class="field-label">Video placement</span><select id="media-layout"><option value="above">Above score</option><option value="below">Below score</option><option value="left">Left of score</option><option value="right">Right of score</option></select></label>
       <p class="field-help">Choose Left or Right for side-by-side. Drag the divider to resize; narrow screens stack automatically.</p>
       <p id="media-float-help" class="field-help">Float video is available for local video and direct video URLs when supported by your browser.</p>
-      <label class="menu-option"><input id="media-show-player" type="checkbox" checked /><span>Show recording panel</span></label>
+      <label class="menu-option"><input id="media-show-player" type="checkbox" checked /><span>Show video panel</span></label>
       <label class="menu-option"><input id="media-show-editor" type="checkbox" /><span>Show sync editor</span></label>
+      <button id="media-reset-layout" type="button">Reset panel sizes</button>
+      <p class="field-help">Drag panel dividers to resize. Sizes and visibility are remembered. Closing a panel hides it without unloading your work.</p>
       </div>
-      <details><summary>Saved sync profiles</summary><div class="media-profile-controls">
-        <label class="field-group"><span class="field-label">Profile for this score</span><select id="media-profile-select"><option value="">New profile</option></select></label>
-        <label class="field-group"><span class="field-label">Profile name</span><input id="media-profile-name" maxlength="240" placeholder="Lesson performance" /></label>
-        <div class="media-actions"><button id="media-save-profile" type="button" disabled>Save profile</button><button id="media-delete-profile" type="button" disabled>Delete profile</button><button id="media-export-profile" type="button" disabled>Export profiles</button><button id="media-import-profile" type="button">Import profiles</button></div>
+      <details open><summary>Profile name &amp; saved profiles</summary><div class="media-profile-controls">
+        <div id="media-profile-toolbar" class="media-actions"><label class="field-group"><span class="field-label">Profile for this score</span><select id="media-profile-select"><option value="">New profile</option></select></label><label class="field-group"><span class="field-label">Profile name</span><input id="media-profile-name" maxlength="240" placeholder="Lesson performance" /></label><button id="media-save-profile" type="button" disabled>Save profile</button><span id="media-dirty" role="status"></span></div>
+        <div class="media-actions"><button id="media-delete-profile" type="button" disabled>Delete profile</button><button id="media-export-profile" type="button" disabled>Export profiles</button><button id="media-import-profile" type="button">Import profiles</button></div>
         <input id="media-profile-file" type="file" accept=".json" hidden />
         <details><summary>Manage all profiles</summary><label class="field-group"><span class="field-label">Search profiles</span><input id="media-profile-search" type="search" placeholder="Profile, score or recording" /></label><p id="media-profile-storage" class="field-help"></p><div id="media-profile-list" class="media-profile-list"></div></details>
         <div id="media-delete-confirm" hidden><p>Delete this saved sync profile? The recording and score will be kept.</p><div class="media-actions"><button id="media-delete-cancel" type="button">Cancel</button><button id="media-delete-confirm-button" type="button">Delete profile</button></div></div>
@@ -567,25 +569,33 @@
         </div>
       </section>
       <div id="media-divider" class="media-divider" role="separator" tabindex="0" aria-label="Resize recording panel" aria-valuemin="20" aria-valuemax="65" aria-valuenow="35" hidden></div>
-      <section id="media-player-panel" class="panel media-player-panel" aria-label="Recording player" hidden>
-        <div class="media-player-heading"><span id="media-recording-label">Recording</span><button id="media-pip" type="button" disabled aria-describedby="media-float-status">Float video</button></div><p id="media-float-status" class="field-help" hidden></p>
+      <section id="media-player-panel" class="panel media-player-panel" aria-label="Video panel" hidden>
+        <div class="media-player-heading"><span id="media-recording-label">Recording</span><button id="media-pip" type="button" disabled aria-describedby="media-float-status">Float video</button><button id="media-close-player" class="panel-close" type="button" aria-label="Hide video panel" title="Hide video panel; source selection is retained">×</button></div><p id="media-float-status" class="field-help" hidden></p>
         <div class="media-picture"><video id="media-video" playsinline></video><div id="media-youtube" hidden></div></div>
-        <div class="media-actions"><button id="media-panel-listen" type="button" disabled>▶ Listen &amp; sync</button><button id="media-panel-practice" type="button" disabled>Return to practice</button><label>Speed <select id="media-speed"><option>0.25</option><option>0.5</option><option>0.75</option><option selected>1</option><option>1.25</option><option>1.5</option><option>1.75</option><option>2</option></select></label></div>
         <label class="media-scrub"><span id="media-clock">0:00 / 0:00</span><input id="media-seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Recording position" disabled /></label>
-        <p id="media-listening-notice" class="field-help">Listen &amp; sync pauses MIDI grading. Return to practice for Realtime or silent Wait.</p>
+        <div class="media-actions"><button id="media-edit-sync" type="button" aria-controls="media-editor" aria-expanded="false">Edit sync</button><span id="media-listening-notice" class="field-help">Use main Play/Pause and Tempo. Wait mode keeps playback silent.</span></div>
       </section>
       </div>
 
+      <audio id="media-audio" hidden></audio>
       <section id="media-editor" class="panel media-editor" aria-label="Score and recording sync editor" hidden>
-        <div class="media-actions"><strong>Sync editor</strong><button id="media-waveform" type="button" disabled>Build waveform</button><button id="media-undo" type="button" disabled>Undo</button><button id="media-redo" type="button" disabled>Redo</button><label>Timeline zoom <select id="media-timeline-zoom"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select></label></div>
-        <div class="media-timeline-scroll"><svg id="media-timeline" viewBox="0 0 1000 100" role="img" aria-label="Recording waveform and draggable sync points"></svg></div>
-        <div class="media-sync-fields"><label>Measure / repeat<select id="media-measure"></select></label><label>Beat position<input id="media-beat" type="number" min="1" step="0.01" value="1" /></label><label>Recording seconds<input id="media-point-time" type="number" min="0" step="0.001" value="0" /></label><button id="media-capture-time" type="button">Use current time</button><button id="media-add-point" type="button">Add point</button><button id="media-update-point" type="button" disabled>Update selected</button><button id="media-remove-point" type="button" disabled>Remove selected</button></div>
-        <p id="media-editor-help" class="field-help">Initial alignment stretches the full score to the recording. Select a marker to edit its measure, beat and time, or drag it along the timeline. Use as few points as needed; explanations and differing arrangements need manual alignment.</p>
+        <div class="panel-resizer" data-resize-panel="media-editor" role="separator" tabindex="0" aria-orientation="horizontal" aria-label="Resize sync editor" title="Drag to resize; use Up/Down arrows; double-click to reset"></div>
+        <button id="media-close-editor" class="panel-close" type="button" aria-label="Hide sync editor" title="Hide sync editor; alignment is retained">×</button>
+        <div class="panel-content">
+        <div id="media-editor-toolbar" class="media-actions"><strong>Media Sync</strong><button type="button" data-launch-panel="media-popup">Load / options</button></div>
+        <div id="media-zoom-toolbar" class="media-actions"><button id="media-zoom-out" type="button" aria-label="Zoom out timeline" title="Zoom out">🔍 −</button><button id="media-timeline-zoom" type="button" title="Reset timeline zoom">100%</button><button id="media-zoom-in" type="button" aria-label="Zoom in timeline" title="Zoom in">🔍 +</button><button id="media-zoom-fit" type="button" title="Zoom out to see the entire recording; alignment stays unchanged">Show whole recording</button><button id="media-undo" type="button" disabled>Undo</button><button id="media-redo" type="button" disabled>Redo</button><span id="media-waveform-status" class="field-help" role="status"></span></div>
+        <div id="media-point-tools" class="media-sync-fields"><label>Measure<select id="media-measure"></select></label><label>Beat<input id="media-beat" type="number" min="1" step="0.01" value="1" /></label><button id="media-add-point" type="button" disabled title="Create or update this measure/beat's sync point at the current recording playhead, then pause">＋ Add / update point</button><div class="media-time-tools"><label>Or enter time (seconds)<input id="media-point-time" type="number" min="0" step="0.001" value="0" /></label><button id="media-apply-time" type="button" disabled title="Create or update this measure/beat's sync point at the typed time">Use typed time</button><button id="media-nudge-left" type="button" aria-label="Move point 10 milliseconds earlier" disabled>← 10 ms</button><button id="media-nudge-right" type="button" aria-label="Move point 10 milliseconds later" disabled>10 ms →</button></div><button id="media-remove-point" type="button" disabled>Delete point</button></div>
+        <div class="media-timeline-scroll"><svg id="media-timeline" viewBox="-12 0 1024 100" preserveAspectRatio="none" tabindex="0" role="group" aria-label="Recording timeline. Select a measure or beat; drag saved anchors. Arrow keys nudge the selected anchor."></svg></div>
+        <p id="media-selection" class="field-help">Choose the measure/beat you hear. Add / update point captures the recording playhead and pauses.</p>
+        <details id="media-extra-tools" class="sync-editor-help"><summary>Alignment help &amp; waveform</summary><button id="media-waveform" type="button" disabled title="Retry drawing the sound waveform; recording and alignment stay unchanged">Retry waveform</button><p id="media-editor-help" class="field-help">A point matches a chosen measure/beat to a time in the recording. Add / update point uses the current recording playhead and pauses. Use typed time creates or updates the same point using the seconds field instead. Light guides are estimates; double-clicking a guide uses its estimated time. Drag blue point arrows to fine tune. Click the waveform body to seek the recording and score together. Main Play/Pause and Tempo work with Synth audio or Recording. Realtime grades either source; Wait seeks the video silently as you solve notes.</p><div id="media-point-list" class="media-point-list" aria-label="Alignment points; click a point to select it"></div></details>
         <p id="media-action-status" class="field-help" role="status"></p>
-        <div id="media-point-list" class="media-point-list" aria-label="Sync points"></div>
+        </div>
       </section>
 
       <section id="fretboard-container" class="panel fretboard-panel hidden" aria-hidden="true" aria-label="Practice fretboard">
+        <div class="panel-resizer" data-resize-panel="fretboard-container" role="separator" tabindex="0" aria-orientation="horizontal" aria-label="Resize virtual fretboard" title="Drag to resize; use Up/Down arrows; double-click to reset"></div>
+        <button id="fretboard-close" class="panel-close" type="button" aria-label="Hide virtual fretboard" title="Hide virtual fretboard">×</button>
+        <div id="fretboard-content" class="panel-content"></div>
       </section>
     </main>
 

@@ -43,7 +43,7 @@ document.getElementById('run').addEventListener('click',async()=>{
     endMediaPlayback();await until(()=>!AppState.media.preview && AppState.playerReady);
     check(!AppState.media.preview,'Native synthesizer becomes ready again after listening');
     try {await until(()=>Math.abs(AppState.tickPosition-1920)<=3);}catch(error){throw new Error(`Restore position: state tick ${AppState.tickPosition}, native tick ${api.tickPosition}, speed ${AppState.playbackSpeed}`);}
-    check(AppState.playbackSpeed===0.75 && AppState.playbackTimeline===timeline && JSON.stringify(AppState.score.exportFlatSyncPoints())===JSON.stringify(original),'Return restores practice position, speed, timeline and embedded sync data');
+    check(AppState.playbackSpeed===0.5 && AppState.playbackTimeline===timeline && JSON.stringify(AppState.score.exportFlatSyncPoints())===JSON.stringify(original),'Source change retains shared Tempo speed and restores practice position, timeline and embedded sync data');
     check(AppState.trainer.results===results && results.accuracy===67,'Listening transport leaves grading results untouched');
     AppState.mode='wait';
     waitController=new WaitController({acquire:acquireWaitTransport,hold:holdWaitAtTick,pause:pauseWaitTransport,release:releaseWaitTransport,finish:finishWaitTransport});

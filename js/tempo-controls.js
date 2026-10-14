@@ -62,6 +62,7 @@ export function initTempoControls({ onSpeedChange, onMetronomeChange = () => {} 
     if (Math.abs(value - AppState.playbackSpeed) > 1e-10) onSpeedChange(value);
     updateNumbers(true);
     sync();
+    if(Math.abs(value-AppState.playbackSpeed)>1e-10)status.textContent='This recording does not support that speed. Choose a supported playback percentage.';
   }
 
   function changeVolume(value) {

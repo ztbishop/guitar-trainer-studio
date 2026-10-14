@@ -1,0 +1,28 @@
+/* Keep useful score space; scroll only when the viewport cannot fit the minimums. */
+.app-main { display:flex; flex-direction:column; overflow:auto; }
+.score-media-workspace { flex:1 0 220px; }
+.media-editor,.fretboard-panel { position:relative; flex:none; box-sizing:border-box; max-height:none; padding:16px 8px 8px; overflow:hidden; }
+.panel-content { height:100%; min-height:0; overflow:auto; }
+.media-editor .panel-content > .media-actions { padding-right:36px; }
+.panel-close { flex:none; width:32px; min-width:32px; height:32px; min-height:32px; padding:0; font-size:22px; line-height:1; border-radius:8px; }
+.media-editor > .panel-close,.fretboard-panel > .panel-close { position:absolute; top:14px; right:8px; z-index:2; }
+.fretboard-panel .panel-content { padding-right:34px; }
+.panel-resizer { position:absolute; top:0; left:0; right:0; height:12px; cursor:row-resize; touch-action:none; }
+.panel-resizer::after { content:""; position:absolute; top:4px; height:4px; left:35%; right:35%; border-radius:8px; background:#94a3b8; }
+.panel-resizer:focus-visible { outline:2px solid #2563eb; outline-offset:-2px; }
+.fretboard-panel .fretboard-scroll { height:100%; overflow:auto; }
+.fretboard-panel .fretboard-scroll svg { height:100%; width:100%; min-width:0 !important; }
+.media-player-heading #media-pip { margin-left:auto; }
+.media-picture { min-height:60px; }
+.media-player-panel.audio-only .media-picture { display:none; }
+.sync-editor-help { margin:6px 0; font-size:12px; }
+.media-point-list { max-height:none; overflow:visible; }
+.media-sync-fields input { max-width:100%; }
+@media(max-width:700px) {
+  .score-media-workspace.has-media { flex-basis:400px; }
+  .panel-close { width:40px; min-width:40px; height:40px; min-height:40px; }
+  .media-editor .panel-content > .media-actions { padding-right:44px; }
+  .fretboard-panel .panel-content { padding-right:42px; }
+  .fretboard-panel .fretboard-scroll svg { min-width:1200px !important; }
+  .media-profile-row { flex-wrap:wrap; }
+}

@@ -1,20 +1,28 @@
 // Browser/provider playback only. The host consumes this public handler shape.
 export function htmlMediaPlayer(element,url,{onState=()=>{},onError=()=>{}}={}) {
-  let destroyed=false,cancelReady=()=>{},playGeneration=0;
+  let destroyed=false,cancelReady=()=>{},playGeneration=0,pendingSeek=null;
   const ready=new Promise((resolve,reject)=>{
     const timer=setTimeout(()=>reject(new Error('Recording did not load. Check the link, access and browser format support.')),20000);
-    const cleanup=()=>{clearTimeout(timer);element.removeEventListener('loadedmetadata',loaded);element.removeEventListener('error',failed);};
-    const loaded=()=>{cleanup();if(Number.isFinite(element.duration) && element.duration>0)resolve();else reject(new Error('Choose a finite recording, rather than a live stream.'));};
+    const cleanup=()=>{clearTimeout(timer);element.removeEventListener('loadedmetadata',loaded);element.removeEventListener('loadeddata',loaded);element.removeEventListener('error',failed);};
+    const loaded=()=>{if(!Number.isFinite(element.duration) || element.duration<=0){cleanup();reject(new Error('Choose a finite recording, rather than a live stream.'));return;}if(element.readyState<2)return;cleanup();resolve();};
     const failed=()=>{cleanup();reject(new Error('This recording could not be played. Check its format and access.'));};
     cancelReady=()=>{cleanup();reject(new Error('Recording load cancelled.'));};
-    element.addEventListener('loadedmetadata',loaded,{once:true});
+    element.addEventListener('loadedmetadata',loaded);
+    element.addEventListener('loadeddata',loaded);
     element.addEventListener('error',failed,{once:true});
   });
   const state=()=>{if(!destroyed)onState(element.ended?'ended':element.paused?'paused':element.readyState<3?'buffering':'playing');};
   const rateChanged=()=>{if(!destroyed)onState('ratechange');};element.addEventListener('ratechange',rateChanged);
-  for(const type of ['playing','pause','waiting','ended','seeked'])element.addEventListener(type,state);
+  const seek=(target)=>{if(Math.abs(element.currentTime-target)>0.000001)element.currentTime=target;};
+  const seeked=()=>{
+    if(destroyed)return;
+    if(pendingSeek!==null){const target=pendingSeek;pendingSeek=null;seek(target);if(element.seeking)return;}
+    state();
+  };
+  element.addEventListener('seeked',seeked);
+  for(const type of ['playing','pause','waiting','ended'])element.addEventListener(type,state);
   const error=()=>{if(!destroyed)onError(new Error('Recording playback failed.'));};element.addEventListener('error',error);
-  element.preload='metadata';element.controls=false;element.playsInline=true;element.src=url;element.load();
+  element.preload='auto';element.controls=false;element.playsInline=true;element.src=url;element.load();
   return {
     ready,
     get backingTrackDuration(){return Number.isFinite(element.duration)?element.duration*1000:0;},
@@ -22,10 +30,10 @@ export function htmlMediaPlayer(element,url,{onState=()=>{},onError=()=>{}}={}) 
     get playing(){return !element.paused && !element.ended;},
     get playbackRate(){return element.playbackRate;},set playbackRate(value){element.playbackRate=value;},
     get masterVolume(){return element.volume;},set masterVolume(value){element.volume=value;},
-    seekTo(ms){element.currentTime=Math.max(0,Math.min(element.duration || 0,ms/1000));},
+    seekTo(ms){const target=Math.max(0,Math.min(element.duration || 0,ms/1000));if(element.seeking)pendingSeek=target;else seek(target);},
     play(){const token=++playGeneration;element.play().catch(err=>{if(!destroyed && token===playGeneration)onError(err);});},
     pause(){playGeneration++;element.pause();},
-    destroy(){destroyed=true;cancelReady();element.pause();for(const type of ['playing','pause','waiting','ended','seeked'])element.removeEventListener(type,state);element.removeEventListener('ratechange',rateChanged);element.removeEventListener('error',error);element.removeAttribute('src');element.load();},
+    destroy(){destroyed=true;pendingSeek=null;cancelReady();element.pause();for(const type of ['playing','pause','waiting','ended'])element.removeEventListener(type,state);element.removeEventListener('seeked',seeked);element.removeEventListener('ratechange',rateChanged);element.removeEventListener('error',error);element.removeAttribute('src');element.load();},
   };
 }
 
@@ -44,7 +52,7 @@ function loadYoutubeApi() {
 export async function youtubeMediaPlayer(container,videoId,{onState=()=>{},onError=()=>{},isCurrent=()=>true}={}) {
   await loadYoutubeApi();
   if(!isCurrent())throw new Error('Recording load cancelled.');
-  let player,destroyed=false,pendingSeek=null,cancelReady=()=>{};
+  let player,destroyed=false,pauseAfterSeek=false,cancelReady=()=>{};
   const ready=new Promise((resolve,reject)=>{
     const target=document.createElement('div');container.replaceChildren(target);
     const timer=setTimeout(()=>reject(new Error('YouTube video did not become ready.')),20000);
@@ -53,7 +61,7 @@ export async function youtubeMediaPlayer(container,videoId,{onState=()=>{},onErr
       playerVars:{autoplay:0,playsinline:1,controls:1,origin:location.origin},
       events:{onReady(){clearTimeout(timer);resolve();},onStateChange(event){
         if(destroyed)return;
-        if(event.data===1 && pendingSeek!==null){player.seekTo(pendingSeek,true);pendingSeek=null;}
+        if(event.data===1 && pauseAfterSeek){pauseAfterSeek=false;player.pauseVideo();onState('paused');return;}
         onState(({0:'ended',1:'playing',2:'paused',3:'buffering',5:'cued'})[event.data] || 'paused');
       },onPlaybackRateChange(){if(!destroyed)onState('ratechange');},onError(event){if(destroyed)return;clearTimeout(timer);const error=new Error(`YouTube cannot play this video (code ${event.data}). It may disallow embedding or require sign-in.`);reject(error);onError(error);}},
     });
@@ -66,22 +74,23 @@ export async function youtubeMediaPlayer(container,videoId,{onState=()=>{},onErr
     get playbackRate(){return player.getPlaybackRate() || 1;},
     set playbackRate(value){const supported=player.getAvailablePlaybackRates();if(!supported.includes(value))throw new Error(`This YouTube video supports speeds: ${supported.join(', ')}.`);player.setPlaybackRate(value);},
     get masterVolume(){return (player.isMuted()?0:player.getVolume())/100;},set masterVolume(value){player.setVolume(value*100);if(value>0)player.unMute();},
-    seekTo(ms){const seconds=Math.max(0,ms/1000);if([1,2].includes(player.getPlayerState()))player.seekTo(seconds,true);else pendingSeek=seconds;},
-    play(){player.playVideo();},pause(){player.pauseVideo();},
+    seekTo(ms){const seconds=Math.max(0,ms/1000);if(![1,2].includes(player.getPlayerState())){pauseAfterSeek=true;player.mute();}player.seekTo(seconds,true);},
+    play(){pauseAfterSeek=false;player.playVideo();},pause(){player.pauseVideo();},
     destroy(){destroyed=true;cancelReady();player.destroy();},
   };
   return handler;
 }
 
-// Waveforms are optional, generated on demand and never stored in profiles.
+// Waveforms are optional and never stored in profiles. The editor requests a
+// detailed envelope, then draws only visible columns at the current zoom.
 export async function waveformPeaks(file,bins=1800) {
   if(file.size>80*1024*1024)throw new Error('This recording exceeds 80 MB. Use the time/marker editor; waveform generation is optional.');
   const context=new AudioContext();
   try {
     const audio=await context.decodeAudioData(await file.arrayBuffer());
-    const samples=audio.getChannelData(0),step=Math.max(1,Math.ceil(samples.length/bins));
+    const channels=Array.from({length:audio.numberOfChannels},(_,index)=>audio.getChannelData(index)),samples=channels[0],step=Math.max(1,Math.ceil(samples.length/bins));
     const peaks=[];for(let start=0;start<samples.length;start+=step) {
-      let peak=0;for(let i=start;i<Math.min(start+step,samples.length);i+=4)peak=Math.max(peak,Math.abs(samples[i]));peaks.push(peak);
+      let peak=0;for(const channel of channels)for(let i=start;i<Math.min(start+step,samples.length);i++)peak=Math.max(peak,Math.abs(channel[i]));peaks.push(peak);
     }
     return peaks;
   } finally {await context.close();}

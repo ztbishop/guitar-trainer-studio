@@ -137,4 +137,5 @@ export function initToolbar({ onIntent } = {}) {
     }
   });
   document.addEventListener('click', closeAllPopups);
+  return {closeAllPopups};
 }

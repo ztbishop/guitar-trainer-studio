@@ -19,7 +19,7 @@ export function renderFretboard(model) {
   container.setAttribute('aria-label',model.supported?'Practice fretboard':model.message);
   if(helpStatus)helpStatus.textContent=(model.supported?`${model.stringCount} ${model.stringCount===1?'string':'strings'} · Frets relative to capo ${model.capo}. `:'')+model.message+
     (model.unmappedPitches?.length?` Outside displayed positions: ${model.unmappedPitches.map(midiToNoteName).join(', ')}.`:'');
-  if(!model.supported)return;
+  if(!model.supported){const hint=document.createElement('p');hint.className='field-help';hint.textContent=model.message;container.appendChild(hint);return;}
   const geometry=fretboardGeometry(model.maxFret,model.stringCount);
   const {width,height,firstY,stringGap,top,bottom}=geometry;
   const scroll=document.createElement('div');scroll.className='fretboard-scroll';
