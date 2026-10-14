@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-import {mediaUrl,youtubeId,validateSource,sourceMatches,validatePoints,pointTick,defaultPoints,tempoAlignedPoints,validateProfile,parseProfileExport,MEDIA_PROFILE_FORMAT,mediaTimeAtTick,tickAtMediaTime} from '../js/media-sync.js';
+import {mediaUrl,youtubeId,validateSource,sourceMatches,matchMediaProfile,validatePoints,pointTick,defaultPoints,tempoAlignedPoints,validateProfile,parseProfileExport,MEDIA_PROFILE_FORMAT,mediaTimeAtTick,tickAtMediaTime} from '../js/media-sync.js';
 import {validateBackup,LIBRARY_FORMAT,encodeBytes} from '../js/library-store.js';
 import {installAlphaTabCompatibility} from '../js/alphatab-host.js';
 const native=createRequire(import.meta.url)('../assets/vendor/alphatab/alphaTab.js');
@@ -30,6 +30,13 @@ test('local profile pairing checks filename, size and modification time, without
   assert.ok(!sourceMatches(source,{...source,lastModified:13}));
   assert.deepEqual(validateSource({...source,bytes:new Uint8Array(500)}),source);
   assert.throws(()=>validateSource({...source,size:'300'}));
+});
+test('manually selecting a local profile relinks recovered media but rejects profiles for another score or source type',()=>{
+  const saved=profile(),recovered={...source,fileName:'recovered-lesson.mp4',lastModified:99};
+  assert.equal(matchMediaProfile([saved],saved.scoreHash,recovered),null,'changed metadata does not silently match');
+  assert.equal(matchMediaProfile([saved],saved.scoreHash,recovered,saved),saved,'explicit profile selection permits a local relink');
+  assert.equal(matchMediaProfile([saved],'b'.repeat(64),recovered,saved),null,'a profile from another score is rejected');
+  assert.equal(matchMediaProfile([saved],saved.scoreHash,{kind:'url',url:'https://example.org/new.mp4'},saved),null,'a local profile cannot be relinked to a URL');
 });
 test('alignment follows repeat occurrences and rejects reversed time or duplicate score positions',()=>{
   const points=defaultPoints(timeline,10000),repeat={barIndex:0,barOccurence:1,barPosition:0,millisecondOffset:4000};

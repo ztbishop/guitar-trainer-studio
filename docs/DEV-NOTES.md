@@ -1,5 +1,9 @@
 # Development notes
 
+## Relink sync profiles to recovered local media — 2026-10-13
+
+Selecting a saved profile for the current score and choosing a local recording now explicitly relinks that profile when the file name, size or modified date changed. This preserves existing sync points through drive recovery/renaming; the changed file metadata is saved to the selected profile after its points pass validation against the active score measures/repeats and media duration. Profiles from another score or source type are rejected, and a failed validation surfaces an error without applying invalid points. Automatic profile matching still uses existing local metadata until the user explicitly relinks. No recording bytes are stored and no score, alphaTab or grading behavior changed. Added matching-policy regressions; browser acceptance remains pending.
+
 ## Scores library menu cleanup — 2026-10-13
 
 Reorganized Scores using the Piano Trainer library as a UI reference while keeping Guitar Trainer's IndexedDB schema and native alphaTab load path. Open, save, backup and merge are grouped at the top; Add File(s) remains a multi-file library import. A folder pane sits beside the score list, and folder/score three-dot menus expose rename, move and delete actions in native dialogs. Removed duplicate loaded-file, playback-status and position statistics. Kept a compact Current score title and collapsed Tracks in current score controls. The selected folder is the destination for saves/imports; All Scores targets Unfiled. Current library matches receive a Loaded badge. No grading, media profiles, score bytes, alphaTab rendering or transport behavior changed. Local browser layout and import/save acceptance remains to be checked.

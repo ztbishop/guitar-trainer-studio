@@ -1,7 +1,7 @@
 // Media UI, browser players and profile intents. Native calls stay in the host.
 import {AppState} from './app-state.js';
 import {LibraryStore,fingerprint} from './library-store.js';
-import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,validatePoints,tempoAlignedPoints,parseProfileExport} from './media-sync.js';
+import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport} from './media-sync.js';
 import {htmlMediaPlayer,youtubeMediaPlayer,waveformPeaks} from './media-player.js';
 
 const svg=(tag,attrs={},text)=>{const node=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,String(value));if(text!==undefined)node.textContent=text;return node;};
@@ -95,16 +95,20 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       player.masterVolume=AppState.audio.mediaPercent/100;
       if(!(player.backingTrackDuration>0))throw new Error('Choose a recording with a known duration.');
       get('player-panel').classList.toggle('audio-only',source.kind!=='youtube' && !get('video').videoWidth);
-      const matched=pendingProfile && sourceMatches(pendingProfile.source,source)?pendingProfile:
-        profiles.find(profile=>profile.scoreHash===scoreHash && sourceMatches(profile.source,source));
+      let matched=matchMediaProfile(profiles,scoreHash,source,pendingProfile);
       points=matched?validatePoints(matched.points,AppState.playbackTimeline,player.backingTrackDuration):
         source.kind==='embedded' && host.embeddedMedia().points.length>=2?validatePoints(host.embeddedMedia().points,AppState.playbackTimeline,player.backingTrackDuration):tempoAlignedPoints(AppState.playbackTimeline,player.backingTrackDuration);
+      const relinked=Boolean(matched && pendingProfile?.id===matched.id && source.kind==='local' && !sourceMatches(matched.source,source));
+      if(relinked) {
+        matched={...matched,source,durationMs:player.backingTrackDuration};
+        await store.saveProfile(matched);
+      }
       profileId=matched?.id || '';get('profile-name').value=matched?.name || source.label;
       if(matched)layout=matched.layout;
       pendingProfile=null;selected=-1;undo=[];redo=[];dirty=false;
       get('seek').max=String(player.backingTrackDuration/1000);get('speed').value='1';
-      renderPoints();renderProfiles();renderLayout();
-      message(matched?'Saved alignment restored. Press Listen & sync.':'Recording ready. Initial alignment spans the recording; adjust its start/end and add points where needed.');
+      renderPoints();await refreshProfiles();renderLayout();
+      message(relinked?'Saved alignment restored and linked to this local file. Press Listen & sync.':matched?'Saved alignment restored. Press Listen & sync.':'Recording ready. Initial alignment spans the recording; adjust its start/end and add points where needed.');
     } catch(error) {if(token===generation){disposal();message(error.message);renderLayout();throw error;}}
     finally {if(token===generation){busy=false;sync();}}
   }

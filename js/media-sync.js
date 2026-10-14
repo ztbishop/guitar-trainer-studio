@@ -39,6 +39,15 @@ export function sourceMatches(a,b) {
   if(a.kind==='youtube')return a.videoId===b.videoId;
   return true;
 }
+export function matchMediaProfile(profiles,scoreHash,source,pendingProfile=null) {
+  if(pendingProfile?.scoreHash===scoreHash) {
+    if(sourceMatches(pendingProfile.source,source))return pendingProfile;
+    // Choosing a saved local profile first is an explicit request to relink it
+    // to a recovered/renamed copy of that recording.
+    if(pendingProfile.source.kind==='local' && source.kind==='local')return pendingProfile;
+  }
+  return profiles.find(profile=>profile.scoreHash===scoreHash && sourceMatches(profile.source,source)) || null;
+}
 export function pointTick(point,timeline) {
   const measure=timeline?.measures.find(m=>m.measureNumber===point.barIndex+1 && m.occurrence===point.barOccurence+1);
   if(!measure)throw new Error('A sync point refers to a measure/repeat that is absent from this score.');

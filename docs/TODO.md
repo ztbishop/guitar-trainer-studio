@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+### Relink recovered local media to a saved sync profile — 2026-10-13
+
+- [x] Selecting a saved profile, then choosing a renamed/recovered local recording, reuses the saved sync points and updates that profile's source details after validation.
+- [x] Reject a selected profile from another score or source type. Validate saved measure/repeat references and recording duration before restoring; show errors without applying invalid alignment.
+- [ ] Locally verify selecting an older profile, relinking a renamed/timestamp-changed copy of the same recording, and confirming the profile is automatically recognized on the next load.
+
 ### Scores library menu cleanup — 2026-10-13
 
 - [x] Group Open File, Save to Library, Backup Library, and Import Library (Merge) at the top; keep Add File(s) as a multi-file import into the selected folder.
