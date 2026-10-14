@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Readable media timeline zoom — 2026-10-14
+
+- [x] Keep measure/time text readable at high zoom and waveform/playhead strokes at constant screen width. Declutter overlapping measure labels without removing guides or changing alignment.
+- [x] 221 Node regression tests pass; application/browser harness syntax checks pass.
+- [x] Actual app harness passes 69 desktop / 68 phone checks, including 516% zoom geometry and waveform redraw. Desktop zoom screenshot visually inspected.
+- [ ] Owner checks the same MP3 at 100% and around 516% in the usual Live Server/browser: readable labels, finer waveform detail, horizontal scrolling and unchanged point dragging/sync.
+
 ### Shared media transport, grading and point capture — 2026-10-14
 
 - [x] Media Sync only in More. One main Play/Pause uses Synth audio or Recording; Tempo percentage is shared, and the optional panel is for video. Duplicate media Play/speed controls removed.

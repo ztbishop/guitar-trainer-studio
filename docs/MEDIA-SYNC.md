@@ -31,6 +31,8 @@ In **Video & editor layout**, choose Above, Below, Left or Right of score. Left/
 
 Initial alignment spans the recording and follows source tempo changes. It is an estimate; intros, teacher explanations, repeats or different arrangements need adjustment. Light guides show estimated measures and beats; blue anchors are actual alignment points. Guide positions update between anchors without creating additional saved points. Repeated measures are labeled with their separate passes.
 
+Magnifier zoom keeps measure/time labels readable and redraws the visible waveform detail with thin strokes. Crowded measure labels are hidden until there is room to show them; their arrows still work, and selected/saved point labels take priority. Zoom changes the display only, preserving alignment and saved points.
+
 1. Select the measure/beat you recognize, using a timeline guide or the Measure / repeat and Beat position fields. Beat 1 is bar start; numerator + 1 is bar end (beat 5 in 4/4). Do not assume an unaligned score cursor identifies what you hear.
 2. Play or seek to the matching sound, then press **Add / update point**. It captures the recording's current playhead immediately, pauses, and creates a point for the chosen measure/beat or updates its existing point. It never uses an estimated timestamp. Repeating the same unchanged update creates no redundant Undo step.
 3. Alternatively type recording seconds into **Or enter time**, then click its adjacent **Use typed time**. This also creates or updates the chosen measure/beat's point, using the typed number instead of the playhead. Both methods produce the same kind of point; no separate Apply or Use playhead action remains.

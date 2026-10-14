@@ -1,5 +1,11 @@
 # Development notes
 
+## Readable media timeline zoom — 2026-10-14
+
+Fixed a display-only SVG scaling error: label font size previously shrank vertically with zoom, while waveform strokes widened with the timeline and smeared neighboring samples. Labels now counter-scale horizontally only; waveform and playhead strokes retain screen width. The waveform still redraws the visible detailed envelope on zoom/scroll. Crowded measure text yields to saved/selected anchors, leaving all guide arrows and interaction targets intact. Time labels sit clear of the bottom edge. No sync points, profile data, transport, grading or native score behavior change.
+
+Added actual-browser regression checks at 516% for label height, waveform redraw/non-scaling strokes, label collisions and time-axis bounds. All 221 Node tests and the app harness (69 desktop / 68 phone checks) pass; desktop zoom screenshot visually inspected. The supplementary pointer/profile/provider smoke runner intermittently times out restoring Synth after capture; its preceding real pointer dragging, profile restore, zoom and capture checks pass. This change does not touch that restoration path. A representative real MP3 remains the local visual acceptance check.
+
 ## Shared recording transport and grading — 2026-10-14
 
 Owner explicitly brought graded recording playback into scope: Realtime must use the selected audio/video source, Wait must remain silent while video follows its targets, Tempo percentage must control media, and Media Sync must appear only in More. Removed the unsolicited top-toolbar shortcut and duplicate recording Play/speed controls. The optional panel now houses video; audio-only sources use the editor timeline. Source switches retain the current Tempo percentage, with unsupported provider speeds rejected before changing state. This supersedes earlier listening-only/no-grading requirements and source-specific speed restoration.

@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Media timeline screen geometry — 2026-10-14
+
+The padded SVG time coordinate remains unchanged. media-controls counter-scales label text along X only, preserving font height as the timeline widens. It suppresses colliding measure text in screen coordinates, prioritizing selected/saved anchors while retaining guide hit targets. Visible waveform columns are reprojected from the detailed envelope on zoom/scroll; CSS non-scaling strokes prevent zoom from thickening the waveform/playhead. Time labels remain inside the SVG bottom edge. These are display projections only; sync points, native seeks and grading are unchanged.
+
 ## Shared media practice clock and native seek — 2026-10-14
 
 Latest owner scope includes Realtime grading with external media. AppState.media.preview remains the internal flag for external source selection; it no longer means ungraded listening. media-practice.js projects attack onsets via existing flat sync points and exposes provider-clock interpolation, bounded to 100 ms and stopped during pause/buffering. practice-engine uses these projections only for Realtime timing; original expected events, note IDs/pitches and playback timeline are retained. Bootstrap routes MIDI/position/state callbacks in either source, suppressing them only during asynchronous source restoration. Source/alignment edits reset the Realtime attempt.

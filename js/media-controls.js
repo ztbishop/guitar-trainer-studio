@@ -239,22 +239,33 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     const timeline=get('timeline'),duration=player?.backingTrackDuration || 1;
     timeline.replaceChildren();timeline.style.width=(zoom*100)+'%';get('timeline-zoom').textContent=`${Math.round(zoom*100)}%`;
     const unit=1024/(timeline.getBoundingClientRect().width || 1000);
-    for(let i=0;i<=10*zoom;i++)timeline.append(svg('text',{x:i/(10*zoom)*1000,y:98,'font-size':12*unit},clock(duration*i/(10*zoom))));
+    // Counter-scale only horizontally: the SVG widens on zoom, its height does not.
+    for(let i=0;i<=10*zoom;i++)timeline.append(svg('text',{transform:`translate(${i/(10*zoom)*1000} 94) scale(${unit} 1)`,'font-size':12},clock(duration*i/(10*zoom))));
     for(const guide of timelineGuides(AppState.score,AppState.playbackTimeline,points)) {
       if(guide.anchor>=0)continue;
       const x=guide.millisecondOffset/duration*1000;
       const active=Number(get('measure').value)===guide.measureIndex && Number(get('beat').value)===guide.beat;
       const marker=svg('g',{class:'media-guide'+(active?' is-selected':''),transform:`translate(${x} 0)`,'data-guide':guide.measureIndex,'data-beat':guide.beat,'data-time':guide.millisecondOffset});
       marker.append(svg('line',{x1:0,x2:0,y1:16,y2:84,'pointer-events':'none'}),svg('rect',{x:-6*unit,y:0,width:12*unit,height:30,fill:'transparent'}));
-      if(guide.beat===1)marker.append(svg('path',{d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}),svg('text',{x:4*unit,y:28,'font-size':12*unit},`${guide.barIndex+1}${guide.barOccurence?` (${guide.barOccurence+1})`:''}`));
+      if(guide.beat===1)marker.append(svg('path',{d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}),svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},`${guide.barIndex+1}${guide.barOccurence?` (${guide.barOccurence+1})`:''}`));
       timeline.append(marker);
     }
     points.forEach((point,index)=>{
       const x=point.millisecondOffset/duration*1000;
       const marker=svg('g',{class:'media-marker'+(selected===index?' is-selected':''),transform:`translate(${x} 0)`,'data-point':index});
-      marker.append(svg('line',{x1:0,x2:0,y1:16,y2:84,'pointer-events':'none'}),svg('path',{d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}),svg('text',{x:4*unit,y:28,'font-size':12*unit},`${point.barIndex+1}${point.barOccurence?` (${point.barOccurence+1})`:''}`),svg('rect',{x:-9*unit,y:0,width:18*unit,height:30,fill:'transparent'}));
+      marker.append(svg('line',{x1:0,x2:0,y1:16,y2:84,'pointer-events':'none'}),svg('path',{d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}),svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},`${point.barIndex+1}${point.barOccurence?` (${point.barOccurence+1})`:''}`),svg('rect',{x:-9*unit,y:0,width:18*unit,height:30,fill:'transparent'}));
       timeline.append(marker);
     });
+    // Keep selected/saved point labels first; hide only text where guides crowd.
+    const occupied=[],bounds=timeline.getBoundingClientRect();
+    for(const label of timeline.querySelectorAll(':scope > text'))if(label.getBoundingClientRect().right>bounds.right)label.setAttribute('text-anchor','end');
+    const labels=[...timeline.querySelectorAll('.media-marker.is-selected text'),...timeline.querySelectorAll('.media-marker:not(.is-selected) text'),...timeline.querySelectorAll('.media-guide text')];
+    for(const label of labels) {
+      let box=label.getBoundingClientRect();
+      if(box.right>bounds.right){label.setAttribute('text-anchor','end');label.setAttribute('x','-4');box=label.getBoundingClientRect();}
+      if(occupied.some(other=>box.left<other.right+4 && box.right>other.left-4))label.style.visibility='hidden';
+      else occupied.push(box);
+    }
     playhead=svg('line',{class:'media-playhead',x1:0,x2:0,y1:0,y2:90});timeline.append(playhead);
     get('selection').textContent=selected>=0?`Selected point: measure ${points[selected].barIndex+1}${points[selected].barOccurence?`, repeat ${points[selected].barOccurence+1}`:''} at ${clock(points[selected].millisecondOffset)}. Drag its arrow to fine tune.`:'Choose the measure/beat you hear. Add / update point captures the current recording playhead and pauses.';
     renderWaveform();

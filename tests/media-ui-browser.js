@@ -84,6 +84,19 @@ document.getElementById('ui-run').addEventListener('click',async()=>{
     }
     get('media-zoom-in').click();check(get('media-timeline-zoom').textContent==='120%','Magnifier increases timeline zoom by twenty percent');
     get('media-zoom-fit').click();check(get('media-timeline-zoom').textContent==='100%','Fit recording restores the full timeline');
+    await until(()=>get('media-timeline').querySelector('.media-wave'));
+    const labelHeight=get('media-timeline').querySelector('.media-marker text').getBoundingClientRect().height;
+    const fullWave=get('media-timeline').querySelector('.media-wave').getAttribute('d');
+    for(let i=0;i<9;i++)get('media-zoom-in').click();
+    const zoomedLabel=get('media-timeline').querySelector('.media-marker text').getBoundingClientRect();
+    check(get('media-timeline-zoom').textContent==='516%' && Math.abs(zoomedLabel.height-labelHeight)<0.1 && zoomedLabel.height>=12,'Measure labels retain readable height at 516% zoom');
+    const wave=get('media-timeline').querySelector('.media-wave');
+    check(view.getComputedStyle(wave).vectorEffect==='non-scaling-stroke' && wave.getAttribute('d')!==fullWave,'Zoom redraws detailed waveform columns with constant screen stroke width');
+    const labels=[...get('media-timeline').querySelectorAll('.media-marker text,.media-guide text')].filter(node=>view.getComputedStyle(node).visibility!=='hidden').map(node=>node.getBoundingClientRect()).sort((a,b)=>a.left-b.left);
+    check(labels.every((box,i)=>i===0 || box.left>=labels[i-1].right+3),'Visible measure labels do not overlap');
+    const axis=get('media-timeline').querySelector(':scope > text').getBoundingClientRect();
+    check(axis.height>=12 && axis.bottom<get('media-timeline').getBoundingClientRect().bottom,'Recording time labels remain readable inside the timeline');
+    get('media-zoom-fit').click();
     check(get('media-timeline').querySelector('[data-guide]'),'Timeline includes estimated measure and beat guides');
     get('media-measure').value='1';get('media-beat').value='1';
     get('media-listen').click();await until(()=>doc.body.classList.contains('media-preview') && !get('media-listen').disabled);
