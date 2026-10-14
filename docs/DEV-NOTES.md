@@ -1,5 +1,17 @@
 # Development notes
 
+## No-waveform timeline hint — 2026-10-14
+
+Owner confirmed the target/playhead workflow works, including a TrueFire video URL. Kept online waveform generation unchanged. Without decoded peaks, renderWaveform now displays a faint baseline/divider plus a short seeking hint in the existing recording area. The message stays centered in the visible viewport through zoom/scroll, uses a shorter variant in narrow panels, and intercepts no pointer events. Pending local decoding says Building waveform; actual peaks replace the fallback. No fake sound data, additional panel height, media processing or native/grading changes. Real TrueFire visual acceptance remains local.
+
+## Fixed sync target versus recording playhead — 2026-10-14
+
+Owner approved measure/marker clicks selecting an alignment target and seeking the recording/native sheet together, with waveform clicks seeking both while retaining the target. The editor now displays that fixed measure/beat alongside current recording time above the point controls. Red selection lines end above the waveform; its moving playhead is dark and starts below the measure strip. Main transport never changes the target or saves points. Capture is renamed **Align selected measure here**; typed time remains the explicit alternative. Seconds follows playback until typed, survives Play/Pause once typed, and refills on deliberate seeking. Removed implicit guide double-click creation so exploration cannot silently add points. Existing profile/schema/source support and grading rules remain unchanged.
+
+alphatab-host reveals the cursor after explicit media seeks and their native position acknowledgement. It calls public scrollToCursor when a native handler is enabled; alphaTab ScrollMode.Off has no handler, so its rendered cursor is revealed within the score viewport only. No temporary settings changes, preference writes or page-wide scroll. Normal playback retains saved Auto-scroll. Source generations guard asynchronous seek/selection completion. Pending owner checks remain in TODO.
+
+Validation: 221 Node tests, 79 desktop / 78 phone actual-app checks and 17 native/storage browser checks pass. New browser evidence covers measure-label seeking, waveform target retention/time filling, independent indicator geometry/colors, no implicit double-click creation, Play/Pause target/typed-time retention and paused cursor reveal with Auto-scroll off. Syntax/whitespace checks pass. Live Server/Fishman, audible alignment and real video/YouTube acceptance remain pending; no version, commit, tag or deployment change.
+
 ## Readable media timeline zoom — 2026-10-14
 
 Fixed a display-only SVG scaling error: label font size previously shrank vertically with zoom, while waveform strokes widened with the timeline and smeared neighboring samples. Labels now counter-scale horizontally only; waveform and playhead strokes retain screen width. The waveform still redraws the visible detailed envelope on zoom/scroll. Crowded measure text yields to saved/selected anchors, leaving all guide arrows and interaction targets intact. Time labels sit clear of the bottom edge. No sync points, profile data, transport, grading or native score behavior change.

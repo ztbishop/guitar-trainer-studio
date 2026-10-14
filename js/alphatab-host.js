@@ -14,6 +14,25 @@ import {validatePoints,tickAtMediaTime} from './media-sync.js';
 import {effectiveChordDiagramPlacement} from './display-preferences.js';
 
 let mediaSnapshot=null,mediaHandler=null,mediaPoints=[],mediaRestoreTick=null;
+let mediaRevealTick=null,mediaRevealGeneration=0;
+
+function revealMediaCursor() {
+  const token=++mediaRevealGeneration;
+  // Native cursor bounds update after the seek notification reaches the UI.
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(token!==mediaRevealGeneration || !AppState.media.preview || AppState.media.returning)return;
+    if(AppState.ui.autoScroll){alphaTabApi.scrollToCursor();return;}
+    // ScrollMode.Off has no native scroll handler. Reveal only inside the score
+    // viewport, without toggling the preference or scrolling the whole page.
+    const wrapper=document.getElementById('alphatab-wrapper'),cursor=wrapper?.querySelector('.at-cursor-beat');
+    if(!cursor)return;
+    const area=wrapper.getBoundingClientRect(),position=cursor.getBoundingClientRect();
+    if(!position.height)return;
+    const top=position.top<area.top?position.top-area.top-12:position.bottom>area.bottom?position.bottom-area.bottom+12:0;
+    const left=position.left<area.left?position.left-area.left-12:position.right>area.right?position.right-area.right+12:0;
+    if(top || left)wrapper.scrollBy({top,left,behavior:'instant'});
+  }));
+}
 
 // Upstream 1.8.4's worker getter returns itself rather than its cached field.
 // Guard the exact defect; later fixed bundles retain their own implementation.
@@ -64,7 +83,7 @@ export function applyMediaSyncPoints(points) {
 }
 export function endMediaPlayback() {
   if(!AppState.media.preview || AppState.media.returning)return;
-  alphaTabApi.pause();mediaHandler?.pause();
+  mediaRevealTick=null;mediaRevealGeneration++;alphaTabApi.pause();mediaHandler?.pause();
   AppState.media.returning=true;AppState.playerReady=false;
   AppState.score.applyFlatSyncPoints(mediaSnapshot.points);
   alphaTabApi.settings.player.playerMode=window.alphaTab.PlayerMode.EnabledSynthesizer;
@@ -89,7 +108,10 @@ export function seekMediaTime(timeMs) {
   const time=Math.max(0,Math.min(mediaHandler.backingTrackDuration,timeMs));
   mediaHandler.seekTo(time);
   AppState.media.clock={timeMs:time,at:performance.now(),playing:false};
-  alphaTabApi.tickPosition=tickAtMediaTime(mediaPoints,AppState.playbackTimeline,time);
+  mediaRevealTick=tickAtMediaTime(mediaPoints,AppState.playbackTimeline,time);
+  alphaTabApi.tickPosition=mediaRevealTick;
+  // Also reveal on a repeated seek to the same beat, which may emit no event.
+  revealMediaCursor();
   return true;
 }
 export function seekMediaTick(tick) {if(AppState.media.preview && !AppState.media.returning)alphaTabApi.tickPosition=tick;}
@@ -798,6 +820,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     const currentTime = event?.currentTime ?? 0;
     AppState.timePositionMs = currentTime;
     AppState.tickPosition = event?.currentTick ?? 0;
+    if(mediaRevealTick!==null && Math.abs(AppState.tickPosition-mediaRevealTick)<=3){mediaRevealTick=null;revealMediaCursor();}
     AppState.playbackSpeed = alphaTabApi.playbackSpeed || 1;
     setPlaybackPosition(currentTime);
     hostCallbacks.onPlayerPositionChanged?.({

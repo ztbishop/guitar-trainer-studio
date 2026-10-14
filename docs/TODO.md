@@ -1,5 +1,19 @@
 # Guitar Trainer Studio: status and to-do
 
+### Timeline without a waveform — 2026-10-14
+
+- [x] Missing waveforms show a faint baseline/divider and “Waveform unavailable · Click timeline to seek” inside the existing timeline, with no fabricated waveform or extra panel height. Pending local decoding has a Building waveform hint; real data replaces the hint. No online processing added.
+- [x] 221 Node tests, 81 desktop / 80 phone app checks and 17 native/storage browser checks pass, including fallback display and replacement by real peaks.
+- [ ] Owner checks the hint with the working TrueFire URL. Owner confirmed the preceding target/playhead workflow works.
+
+### Fixed alignment target and independent playhead — 2026-10-14
+
+- [x] Measure/guide clicks select a target and seek audio plus score; waveform seeks preserve that target. Main Play/Pause does not change target or save sync points. Double-clicking a guide now only selects/seeks.
+- [x] Red target indicator ends in the measure strip; dark playhead occupies only the waveform. Visible target/recording summary and **Align selected measure here** clarify capture. Recording seconds follows playback unless explicitly typed; seeking refills it.
+- [x] Paused manual media seeks reveal the native sheet cursor once without changing Auto-scroll. Playback following retains the saved preference.
+- [x] 221 Node tests, 79 desktop / 78 phone app checks and 17 native/storage browser checks pass. Syntax and whitespace checks pass; physical MIDI/provider acceptance remains local.
+- [ ] Owner verifies the select-measure → listen/seek → align flow with a representative MP3/video, saved profiles and normal Live Server/Fishman setup.
+
 ### Readable media timeline zoom — 2026-10-14
 
 - [x] Keep measure/time text readable at high zoom and waveform/playhead strokes at constant screen width. Declutter overlapping measure labels without removing guides or changing alignment.

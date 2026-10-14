@@ -17,11 +17,13 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   // Move existing controls, retaining their IDs and all storage/source wiring.
   get('editor-toolbar').append(get('mode-controls'));
   get('editor-toolbar').append(get('save-profile'),get('dirty'));
+  get('point-tools').before(get('selection'));
   get('extra-tools').append(get('unload'));
   get('popup').firstElementChild.append(get('extra-tools'));
   let player=null,source=null,localFile=null,blobUrl=null,points=[],peaks=[],selected=-1,undo=[],redo=[],profiles=[],scoreHash='',profileId='',pendingProfile=null;
   let generation=0,scoreBytes=null,busy=false,pendingDelete=null,playhead=null,dirty=false;
   let zoom=1,waveformBusy=false,waveformGeneration=0,dragging=false,lastTimelineInteraction=0,buffering=false;
+  let typedTime=false,seekGeneration=0;
   let layout='above',share=35,showPlayer=true,showEditor=false;
   try {const saved=JSON.parse(localStorage.getItem('gts.mediaLayout') || '{}');if(MEDIA_LAYOUTS.includes(saved.layout))layout=saved.layout;if(saved.share>=20 && saved.share<=65)share=saved.share;if(typeof saved.showPlayer==='boolean')showPlayer=saved.showPlayer;if(typeof saved.showEditor==='boolean')showEditor=saved.showEditor;}catch{}
   const message=text=>{get('status').textContent=text;get('action-status').textContent=text;};
@@ -69,6 +71,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   function disposal() {
     player?.destroy();player=null;source=null;localFile=null;peaks=[];
+    typedTime=false;seekGeneration++;
     waveformGeneration++;waveformBusy=false;get('waveform-status').textContent='';
     if(blobUrl)URL.revokeObjectURL(blobUrl);blobUrl=null;
     get('youtube').replaceChildren();get('youtube').hidden=true;get('video').hidden=false;
@@ -169,18 +172,30 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     const measureIndex=AppState.playbackTimeline.measures.findIndex(m=>m.measureNumber===point.barIndex+1 && m.occurrence===point.barOccurence+1);
     get('measure').value=String(measureIndex);
     get('beat').value=String(1+point.barPosition*AppState.score.masterBars[point.barIndex].timeSignatureNumerator);
-    get('point-time').value=(point.millisecondOffset/1000).toFixed(3);renderPoints();sync();
+    typedTime=true;get('point-time').value=(point.millisecondOffset/1000).toFixed(3);renderPoints();sync();
   }
   function chooseGuide(measureIndex,beat,time) {
     get('measure').value=String(measureIndex);get('beat').value=String(beat);
-    get('point-time').value=(time/1000).toFixed(3);
+    typedTime=true;get('point-time').value=(time/1000).toFixed(3);
     selected=anchorIndex(points,formPoint(),AppState.playbackTimeline);
-    // Keep clicked guide nodes alive so the browser can deliver double-clicks.
-    get('timeline').querySelectorAll('[data-guide]').forEach(node=>node.classList.toggle('is-selected',Number(node.dataset.guide)===measureIndex && Number(node.dataset.beat)===beat));
+    // Selection keeps the clicked guide alive until its pointer event completes.
+    get('timeline').querySelectorAll('[data-guide]').forEach(node=>{
+      const active=Number(node.dataset.guide)===measureIndex && Number(node.dataset.beat)===beat;
+      node.classList.toggle('is-selected',active);node.querySelector('line').setAttribute('y2',active?31:84);
+    });
     get('timeline').querySelectorAll('[data-point]').forEach(node=>node.classList.toggle('is-selected',Number(node.dataset.point)===selected));
-    const measure=AppState.playbackTimeline.measures[measureIndex];
-    get('selection').textContent=`Measure ${measure.measureNumber}${measure.occurrence>1?` (repeat ${measure.occurrence})`:''}, beat ${beat}. Add / update point uses the recording playhead; Use typed time uses the seconds field.`;
+    renderTarget();
     sync();
+  }
+  function renderTarget(time=player?.currentTime || 0) {
+    const measure=AppState.playbackTimeline?.measures[Number(get('measure').value)];
+    get('selection').textContent=measure?`Aligning: measure ${measure.measureNumber}${measure.occurrence>1?` (repeat ${measure.occurrence})`:''} · beat ${get('beat').value} → Recording: ${clock(time)}. Red: target · Dark: playhead.`:'Choose a measure/beat to align with the recording playhead.';
+  }
+  async function seekRecording(time) {
+    const token=++seekGeneration,sourceToken=generation;
+    await selectRecording();
+    if(token!==seekGeneration || sourceToken!==generation || !AppState.media.preview || AppState.media.returning)return;
+    host.seekMediaTime(time);typedTime=false;get('point-time').value=(time/1000).toFixed(3);renderTarget(time);sync();
   }
   function applyForm() {
     const point=formPoint(),existing=anchorIndex(points,point,AppState.playbackTimeline);
@@ -208,12 +223,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       get('waveform-status').textContent='Waveform skipped for large recordings; use timeline anchors and timestamps.';return;
     }
     const token=generation,waveToken=++waveformGeneration,file=localFile;
-    waveformBusy=true;get('waveform-status').textContent='Building waveform…';sync();
+    waveformBusy=true;get('waveform-status').textContent='Building waveform…';sync();renderWaveform();
     try {
       const result=await waveformPeaks(file,Math.min(900000,Math.max(1800,Math.ceil(player.backingTrackDuration))));
       if(token===generation && waveToken===waveformGeneration){peaks=result;renderPoints();get('waveform-status').textContent='Waveform ready';}
     } catch(error) {if(token===generation && waveToken===waveformGeneration)get('waveform-status').textContent=`Waveform unavailable: ${error.message}. Alignment still works.`;}
-    finally {if(token===generation && waveToken===waveformGeneration){waveformBusy=false;sync();}}
+    finally {if(token===generation && waveToken===waveformGeneration){waveformBusy=false;sync();renderWaveform();}}
   }
   function changeZoom(next) {
     const scroll=get('timeline').parentElement,width=scroll.clientWidth;
@@ -223,10 +238,17 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     zoom=nextZoom;renderPoints();scroll.scrollLeft=left;renderWaveform();
   }
   function renderWaveform() {
-    const timeline=get('timeline');timeline.querySelector('.media-wave')?.remove();
-    if(!peaks.length)return;
+    const timeline=get('timeline');timeline.querySelectorAll('.media-wave,.media-wave-fallback').forEach(node=>node.remove());
     const scroll=timeline.parentElement,width=timeline.getBoundingClientRect().width;
     if(!width)return;
+    if(!peaks.length) {
+      if(!player)return;
+      const unit=1024/width,center=(scroll.scrollLeft+scroll.clientWidth/2)*unit-12;
+      const label=waveformBusy?'Building waveform · Click timeline to seek':scroll.clientWidth<320?'No waveform · Click to seek':'Waveform unavailable · Click timeline to seek';
+      const fallback=svg('g',{class:'media-wave-fallback'});
+      fallback.append(svg('line',{x1:0,x2:1000,y1:55,y2:55}),svg('line',{x1:0,x2:1000,y1:32,y2:32}),svg('rect',{x:center-Math.min(scroll.clientWidth-8,340)*unit/2,y:61,width:Math.min(scroll.clientWidth-8,340)*unit,height:18}),svg('text',{transform:`translate(${center} 74) scale(${unit} 1)`,'text-anchor':'middle','font-size':12},label));
+      timeline.insertBefore(fallback,timeline.querySelector('.media-playhead'));return;
+    }
     const start=Math.max(0,(scroll.scrollLeft/width*1024-12)/1000);
     const end=Math.min(1,((scroll.scrollLeft+scroll.clientWidth)/width*1024-12)/1000);
     const samples=visibleWaveform(peaks,start,end,Math.max(1,Math.ceil(scroll.clientWidth)));
@@ -246,14 +268,14 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       const x=guide.millisecondOffset/duration*1000;
       const active=Number(get('measure').value)===guide.measureIndex && Number(get('beat').value)===guide.beat;
       const marker=svg('g',{class:'media-guide'+(active?' is-selected':''),transform:`translate(${x} 0)`,'data-guide':guide.measureIndex,'data-beat':guide.beat,'data-time':guide.millisecondOffset});
-      marker.append(svg('line',{x1:0,x2:0,y1:16,y2:84,'pointer-events':'none'}),svg('rect',{x:-6*unit,y:0,width:12*unit,height:30,fill:'transparent'}));
-      if(guide.beat===1)marker.append(svg('path',{d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}),svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},`${guide.barIndex+1}${guide.barOccurence?` (${guide.barOccurence+1})`:''}`));
+      marker.append(svg('line',{x1:0,x2:0,y1:16,y2:active?31:84,'pointer-events':'none'}),svg('rect',{x:-6*unit,y:0,width:12*unit,height:30,fill:'transparent'}),svg('path',{class:guide.beat===1?'':'media-beat-arrow',d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}));
+      if(guide.beat===1)marker.append(svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},`${guide.barIndex+1}${guide.barOccurence?` (${guide.barOccurence+1})`:''}`));
       timeline.append(marker);
     }
     points.forEach((point,index)=>{
       const x=point.millisecondOffset/duration*1000;
       const marker=svg('g',{class:'media-marker'+(selected===index?' is-selected':''),transform:`translate(${x} 0)`,'data-point':index});
-      marker.append(svg('line',{x1:0,x2:0,y1:16,y2:84,'pointer-events':'none'}),svg('path',{d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}),svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},`${point.barIndex+1}${point.barOccurence?` (${point.barOccurence+1})`:''}`),svg('rect',{x:-9*unit,y:0,width:18*unit,height:30,fill:'transparent'}));
+      marker.append(svg('line',{x1:0,x2:0,y1:16,y2:31,'pointer-events':'none'}),svg('path',{d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}),svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},`${point.barIndex+1}${point.barOccurence?` (${point.barOccurence+1})`:''}`),svg('rect',{x:-9*unit,y:0,width:18*unit,height:30,fill:'transparent'}));
       timeline.append(marker);
     });
     // Keep selected/saved point labels first; hide only text where guides crowd.
@@ -266,8 +288,9 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       if(occupied.some(other=>box.left<other.right+4 && box.right>other.left-4))label.style.visibility='hidden';
       else occupied.push(box);
     }
-    playhead=svg('line',{class:'media-playhead',x1:0,x2:0,y1:0,y2:90});timeline.append(playhead);
-    get('selection').textContent=selected>=0?`Selected point: measure ${points[selected].barIndex+1}${points[selected].barOccurence?`, repeat ${points[selected].barOccurence+1}`:''} at ${clock(points[selected].millisecondOffset)}. Drag its arrow to fine tune.`:'Choose the measure/beat you hear. Add / update point captures the current recording playhead and pauses.';
+    const playX=(player?.currentTime || 0)/duration*1000;
+    playhead=svg('line',{class:'media-playhead',x1:playX,x2:playX,y1:33,y2:84});timeline.append(playhead);
+    renderTarget();
     renderWaveform();
     get('point-list').replaceChildren();points.forEach((point,index)=>{
       const button=document.createElement('button');button.type='button';button.setAttribute('aria-pressed',String(index===selected));
@@ -318,11 +341,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   document.querySelectorAll('[data-open-media-editor]').forEach(button=>button.addEventListener('click',event=>{event.stopPropagation();if(showEditor){showEditor=false;renderLayout();persistLayout();closeMenu();}else openEditor();}));
   get('reset-layout').addEventListener('click',()=>{share=35;renderLayout();persistLayout();document.dispatchEvent(new Event('reset-panel-sizes'));});
   for(const key of ['layout','show-player','show-editor'])get(key).addEventListener('change',()=>{layout=get('layout').value;showPlayer=get('show-player').checked;showEditor=get('show-editor').checked;renderLayout();persistLayout();});
-  get('seek').addEventListener('input',action(async()=>{await selectRecording();host.seekMediaTime(Number(get('seek').value)*1000);sync();}));
+  get('seek').addEventListener('input',action(()=>seekRecording(Number(get('seek').value)*1000)));
+  get('point-time').addEventListener('input',()=>{typedTime=true;});
   get('add-point').addEventListener('click',action(addPoint));
   get('apply-time').addEventListener('click',action(()=>applyForm()));
   for(const key of ['measure','beat'])get(key).addEventListener('change',()=>{
-    try{const point=formPoint(),index=anchorIndex(points,point,AppState.playbackTimeline);if(index>=0)selectPoint(index);else chooseGuide(Number(get('measure').value),Number(get('beat').value),mediaTimeAtTick(points,AppState.playbackTimeline,pointTick(point,AppState.playbackTimeline)));}catch(error){selected=-1;sync();message(error.message);}
+    try{if(!player)return;const point=formPoint(),index=anchorIndex(points,point,AppState.playbackTimeline),time=mediaTimeAtTick(points,AppState.playbackTimeline,pointTick(point,AppState.playbackTimeline));if(index>=0)selectPoint(index);else chooseGuide(Number(get('measure').value),Number(get('beat').value),time);action(()=>seekRecording(time))();}catch(error){selected=-1;sync();message(error.message);}
   });
   get('nudge-left').addEventListener('click',action(()=>nudge(-10)));
   get('nudge-right').addEventListener('click',action(()=>nudge(10)));
@@ -338,18 +362,13 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   get('timeline').parentElement.addEventListener('wheel',()=>{lastTimelineInteraction=performance.now();},{passive:true});
   get('waveform').addEventListener('click',buildWaveform);
   get('timeline').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key) || selected<0)return;event.preventDefault();try{nudge((event.key==='ArrowLeft'?-1:1)*(event.shiftKey?100:10));}catch(error){message(error.message);}});
-  get('timeline').addEventListener('dblclick',event=>{
-    const guide=event.target.closest('[data-guide]');if(!guide || !player || busy)return;
-    chooseGuide(Number(guide.dataset.guide),Number(guide.dataset.beat),Number(guide.dataset.time));
-    try{applyForm();}catch(error){message(error.message);}
-  });
   get('timeline').addEventListener('pointerdown',event=>{
     lastTimelineInteraction=performance.now();
     if(event.button!==0 || !player || busy || AppState.media.returning)return;
     const marker=event.target.closest('[data-point]'),guide=event.target.closest('[data-guide]');
     if(!marker) {
-      if(guide)chooseGuide(Number(guide.dataset.guide),Number(guide.dataset.beat),Number(guide.dataset.time));
-      else {const time=timeFromClientX(event.clientX,get('timeline').getBoundingClientRect(),player.backingTrackDuration);action(async()=>{await selectRecording();if(!AppState.media.preview)return;host.seekMediaTime(time);sync();})();}
+      if(guide){const time=Number(guide.dataset.time);chooseGuide(Number(guide.dataset.guide),Number(guide.dataset.beat),time);action(()=>seekRecording(time))();}
+      else {const time=timeFromClientX(event.clientX,get('timeline').getBoundingClientRect(),player.backingTrackDuration);action(()=>seekRecording(time))();}
       return;
     }
     event.preventDefault();host.pauseMediaPlayback();const index=Number(marker.dataset.point);selectPoint(index);
@@ -358,7 +377,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     let nextTime=initial[index].millisecondOffset;
     const move=e=>{if(e.pointerId!==event.pointerId || token!==generation)return;nextTime=boundedAnchorTime(initial,index,startTime+(e.clientX-startX)/rect.width*1024/1000*player.backingTrackDuration,player.backingTrackDuration);get('point-time').value=(nextTime/1000).toFixed(3);timeline.querySelector(`[data-point="${index}"]`)?.setAttribute('transform',`translate(${nextTime/player.backingTrackDuration*1000} 0)`);};
     const cleanup=()=>{dragging=false;timeline.removeEventListener('pointermove',move);timeline.removeEventListener('pointerup',finish);timeline.removeEventListener('pointercancel',cancel);if(timeline.hasPointerCapture(event.pointerId))timeline.releasePointerCapture(event.pointerId);};
-    const finish=e=>{if(e.pointerId!==event.pointerId)return;move(e);cleanup();if(token!==generation)return;const next=initial;next[index].millisecondOffset=nextTime;try{if(nextTime!==startTime)edit(next);selectPoint(index);}catch(error){message(error.message);renderPoints();}sync();};
+    const finish=e=>{if(e.pointerId!==event.pointerId)return;move(e);cleanup();if(token!==generation)return;const next=initial;next[index].millisecondOffset=nextTime;try{if(nextTime!==startTime)edit(next);selectPoint(index);action(()=>seekRecording(nextTime))();}catch(error){message(error.message);renderPoints();}sync();};
     const cancel=()=>{cleanup();if(token===generation)selectPoint(index);};
     timeline.addEventListener('pointermove',move);timeline.addEventListener('pointerup',finish);timeline.addEventListener('pointercancel',cancel);
   });
@@ -401,6 +420,8 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   setInterval(()=>{
     if(!player)return;const duration=player.backingTrackDuration,time=player.currentTime;
     get('clock').textContent=`${clock(time)} / ${clock(duration)}`;
+    renderTarget(time);
+    if(!typedTime && !dragging && document.activeElement!==get('point-time'))get('point-time').value=(time/1000).toFixed(3);
     if(document.activeElement!==get('seek'))get('seek').value=String(time/1000);
     const x=duration>0?time/duration*1000:0;playhead?.setAttribute('x1',x);playhead?.setAttribute('x2',x);
     if(showEditor && player.playing && !dragging && performance.now()-lastTimelineInteraction>1000) {

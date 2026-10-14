@@ -1,5 +1,15 @@
 # Guitar Trainer Studio Architecture
 
+## Missing waveform presentation — 2026-10-14
+
+media-controls.renderWaveform projects a noninteractive SVG baseline/divider and viewport-centered seeking hint when a recording has no decoded peaks. It refreshes on zoom/scroll and decoder state changes, then is replaced by actual peaks. Markers, playhead, timestamps and seek handlers are unchanged; no remote processing or synthetic waveform is introduced.
+
+## Fixed media alignment target — 2026-10-14
+
+media-controls keeps target Measure/Beat independent of the provider playhead. Timeline number/arrow clicks and measure fields select then seek; waveform seeking never changes target. Target status reads both positions; target lines occupy SVG y16–31 and the dark playhead y33–84. Explicitly typed seconds remain stable through transport; otherwise the field follows provider time, with deliberate seeks refilling it. Only explicit align/typed actions, anchor drags and nudges edit points (guide double-click creation removed). No profile migration or grading changes.
+
+The host's explicit seekMediaTime schedules a one-time cursor reveal after UI positioning/seek acknowledgement. Public native scrollToCursor handles enabled scrolling; the rendered native beat cursor provides a bounded viewport reveal with ScrollMode.Off. Saved Auto-scroll and playback following are unchanged. Reveal/seek generation guards cancel obsolete work on source replacement/restoration.
+
 ## Media timeline screen geometry — 2026-10-14
 
 The padded SVG time coordinate remains unchanged. media-controls counter-scales label text along X only, preserving font height as the timeline widens. It suppresses colliding measure text in screen coordinates, prioritizing selected/saved anchors while retaining guide hit targets. Visible waveform columns are reprojected from the detailed envelope on zoom/scroll; CSS non-scaling strokes prevent zoom from thickening the waveform/playhead. Time labels remain inside the SVG bottom edge. These are display projections only; sync points, native seeks and grading are unchanged.
