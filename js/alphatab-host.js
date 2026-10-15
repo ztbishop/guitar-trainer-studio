@@ -16,6 +16,19 @@ import {effectiveChordDiagramPlacement} from './display-preferences.js';
 let mediaSnapshot=null,mediaHandler=null,mediaPoints=[],mediaRestoreTick=null;
 let mediaRevealTick=null,mediaRevealGeneration=0;
 let editingCountIn=null;
+export function revealMediaScoreTarget(point) {
+  if(!AppState.media.editing || !notationContainer)return false;
+  const bounds=alphaTabApi?.boundsLookup?.findMasterBarByIndex(point.barIndex)?.visualBounds;
+  const wrapper=document.getElementById('alphatab-wrapper');
+  if(!bounds || !wrapper)return false;
+  const area=wrapper.getBoundingClientRect(),origin=notationContainer.getBoundingClientRect();
+  const x=origin.left+bounds.x+bounds.w*Math.min(1,Math.max(0,point.barPosition || 0));
+  const y=origin.top+bounds.y;
+  const top=y<area.top?y-area.top-12:y+bounds.h>area.bottom?Math.min(y-area.top-12,y+bounds.h-area.bottom+12):0;
+  const left=x<area.left?x-area.left-12:x>area.right?x-area.right+12:0;
+  if(top || left)wrapper.scrollBy({top,left,behavior:'instant'});
+  return true;
+}
 export function setMediaEditing(enabled) {
   enabled=Boolean(enabled);
   if(AppState.media.editing===enabled)return;

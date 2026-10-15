@@ -78,6 +78,9 @@ body.media-editor-visible.fretboard-visible .app-main { grid-template-rows:minma
 .media-marker.is-selected path { fill:#dc2626; }
 .media-wave { stroke:#94a3b8; stroke-width:1; vector-effect:non-scaling-stroke; shape-rendering:crispEdges; }
 .media-playhead { stroke:#1e293b; stroke-width:1.5; vector-effect:non-scaling-stroke; pointer-events:none; }
+.media-time-selection { pointer-events:none; }
+.media-time-selection line { stroke:#dc2626; stroke-width:2; stroke-dasharray:3 3; vector-effect:non-scaling-stroke; }
+.media-time-selection path { fill:#dc2626; }
 .media-sync-fields { display:flex; flex-wrap:wrap; align-items:end; gap:6px; }
 .media-sync-fields label { display:flex; flex-direction:column; gap:3px; font-size:12px; }
 .media-sync-fields input { width:110px; }

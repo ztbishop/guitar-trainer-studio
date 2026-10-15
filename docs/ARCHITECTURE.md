@@ -1,5 +1,21 @@
 # Guitar Trainer Studio Architecture
 
+## Independent score and recording selection — 2026-10-15
+
+UI target selection preserves the selected recording-time field and never calls seekRecording. Saved marker click and drag diverge after the movement threshold; only an actual drag edits/seeks. The host reveals a chosen score target using boundsLookup.findMasterBarByIndex and bounded viewport scrolling, without native transport/cursor changes. Native tick/provider time continue to represent playback, while Measure/Beat is the independent edit target. Internal edit/nudge paths still update selected time and audition the saved point.
+
+## Alignment indicator colors — 2026-10-15
+
+CSS pairs the solid red measure target with a dotted red selected-time indicator. The moving playhead remains solid charcoal. This presentation change does not affect marker coordinates, interaction, grading or saved points.
+
+## Absolute seek after point adjustment — 2026-10-14
+
+media-controls.nudge commits the bounded point, then calls seekRecording with its new millisecondOffset and the prior running state. This final absolute seek overrides any relative provider movement caused by native updateSyncPoints, reusing source/seek generation guards and paused/playing preservation. No new host, grading or profile behavior is introduced.
+
+## Fixed selected recording time — 2026-10-14
+
+media-controls uses the Selected time field as the single explicit form-time value; the provider ticker updates only playback/status, never that selection. Seeks, typed input, point selection and point nudges/dragging update a separate noninteractive dashed SVG marker. renderPoints rebuilds it from the selected seconds, preserving selection through zoom/scroll/render. The Add/Update label derives from the target score position via anchorIndex; the one upsert path uses form seconds and pauses. Use playhead time copies provider time only. Profile data, native host boundaries and grading are unchanged; this replaces the prior live-default/typed-time split.
+
 ## Drag-release preview — 2026-10-14
 
 media-controls snapshots playback state at anchor pointer-down. Actual movement pauses playback; successful pointer-up commits the bounded point and passes a resume request through seekRecording's existing source/generation guards. It seeks before resuming and resumes only in active sync editing when originally running. Paused/canceled drags do not start playback. syncPointLabel uses actual first score position for Start and final score position for End, independent of saved-list ordering.

@@ -1,5 +1,29 @@
 # Development notes
 
+## Independent score target selection — 2026-10-15
+
+Owner clarified that choosing a measure after locating a recording time must not discard that time. Guide/measure/beat/saved-marker/point-list clicks now change only the score target. selectPoint has an explicit preserveTime option for these UI actions; internal point edits still set their adjusted recording time. A simple saved-marker click no longer seeks; only actual drag motion enters the existing edit/audition flow. Waveform seeking, Add/Update, playhead copy and 50 ms audition remain unchanged.
+
+The host's revealMediaScoreTarget scrolls the score viewport using public rendered master-bar bounds, without assigning native tickPosition, changing provider time, toggling playback or changing Auto-scroll. The native cursor continues to represent playback. This supersedes older measure-click-seeks behavior and enables either selection order. Source/profile formats, grading and normal Live Server/browser/Fishman workflow are retained.
+
+Validation: 224 Node tests, 100 desktop / 99 phone actual-app checks and 17 native/storage checks pass. New cases check guide/beat selection preserves paused audio, selected seconds and native tick, and changing measures during playback retains the selected 1.500-second location. Real mouse checks cover existing marker clicks without replacing recording selection, followed by running/paused drags. An existing phone loop-bypass assertion now waits for the native seek acknowledgement instead of racing it. Syntax/whitespace checks pass; representative MP3/video/Fishman acceptance remains local. No commit/tag/version/deployment changes.
+
+## Paired red alignment indicators — 2026-10-15
+
+Owner chose matching red for the selected measure and selected recording time. Changed only the selected-time stroke/pointer color to the existing target red (#dc2626), retaining its dotted pattern. Playhead remains charcoal (#1e293b); saved/estimated point colors remain blue. Updated current help/guide wording. No interaction, timing, grading or persistence changes. The 224 Node regression tests pass; browser color acceptance remains local.
+
+## Audition from each adjusted point — 2026-10-14
+
+Owner clarified that 50 ms nudges must audition the selected anchor's new recording time, rather than retaining the provider's position after native sync remapping. nudge now snapshots running state, commits the bounded point, then uses the existing guarded recording seek at that point's new absolute time. Playing adjustments continue from there; paused adjustments seek there and stay paused. The time selection and marker remain synchronized. Keyboard step sizes remain unchanged, with asynchronous seek errors handled through the existing UI error path. This supersedes the earlier keep-playing-without-restarting audition behavior.
+
+Validation: 224 Node tests, 98 desktop / 97 phone actual-app checks and 17 native/storage checks pass. New cases move a selected anchor at 1.650 seconds while playback is at 3 seconds, then verify audition from 1.700; the opposite button seeks from 5 seconds to the marker at 1.650. Paused adjustment stays paused at the marker. Syntax/whitespace checks pass; owner MP3/video/Fishman acceptance remains local. Prior workspace changes retained; no commit/tag/version/deployment change.
+
+## Fixed selected recording time and explicit point creation — 2026-10-14
+
+Owner found playhead capture surprising after click-to-audition: the Add action saved a later time than the clicked location. Selected seconds now remain fixed on seeks, typed entry, point selection and adjustments; playback never overwrites the field. A dashed blue recording-time indicator remains stationary while the dark playhead advances, with both times reported in the existing status row. Add sync point / Update sync point is determined by the target's score position and is the only form action that creates/updates a point. It uses selected seconds and pauses. The existing second button is now Use playhead time, which only copies playback time into the selection; it does not seek, pause, save or create an Undo step. Controls remain compact, with the main action grouped beside Selected time. This supersedes prior playhead-default capture and the separate typed-time upsert.
+
+Validation: 224 Node tests, 96 desktop / 95 phone actual-app checks and 17 native/storage checks pass. New scenarios verify selecting 1.500 seconds during playback, listening past 1.900, then saving exactly 1.500; typed-time saving; context-sensitive Add/Update labels; a stationary noninteractive indicator; and playhead copy without editing or pausing. Real-pointer running/paused drag tests still pass. Syntax/whitespace checks pass; representative MP3/provider/Fishman acceptance remains local. Existing profile formats, source support, ungraded editing and native integration are unchanged.
+
 ## Drag-release audition and Start label — 2026-10-14
 
 Owner refined the preceding drag behavior: capture running state before moving an anchor, pause during actual movement, then seek and resume from the placed recording time on release if previously running. A paused drag remains paused; canceled drags do not auto-resume. The resume request is applied only after existing source/seek-generation checks and only while the editor remains active. Explicit Align/typed capture still pause. syncPointLabel now labels the actual opening score position Start, complementing End without renaming intermediate/repeated anchors. Existing source, grading and profile behavior remain intact.

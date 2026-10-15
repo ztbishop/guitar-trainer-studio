@@ -1,7 +1,7 @@
 // Media UI, browser players and profile intents. Native calls stay in the host.
 import {AppState} from './app-state.js';
 import {LibraryStore,fingerprint} from './library-store.js';
-import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport,mediaTimeAtTick,pointTick} from './media-sync.js';
+import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport,pointTick} from './media-sync.js';
 import {htmlMediaPlayer,youtubeMediaPlayer,waveformPeaks} from './media-player.js';
 import {timelineGuides,boundedAnchorTime,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel} from './media-timeline.js';
 
@@ -18,12 +18,13 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   get('editor-toolbar').append(get('mode-controls'));
   get('editor-toolbar').append(get('save-profile'),get('dirty'));
   get('point-tools').before(get('selection'));
+  get('apply-time').before(get('add-point'));
   get('extra-tools').append(get('unload'));
   get('popup').firstElementChild.append(get('extra-tools'));
   let player=null,source=null,localFile=null,blobUrl=null,points=[],peaks=[],selected=-1,undo=[],redo=[],profiles=[],scoreHash='',profileId='',pendingProfile=null;
   let generation=0,scoreBytes=null,busy=false,pendingDelete=null,playhead=null,dirty=false;
   let zoom=1,waveformBusy=false,waveformGeneration=0,dragging=false,lastTimelineInteraction=0,buffering=false;
-  let typedTime=false,seekGeneration=0;
+  let seekGeneration=0;
   let layout='above',share=35,showPlayer=true,showEditor=false;
   try {const saved=JSON.parse(localStorage.getItem('gts.mediaLayout') || '{}');if(MEDIA_LAYOUTS.includes(saved.layout))layout=saved.layout;if(saved.share>=20 && saved.share<=65)share=saved.share;if(typeof saved.showPlayer==='boolean')showPlayer=saved.showPlayer;if(typeof saved.showEditor==='boolean')showEditor=saved.showEditor;}catch{}
   const message=text=>{get('status').textContent=text;get('action-status').textContent=text;};
@@ -52,6 +53,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('waveform').disabled=!localFile || busy || waveformBusy;get('undo').disabled=!undo.length || busy;get('redo').disabled=!redo.length || busy;
     get('remove-point').disabled=selected<0 || !ready;
     get('apply-time').disabled=get('add-point').disabled=!ready;
+    get('add-point').textContent=targetIndex()>=0?'Update sync point':'Add sync point';
     for(const key of ['nudge-left','nudge-right'])get(key).disabled=selected<0 || !ready;
     get('dirty').textContent=dirty?'Unsaved changes':profileId?'Saved profile':'Not saved';
     get('save-profile').textContent=profileId?'Save changes':'Save profile';
@@ -73,7 +75,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   function disposal() {
     player?.destroy();player=null;source=null;localFile=null;peaks=[];
-    typedTime=false;seekGeneration++;
+    get('point-time').value='0.000';seekGeneration++;
     waveformGeneration++;waveformBusy=false;get('waveform-status').textContent='';
     if(blobUrl)URL.revokeObjectURL(blobUrl);blobUrl=null;
     get('youtube').replaceChildren();get('youtube').hidden=true;get('video').hidden=false;
@@ -170,17 +172,37 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     if(!get('beat').value || !get('point-time').value || beat<1 || beat>beats+1)throw new Error(`Beat position must be between 1 and ${beats+1} (bar end).`);
     return {barIndex:measure.measureNumber-1,barOccurence:measure.occurrence-1,barPosition:(beat-1)/beats,millisecondOffset:time*1000};
   }
-  function selectPoint(index) {
+  function targetIndex() {
+    const measure=AppState.playbackTimeline?.measures[Number(get('measure').value)];
+    if(!measure)return -1;
+    const beats=AppState.score.masterBars[measure.measureNumber-1].timeSignatureNumerator;
+    return anchorIndex(points,{barIndex:measure.measureNumber-1,barOccurence:measure.occurrence-1,barPosition:(Number(get('beat').value)-1)/beats},AppState.playbackTimeline);
+  }
+  function selectTime(time) {
+    get('point-time').value=(time/1000).toFixed(3);renderSelectedTime();renderTarget();
+  }
+  function renderSelectedTime() {
+    const marker=get('timeline').querySelector('.media-time-selection');
+    if(!marker)return;
+    const time=Number(get('point-time').value)*1000,duration=player?.backingTrackDuration || 0;
+    const valid=Boolean(duration>0 && get('point-time').value && Number.isFinite(time) && time>=0 && time<=duration);
+    marker.style.display=valid?'':'none';
+    if(valid){marker.setAttribute('transform',`translate(${time/duration*1000} 0)`);marker.setAttribute('aria-label',`Selected recording time ${clock(time)}`);}
+  }
+  function selectPoint(index,{preserveTime=false}={}) {
     selected=index;const point=points[index];if(!point)return;
     const measureIndex=AppState.playbackTimeline.measures.findIndex(m=>m.measureNumber===point.barIndex+1 && m.occurrence===point.barOccurence+1);
     get('measure').value=String(measureIndex);
     get('beat').value=String(1+point.barPosition*AppState.score.masterBars[point.barIndex].timeSignatureNumerator);
-    typedTime=true;get('point-time').value=(point.millisecondOffset/1000).toFixed(3);renderPoints();sync();
+    if(!preserveTime)selectTime(point.millisecondOffset);
+    renderPoints();sync();
+    if(preserveTime)host.revealMediaScoreTarget(point);
   }
-  function chooseGuide(measureIndex,beat,time) {
+  function chooseGuide(measureIndex,beat) {
+    const targetMeasure=AppState.playbackTimeline.measures[measureIndex],beats=AppState.score.masterBars[targetMeasure.measureNumber-1].timeSignatureNumerator;
+    if(!Number.isFinite(beat) || beat<1 || beat>beats+1)throw new Error(`Beat position must be between 1 and ${beats+1} (bar end).`);
     get('measure').value=String(measureIndex);get('beat').value=String(beat);
-    typedTime=true;get('point-time').value=(time/1000).toFixed(3);
-    selected=anchorIndex(points,formPoint(),AppState.playbackTimeline);
+    selected=targetIndex();
     // Selection keeps the clicked guide alive until its pointer event completes.
     get('timeline').querySelectorAll('[data-guide]').forEach(node=>{
       const active=Number(node.dataset.guide)===measureIndex && Number(node.dataset.beat)===beat;
@@ -189,16 +211,19 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('timeline').querySelectorAll('[data-point]').forEach(node=>node.classList.toggle('is-selected',Number(node.dataset.point)===selected));
     renderTarget();
     sync();
+    const measure=AppState.playbackTimeline.measures[measureIndex];
+    host.revealMediaScoreTarget({barIndex:measure.measureNumber-1,barPosition:(beat-1)/AppState.score.masterBars[measure.measureNumber-1].timeSignatureNumerator});
   }
   function renderTarget(time=player?.currentTime || 0) {
     const measure=AppState.playbackTimeline?.measures[Number(get('measure').value)];
-    get('selection').textContent=measure?`Editing sync · Scoring paused. Target: measure ${measure.measureNumber}${measure.occurrence>1?` (repeat ${measure.occurrence})`:''} · beat ${get('beat').value} → Recording: ${clock(time)}.`:'Editing sync · Scoring paused. Choose a measure/beat to align.';
+    const selectedTime=get('point-time').value?clock(Number(get('point-time').value)*1000):'—';
+    get('selection').textContent=measure?`Editing sync · Scoring paused. Measure ${measure.measureNumber}${measure.occurrence>1?` (repeat ${measure.occurrence})`:''} · beat ${get('beat').value} → Selected: ${selectedTime} · Playhead: ${clock(time)}.`:'Editing sync · Scoring paused. Choose a measure/beat to align.';
   }
   async function seekRecording(time,{resume=false}={}) {
     const token=++seekGeneration,sourceToken=generation;
     await selectRecording();
     if(token!==seekGeneration || sourceToken!==generation || !AppState.media.preview || AppState.media.returning)return;
-    host.seekMediaTime(time);typedTime=false;get('point-time').value=(time/1000).toFixed(3);renderTarget(time);sync();
+    host.seekMediaTime(time);selectTime(time);renderTarget(time);sync();
     if(resume && AppState.media.editing && !AppState.isPlaying)host.toggleMediaPlayback();
   }
   function applyForm() {
@@ -213,14 +238,14 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   function addPoint() {
     if(!player)return;
-    const time=player.currentTime;host.pauseMediaPlayback();player.pause();
-    get('point-time').value=(time/1000).toFixed(3);applyForm();
+    applyForm();
   }
   function nudge(delta) {
     if(selected<0 || !player)return;
-    const next=structuredClone(points),index=selected;
+    const next=structuredClone(points),index=selected,wasPlaying=AppState.isPlaying;
     next[index].millisecondOffset=boundedAnchorTime(points,index,points[index].millisecondOffset+delta,player.backingTrackDuration);
     edit(next,{preservePlayback:true});selectPoint(index);
+    return seekRecording(next[index].millisecondOffset,{resume:wasPlaying});
   }
   async function buildWaveform() {
     if(!localFile || waveformBusy)return;
@@ -252,7 +277,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       const label=waveformBusy?'Building waveform · Click timeline to seek':scroll.clientWidth<320?'No waveform · Click to seek':'Waveform unavailable · Click timeline to seek';
       const fallback=svg('g',{class:'media-wave-fallback'});
       fallback.append(svg('line',{x1:0,x2:1000,y1:55,y2:55}),svg('line',{x1:0,x2:1000,y1:32,y2:32}),svg('rect',{x:center-Math.min(scroll.clientWidth-8,340)*unit/2,y:61,width:Math.min(scroll.clientWidth-8,340)*unit,height:18}),svg('text',{transform:`translate(${center} 74) scale(${unit} 1)`,'text-anchor':'middle','font-size':12},label));
-      timeline.insertBefore(fallback,timeline.querySelector('.media-playhead'));return;
+      timeline.insertBefore(fallback,timeline.querySelector('.media-time-selection,.media-playhead'));return;
     }
     const start=Math.max(0,(scroll.scrollLeft/width*1024-12)/1000);
     const end=Math.min(1,((scroll.scrollLeft+scroll.clientWidth)/width*1024-12)/1000);
@@ -296,6 +321,9 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     }
     const playX=(player?.currentTime || 0)/duration*1000;
     playhead=svg('line',{class:'media-playhead',x1:playX,x2:playX,y1:33,y2:84});timeline.append(playhead);
+    const timeMarker=svg('g',{class:'media-time-selection',role:'img'});
+    timeMarker.append(svg('line',{x1:0,x2:0,y1:38,y2:84}),svg('path',{d:`M${-4*unit} 33 L0 38 L${4*unit} 33 Z`}));
+    timeline.insertBefore(timeMarker,playhead);renderSelectedTime();
     renderTarget();
     renderWaveform();
     get('point-list').replaceChildren();points.forEach((point,index)=>{
@@ -304,7 +332,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       const position=pointTick(point,AppState.playbackTimeline)===0?'Start':syncPointLabel(point,AppState.score,AppState.playbackTimeline)==='End'?'End':`Measure ${point.barIndex+1}, beat ${Number(beat.toFixed(2))}`;
       button.textContent=`${position}${point.barOccurence?` (repeat ${point.barOccurence+1})`:''} → ${clock(point.millisecondOffset)}`;
       button.title=`Measure ${point.barIndex+1}, beat ${Number(beat.toFixed(2))} matches ${clock(point.millisecondOffset)} in the recording. Click to select.`;
-      button.addEventListener('click',()=>selectPoint(index));get('point-list').append(button);
+      button.addEventListener('click',()=>selectPoint(index,{preserveTime:true}));get('point-list').append(button);
     });
   }
   function renderProfiles() {
@@ -348,11 +376,11 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   get('reset-layout').addEventListener('click',()=>{share=35;renderLayout();persistLayout();document.dispatchEvent(new Event('reset-panel-sizes'));});
   for(const key of ['layout','show-player','show-editor'])get(key).addEventListener('change',()=>{layout=get('layout').value;showPlayer=get('show-player').checked;showEditor=get('show-editor').checked;renderLayout();persistLayout();});
   get('seek').addEventListener('input',action(()=>seekRecording(Number(get('seek').value)*1000)));
-  get('point-time').addEventListener('input',()=>{typedTime=true;});
+  get('point-time').addEventListener('input',()=>{renderSelectedTime();renderTarget();});
   get('add-point').addEventListener('click',action(addPoint));
-  get('apply-time').addEventListener('click',action(()=>applyForm()));
+  get('apply-time').addEventListener('click',()=>{if(player){selectTime(player.currentTime);message('Playhead time selected. Add or update the sync point to apply it.');}});
   for(const key of ['measure','beat'])get(key).addEventListener('change',()=>{
-    try{if(!player)return;const point=formPoint(),index=anchorIndex(points,point,AppState.playbackTimeline),time=mediaTimeAtTick(points,AppState.playbackTimeline,pointTick(point,AppState.playbackTimeline));if(index>=0)selectPoint(index);else chooseGuide(Number(get('measure').value),Number(get('beat').value),time);action(()=>seekRecording(time))();}catch(error){selected=-1;sync();message(error.message);}
+    try{if(!player)return;const index=targetIndex();if(index>=0)selectPoint(index,{preserveTime:true});else chooseGuide(Number(get('measure').value),Number(get('beat').value));}catch(error){selected=-1;sync();message(error.message);}
   });
   get('nudge-left').addEventListener('click',action(()=>nudge(-50)));
   get('nudge-right').addEventListener('click',action(()=>nudge(50)));
@@ -367,24 +395,24 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   get('timeline').parentElement.addEventListener('scroll',renderWaveform);
   get('timeline').parentElement.addEventListener('wheel',()=>{lastTimelineInteraction=performance.now();},{passive:true});
   get('waveform').addEventListener('click',buildWaveform);
-  get('timeline').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key) || selected<0)return;event.preventDefault();try{nudge((event.key==='ArrowLeft'?-1:1)*(event.shiftKey?100:10));}catch(error){message(error.message);}});
+  get('timeline').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key) || selected<0)return;event.preventDefault();action(()=>nudge((event.key==='ArrowLeft'?-1:1)*(event.shiftKey?100:10)))();});
   get('timeline').addEventListener('pointerdown',event=>{
     lastTimelineInteraction=performance.now();
     if(event.button!==0 || !player || busy || AppState.media.returning)return;
     const marker=event.target.closest('[data-point]'),guide=event.target.closest('[data-guide]');
     if(!marker) {
-      if(guide){const time=Number(guide.dataset.time);chooseGuide(Number(guide.dataset.guide),Number(guide.dataset.beat),time);action(()=>seekRecording(time))();}
+      if(guide)chooseGuide(Number(guide.dataset.guide),Number(guide.dataset.beat));
       else {const time=timeFromClientX(event.clientX,get('timeline').getBoundingClientRect(),player.backingTrackDuration);action(()=>seekRecording(time))();}
       return;
     }
-    event.preventDefault();const index=Number(marker.dataset.point);selectPoint(index);
+    event.preventDefault();const index=Number(marker.dataset.point);selectPoint(index,{preserveTime:true});
     const timeline=get('timeline'),initial=structuredClone(points),token=generation;timeline.setPointerCapture(event.pointerId);
     dragging=true;const startX=event.clientX,startTime=initial[index].millisecondOffset,rect=timeline.getBoundingClientRect(),wasPlaying=AppState.isPlaying;
     let nextTime=initial[index].millisecondOffset,moved=false;
-    const move=e=>{if(e.pointerId!==event.pointerId || token!==generation)return;if(!moved){if(Math.abs(e.clientX-startX)<3)return;moved=true;host.pauseMediaPlayback();player.pause();}nextTime=boundedAnchorTime(initial,index,startTime+(e.clientX-startX)/rect.width*1024/1000*player.backingTrackDuration,player.backingTrackDuration);get('point-time').value=(nextTime/1000).toFixed(3);timeline.querySelector(`[data-point="${index}"]`)?.setAttribute('transform',`translate(${nextTime/player.backingTrackDuration*1000} 0)`);};
+    const move=e=>{if(e.pointerId!==event.pointerId || token!==generation)return;if(!moved){if(Math.abs(e.clientX-startX)<3)return;moved=true;host.pauseMediaPlayback();player.pause();}nextTime=boundedAnchorTime(initial,index,startTime+(e.clientX-startX)/rect.width*1024/1000*player.backingTrackDuration,player.backingTrackDuration);selectTime(nextTime);timeline.querySelector(`[data-point="${index}"]`)?.setAttribute('transform',`translate(${nextTime/player.backingTrackDuration*1000} 0)`);};
     const cleanup=()=>{dragging=false;timeline.removeEventListener('pointermove',move);timeline.removeEventListener('pointerup',finish);timeline.removeEventListener('pointercancel',cancel);if(timeline.hasPointerCapture(event.pointerId))timeline.releasePointerCapture(event.pointerId);};
-    const finish=e=>{if(e.pointerId!==event.pointerId)return;move(e);cleanup();if(token!==generation)return;const next=initial;next[index].millisecondOffset=nextTime;try{if(nextTime!==startTime)edit(next);selectPoint(index);action(()=>seekRecording(nextTime,{resume:moved && wasPlaying}))();}catch(error){message(error.message);renderPoints();}sync();};
-    const cancel=()=>{cleanup();if(token===generation)selectPoint(index);};
+    const finish=e=>{if(e.pointerId!==event.pointerId)return;move(e);cleanup();if(token!==generation)return;const next=initial;next[index].millisecondOffset=nextTime;try{if(!moved){selectPoint(index,{preserveTime:true});return;}if(nextTime!==startTime)edit(next);selectPoint(index);action(()=>seekRecording(nextTime,{resume:wasPlaying}))();}catch(error){message(error.message);renderPoints();}sync();};
+    const cancel=()=>{cleanup();if(token===generation)selectPoint(index,{preserveTime:true});};
     timeline.addEventListener('pointermove',move);timeline.addEventListener('pointerup',finish);timeline.addEventListener('pointercancel',cancel);
   });
   get('save-profile').addEventListener('click',action(async()=>{
@@ -427,7 +455,6 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     if(!player)return;const duration=player.backingTrackDuration,time=player.currentTime;
     get('clock').textContent=`${clock(time)} / ${clock(duration)}`;
     renderTarget(time);
-    if(!typedTime && !dragging && document.activeElement!==get('point-time'))get('point-time').value=(time/1000).toFixed(3);
     if(document.activeElement!==get('seek'))get('seek').value=String(time/1000);
     const x=duration>0?time/duration*1000:0;playhead?.setAttribute('x1',x);playhead?.setAttribute('x2',x);
     if(showEditor && player.playing && !dragging && performance.now()-lastTimelineInteraction>1000) {

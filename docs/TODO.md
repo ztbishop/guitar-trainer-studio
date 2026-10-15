@@ -1,5 +1,30 @@
 # Guitar Trainer Studio: status and to-do
 
+### Independent measure and recording selections — 2026-10-15
+
+- [x] Measure/beat fields, timeline guides, saved marker clicks and secondary point-list selection change only the score target. Selected recording time, audio position and playing/paused state are preserved. The sheet reveals the measure without seeking its playback cursor.
+- [x] Waveform clicks still select/seek recording time while retaining the score target. Add/Update joins the selections; actual dragging and 50 ms adjustments still edit/audition saved points.
+- [x] 224 Node tests, 100 desktop / 99 phone app checks and 17 native/storage checks pass. Tests cover paused/playing target changes preserving recording time, native playhead and playback state, plus continued drag/nudge audition.
+- [ ] Owner checks sound → measure → Add/Update, as well as measure → sound → Add/Update, with the usual MP3/video sources.
+
+### Alignment indicator colors — 2026-10-15
+
+- [x] Selected recording time uses dotted red and a red pointer, matching the solid red measure target. Moving playhead remains charcoal; saved/estimated points retain blue. Help text updated; no timing/transport changes.
+- [ ] Owner checks the paired red indicators in the usual browser after reload.
+
+### Audition adjusted sync point — 2026-10-14
+
+- [x] Each 50 ms adjustment immediately moves the selected saved point, seeks recording/sheet to its new time, and preserves the previous playing/paused state. It no longer merely shifts playback relative to its distant old position.
+- [x] 224 Node tests, 98 desktop / 97 phone app checks and 17 native/storage checks pass. Browser regressions seek from 3/5 seconds back to the adjusted 1.700/1.650-second marker and verify continued playback; paused adjustment also verified.
+- [ ] Owner checks repeated left/right adjustments while listening well past the selected marker, plus paused adjustments, with the usual recording sources.
+
+### Selected recording time stays fixed — 2026-10-14
+
+- [x] Waveform/marker seeks select a recording time that stays fixed while playback continues. Editable Selected time and a dashed blue indicator show it separately from the moving dark playhead.
+- [x] One Add sync point / Update sync point action saves the selected seconds for the chosen measure/beat and pauses. Use playhead time only copies current playback time into the selection, without seeking, saving or pausing. No added buttons or hidden live-capture mode.
+- [x] 224 Node tests, 96 desktop / 95 phone app checks and 17 native/storage browser checks pass, including click → listen onward → save original time, non-saving playhead copy, and existing paused/running drag behavior.
+- [ ] Owner checks the revised click → listen → Add/Update workflow with a representative MP3/video in the usual Live Server/browser.
+
 ### Drag audition and Start label — 2026-10-14
 
 - [x] Dragging a saved anchor pauses during movement, seeks to the placed time on release, and resumes only if playback was running before the drag. Paused drags stay paused; explicit Align still pauses.
