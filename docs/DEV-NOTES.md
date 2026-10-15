@@ -1,5 +1,23 @@
 # Development notes
 
+## Drag-release audition and Start label — 2026-10-14
+
+Owner refined the preceding drag behavior: capture running state before moving an anchor, pause during actual movement, then seek and resume from the placed recording time on release if previously running. A paused drag remains paused; canceled drags do not auto-resume. The resume request is applied only after existing source/seek-generation checks and only while the editor remains active. Explicit Align/typed capture still pause. syncPointLabel now labels the actual opening score position Start, complementing End without renaming intermediate/repeated anchors. Existing source, grading and profile behavior remain intact.
+
+Validation: 224 Node tests, 91 desktop / 90 phone app checks and 17 native/storage browser checks pass. Additional real-pointer tests at both widths confirm paused motion and resume from the placed time for running drags, plus seek-without-starting for paused drags. Syntax/whitespace checks pass; actual MP3/provider/Fishman acceptance remains local. No commit/tag/version/deployment changes.
+
+## Explicit ungraded sync editor — 2026-10-14
+
+Owner approved suspending scoring/Wait/loops whenever the editor is open, retaining one main transport and restoring paused practice on close. AppState.media.editing is ephemeral visibility state, separate from source selection and saved practice mode. UI/bootstrap and grading entry points exclude editing from MIDI, elapsed-time and completion grading; feedback uses an empty display projection. Paused completion also cannot finalize an earlier Realtime attempt. This supersedes the previous always-graded-open-editor workflow while retaining graded external media when closed.
+
+Host suspends native range/loop/count-in while editing and restores current saved loop choices on exit. Wait controller is paused before entry and reconfigured on exit; no practice preference is overwritten. Explicit seeks preserve running preview, and provider reports no longer toggle the transport. Paused provider samples update the clock without entering alphaTab's playback/completion path. Native cursor reveal remains separate from grading.
+
+Saved-marker clicks preserve playback; a three-pixel movement threshold identifies a drag and pauses it. Capture/typed alignment pause. Buttons immediately nudge the saved point 50 ms with playback retained; keyboard behavior remains unchanged. Labels distinguish actual score End from last-measure starts/intermediate beats and repeat passes. Existing profiles, native vendor assets, pitch grading rules and Live Server/browser/Fishman workflow remain intact. Validation and local acceptance are recorded in TODO.
+
+Endpoint browser checks reproduced premature completion when the native tick conversion rounded a position one tick before End up to the endpoint. During editing only, cursor updates retain a four-tick margin below the score end, while provider seeking/playback retains the actual requested recording time. This lets the owner audition an outro after a moved End point. Provider seek is applied after the native tick seek so native inverse mapping cannot overwrite it. No bundled code changed.
+
+Validation: 224 Node tests, 91 desktop / 90 phone app checks and 17 native/storage checks pass. Real mouse checks cover guide/saved-marker/waveform seeks retaining playback and actual drags pausing, in both widths. Added checks exercise ungraded Wait preview, 50 ms anchor updates during playback, suspension/restoration of practice loops/count-in, auditioning past End, paused-endpoint completion suppression and normal Realtime/Wait operation when closed. Syntax/whitespace checks pass. Actual Fishman, audible timing and representative TrueFire/local-video/YouTube acceptance remain local; no commit/version/tag/deployment change.
+
 ## No-waveform timeline hint — 2026-10-14
 
 Owner confirmed the target/playhead workflow works, including a TrueFire video URL. Kept online waveform generation unchanged. Without decoded peaks, renderWaveform now displays a faint baseline/divider plus a short seeking hint in the existing recording area. The message stays centered in the visible viewport through zoom/scroll, uses a shorter variant in narrow panels, and intercepts no pointer events. Pending local decoding says Building waveform; actual peaks replace the fallback. No fake sound data, additional panel height, media processing or native/grading changes. Real TrueFire visual acceptance remains local.

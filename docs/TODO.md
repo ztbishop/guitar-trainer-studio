@@ -1,5 +1,20 @@
 # Guitar Trainer Studio: status and to-do
 
+### Drag audition and Start label — 2026-10-14
+
+- [x] Dragging a saved anchor pauses during movement, seeks to the placed time on release, and resumes only if playback was running before the drag. Paused drags stay paused; explicit Align still pauses.
+- [x] The score's opening anchor says Start, paired with End. Labels depend on score position rather than just being first/last in the saved point list.
+- [x] 224 Node tests, 91 desktop / 90 phone app checks and 17 native/storage checks pass. Real-pointer checks verify pausing during a running drag, resuming at its placed time, and retaining pause after a paused drag.
+- [ ] Owner checks running/paused drags and Start/End with the usual MP3/video sources in Live Server/browser.
+
+### Ungraded sync editing and 50 ms adjustment — 2026-10-14
+
+- [x] Open sync editor previews the selected source independent of saved Realtime/Wait. Scoring, old feedback overlays, practice loops and count-in are suspended. Closing pauses and restores practice/loop choices with a fresh attempt; preferences are unchanged.
+- [x] Playing waveform/guide/saved-point clicks seek and continue; paused seeks stay paused. Capture and actual anchor dragging pause. Provider state reports cannot toggle playback on their own; paused position samples cannot trigger native completion.
+- [x] Buttons move selected anchors immediately by 50 ms and keep preview running. Existing keyboard behavior is unchanged. Endpoint labels say End; intermediate anchors identify their beat.
+- [x] Preview can seek/play past a moved score endpoint without native completion stopping the audio. Paused endpoints do not finalize grading. Checks: 224 Node tests, 91 desktop / 90 phone app checks, actual opposing pointer drags/playing seeks and 17 native/storage browser checks pass.
+- [ ] Owner checks representative MP3/TrueFire/local video/YouTube editing, especially near the last measure, then closes the editor and checks normal Realtime/Wait with Fishman.
+
 ### Timeline without a waveform — 2026-10-14
 
 - [x] Missing waveforms show a faint baseline/divider and “Waveform unavailable · Click timeline to seek” inside the existing timeline, with no fabricated waveform or extra panel height. Pending local decoding has a Building waveform hint; real data replaces the hint. No online processing added.

@@ -1,5 +1,17 @@
 # Guitar Trainer Studio Architecture
 
+## Drag-release preview — 2026-10-14
+
+media-controls snapshots playback state at anchor pointer-down. Actual movement pauses playback; successful pointer-up commits the bounded point and passes a resume request through seekRecording's existing source/generation guards. It seeks before resuming and resumes only in active sync editing when originally running. Paused/canceled drags do not start playback. syncPointLabel uses actual first score position for Start and final score position for End, independent of saved-list ordering.
+
+## Sync editor preview state — 2026-10-14
+
+media-controls projects editor visibility to ephemeral AppState.media.editing through host.setMediaEditing. Bootstrap pauses Wait before entry, gates practice callbacks/MIDI/clock, displays neutral feedback, and configures a fresh paused practice attempt on exit. practice-engine additionally guards direct entry points and rejects paused completion. Saved mode/preferences and external-source grading when closed are unchanged.
+
+The host alone changes native range/loop/count-in/volume. Editing ignores Wait for audible playback and bypasses loop clamping; closing restores saved loop/mode behavior. Explicit media seeks retain playing state; paused samples never enter the native completion path. Provider notifications report state without initiating transport toggles. Saved-marker click versus drag uses a movement threshold. Anchor nudges use a preservePlayback option; explicit alignment/dragging pause. syncPointLabel distinguishes End, measures, fractional beats and repeats without changing profile points.
+
+For editing beyond a mapped score endpoint, native cursor samples stop four ticks before End to account for alphaTab tick rounding; actual provider/clock time remains unrestricted within the recording. Provider seeking follows native tick seeking so a clamped score position cannot overwrite the requested recording time. Normal graded playback retains native completion behavior.
+
 ## Missing waveform presentation — 2026-10-14
 
 media-controls.renderWaveform projects a noninteractive SVG baseline/divider and viewport-centered seeking hint when a recording has no decoded peaks. It refreshes on zoom/scroll and decoder state changes, then is replaced by actual peaks. Markers, playhead, timestamps and seek handlers are unchanged; no remote processing or synthetic waveform is introduced.

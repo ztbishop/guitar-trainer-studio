@@ -1,6 +1,6 @@
 // Exercises the actual bootstrap/DOM wiring in a separate frame, not a mock host.
 const preview=document.getElementById('preview'),output=document.getElementById('ui-results');
-async function until(check) {const deadline=performance.now()+12000;while(!check()){if(performance.now()>deadline)throw new Error('UI action timed out.');await new Promise(resolve=>setTimeout(resolve,25));}}
+async function until(check,label='UI action') {const deadline=performance.now()+12000;while(!check()){if(performance.now()>deadline)throw new Error(label+' timed out.');await new Promise(resolve=>setTimeout(resolve,25));}}
 document.getElementById('ui-run').addEventListener('click',async()=>{
   const button=document.getElementById('ui-run');button.disabled=true;output.textContent='Running…';
   const lines=[],previous=localStorage.getItem('gts.mediaLayout');
@@ -33,6 +33,7 @@ document.getElementById('ui-run').addEventListener('click',async()=>{
     get('media-point-list').children[1].click();get('media-remove-point').click();await until(()=>get('media-point-list').children.length===2);check(true,'Remove keeps the two endpoint markers');
     get('media-point-list').children[0].click();get('media-remove-point').click();await until(()=>get('media-status').textContent.includes('at least a start and end'));check(get('media-point-list').children.length===2,'Removing the final endpoint is rejected without changing alignment');
     for(const layout of ['above','below','left','right']) {get('media-layout').value=layout;get('media-layout').dispatchEvent(new view.Event('change'));check(get('media-workspace').dataset.layout===layout,`Placement ${layout} applies to the actual score/media grid`);}
+    get('media-close-editor').click();
     get('media-listen').click();await until(()=>doc.body.classList.contains('media-preview') && !get('media-listen').disabled);
     check(!get('practice-popup').inert && !get('tempo-popup').inert,'Recording keeps practice and Tempo controls available');
     get('playback-speed-percent').value='50';get('playback-speed-percent').dispatchEvent(new view.Event('change'));
@@ -46,6 +47,7 @@ document.getElementById('ui-run').addEventListener('click',async()=>{
     get('play-pause-button').click();
     get('playback-speed-percent').value='100';get('playback-speed-percent').dispatchEvent(new view.Event('change'));
     await until(()=>get('media-audio').playbackRate===1);
+    get('media-edit-sync').click();
     const timelineRect=get('media-timeline').getBoundingClientRect(),ratio=0.63;
     const seekMs=(ratio*1024-12)/1000*10000;
     get('media-timeline').dispatchEvent(new view.PointerEvent('pointerdown',{clientX:timelineRect.left+ratio*timelineRect.width,clientY:timelineRect.top+55,button:0,bubbles:true}));
@@ -81,6 +83,7 @@ document.getElementById('ui-run').addEventListener('click',async()=>{
     if(previousStyle===null)wrapper.removeAttribute('style');else wrapper.setAttribute('style',previousStyle);
     auto.checked=autoBefore;auto.dispatchEvent(new view.Event('change'));
     if(view.qaMidiInput) {
+      get('media-close-editor').click();
       const radio=doc.querySelector('input[name="practice-mode"][value="wait"]');radio.checked=true;radio.dispatchEvent(new view.Event('change'));
       host.seekMediaTime(0);get('play-pause-button').click();
       await until(()=>state.waitTrainer?.active && ['waiting','seeking'].includes(state.waitTrainer.phase));
@@ -91,6 +94,7 @@ document.getElementById('ui-run').addEventListener('click',async()=>{
       check(get('media-audio').paused && get('media-audio').currentTime>0,'Wait MIDI completion advances the media frame silently with the score');
       const release=new view.Event('midimessage');release.data=new Uint8Array([0x80,target.pitches[0],0]);view.qaMidiInput.dispatchEvent(release);
       const realtime=doc.querySelector('input[name="practice-mode"][value="realtime"]');realtime.checked=true;realtime.dispatchEvent(new view.Event('change'));
+      get('media-edit-sync').click();
     }
     get('media-practice').click();await until(()=>!doc.body.classList.contains('media-preview') && !get('play-pause-button').disabled && get('media-status').textContent.includes('Practice restored'));
     check(!get('practice-popup').inert && get('toolbar-score-value').textContent==='—','Return re-enables ordinary practice without producing grades');
@@ -137,8 +141,40 @@ document.getElementById('ui-run').addEventListener('click',async()=>{
     check(get('media-point-list').children[1].textContent.includes('0:01.5') && get('media-audio').paused,'Capture adds selected score position at actual recording time and pauses');
     get('media-audio').currentTime=1.7;get('media-add-point').click();await until(()=>get('media-point-list').children[1].textContent.includes('0:01.7'));
     check(get('media-point-list').children.length===3,'Capturing an existing score position updates its anchor without duplication');
-    get('media-nudge-left').click();await until(()=>get('media-point-time').value==='1.690');
+    get('media-nudge-left').click();await until(()=>get('media-point-time').value==='1.650');
     check(get('media-dirty').textContent==='Unsaved changes','Nudge retains selection and marks unsaved alignment');
+    check(get('media-nudge-left').textContent.includes('50 ms') && get('media-timeline').querySelector('[data-point="0"] text').textContent==='Start' && get('media-timeline').querySelector('[data-point="2"] text').textContent==='End','50 ms controls and explicit Start/End labels distinguish fine adjustment and score endpoints');
+    const waitRadio=doc.querySelector('input[name="practice-mode"][value="wait"]');waitRadio.checked=true;waitRadio.dispatchEvent(new view.Event('change'));
+    const savedLoop=structuredClone(state.practiceLoop),editLoop={startTick:0,endTick:state.playbackTimeline.measures[0].endTick};
+    state.practiceLoop={enabled:true,countIn:true,startIndex:0,endIndex:0,range:editLoop};host.applyPracticeLoop(editLoop);
+    check(host.getAlphaTabApi().playbackRange===null && !host.getAlphaTabApi().isLooping,'Sync editing suspends the native practice loop without changing saved loop settings');
+    const priorGrades=JSON.stringify(state.trainer.results),priorWait=JSON.stringify(state.waitTrainer?.results);
+    get('play-pause-button').click();await until(()=>!get('media-audio').paused && state.isPlaying);
+    check(state.mode==='wait' && state.media.editing && !get('media-audio').muted && get('media-audio').volume>0,'Open editor previews recording audibly while saved practice mode is Wait');
+    host.seekMediaTime(3000);await until(()=>get('media-audio').currentTime>=3 && !get('media-audio').paused);
+    check(state.isPlaying && state.tickPosition>editLoop.endTick,'Seeking while editor playback runs continues outside the saved practice loop');
+    get('media-nudge-right').click();await until(()=>get('media-point-time').value==='1.700' && !get('media-audio').paused);
+    check(state.media.points[1].millisecondOffset===1700 && state.isPlaying,'50 ms nudge moves the saved anchor immediately while preview continues');
+    engine.handleMidiEvent({type:'note-on',midi:1,channel:1,at:view.performance.now()});engine.advanceRealtimeClock(view.performance.now()+10000);engine.finishRealtimeSession();
+    check(JSON.stringify(state.trainer.results)===priorGrades && JSON.stringify(state.waitTrainer?.results)===priorWait && !get('media-timeline').querySelector('.notation-feedback-overlay'),'Preview seeks, elapsed time, MIDI and completion do not grade while editing');
+    get('play-pause-button').click();await until(()=>get('media-audio').paused);
+    const savedEnd=get('media-point-list').lastElementChild;savedEnd.click();get('media-point-time').value='8';get('media-apply-time').click();
+    await until(()=>state.media.points.at(-1).millisecondOffset===8000,'Move End to 8 seconds');
+    host.seekMediaTime(9000);await until(()=>Math.abs(get('media-audio').currentTime-9)<0.01,'Seek past mapped End to 9 seconds');
+    get('play-pause-button').click();await until(()=>!get('media-audio').paused && get('media-audio').currentTime>9.05,'Play past mapped End');
+    check(state.isPlaying && !state.trainer.sessionCompleted,'Editor auditions recording beyond a moved End anchor without native finish or missed-note grading');
+    get('play-pause-button').click();await until(()=>get('media-audio').paused);
+    let pausedFinished=0;const removeFinish=host.getAlphaTabApi().playerFinished.on(()=>pausedFinished++);
+    host.seekMediaTime(10000);await until(()=>get('media-audio').currentTime>=9.99);
+    await new Promise(resolve=>setTimeout(resolve,150));
+    check(pausedFinished===0 && get('media-audio').paused,'Paused endpoint seeking does not emit playback completion');
+    removeFinish();get('media-undo').click();await until(()=>state.media.points.at(-1).millisecondOffset===10000);
+    get('media-close-editor').click();await until(()=>get('media-audio').paused && !state.media.editing);
+    check(state.mode==='wait' && !state.isPlaying,'Closing editor pauses preview and restores saved Wait mode');
+    check(host.getAlphaTabApi().playbackRange?.endTick===editLoop.endTick && state.practiceLoop.countIn,'Closing editor restores the saved loop and count-in choice');
+    state.practiceLoop=savedLoop;host.applyPracticeLoop(savedLoop.range);
+    const realtimeRadio=doc.querySelector('input[name="practice-mode"][value="realtime"]');realtimeRadio.checked=true;realtimeRadio.dispatchEvent(new view.Event('change'));
+    get('media-edit-sync').click();
     get('media-point-list').lastElementChild.click();get('media-remove-point').click();await until(()=>get('media-point-list').children.length===2);
     check(get('media-remove-point').disabled,'Removing the last selected anchor leaves a valid unselected editor');
     get('media-undo').click();await until(()=>get('media-point-list').children.length===3);

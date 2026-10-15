@@ -47,6 +47,7 @@ export function newRealtimeAttemptHere(at = performance.now()) {
 }
 
 export function handlePlaybackPosition({currentTick, at = performance.now(), speed = 1, isSeek = false, isPauseSnap = false}) {
+  if(AppState.media.editing)return;
   const scoreMs = mediaPracticeTime(AppState,at,timeAtTick(currentTick));
   if (scoreMs === null) return;
   if (!realtime) resetRealtimeSession('playback-ready', currentTick);
@@ -83,6 +84,7 @@ export function handlePlaybackPosition({currentTick, at = performance.now(), spe
 }
 
 export function handlePlaybackState() {
+  if(AppState.media.editing)return;
   if (!realtime) resetRealtimeSession('transport');
   if (AppState.isPlaying) {
     if (realtime.completed) resetRealtimeSession('restart');
@@ -95,6 +97,7 @@ export function handlePlaybackState() {
 }
 
 export function advanceRealtimeClock(at = performance.now()) {
+  if(AppState.media.editing)return;
   if (!realtime?.started || !AppState.isPlaying || realtime.completed) return;
   const scoreMs = mediaPracticeTime(AppState,at,realtime.scoreTime(at));
   if (scoreMs === null) return;
@@ -104,6 +107,7 @@ export function advanceRealtimeClock(at = performance.now()) {
 }
 
 export function finishRealtimeSession() {
+  if(AppState.media.editing || !AppState.isPlaying)return;
   realtime?.finish();
   finishedAwaitingRewind=Boolean(realtime?.completed) && !AppState.practiceLoop.enabled;
   publishRealtimeStats();
@@ -356,6 +360,7 @@ export function refreshTrainerMatchState(position = AppState.tickPosition) {
 
 export function handleMidiEvent(midiEvent) {
   AppState.midi.lastEvent = midiEvent;
+  if(AppState.media.editing)return null;
   if(midiEvent?.type==='note-off' && realtime?.noteOff(midiEvent))publishRealtimeStats();
   if (midiEvent?.type === 'note-on' && AppState.isPlaying && realtime?.started) {
     const at = Number.isFinite(midiEvent.at) ? midiEvent.at : performance.now();

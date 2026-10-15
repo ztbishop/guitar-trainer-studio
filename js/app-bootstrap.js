@@ -40,7 +40,7 @@ import {readPracticePreferences,savePracticePreferences,FEEDBACK_PREFERENCE_KEYS
 import {readDisplayPreferences,saveDisplayPreferences} from './display-preferences.js';
 import {initMediaControls} from './media-controls.js';
 import {initWorkspacePanels} from './workspace-panels.js';
-import {beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTime,seekMediaTick,embeddedMedia,applyMediaSyncPoints} from './alphatab-host.js';
+import {beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTime,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setMediaEditing} from './alphatab-host.js';
 
 let transportControls=null;
 let chordControls=null;
@@ -199,11 +199,11 @@ function wireFilePicker() {
 
 function wireTransportButtons() {
   document.getElementById('play-pause-button')?.addEventListener('click', () => {
-    const starting=AppState.mode==='wait' ? !waitController.active || waitController.phase==='paused' : !AppState.isPlaying && !AppState.countInActive;
+    const starting=AppState.mode==='wait' && !AppState.media.editing ? !waitController.active || waitController.phase==='paused' : !AppState.isPlaying && !AppState.countInActive;
     if(starting && AppState.playerReady && AppState.ui.fullscreenOnPlay && !document.fullscreenElement) {
       document.documentElement.requestFullscreen?.().catch(error=>console.error('Could not enter fullscreen.',error));
     }
-    if(AppState.mode==='wait')waitController.toggle(AppState.tickPosition);
+    if(AppState.mode==='wait' && !AppState.media.editing)waitController.toggle(AppState.tickPosition);
     else play();
   });
   document.getElementById('stop-button')?.addEventListener('click', () => {
@@ -231,6 +231,7 @@ function wirePracticeControls() {
   chordControls.sync();
   for(const mode of document.querySelectorAll('input[name="practice-mode"]'))mode.checked=mode.value===AppState.mode;
   for(const mode of document.querySelectorAll('input[name="practice-mode"]'))mode.addEventListener('change', event => {
+    if(AppState.media.editing){AppState.mode=event.target.value==='wait'?'wait':'realtime';savePracticePreferences(AppState);renderTrainerUi();return;}
     waitController.stop();pauseWaitTransport();
     AppState.mode=event.target.value==='wait'?'wait':'realtime';
     applyMasterVolume();
@@ -453,7 +454,8 @@ function renderTrainerUi() {
   const expectedMetaEl = document.getElementById('trainer-expected-meta');
   const detectedNotesEl = document.getElementById('trainer-detected-notes');
 
-  const trainer = AppState.mode==='wait' ? (AppState.waitTrainer||AppState.trainer) : AppState.trainer;
+  const practiceTrainer = AppState.mode==='wait' ? (AppState.waitTrainer||AppState.trainer) : AppState.trainer;
+  const trainer=AppState.media.editing?{...practiceTrainer,currentEvent:null,noteStates:{},history:[],passHistory:[],liveWrongNotes:[],lastFeedback:null,sessionStarted:false,sessionCompleted:false,results:null,matchState:'idle',status:'Editing sync · Scoring paused',summary:'Close the sync editor to resume graded practice.'}:practiceTrainer;
   const tabStatus=document.getElementById('tab-feedback-status');
   if(tabStatus) {tabStatus.hidden=!AppState.ui.showTabMistakes;tabStatus.textContent=AppState.inputMode==='hex-6ch'?'Fret feedback uses the selected Hex channel layout.':AppState.ui.inferPolyMistakes?'Fret numbers are inferred on expected strings, not detected positions.':'Enable non-hex fret inference to show unambiguous estimated frets.';}
   const marks=buildNotationMarks(AppState.expectedEvents,trainer.currentEvent,trainer.noteStates);
@@ -470,7 +472,7 @@ function renderTrainerUi() {
       currentEvent:trainer.currentEvent,history:trainer.history,liveWrongNotes:trainer.liveWrongNotes,mode:AppState.mode,enabled:AppState.ui.inferPolyMistakes}));
   }
   captureFeedbackView(marks,trainer);
-  setNotationFeedback(marks,{notation:AppState.ui.showNotationFeedback,tabCircles:AppState.ui.showTabCircles,tabFrets:AppState.ui.showTabMistakes});
+  setNotationFeedback(AppState.media.editing?[]:marks,{notation:AppState.ui.showNotationFeedback,tabCircles:AppState.ui.showTabCircles,tabFrets:AppState.ui.showTabMistakes});
   if(AppState.ui.showFretboard) {
     const track=AppState.tracks.find((item,index)=>getTrackId(item,index)===String(AppState.practiceTrackId));
     renderFretboard(buildFretboardModel({track,currentEvent:trainer.currentEvent,noteStates:trainer.noteStates,
@@ -478,14 +480,14 @@ function renderTrainerUi() {
   }
   const playButton=document.getElementById('play-pause-button');
   if(playButton) {
-    const running=AppState.countInActive || (AppState.mode==='wait' ? trainer.active && trainer.phase!=='paused' : AppState.isPlaying);
+    const running=AppState.countInActive || (AppState.mode==='wait' && !AppState.media.editing ? trainer.active && trainer.phase!=='paused' : AppState.isPlaying);
     playButton.textContent=running?'⏸ Pause':'▶ Play';
     playButton.setAttribute('aria-label',running?'Pause practice':'Start or resume practice');
     playButton.title=running?'Pause practice':'Start or resume practice';
   }
   const scoreValue = document.getElementById('toolbar-score-value');
   if (scoreValue) {
-    scoreValue.textContent = trainer.sessionStarted && trainer.results?.accuracy != null ? `${trainer.results.accuracy}%` : '—';
+    scoreValue.textContent = !AppState.media.editing && trainer.sessionStarted && trainer.results?.accuracy != null ? `${trainer.results.accuracy}%` : '—';
     scoreValue.title = trainer.sessionStarted ? (AppState.mode==='wait'?'Correct / (correct + wrong attacks); chord retries are separate':'Correct / (correct + missed + wrong attacks)') : 'Press Play to start practice';
   }
   const historyEl=document.getElementById('trainer-error-history');
@@ -615,8 +617,8 @@ async function bootstrap() {
   scoreLibrary=initScoreLibrary(loadScoreFile);
   audioControls=initAudioControls((kind,value)=>{if(kind==='master')applyMasterVolume();else if(kind==='media')mediaControls?.setVolume(value);else applyTrackMixer();});
   pitchControls=initPitchControls(applyPlaybackPitchOffset);
-  mediaControls=initMediaControls({beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTime,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setSpeed:setPlaybackSpeed},
-    {closeMenu:toolbar.closeAllPopups,beforeListen(){if(AppState.mode==='wait' && waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);pauseWaitTransport();clearActiveMidiNotes();},afterPractice(){clearActiveMidiNotes();if(AppState.mode==='realtime')handlePlaybackState();renderTrainerUi();}});
+  mediaControls=initMediaControls({beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTime,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setMediaEditing,setSpeed:setPlaybackSpeed},
+    {closeMenu:toolbar.closeAllPopups,beforeEdit(){if(waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);pauseWaitTransport();clearActiveMidiNotes();},afterEdit(){clearActiveMidiNotes();configureWaitSession();resetRealtimeSession('sync-editor-closed');renderTrainerUi();},beforeListen(){if(AppState.mode==='wait' && waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);pauseWaitTransport();clearActiveMidiNotes();},afterPractice(){clearActiveMidiNotes();if(AppState.mode==='realtime' && !AppState.media.editing)handlePlaybackState();renderTrainerUi();}});
   initFretboard(document.getElementById('fretboard-content'),document.getElementById('fretboard-help-status'));
   const displayControls=wireScoreStageUi();
   initWorkspacePanels();
@@ -643,7 +645,7 @@ async function bootstrap() {
         mediaControls?.timelineReady().catch(error=>console.error('Media profile lookup failed.',error));
       },
       onPlayerPositionChanged: (position) => {
-        if(AppState.media.returning)return;
+        if(AppState.media.returning || AppState.media.editing)return;
         if(position.isSeek && AppState.mode!=='wait')transportControls?.clearPulse();
         if(AppState.mode==='wait')waitController.positionChanged(position);
         else handlePlaybackPosition(position);
@@ -651,11 +653,11 @@ async function bootstrap() {
       },
       onPlayerFinished: () => {
         transportControls?.clearPulse();
-        if(AppState.mode==='realtime')finishRealtimeSession();
+        if(!AppState.media.editing && AppState.isPlaying && AppState.mode==='realtime')finishRealtimeSession();
         renderTrainerUi();
       },
       onPlayerStateChanged: () => {
-        if(!AppState.media.returning && AppState.mode==='realtime')handlePlaybackState();
+        if(!AppState.media.returning && !AppState.media.editing && AppState.mode==='realtime')handlePlaybackState();
         renderTrainerUi();
       },
       onPlayerReady: () => {audioControls?.sync();pitchControls?.sync({enabled:true,value:AppState.pitchOffsetSemitones});renderTrainerUi();},
@@ -665,7 +667,7 @@ async function bootstrap() {
       onMetronomeError: () => renderTrainerUi(),
       onCountInChanged: () => renderTrainerUi(),
       onLoopSelection: selection => {if(!AppState.media.preview)transportControls?.selectLoopByDrag(selection);},
-      onMediaChanged: () => {mediaControls?.mediaChanged();resetRealtimeSession('media-source-or-alignment');renderTrainerUi();},
+      onMediaChanged: () => {mediaControls?.mediaChanged();if(!AppState.media.editing)resetRealtimeSession('media-source-or-alignment');renderTrainerUi();},
     });
   } catch (error) {
     console.error('Failed to bootstrap Guitar Trainer Studio.', error);
@@ -674,7 +676,7 @@ async function bootstrap() {
   let previousMidiInputId = AppState.midi.activeInputId;
   await initMidiRouter({
     onMidiEvent: (event) => {
-      if(AppState.media.returning){renderMidiUi();return null;}
+      if(AppState.media.returning || AppState.media.editing){renderMidiUi();return null;}
       let outcome;
       if(AppState.mode==='wait')outcome=waitController.noteOn(event);
       else {
@@ -699,7 +701,7 @@ async function bootstrap() {
   });
 
   setInterval(() => {
-    if(AppState.media.returning)return;
+    if(AppState.media.returning || AppState.media.editing)return;
     if(AppState.mode==='wait') {waitController.advance();return;}
     if (!AppState.isPlaying || AppState.mode!=='realtime') return;
     advanceRealtimeClock();

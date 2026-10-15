@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {AppState} from '../js/app-state.js';
 import {practiceEvents,mediaPracticeTime} from '../js/media-practice.js';
-import {resetRealtimeSession,handlePlaybackPosition,handleMidiEvent,handlePlaybackState} from '../js/practice-engine.js';
+import {resetRealtimeSession,handlePlaybackPosition,handleMidiEvent,handlePlaybackState,advanceRealtimeClock,finishRealtimeSession} from '../js/practice-engine.js';
 const timeline={endTick:800,ticksPerQuarter:100,tempoMap:[{tick:0,timeMs:0,bpm:120}],measures:[{measureNumber:1,occurrence:1,startTick:0,endTick:400},{measureNumber:2,occurrence:1,startTick:400,endTick:800}]};
 const points=[{barIndex:0,barOccurence:0,barPosition:0,millisecondOffset:1000},{barIndex:1,barOccurence:0,barPosition:0,millisecondOffset:3000},{barIndex:1,barOccurence:0,barPosition:1,millisecondOffset:11000}];
 const event=(id,tick,midi)=>({id,startTick:tick,endTick:tick+50,targetEndTick:tick+50,startTimeMs:tick*5,measureNumber:tick<400?1:2,pitches:[midi],notes:[{id:id+':note',midi,string:1}]});
@@ -35,4 +35,20 @@ test('provider samples freeze grading interpolation during buffering or pause an
   AppState.isPlaying=false;assert.equal(mediaPracticeTime(AppState,1100,0),7000);
   AppState.media.preview=false;assert.equal(mediaPracticeTime(AppState,1100,123),123);
   assert.equal(practiceEvents(AppState),AppState.expectedEvents);
+});
+
+test('sync editor freezes grading through MIDI, position, clock and completion events',()=>{
+  setup();handlePlaybackState();const before=structuredClone(AppState.trainer.results);
+  AppState.media.editing=true;
+  handlePlaybackPosition({currentTick:800,at:20000,isSeek:true});
+  handleMidiEvent({type:'note-on',midi:1,channel:1,at:20000});
+  advanceRealtimeClock(20000);finishRealtimeSession();handlePlaybackState();
+  assert.deepEqual(AppState.trainer.results,before);
+  AppState.media.editing=false;
+});
+
+test('completion while paused cannot finalize missed notes from an earlier playback attempt',()=>{
+  setup();handlePlaybackState();AppState.isPlaying=false;
+  const before=structuredClone(AppState.trainer.results);finishRealtimeSession();
+  assert.deepEqual(AppState.trainer.results,before);
 });

@@ -5,6 +5,15 @@ export function samePosition(a,b) {
   return a.barIndex===b.barIndex && a.barOccurence===b.barOccurence && Math.abs(a.barPosition-b.barPosition)<1e-8;
 }
 
+export function syncPointLabel(point,score,timeline) {
+  const first=timeline?.measures[0];
+  if(first && point.barIndex===first.measureNumber-1 && point.barOccurence===first.occurrence-1 && point.barPosition===0)return 'Start';
+  const last=timeline?.measures.at(-1);
+  if(last && point.barIndex===last.measureNumber-1 && point.barOccurence===last.occurrence-1 && point.barPosition===1)return 'End';
+  const beat=1+point.barPosition*score.masterBars[point.barIndex].timeSignatureNumerator;
+  return `${point.barIndex+1}${point.barOccurence?` (${point.barOccurence+1})`:''}${point.barPosition?` · beat ${Number(beat.toFixed(2))}`:''}`;
+}
+
 export function timelineGuides(score,timeline,points) {
   if(!timeline || points.length<2)return [];
   return timeline.measures.flatMap((measure,index)=>{

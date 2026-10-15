@@ -1,9 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {timelineGuides,boundedAnchorTime,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform} from '../js/media-timeline.js';
+import {timelineGuides,boundedAnchorTime,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel} from '../js/media-timeline.js';
 const timeline={endTick:800,measures:[{measureNumber:1,occurrence:1,startTick:0,endTick:400},{measureNumber:1,occurrence:2,startTick:400,endTick:800}]};
 const score={masterBars:[{timeSignatureNumerator:4}]};
 const points=[{barIndex:0,barOccurence:0,barPosition:0,millisecondOffset:1000},{barIndex:0,barOccurence:1,barPosition:1,millisecondOffset:9000}];
+test('point labels distinguish the last measure start, intermediate beats, repeats and score end',()=>{
+  assert.equal(syncPointLabel(points[0],score,timeline),'Start');
+  assert.equal(syncPointLabel({...points[1],barPosition:0},score,timeline),'1 (2)');
+  assert.equal(syncPointLabel({...points[1],barPosition:0.5},score,timeline),'1 (2) · beat 3');
+  assert.equal(syncPointLabel(points[1],score,timeline),'End');
+  assert.equal(syncPointLabel({...points[0],barPosition:1},score,timeline),'1 · beat 5');
+});
 test('estimated beat guides distinguish repeat passes and do not become saved anchors',()=>{
   const original=structuredClone(points),guides=timelineGuides(score,timeline,points);
   assert.equal(guides.length,8);assert.equal(guides[4].millisecondOffset,5000);

@@ -6,7 +6,7 @@ export const AppState = {
   score: null,
   scoreHasChordDiagrams: null,
   currentScoreFile: null,
-  media: { preview: false, returning: false },
+  media: { preview: false, returning: false, editing: false },
   audio: { masterPercent: 100, mediaPercent: 100, tracks: {} },
   tracks: [],
   practiceTrackId: null,

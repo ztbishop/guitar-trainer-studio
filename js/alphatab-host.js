@@ -10,11 +10,24 @@ import { notationFeedbackGeometry, accidentalPath } from './notation-feedback.js
 import {outsideLoopBounds,wholeMeasureSelection} from './loop-visuals.js';
 import {countInTiming,scheduleCountIn} from './count-in.js';
 import {playbackGroups} from './audio-controls.js';
-import {validatePoints,tickAtMediaTime} from './media-sync.js';
+import {validatePoints,tickAtMediaTime,mediaTimeAtTick} from './media-sync.js';
 import {effectiveChordDiagramPlacement} from './display-preferences.js';
 
 let mediaSnapshot=null,mediaHandler=null,mediaPoints=[],mediaRestoreTick=null;
 let mediaRevealTick=null,mediaRevealGeneration=0;
+let editingCountIn=null;
+export function setMediaEditing(enabled) {
+  enabled=Boolean(enabled);
+  if(AppState.media.editing===enabled)return;
+  cancelCountIn();alphaTabApi?.pause();mediaHandler?.pause();
+  AppState.isPlaying=false;AppState.media.editing=enabled;
+  if(alphaTabApi) {
+    if(enabled){releaseWaitTransport();editingCountIn=alphaTabApi.countInVolume;alphaTabApi.countInVolume=0;alphaTabApi.isLooping=false;alphaTabApi.playbackRange=null;}
+    else {if(editingCountIn!==null)alphaTabApi.countInVolume=editingCountIn;editingCountIn=null;applyPracticeLoop(AppState.practiceLoop.range);}
+    applyMasterVolume();drawLoopShading();updatePlayPauseLabel();
+  }
+  hostCallbacks.onMediaChanged?.();
+}
 
 function revealMediaCursor() {
   const token=++mediaRevealGeneration;
@@ -73,12 +86,14 @@ export function beginMediaPlayback(handler,points) {
   hostCallbacks.onMediaChanged?.();
   return true;
 }
-export function applyMediaSyncPoints(points) {
+export function applyMediaSyncPoints(points,{preservePlayback=false}={}) {
   if(!AppState.media.preview)return;
-  alphaTabApi.pause();
+  const resume=preservePlayback && AppState.isPlaying;
+  if(!preservePlayback)alphaTabApi.pause();
   mediaPoints=validatePoints(points,AppState.playbackTimeline,mediaHandler.backingTrackDuration);
   AppState.media.points=mediaPoints;
   AppState.score.applyFlatSyncPoints(mediaPoints);alphaTabApi.updateSyncPoints();
+  if(resume){applyMasterVolume();alphaTabApi.play();}
   hostCallbacks.onMediaChanged?.();
 }
 export function endMediaPlayback() {
@@ -91,27 +106,39 @@ export function endMediaPlayback() {
 }
 export function toggleMediaPlayback() {
   if(!AppState.media.preview || AppState.media.returning || !AppState.playerReady)return false;
-  if(AppState.mode==='wait')return false;
+  if(AppState.mode==='wait' && !AppState.media.editing)return false;
   applyMasterVolume();
   alphaTabApi.playPause();return true;
 }
-export function pauseMediaPlayback() {if(AppState.media.preview)alphaTabApi?.pause();}
+export function pauseMediaPlayback() {if(AppState.media.preview || AppState.media.editing)alphaTabApi?.pause();}
 export function updateMediaPosition(timeMs,playing=mediaHandler?.playing ?? AppState.isPlaying) {
   if(AppState.media.preview && !AppState.media.returning && Number.isFinite(timeMs)) {
     AppState.media.clock={timeMs,at:performance.now(),playing:Boolean(playing)};
-    if(AppState.mode!=='wait')alphaTabApi.player.output.updatePosition(timeMs);
+    // Paused exploration must never drive native completion or grading.
+    if(playing && (AppState.mode!=='wait' || AppState.media.editing)) {
+      // Editing may audition an outro beyond the mapped score end. Keep the
+      // native cursor inside the score (with a margin for native tick rounding)
+      // so it cannot stop the recording.
+      const cursorTime=AppState.media.editing?Math.min(timeMs,mediaTimeAtTick(mediaPoints,AppState.playbackTimeline,Math.max(0,AppState.playbackTimeline.endTick-4))):timeMs;
+      alphaTabApi.player.output.updatePosition(cursorTime);
+    }
   }
 }
 export function seekMediaTime(timeMs) {
   if(!AppState.media.preview || AppState.media.returning || !Number.isFinite(timeMs))return false;
-  alphaTabApi.pause();
+  const resume=Boolean(AppState.media.editing && AppState.isPlaying);
+  if(!resume)alphaTabApi.pause();
   const time=Math.max(0,Math.min(mediaHandler.backingTrackDuration,timeMs));
-  mediaHandler.seekTo(time);
-  AppState.media.clock={timeMs:time,at:performance.now(),playing:false};
+  AppState.media.clock={timeMs:time,at:performance.now(),playing:resume};
   mediaRevealTick=tickAtMediaTime(mediaPoints,AppState.playbackTimeline,time);
+  if(AppState.media.editing)mediaRevealTick=Math.min(mediaRevealTick,Math.max(0,AppState.playbackTimeline.endTick-4));
   alphaTabApi.tickPosition=mediaRevealTick;
+  // The native tick setter also seeks the provider. The requested recording
+  // time takes precedence, including intros/outros beyond mapped endpoints.
+  mediaHandler.seekTo(time);
   // Also reveal on a repeated seek to the same beat, which may emit no event.
   revealMediaCursor();
+  if(resume){applyMasterVolume();alphaTabApi.play();}
   return true;
 }
 export function seekMediaTick(tick) {if(AppState.media.preview && !AppState.media.returning)alphaTabApi.tickPosition=tick;}
@@ -176,7 +203,7 @@ function applyChordDiagramPlacement() {
 let loopOverlay=null;
 function drawLoopShading() {
   if(!notationContainer)return;
-  const rectangles=outsideLoopBounds(AppState.playbackTimeline,AppState.practiceLoop,alphaTabApi?.boundsLookup);
+  const rectangles=AppState.media.editing?[]:outsideLoopBounds(AppState.playbackTimeline,AppState.practiceLoop,alphaTabApi?.boundsLookup);
   if(!rectangles.length){loopOverlay?.replaceChildren();return;}
   if(!loopOverlay){loopOverlay=svgElement('svg',{class:'loop-shading-overlay','aria-hidden':'true'});}
   if(loopOverlay.parentNode!==notationContainer)notationContainer.appendChild(loopOverlay);
@@ -757,6 +784,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     setTransportEnabled(true);
     updatePracticeControlsEnabled(AppState.tracks.length > 0);
     applyTrackState();
+    if(AppState.media.editing){if(editingCountIn===null)editingCountIn=alphaTabApi.countInVolume;alphaTabApi.countInVolume=0;alphaTabApi.isLooping=false;alphaTabApi.playbackRange=null;}
     setStatus('Player ready');
     if(AppState.media.preview) {
       if(AppState.media.returning) {
@@ -777,7 +805,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     hostCallbacks.onPlayerFinished?.();
     // Native continuous loops do not insert count-ins. With this option on,
     // let native playback finish, then pre-roll before starting the next pass.
-    if(AppState.mode==='realtime' && AppState.practiceLoop.enabled && AppState.practiceLoop.countIn) {
+    if(!AppState.media.editing && AppState.mode==='realtime' && AppState.practiceLoop.enabled && AppState.practiceLoop.countIn) {
       startCountIn(AppState.practiceLoop.range.startTick,ok=>{if(ok)alphaTabApi.play();});
     }
   });
@@ -807,7 +835,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
       }
       return;
     }
-    const range=AppState.practiceLoop.range;
+    const range=AppState.media.editing?null:AppState.practiceLoop.range;
     if(event?.isSeek && range && !scoreDragging && (event.currentTick<range.startTick || event.currentTick>=range.endTick)) {
       alphaTabApi.tickPosition=range.startTick;return;
     }
@@ -841,6 +869,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   alphaTabApi.beatMouseUp?.on(() => {
     const selected=scoreDragging ? wholeMeasureSelection(AppState.playbackTimeline,alphaTabApi.playbackRange) : null;
     scoreMouseDown=null;scoreDragging=false;
+    if(AppState.media.editing){alphaTabApi.playbackRange=null;return;}
     if(selected)hostCallbacks.onLoopSelection?.(selected);
     else {
       // A native single click clears its range. Retain our enabled loop instead.
@@ -915,7 +944,7 @@ export function setRenderedTracks(trackIds) {
 
 export function applyMasterVolume() {
   const volume=AppState.audio.masterPercent/100;
-  if(alphaTabApi?.player)alphaTabApi.masterVolume=AppState.media.preview?(AppState.mode==='wait'?0:AppState.audio.mediaPercent/100):volume;
+  if(alphaTabApi?.player)alphaTabApi.masterVolume=AppState.media.preview?(AppState.mode==='wait' && !AppState.media.editing?0:AppState.audio.mediaPercent/100):volume;
   syncWaitMetronome();
   stopCountInAudio?.setVolume?.(AppState.metronome.volumePercent/100*volume);
 }
@@ -968,6 +997,7 @@ export function applyScoreDisplay() {
 export function play() {
   if(AppState.media.preview)return toggleMediaPlayback();
   if (!alphaTabApi || !AppState.playerReady) return false;
+  if(AppState.media.editing){alphaTabApi.playPause();return true;}
   if(AppState.countInActive){cancelCountIn();return true;}
   const range=AppState.practiceLoop.range;
   const tick=alphaTabApi.tickPosition ?? AppState.tickPosition;
@@ -1121,6 +1151,7 @@ export function setMetronomeVolume(volume, options = {}) {
 
 export function applyPracticeLoop(range) {
   if (!alphaTabApi) return false;
+  if(AppState.media.editing){alphaTabApi.isLooping=false;alphaTabApi.playbackRange=null;drawLoopShading();return true;}
   if (range && (!Number.isFinite(range.startTick) || !(range.endTick > range.startTick) ||
       range.startTick < 0 || range.endTick > (AppState.playbackTimeline?.endTick ?? 0))) return false;
   cancelCountIn();alphaTabApi.pause();
