@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+### Wait Hex pitch-bend interpretation — 2026-10-16
+
+- [x] Owner confirms Fishman range ±12. Wait Hex now interprets per-channel Note-On + bend using that saved matching range, with ±2/±24/Ignore choices in MIDI settings. Normal attacks remain immediate; ordinary short notes are retained.
+- [x] A received bend within 60 ms may revise an initially wrong onset on its original occurrence, without adding an attack. Corrected pitches remove their false penalty/history/live marker; still-wrong pitches retain one penalty with updated pitch detail. Raw MIDI remains intact in capture, with separate interpretation/correction evidence. Poly and Realtime are unchanged.
+- [x] Raw Note-Off releases the corrected sounding pitch. Pause cancels correction eligibility; channel bend state survives ordinary Pause/Resume and session restarts. MIDI/score reconfiguration clears it. No extreme-fret/velocity/duration filter was added; fret-26 tracking spikes remain a separate decision.
+- [x] 269 Node tests, changed-module syntax and whitespace checks pass. Isolated supplied-sequence replays correct measure-2 E7 and measure-2/4 Bm7b5 onset errors; measure-4 E7 with no bend correction still fails as its received pitch requires. No new whole-performance percentage claimed.
+- [ ] Owner hard-refreshes Live Server, confirms MIDI → Wait pitch-bend range ±12, then checks the same chords and a deliberate unbent fret-8 mistake with capture on. Physical browser/Fishman acceptance and separate extreme-tracking-artifact policy remain pending.
+
 ### MIDI input audit and repeated Hex chord recognition — 2026-10-16
 
 - [x] Replayed all 486 raw messages from the latest capture through the actual router: all 486 preserved byte-for-byte; all 243 selected-channel messages delivered; no held duplicates suppressed. This is reproducible code-path evidence, not proof of live device/browser delivery before the capture boundary.

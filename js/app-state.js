@@ -57,6 +57,7 @@ export const AppState = {
     recentEvents: [],
     hexChannelBase: 1,
     hexChannelReverse: false,
+    pitchBendRange: 12,
     singleChannel: 'any',
     activeNotes: new Map(),
     activeNotesByChannel: new Map(),

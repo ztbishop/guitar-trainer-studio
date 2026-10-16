@@ -1,17 +1,21 @@
 // Gate progression using injected transport operations. No alphaTab/DOM dependency.
 import {WaitSession} from './wait-session.js';
 import {noteStatesFromRecords} from './practice-visuals.js';
+import {MidiPitchState} from './midi-pitch.js';
 
 export class WaitController {
   constructor(transport,onChange=()=>{},now=()=>performance.now()) {
     this.transport=transport;this.onChange=onChange;this.events=[];this.endTick=0;
     this.active=false;this.phase='idle';this.index=-1;this.position=0;this.manualPaused=false;
     this.now=now;this.pauseOffset=0;this.pausedAt=null;this.chordSettings={};
+    this.pitchState=new MidiPitchState();
   }
   configure(events,endTick,hex=false,loop=false,chordSettings={},loopCountIn=false) {
     this.stop();this.events=events;this.endTick=endTick;this.hex=hex;
     this.loop=loop;this.loopCountIn=loopCountIn;this.pass=1;this.lastPassResults=null;this.passHistory=[];
     this.chordSettings={chordMode:chordSettings.mode,chordWindowMs:chordSettings.windowMs,allowMutedStringNoise:chordSettings.allowMutedStringNoise};
+    this.pitchState=new MidiPitchState(chordSettings.pitchBendRange);
+    this.chordSettings.pitchState=this.pitchState;
     this.session=new WaitSession(events,{hex,...this.chordSettings});this.index=-1;this.publish();
   }
   publish() {
@@ -49,6 +53,7 @@ export class WaitController {
     }
     this.advance(this.now());this.pausedAt=this.now();
     this.session.held.clear();
+    this.session.pitchAttacks.clear();
     this.manualPaused=true;this.pausedFrom=this.phase;this.phase='paused';this.transport.pause();this.publish();return true;
   }
   start(tick=0) {
@@ -83,9 +88,15 @@ export class WaitController {
     // Accept attacks during positioning; never depend on playback/duration.
     // Releases also apply while paused, so stale held markers never reappear.
     if(note.type==='note-off') {if(this.session.noteOff(note))this.publish();return null;}
-    if(note.type==='pitch-bend'){this.session.pitchBend(note);return null;}
+    if(note.type==='pitch-bend') {
+      const active=this.active && ['waiting','seeking'].includes(this.phase);
+      const at=(Number.isFinite(note.at)?note.at:this.now())-this.pauseOffset;
+      const result=this.session.pitchBend(note,at,this.index,active);
+      if(result){this.publish();if(result.complete)this.finishGate();}
+      return result;
+    }
     if(!this.active || !['waiting','seeking'].includes(this.phase)) {
-      if(note.type==='note-on')this.session.held.clear();
+      if(note.type==='note-on'){this.session.held.clear();this.session.pitchAttacks.clear();}
       return null;
     }
     if(note.type!=='note-on')return null;

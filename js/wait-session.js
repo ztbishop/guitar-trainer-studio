@@ -3,13 +3,15 @@ import {inferPolyExpectedNoteIds} from './poly-feedback.js';
 import {attackSlots,ignoresMutedString} from './attack-rules.js';
 import {TimingDefaults} from './practice-timing.js';
 import {supportedHeldTone} from './wait-chord-gesture.js';
+import {MidiPitchState,PITCH_SETTLE_MS} from './midi-pitch.js';
 export class WaitSession {
-  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,allowMutedStringNoise=false} = {}) {
+  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,allowMutedStringNoise=false,pitchBendRange=12,pitchState=null} = {}) {
     this.events=events;this.allowMutedStringNoise=allowMutedStringNoise;this.tail=null;
     this.records=events.map(event=>{
       return {eventId:event.id,slots:attackSlots(event,hex,false),wrong:0,wrongNotes:[],retries:0,attemptStartAt:null,skipped:false,burst:null};
     });
     this.hex=hex;this.lastFeedback=null;this.liveWrong=new Map();this.held=new Map();
+    this.pitch=pitchState??new MidiPitchState(pitchBendRange);this.pitchAttacks=new Map();
     this.chordMode=chordMode==='together'?'together':'collect';
     this.chordWindowMs=Number.isFinite(chordWindowMs)&&chordWindowMs>=50&&chordWindowMs<=1000?chordWindowMs:200;
   }
@@ -24,6 +26,14 @@ export class WaitSession {
     this.lastFeedback={type:'retry',eventId:record.eventId,complete:false};return true;
   }
   noteOn(index,note,at=note.at??0) {
+    const played=this.hex?this.pitch.interpret(note):note;
+    const feedback=this.grade(index,played,at);
+    if(feedback && this.hex)feedback.pitch={rawMidi:played.rawMidi,soundingMidi:played.soundingMidi,
+      midi:played.midi,bendValue:played.bendValue,range:this.pitch.range};
+    if(this.hex)this.pitchAttacks.set(note.channel,{note:{...note,at},index,at,feedback});
+    return feedback;
+  }
+  grade(index,note,at,correcting=false) {
     const record=this.records[index];if(!record || record.skipped) return null;
     const event=this.events[index],key=this.hex?`${note.channel}:${note.midi}`:String(note.midi);
     // Hex channels describe monophonic strings. A changed pitch invalidates the
@@ -35,30 +45,34 @@ export class WaitSession {
     // Pitched tails use repeated identities to recognize a new gesture. X tails
     // can change pitch repeatedly on one string, so retain the whole burst until
     // a quiet gap or a fresh attack on its starting identity. Singles have no guard.
-    if(this.tail && this.tail.index===index-1 && at>=this.tail.at && at-this.tail.at<=this.tail.window) {
-      const tail=this.tail,identity=this.hex?String(note.channel):String(note.midi);
-      if(tail.percussive) {
-        const gap=TimingDefaults.chordGroupingMs;
-        const fresh=at-tail.lastAt>=gap || (identity===tail.firstIdentity && at-tail.at>=gap);
-        if(!fresh) {
-          tail.lastAt=at;
-          return {type:'ignored-strum-tail',eventId:this.records[index-1].eventId,midi:note.midi,complete:false};
+    if(!correcting) {
+      if(this.tail && this.tail.index===index-1 && at>=this.tail.at && at-this.tail.at<=this.tail.window) {
+        const tail=this.tail,identity=this.hex?String(note.channel):String(note.midi);
+        if(tail.percussive) {
+          const gap=TimingDefaults.chordGroupingMs;
+          const fresh=at-tail.lastAt>=gap || (identity===tail.firstIdentity && at-tail.at>=gap);
+          if(!fresh) {
+            tail.lastAt=at;
+            return {type:'ignored-strum-tail',eventId:this.records[index-1].eventId,midi:note.midi,complete:false};
+          }
+          this.tail=null;
+        } else {
+          if(!tail.seen.has(identity) && tail.pitches.has(note.midi)) {
+            tail.seen.add(identity);
+            return {type:'ignored-strum-tail',eventId:this.records[index-1].eventId,midi:note.midi,complete:false};
+          }
+          if(tail.seen.has(identity))this.tail=null;
         }
-        this.tail=null;
-      } else {
-        if(!tail.seen.has(identity) && tail.pitches.has(note.midi)) {
-          tail.seen.add(identity);
-          return {type:'ignored-strum-tail',eventId:this.records[index-1].eventId,midi:note.midi,complete:false};
-        }
-        if(tail.seen.has(identity))this.tail=null;
-      }
-    } else this.tail=null;
+      } else this.tail=null;
+    }
     if(ignoresMutedString(event,note,this.hex,this.allowMutedStringNoise))return {type:'ignored-muted-string',eventId:event.id,midi:note.midi,complete:false};
     const identity=this.hex?String(note.channel):String(note.midi);
     const window=Math.min(200,this.chordWindowMs);
-    if(!record.burst || at-record.burst.at>window || record.burst.keys.has(key))record.burst={at,keys:new Set(),seen:new Set(),wrong:false};
-    record.burst.lastAt=at;
-    record.burst.keys.add(key);record.burst.seen.add(identity);
+    if(!correcting) {
+      if(!record.burst || at-record.burst.at>window || record.burst.keys.has(key))record.burst={at,keys:new Set(),seen:new Set(),wrong:false};
+      record.burst.lastAt=at;
+      record.burst.keys.add(key);record.burst.seen.add(identity);
+    }
     const expiredAttempt=this.expire(index,at);
     const duplicate=this.hex && record.slots.some(s=>s.hit && s.midi===note.midi && s.channel===note.channel);
     const slot=record.slots.find(s=>!s.hit && (event.isPercussive || s.midi===note.midi));
@@ -70,7 +84,7 @@ export class WaitSession {
       record.burst.wrong=true;
       record.wrong++;
       const feedback={type:'wrong',eventId:record.eventId,midi:note.midi,channel:note.channel,
-        stringHint:note.stringHint??null,at,wrongPitch,complete:false};
+        rawMidi:note.rawMidi,stringHint:note.stringHint??null,at,wrongPitch,complete:false};
       if(wrongPitch) {
         if(!this.hex)feedback.inferredNoteIds=inferPolyExpectedNoteIds(record.slots);
         record.wrongNotes.push({...feedback});
@@ -98,12 +112,47 @@ export class WaitSession {
       channel:slot.channel,noteIds:slot.noteIds,at,complete:true};
   }
   noteOff(note) {
-    this.held.delete(`${note.channel}:${note.midi}`);
-    return this.liveWrong.delete(`${note.channel}:${note.midi}`);
+    if(this.pitchAttacks.get(note.channel)?.note.midi===note.midi)this.pitchAttacks.delete(note.channel);
+    for(const [key,value] of this.held)if(value.channel===note.channel && (value.rawMidi??value.midi)===note.midi)this.held.delete(key);
+    let changed=false;
+    for(const [key,value] of this.liveWrong)if(value.channel===note.channel && (value.rawMidi??value.midi)===note.midi){this.liveWrong.delete(key);changed=true;}
+    return changed;
   }
-  pitchBend(note) {
-    if(!this.hex || note.bendValue===0)return;
+  pitchBend(note,at=note.at??0,currentIndex=null,allowCorrection=true) {
+    if(!this.hex)return null;
+    this.pitch.bend(note);
+    // Continuous bends do not create attacks. Only reconcile a wrong onset
+    // during its short initial pitch-settling interval, on its original target.
+    const attack=this.pitchAttacks.get(note.channel),old=attack?.feedback;
+    if(allowCorrection && old?.type==='wrong' && old.wrongPitch && at>=attack.at && at-attack.at<=PITCH_SETTLE_MS) {
+      const played=this.pitch.interpret(attack.note),record=this.records[attack.index];
+      const wrong=record.wrongNotes.find(n=>n.channel===note.channel && n.at===attack.at && n.rawMidi===played.rawMidi);
+      if(wrong && played.midi!==wrong.midi) {
+        const correction={rawMidi:played.rawMidi,fromMidi:wrong.midi,toMidi:played.midi,bendValue:played.bendValue,
+          range:this.pitch.range,channel:note.channel,attackAt:attack.at,at,
+          matched:record.slots.some(s=>s.midi===played.midi)};
+        (record.pitchCorrections??=[]).push(correction);
+        if(!correction.matched) {
+          const live=this.liveWrong.delete(`${wrong.channel}:${wrong.midi}`);
+          wrong.midi=played.midi;old.midi=played.midi;
+          if(live)this.liveWrong.set(`${wrong.channel}:${wrong.midi}`,{...wrong});
+          this.lastFeedback={...old};
+          if(note.bendValue!==0)for(const [key,value] of this.held)if(value.channel===note.channel)this.held.delete(key);
+          return {...old,type:'pitch-updated',correction,complete:false};
+        }
+        record.wrongNotes.splice(record.wrongNotes.indexOf(wrong),1);record.wrong--;
+        this.liveWrong.delete(`${wrong.channel}:${wrong.midi}`);
+        if(record.burst)record.burst.wrong=record.wrongNotes.some(n=>n.at>=record.burst.at);
+        const tail=this.tail,result=this.grade(attack.index,played,attack.at,true);
+        if(attack.index!==currentIndex)this.tail=tail;
+        attack.feedback=result;
+        return this.lastFeedback={...result,type:'pitch-corrected',correction,
+          complete:attack.index===currentIndex && Boolean(result.complete)};
+      }
+    }
+    if(note.bendValue===0)return null;
     for(const [key,value] of this.held)if(value.channel===note.channel)this.held.delete(key);
+    return null;
   }
   clearLiveWrong() { this.liveWrong.clear(); }
   feedbackHistory(pass=1) {
@@ -111,6 +160,7 @@ export class WaitSession {
       completed:record.slots.every(s=>s.hit),
       outcome:record.slots.every(s=>s.hit)?(record.wrongNotes.length?'completed-with-errors':'completed-clean'):'pending',
       supportedHeldNotes:record.slots.filter(s=>s.evidence==='held').map(s=>({midi:s.midi,channel:s.channel,noteIds:[...s.noteIds],evidence:'held',freshAttack:false})),
+      pitchCorrections:(record.pitchCorrections??[]).map(c=>({...c})),
       wrongNotes:record.wrongNotes.map(note=>({...note})),retries:record.retries}));
   }
   stats() {

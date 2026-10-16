@@ -1,5 +1,13 @@
 # Guitar Trainer Studio Architecture
 
+## Wait Hex sounding-pitch interpretation — 2026-10-16
+
+midi-pitch.js is the pure per-channel bend interpreter and saved range validator. WaitSession calls it for Hex Note-Ons; existing raw routing/channel acceptance/duplicate suppression remains in midi-router. Interpreted MIDI is round(rawMidi + bendValue * range / 8192). MIDI settings expose independently saved ±2/±12/±24 or Ignore, with owner-confirmed ±12 on first use. This affects Wait Hex only; playback pitch, score targets, Poly and Realtime are unchanged.
+
+WaitController shares a MidiPitchState with session instances across start/loop/new-attempt actions and Pause/Resume; configure recreates it for changed score/input/settings. WaitSession retains channel-local attack identity/index/time and initial feedback. A bend within 60 ms can reconcile only an initially wrong still-held onset, on that onset's original record. If the resulting pitch is required, its old wrong count/history/live marker is removed before normal slot matching; otherwise the same single error's pitch is updated. Correction bypasses previous-target tail suppression and avoids adding another burst attack. It restores the current tail if editing history and cannot advance a different current gate. Raw releases clear corrected keys, old overlapping releases do not cancel newer attack identities, pause clears eligibility, and late bends invalidate held support without producing attacks. Already accepted onsets are not regraded for later expressive movement; full articulation grading remains deferred.
+
+Capture rows retain raw input and initial decisions, with per-onset pitch interpretation, correction payloads and snapshot pitchCorrections. A false initial red mark may appear briefly until the follow-up correction arrives. History retains rawMidi/fromMidi/toMidi/range/bend/time and whether the interpreted note matches a requirement. Wait Hex fretboard held projections use the same interpreter; score overlays consume corrected session history. These display projections do not grade input. No extreme-fret, low-velocity or short-duration rejection is part of this change.
+
 ## Repeated Hex chord evidence — 2026-10-16
 
 wait-chord-gesture.js owns pure eligibility for one supported held tone in a consecutive identical pitched chord. WaitSession owns held channel/pitch onset evidence, per-slot attack/held provenance and settlement; WaitController.advance invokes settlement using its existing pause-adjusted 50 ms clock and the same gate-completion path as received attacks. Routing remains raw normalization/filtering/held-duplicate suppression: it never manufactures a Note-On. Realtime is unchanged.

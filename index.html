@@ -436,6 +436,8 @@
             </label>
             <label class="toggle-row"><input id="hex-channel-reverse" type="checkbox" /><span>Reverse channel order — count downward from base</span></label>
             <p id="hex-channel-order-help" class="help-text">Six-string mapping: lowest string uses the base channel.</p>
+            <label class="field-group field-group--compact" for="wait-hex-bend-range"><span class="field-label">Wait pitch-bend range</span><select id="wait-hex-bend-range"><option value="0">Ignore bends</option><option value="2">±2 semitones</option><option value="12" selected>±12 semitones</option><option value="24">±24 semitones</option></select></label>
+            <p class="help-text">Match your MIDI device. Saved for Wait Hex practice. Early bend corrections update the received pitch; later bends do not create attacks. Changing this setting clears Wait results.</p>
           </div>
 
           <div class="status-grid status-grid--two">

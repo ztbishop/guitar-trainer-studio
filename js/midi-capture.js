@@ -27,6 +27,7 @@ export function captureMidiEvent(note,{input,accepted,receivedAt=performance.now
     device:{id:input?.id,name:input?.name},mode:AppState.mode,inputMode:AppState.inputMode,
     hexBase:AppState.midi.hexChannelBase,hexReverse:AppState.midi.hexChannelReverse,singleChannel:AppState.midi.singleChannel,
     allowMutedStringNoise:AppState.allowMutedStringNoise===true,
+    pitchBendRange:AppState.midi.pitchBendRange,
     scoreFileName:AppState.ui.loadedFileName,practiceTrackId:AppState.practiceTrackId,
     tick:AppState.tickPosition,targetBefore:targetInfo(target),
     phase:AppState.mode==='wait'?AppState.waitTrainer?.phase:(AppState.isPlaying?'playing':'paused')};
@@ -51,6 +52,8 @@ export function captureMidiOutcome(row,outcome) {
   row.grading=outcome && typeof outcome==='object'?{
     type:outcome.type,eventId:outcome.eventId,midi:outcome.midi,wrongPitch:outcome.wrongPitch,
     complete:outcome.complete,target:targetInfo(AppState.expectedEvents.find(event=>event.id===outcome.eventId)),
+    correction:outcome.correction?structuredClone(outcome.correction):undefined,
+    pitch:outcome.pitch?structuredClone(outcome.pitch):undefined,
   }:null;
   const target=AppState.mode==='wait'?AppState.waitTrainer?.currentEvent:AppState.trainer.currentEvent;
   row.targetAfter=targetInfo(target);
@@ -72,6 +75,8 @@ export function captureFeedbackView(marks,trainer) {
     results:structuredClone(trainer.results??null),lastFeedback:structuredClone(trainer.lastFeedback??null),
     heldSupport:structuredClone((trainer.history??[]).filter(r=>r.supportedHeldNotes?.length)
       .map(r=>({eventId:r.eventId,pass:r.pass,notes:r.supportedHeldNotes}))),
+    pitchCorrections:structuredClone((trainer.history??[]).filter(r=>r.pitchCorrections?.length)
+      .map(r=>({eventId:r.eventId,pass:r.pass,corrections:r.pitchCorrections}))),
     liveWrongNotes:structuredClone(trainer.liveWrongNotes??[]),marks:structuredClone(marks)};
 }
 export function markMidiSnapshot(label='Screenshot') {

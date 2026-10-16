@@ -40,6 +40,7 @@ import {readPracticePreferences,savePracticePreferences,FEEDBACK_PREFERENCE_KEYS
 import {readDisplayPreferences,saveDisplayPreferences} from './display-preferences.js';
 import {initMediaControls} from './media-controls.js';
 import {initWorkspacePanels} from './workspace-panels.js';
+import {readPitchRange,savePitchRange,validPitchRange} from './midi-pitch.js';
 import {beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTime,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setMediaEditing,revealMediaScoreTarget} from './alphatab-host.js';
 
 let transportControls=null;
@@ -60,7 +61,7 @@ const waitController = new WaitController({
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
 
 function configureWaitSession() {
-  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,allowMutedStringNoise:AppState.allowMutedStringNoise},AppState.practiceLoop.countIn);
+  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,allowMutedStringNoise:AppState.allowMutedStringNoise,pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
 }
 
 function changePracticeLoop(loop) {
@@ -358,6 +359,8 @@ function renderMidiUi() {
   }
   const reverseControl=document.getElementById('hex-channel-reverse');
   if(reverseControl){reverseControl.checked=AppState.midi.hexChannelReverse;reverseControl.disabled=!AppState.midi.supported || AppState.inputMode!=='hex-6ch';}
+  const bendRange=document.getElementById('wait-hex-bend-range');
+  if(bendRange){bendRange.value=String(AppState.midi.pitchBendRange);bendRange.disabled=!AppState.midi.supported || AppState.inputMode!=='hex-6ch';}
   const orderHelp=document.getElementById('hex-channel-order-help');
   if(orderHelp){const base=AppState.midi.hexChannelBase;orderHelp.textContent=`Six-string mapping, lowest to highest: ${Array.from({length:6},(_,i)=>base+(AppState.midi.hexChannelReverse?-i:i)).join(', ')}. Base choices keep all six channels within 1–16.`;}
   if (inputSelect) {
@@ -485,7 +488,7 @@ function renderTrainerUi() {
   if(AppState.ui.showFretboard) {
     const track=AppState.tracks.find((item,index)=>getTrackId(item,index)===String(AppState.practiceTrackId));
     renderFretboard(buildFretboardModel({track,currentEvent:trainer.currentEvent,noteStates:trainer.noteStates,
-      activeNotes:[...AppState.midi.activeNotes.values()],liveWrongNotes:trainer.liveWrongNotes,inputMode:AppState.inputMode,leftHanded:AppState.ui.leftHanded,lastFeedback:trainer.lastFeedback}));
+        activeNotes:[...AppState.midi.activeNotes.values()].map(n=>AppState.mode==='wait' && AppState.inputMode==='hex-6ch'?waitController.pitchState.interpret(n):n),liveWrongNotes:trainer.liveWrongNotes,inputMode:AppState.inputMode,leftHanded:AppState.ui.leftHanded,lastFeedback:trainer.lastFeedback}));
   }
   const playButton=document.getElementById('play-pause-button');
   if(playButton) {
@@ -557,6 +560,11 @@ function renderTrainerUi() {
 }
 
 function wireMidiControls() {
+  document.getElementById('wait-hex-bend-range')?.addEventListener('change',event=>{
+    const value=Number(event.target.value);if(!validPitchRange(value))return;
+    AppState.midi.pitchBendRange=value;savePitchRange(value);
+    clearActiveMidiNotes();configureWaitSession();renderMidiUi();renderTrainerUi();
+  });
   document.getElementById('midi-input-select')?.addEventListener('change', (event) => {
     setActiveMidiInput(event.target.value);
     resetRealtimeSession('input-device-change');
@@ -614,6 +622,7 @@ function wireMidiControls() {
 }
 
 async function bootstrap() {
+  AppState.midi.pitchBendRange=readPitchRange();
   const preferences=readPracticePreferences();
   AppState.mode=preferences.mode;
   Object.assign(AppState.ui,preferences.feedback);
