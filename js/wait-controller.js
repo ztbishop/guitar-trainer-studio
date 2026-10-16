@@ -11,7 +11,7 @@ export class WaitController {
   configure(events,endTick,hex=false,loop=false,chordSettings={},loopCountIn=false) {
     this.stop();this.events=events;this.endTick=endTick;this.hex=hex;
     this.loop=loop;this.loopCountIn=loopCountIn;this.pass=1;this.lastPassResults=null;this.passHistory=[];
-    this.chordSettings={chordMode:chordSettings.mode,chordWindowMs:chordSettings.windowMs};
+    this.chordSettings={chordMode:chordSettings.mode,chordWindowMs:chordSettings.windowMs,allowMutedStringNoise:chordSettings.allowMutedStringNoise};
     this.session=new WaitSession(events,{hex,...this.chordSettings});this.index=-1;this.publish();
   }
   publish() {
@@ -22,6 +22,7 @@ export class WaitController {
     if(this.phase==='waiting' || this.phase==='seeking') {
       matchState=hits?'partial':'waiting';
       status=`Waiting • measure ${currentEvent?.measureNumber??'—'} • ${hits}/${record?.slots.length??0} required attacks`;
+      if(currentEvent?.isPercussive)status='Waiting • muted strum (X) • any fresh note attack';
       if(this.session.lastFeedback?.type==='wrong' && this.session.lastFeedback.eventId===currentEvent?.id) {matchState='mismatch';status+=' • wrong note; try again';}
       if(this.session.lastFeedback?.type==='retry' && this.session.lastFeedback.eventId===currentEvent?.id)status+=' • chord window expired; play the whole chord again';
       if(this.session.chordMode==='together' && record?.slots.length>1)status+=` • chord window ${this.session.chordWindowMs} ms`;

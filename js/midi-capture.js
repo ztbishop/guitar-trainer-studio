@@ -15,7 +15,8 @@ export function startMidiCapture(){
 }
 export function stopMidiCapture(){if(recording)markMidiSnapshot('Stopped');recording=false;reason||='Stopped';notify();}
 function targetInfo(event){return event?{eventId:event.id,measure:event.measureNumber,occurrence:event.occurrence,
-  notes:event.notes.map(n=>({midi:n.midi,string:n.string,fret:n.fret,sourceNoteId:String(n.sourceNoteId)}))}:null;}
+  isPercussive:Boolean(event.isPercussive),mutedStrings:[...(event.mutedStrings??[])],
+  notes:event.notes.map(n=>({midi:n.midi,string:n.string,fret:n.fret,isDead:Boolean(n.isDead),sourceNoteId:String(n.sourceNoteId)}))}:null;}
 export function captureMidiEvent(note,{input,accepted}={}) {
   if(!recording)return null;
   const target=AppState.mode==='wait'?AppState.waitTrainer?.currentEvent:AppState.trainer.currentEvent;
@@ -24,6 +25,7 @@ export function captureMidiEvent(note,{input,accepted}={}) {
     raw:[...note.raw],bendValue:note.bendValue,accepted:Boolean(accepted),
     device:{id:input?.id,name:input?.name},mode:AppState.mode,inputMode:AppState.inputMode,
     hexBase:AppState.midi.hexChannelBase,hexReverse:AppState.midi.hexChannelReverse,singleChannel:AppState.midi.singleChannel,
+    allowMutedStringNoise:AppState.allowMutedStringNoise===true,
     scoreFileName:AppState.ui.loadedFileName,practiceTrackId:AppState.practiceTrackId,
     tick:AppState.tickPosition,targetBefore:targetInfo(target),
     phase:AppState.mode==='wait'?AppState.waitTrainer?.phase:(AppState.isPlaying?'playing':'paused')};

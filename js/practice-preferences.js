@@ -3,11 +3,12 @@ export const PRACTICE_PREFERENCES_KEY = 'gts.practicePreferences';
 export const FEEDBACK_PREFERENCE_KEYS = ['showNotationFeedback', 'showTabCircles', 'showTabMistakes', 'inferPolyMistakes'];
 
 export function readPracticePreferences(storage) {
-  const defaults = {mode: 'realtime', feedback: Object.fromEntries(FEEDBACK_PREFERENCE_KEYS.map(key => [key, true])), waitChord: {mode: 'collect', windowMs: 200}};
+  const defaults = {mode: 'realtime', feedback: Object.fromEntries(FEEDBACK_PREFERENCE_KEYS.map(key => [key, true])), waitChord: {mode: 'collect', windowMs: 200}, allowMutedStringNoise: false};
   try {
     storage ??= globalThis.window?.localStorage;
     const saved = JSON.parse(storage?.getItem(PRACTICE_PREFERENCES_KEY) ?? 'null');
     if (['realtime', 'wait'].includes(saved?.mode)) defaults.mode = saved.mode;
+    if(typeof saved?.allowMutedStringNoise==='boolean')defaults.allowMutedStringNoise=saved.allowMutedStringNoise;
     for (const key of FEEDBACK_PREFERENCE_KEYS) {
       if (typeof saved?.feedback?.[key] === 'boolean') defaults.feedback[key] = saved.feedback[key];
     }
@@ -25,6 +26,7 @@ export function savePracticePreferences(state, storage) {
       mode: state.mode,
       feedback: Object.fromEntries(FEEDBACK_PREFERENCE_KEYS.map(key => [key, state.ui[key]])),
       waitChord: {...state.waitChord},
+      allowMutedStringNoise: state.allowMutedStringNoise===true,
     }));
   } catch { /* Preferences still apply to the current session if storage is unavailable. */ }
 }

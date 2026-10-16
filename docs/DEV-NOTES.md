@@ -1,5 +1,17 @@
 # Development notes
 
+## Muted attacks and chord handoff — 2026-10-16
+
+Owner supplied fvjgfr-002.gp5 and a 628-message TriplePlay capture. Read-only replay reproduced all 149 graded attacks and 43 wrong attacks. Eight of the first 32 targets were all-X beats incorrectly requiring four pitches. Measure-3/4 wrong upper notes followed advancement partway through the preceding strum (35 ms and 28–53 ms). Fret 26 was derived from received F#4 on channel/string 6 (velocity 10, 66 ms), not proof of that physical fret.
+
+score-playback retains isDead/stringCount. Mixed targets require only pitched notes; an all-X target retains its written identities but shares one unpitched attack slot. Any fresh accepted Note-On satisfies it in Hex/Poly, Wait/Realtime. Muted strums producing no MIDI still cannot advance Wait. No duration/velocity cutoff or hand-reach inference is introduced. The fretboard does not prescribe an X note's stored fret. Diagnostics label muted targets; Hex fret captions describe a MIDI interpretation.
+
+Wait groups the final gesture of a completed chord and ignores its not-yet-seen previous chord tones at the following gate, within at most 200 ms from gesture start (or the shorter configured chord window). Repeated channel identity in Hex / pitch identity in Poly starts a new gesture; singles have no guard. All-X tails use the same guard. This bounded heuristic needs hardware acceptance, especially fast arpeggios and reversed strums. Realtime keeps compensated playback windows and favors remaining tones of a started chord within its existing 60 ms grouping tolerance over a nearby occurrence. Ordinary repeated-note matching remains intact.
+
+Practice exposes saved Allow muted-string noise (Hex), off = Strict. Enabled six-string chord targets ignore omitted-string input without crediting required tones from that input. Required-string errors, unknown mappings, single notes, other string counts and Poly stay strict. Tolerance necessarily forgives intentional extra notes on omitted strings. Setting changes pause/reset results; score loads retain the choice. Native rendering, input normalization, media sync and Live Server workflow are unchanged.
+
+Validation: 235 Node tests pass. Isolated Chrome loaded the owner's GP5 with simulated Hex MIDI and verified omitted-string ignoring, two pitched chords, an all-X strum advancing once without wrong-note pollution, and preference restoration. This caught and corrected a checkbox value overwritten by a synchronous render in its change callback. Actual Fishman/audio and strum/tolerance acceptance remain pending. Personal GP5/report data was not added to the repository.
+
 ## Independent score target selection — 2026-10-15
 
 Owner clarified that choosing a measure after locating a recording time must not discard that time. Guide/measure/beat/saved-marker/point-list clicks now change only the score target. selectPoint has an explicit preserveTime option for these UI actions; internal point edits still set their adjusted recording time. A simple saved-marker click no longer seeks; only actual drag motion enters the existing edit/audition flow. Waveform seeking, Add/Update, playhead copy and 50 ms audition remain unchanged.

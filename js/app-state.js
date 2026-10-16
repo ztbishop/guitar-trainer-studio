@@ -17,6 +17,7 @@ export const AppState = {
   mode: 'realtime',
   waitTrainer: null,
   waitChord: { mode: 'collect', windowMs: 200 },
+  allowMutedStringNoise: false,
   inputMode: 'single-channel',
   correctnessMode: 'pitch-only',
   alphaTabReady: false,

@@ -21,6 +21,7 @@ export function resetRealtimeSession(reason = 'reset', tick = AppState.tickPosit
   finishedAwaitingRewind = false;
   realtime = new RealtimeSession(practiceEvents(AppState), {
     hex: AppState.inputMode === 'hex-6ch', latencyMs: AppState.trainer.latencyMs || 0,
+    allowMutedStringNoise: AppState.allowMutedStringNoise,
   });
   realtime.reset(timeAtTick(tick) ?? 0, AppState.playbackSpeed || 1);
   AppState.trainer.sessionReason = reason;
@@ -303,7 +304,7 @@ export function refreshTrainerMatchState(position = AppState.tickPosition) {
     if (feedback?.type === 'wrong' && (!currentEvent || feedback.eventId === currentEvent.id)) {
       matchState = 'mismatch'; status = `Wrong or out-of-time attack: ${midiToNoteName(feedback.midi)}`;
     } else if (!record && feedback?.type === 'missed' && !realtime.completed) {
-      matchState = 'missed'; status = `Missed: ${formatPitchList(feedback.pitches)}`;
+      matchState = 'missed'; status = feedback.isPercussive ? 'Missed muted strum (X)' : `Missed: ${formatPitchList(feedback.pitches)}`;
     }
     const stats = realtime.stats();
     if (realtime.completed) status = 'Practice complete';

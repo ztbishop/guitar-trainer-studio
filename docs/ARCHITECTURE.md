@@ -1,5 +1,13 @@
 # Guitar Trainer Studio Architecture
 
+## Muted attack semantics and scoped tolerance — 2026-10-16
+
+score-playback preserves isDead/stringCount, removes optional X notes from mixed practice groups, and flags all-X groups as isPercussive while retaining native source IDs. attack-rules builds shared Wait/Realtime slots: all-X groups have one wildcard slot covering their written notes. Native score/timeline data stays intact. practice-visuals omits dead-note frets from prescribed fretboard targets.
+
+WaitSession owns a bounded previous-strum tail guard based on the final gesture's seen channel/pitch identities; WaitController keeps immediate cursor gating. Guard state resets with sessions/seeks/loops and uses the existing pause-adjusted clock. No generic single-note delay or short-note rejection is applied. Realtime favors an in-progress chord within its existing grouping window when matching overlapping occurrences; wildcard slots belong only to the nearest timed occurrence.
+
+allowMutedStringNoise is an independent validated practice boolean, default false. Bootstrap passes it to both sessions and pauses/clears results on changes. Shared ignoresMutedString requires enabled Hex, six-string notation, valid channel-derived string hints and a multi-note chord. Omitted-string input is ignored before pitch matching and cannot fill a required slot. Poly, unknown mappings and single notes stay strict. This is not exact-position grading. MIDI capture retains ignored outcomes, muted target metadata and tolerance state; raw messages stay unchanged.
+
 ## Independent score and recording selection — 2026-10-15
 
 UI target selection preserves the selected recording-time field and never calls seekRecording. Saved marker click and drag diverge after the movement threshold; only an actual drag edits/seeks. The host reveals a chosen score target using boundsLookup.findMasterBarByIndex and bounded viewport scrolling, without native transport/cursor changes. Native tick/provider time continue to represent playback, while Measure/Beat is the independent edit target. Internal edit/nudge paths still update selected time and audition the saved point.

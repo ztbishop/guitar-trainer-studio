@@ -21,7 +21,7 @@ export function buildNotationMarks(events,currentEvent,noteStates={}) {
   const put=(event,note,state,active=false)=>{
     if(note.sourceNoteId==null)return;
     marks.set(String(note.sourceNoteId),{sourceNoteId:String(note.sourceNoteId),state,active,
-      label:`${state} • ${note.noteName||note.midi} • measure ${event.measureNumber} • occurrence ${event.occurrence||1}`});
+      label:`${state} • ${note.isDead?'muted attack':note.noteName||note.midi} • measure ${event.measureNumber} • occurrence ${event.occurrence||1}`});
   };
   for(const event of events)for(const note of event.notes)if(noteStates[note.id])put(event,note,noteStates[note.id]);
   // The current occurrence wins over older results on the same written note.
@@ -51,7 +51,7 @@ export function buildFretboardModel({track,currentEvent,noteStates={},activeNote
   const stringCount=tuning.length;
   const stringMapped=inputMode==='hex-6ch' && stringCount===6;
   const openPitches=tuning.map(pitch=>pitch+(staff.capo||0)-(staff.transpositionPitch||0));
-  const targets=(currentEvent?.notes||[]).filter(n=>Number.isInteger(n.string)&&n.string>=1&&n.string<=stringCount&&Number.isInteger(n.fret)&&n.fret>=0&&n.fret<=36)
+  const targets=(currentEvent?.notes||[]).filter(n=>!n.isDead&&Number.isInteger(n.string)&&n.string>=1&&n.string<=stringCount&&Number.isInteger(n.fret)&&n.fret>=0&&n.fret<=36)
     .map(note=>({string:note.string,fret:note.fret,midi:note.midi,state:noteStates[note.id]||'expected'}));
   const maxFret=Math.max(24,...targets.map(n=>n.fret));
   const played=[];const seen=new Set();
@@ -67,7 +67,7 @@ export function buildFretboardModel({track,currentEvent,noteStates={},activeNote
       played.push({string,fret,midi:note.midi,state});
     }
   }
-  const missingPositions=targets.length<(currentEvent?.notes.length||0) ? ' Some target notes have no supported tab position; see Practice feedback.' : '';
+  const missingPositions=currentEvent?.isPercussive ? ' Muted strum: any fresh attack; no required fret.' : targets.length<(currentEvent?.notes.length||0) ? ' Some target notes have no supported tab position; see Practice feedback.' : '';
   return {supported:true,stringCount,stringMapped,openPitches,targets,played,maxFret,leftHanded,capo:staff.capo||0,
     message:(stringMapped?'Played positions use configured MIDI string channels; exact-position grading remains off.':inputMode==='hex-6ch'?`Six-channel input does not map this ${stringCount}-string tablature. Played markers show possible pitch positions, not detected strings.`:'Played markers show possible positions; single-channel MIDI does not identify the string.')+missingPositions,
     unmappedPitches:[...new Set(activeNotes.filter(n=>!played.some(p=>p.midi===n.midi)).map(n=>n.midi))]};

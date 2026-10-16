@@ -1,15 +1,11 @@
 // Untimed attack collection for a gated note-for-note session. No transport/UI APIs.
 import {inferPolyExpectedNoteIds} from './poly-feedback.js';
+import {attackSlots,ignoresMutedString} from './attack-rules.js';
 export class WaitSession {
-  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200} = {}) {
+  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,allowMutedStringNoise=false} = {}) {
+    this.events=events;this.allowMutedStringNoise=allowMutedStringNoise;this.tail=null;
     this.records=events.map(event=>{
-      const slots=new Map();
-      for (const note of event.notes) {
-        const key=hex ? `${note.midi}:${note.string??''}` : String(note.midi);
-        if (!slots.has(key)) slots.set(key,{midi:note.midi,string:note.string,noteIds:[],channel:null,hit:false});
-        slots.get(key).noteIds.push(note.id);
-      }
-      return {eventId:event.id,slots:[...slots.values()],wrong:0,wrongNotes:[],retries:0,attemptStartAt:null,skipped:false};
+      return {eventId:event.id,slots:attackSlots(event,hex,false),wrong:0,wrongNotes:[],retries:0,attemptStartAt:null,skipped:false,burst:null};
     });
     this.hex=hex;this.lastFeedback=null;this.liveWrong=new Map();
     this.chordMode=chordMode==='together'?'together':'collect';
@@ -27,9 +23,26 @@ export class WaitSession {
   }
   noteOn(index,note,at=note.at??0) {
     const record=this.records[index];if(!record || record.skipped) return null;
+    const event=this.events[index],key=this.hex?`${note.channel}:${note.midi}`:String(note.midi);
+    // Collect may finish on the low strings of a fresh strum after earlier partial
+    // hits. Its remaining old chord tones belong to that strum, not the next gate.
+    // A repeated attack identity starts a new gesture; single notes have no guard.
+    if(this.tail && this.tail.index===index-1 && at>=this.tail.at && at-this.tail.at<=this.tail.window) {
+      const tail=this.tail,identity=this.hex?String(note.channel):String(note.midi);
+      if(!tail.seen.has(identity) && (tail.percussive || tail.pitches.has(note.midi))) {
+        tail.seen.add(identity);
+        return {type:'ignored-strum-tail',eventId:this.records[index-1].eventId,midi:note.midi,complete:false};
+      }
+      if(tail.seen.has(identity))this.tail=null;
+    } else this.tail=null;
+    if(ignoresMutedString(event,note,this.hex,this.allowMutedStringNoise))return {type:'ignored-muted-string',eventId:event.id,midi:note.midi,complete:false};
+    const identity=this.hex?String(note.channel):String(note.midi);
+    const window=Math.min(200,this.chordWindowMs);
+    if(!record.burst || at-record.burst.at>window || record.burst.keys.has(key))record.burst={at,keys:new Set(),seen:new Set()};
+    record.burst.keys.add(key);record.burst.seen.add(identity);
     const expiredAttempt=this.expire(index,at);
     const duplicate=this.hex && record.slots.some(s=>s.hit && s.midi===note.midi && s.channel===note.channel);
-    const slot=record.slots.find(s=>!s.hit && s.midi===note.midi);
+    const slot=record.slots.find(s=>!s.hit && (event.isPercussive || s.midi===note.midi));
     if(!slot || duplicate) {
       // Repeated/duplicate required tones retain the prior scoring penalty, but
       // they are not received-wrong pitches and must not turn a solved tab red.
@@ -46,7 +59,10 @@ export class WaitSession {
     }
     slot.hit=true;slot.channel=note.channel;
     record.attemptStartAt??=at;
-    return this.lastFeedback={type:'correct',eventId:record.eventId,midi:note.midi,noteIds:slot.noteIds,expiredAttempt,complete:record.slots.every(s=>s.hit)};
+    const complete=record.slots.every(s=>s.hit);
+    if(complete && (record.slots.length>1 || event.isPercussive))this.tail={index,at:record.burst.at,window,
+      seen:new Set(record.burst.seen),pitches:new Set(record.slots.map(s=>s.midi)),percussive:event.isPercussive};
+    return this.lastFeedback={type:'correct',eventId:record.eventId,midi:note.midi,noteIds:slot.noteIds,expiredAttempt,complete};
   }
   noteOff(note) {
     return this.liveWrong.delete(`${note.channel}:${note.midi}`);

@@ -56,6 +56,7 @@ export function buildPlaybackTimeline(tickCache, { tempo = 120, ticksPerQuarter 
           id: key, sourceBeatId, trackId, measureNumber: beat.voice.bar.index + 1,
           occurrence, playbackMeasureIndex, beatIndex: beat.index,
           voiceIndex: beat.voice.index, staffIndex: beat.voice.bar.staff.index,
+          stringCount: beat.voice.bar.staff.tuning.length,
           writtenStartTick: beat.absolutePlaybackStart,
           startTick, endTick: bar.start + span.end, isRest: Boolean(beat.isRest), notes: [],
         };
@@ -66,6 +67,7 @@ export function buildPlaybackTimeline(tickCache, { tempo = 120, ticksPerQuarter 
           string: note.string > 0 && beat.voice.bar.staff.tuning.length >= note.string
             ? beat.voice.bar.staff.tuning.length + 1 - note.string : null,
           fret: Number.isFinite(note.fret) ? note.fret : null,
+          isDead: Boolean(note.isDead),
           attack: !note.isTieDestination,
           tieOriginId: note.tieOrigin ? String(note.tieOrigin.id) : null,
           tieDestinationId: note.tieDestination ? String(note.tieDestination.id) : null,
@@ -129,7 +131,12 @@ export function getPracticeEvents(timeline, trackId) {
   }
   const events = [...groups.values()].sort((a,b)=>a.startTick-b.startTick);
   events.forEach((event,index)=>{
-    event.pitches = [...new Set(event.notes.map(note=>note.midi))].sort((a,b)=>a-b);
+    // X notes carry a stored fret/pitch in GP files, but do not demand that pitch.
+    // Keep an all-X beat as one unpitched attack; mixed chords require only tones.
+    event.isPercussive = event.notes.every(note=>note.isDead);
+    event.mutedStrings = event.notes.filter(note=>note.isDead).map(note=>note.string);
+    if(!event.isPercussive)event.notes=event.notes.filter(note=>!note.isDead);
+    event.pitches = event.isPercussive ? [] : [...new Set(event.notes.map(note=>note.midi))].sort((a,b)=>a-b);
     event.pitchNames = event.pitches.map(midiToNoteName);
     // An earlier long voice must not hide a later attack in another voice.
     event.targetEndTick = Math.min(event.endTick,events[index+1]?.startTick ?? timeline.endTick);

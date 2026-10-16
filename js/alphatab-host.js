@@ -260,7 +260,7 @@ function drawNotationFeedback() {
   for(const fret of wrongFrets) {
     const group=svgElement('g',{class:'wrong-fret-feedback','data-string':fret.string,'data-retained':Boolean(fret.retained)});
     if(fret.inferred)group.setAttribute('data-inferred','true');
-    group.appendChild(svgElement('title',{},fret.inferred?`Inferred fret ${fret.fret} on expected string ${fret.string}; pitch-only input`:`Played fret ${fret.fret} on string ${fret.string}`));
+    group.appendChild(svgElement('title',{},fret.inferred?`Inferred fret ${fret.fret} on expected string ${fret.string}; pitch-only input`:`Received MIDI pitch implies fret ${fret.fret} on configured string ${fret.string}; physical fret is not verified`));
     group.appendChild(svgElement('rect',{x:fret.x,y:fret.y,width:fret.width,height:fret.height,rx:2,class:'wrong-fret-background'}));
     group.appendChild(svgElement('text',{x:fret.x+fret.width/2,y:fret.y+fret.height/2,'text-anchor':'middle','dominant-baseline':'central','font-size':fret.fontSize,class:'wrong-fret-number'},fret.displayFret??fret.fret));
     notationOverlay.appendChild(group);

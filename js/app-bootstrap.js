@@ -60,7 +60,7 @@ const waitController = new WaitController({
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
 
 function configureWaitSession() {
-  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,AppState.waitChord,AppState.practiceLoop.countIn);
+  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,allowMutedStringNoise:AppState.allowMutedStringNoise},AppState.practiceLoop.countIn);
 }
 
 function changePracticeLoop(loop) {
@@ -229,6 +229,13 @@ function wirePracticeControls() {
     clearActiveMidiNotes();configureWaitSession();renderTrainerUi();
   });
   chordControls.sync();
+  const mutedNoise=document.getElementById('allow-muted-string-noise');
+  mutedNoise.addEventListener('change',()=>{
+    const enabled=mutedNoise.checked;
+    waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
+    AppState.allowMutedStringNoise=enabled;
+    savePracticePreferences(AppState);resetRealtimeSession('muted-string-setting');configureWaitSession();renderTrainerUi();
+  });
   for(const mode of document.querySelectorAll('input[name="practice-mode"]'))mode.checked=mode.value===AppState.mode;
   for(const mode of document.querySelectorAll('input[name="practice-mode"]'))mode.addEventListener('change', event => {
     if(AppState.media.editing){AppState.mode=event.target.value==='wait'?'wait':'realtime';savePracticePreferences(AppState);renderTrainerUi();return;}
@@ -445,6 +452,8 @@ function renderTrainerUi() {
   attemptControls?.sync();
   transportControls?.sync();
   chordControls?.sync();
+  const mutedNoise=document.getElementById('allow-muted-string-noise');
+  if(mutedNoise){mutedNoise.checked=AppState.allowMutedStringNoise;mutedNoise.disabled=AppState.inputMode!=='hex-6ch' || AppState.media.editing;}
   const latencyInput = document.getElementById('midi-latency-ms');
   if (latencyInput) latencyInput.disabled = AppState.mode === 'wait';
   const pillEl = document.getElementById('trainer-match-pill');
@@ -457,7 +466,7 @@ function renderTrainerUi() {
   const practiceTrainer = AppState.mode==='wait' ? (AppState.waitTrainer||AppState.trainer) : AppState.trainer;
   const trainer=AppState.media.editing?{...practiceTrainer,currentEvent:null,noteStates:{},history:[],passHistory:[],liveWrongNotes:[],lastFeedback:null,sessionStarted:false,sessionCompleted:false,results:null,matchState:'idle',status:'Editing sync · Scoring paused',summary:'Close the sync editor to resume graded practice.'}:practiceTrainer;
   const tabStatus=document.getElementById('tab-feedback-status');
-  if(tabStatus) {tabStatus.hidden=!AppState.ui.showTabMistakes;tabStatus.textContent=AppState.inputMode==='hex-6ch'?'Fret feedback uses the selected Hex channel layout.':AppState.ui.inferPolyMistakes?'Fret numbers are inferred on expected strings, not detected positions.':'Enable non-hex fret inference to show unambiguous estimated frets.';}
+  if(tabStatus) {tabStatus.hidden=!AppState.ui.showTabMistakes;tabStatus.textContent=AppState.inputMode==='hex-6ch'?'Fret feedback interprets received MIDI pitches using the selected Hex layout; physical frets are not verified.':AppState.ui.inferPolyMistakes?'Fret numbers are inferred on expected strings, not detected positions.':'Enable non-hex fret inference to show unambiguous estimated frets.';}
   const marks=buildNotationMarks(AppState.expectedEvents,trainer.currentEvent,trainer.noteStates);
   marks.push(...buildWrongPitchMarks(AppState.expectedEvents,trainer.currentEvent,trainer.history,trainer.liveWrongNotes));
   marks.push(...buildTabErrorTargets(AppState.expectedEvents,trainer.currentEvent,trainer.history,
@@ -525,7 +534,7 @@ function renderTrainerUi() {
   }
 
   if (expectedNotesEl) {
-    expectedNotesEl.textContent = currentEvent ? formatPitchList(currentEvent.pitches) : '—';
+    expectedNotesEl.textContent = currentEvent?.isPercussive ? 'Muted strum (X) — any fresh attack' : currentEvent ? formatPitchList(currentEvent.pitches) : '—';
   }
 
   if (expectedMetaEl) {
@@ -609,6 +618,7 @@ async function bootstrap() {
   AppState.mode=preferences.mode;
   Object.assign(AppState.ui,preferences.feedback);
   AppState.waitChord=preferences.waitChord;
+  AppState.allowMutedStringNoise=preferences.allowMutedStringNoise;
   const displayPreferences=readDisplayPreferences();
   AppState.viewMode=displayPreferences.viewMode;
   Object.assign(AppState.ui,displayPreferences.ui);

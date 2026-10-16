@@ -152,6 +152,9 @@
           <details class="practice-advanced"><summary>Chord timing help</summary><p class="field-help">One at a time collects correct notes without a time limit. Together starts its window at the first correct note. Pause freezes the window; expired chords can be retried without a missed-note penalty. Changing the chord choice or window pauses practice and clears Wait results.</p></details>
           </div>
 
+          <label class="toggle-row" for="allow-muted-string-noise"><input id="allow-muted-string-noise" type="checkbox" /><span>Allow muted-string noise (Hex)</span></label>
+          <p class="field-help">Chord targets only: ignore input from omitted strings. Extra notes on those strings will not count as mistakes. Off = Strict. Changing this pauses practice and clears results.</p>
+          <p class="field-help">An all-X beat needs one fresh attack at any pitch. In mixed chords, X notes are optional. Muted strums must produce MIDI to advance Wait.</p>
           <details class="practice-advanced"><summary>MIDI timing adjustment</summary><label class="field-group" for="midi-latency-ms">
             <span class="field-label">MIDI input latency (ms)</span>
             <span class="field-help">Realtime only: increase if your MIDI guitar reports notes late. Changing this resets Realtime results.</span>

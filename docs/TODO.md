@@ -1,5 +1,14 @@
 # Guitar Trainer Studio: status and to-do
 
+### Muted strums, Hex tolerance and handoff — 2026-10-16
+
+- [x] All-X beats accept one fresh attack at any pitch in Wait/Realtime and Hex/Poly. Mixed X notes impose no pitched requirement; native rendering is preserved.
+- [x] Saved Practice → Allow muted-string noise (Hex), default off/Strict, ignores omitted-string input only for supported six-string chords. Ignored input neither penalizes nor fills required tones; Poly stays strict.
+- [x] Wait protects remaining tones of a completed strum at the next gate. Realtime favors a started chord within its existing tolerance. Fast repeated single notes retain immediate acceptance.
+- [x] No blanket <100 ms filter or fret-distance rejection. Feedback describes received-pitch interpretations; X notes no longer prescribe frets.
+- [x] 235 Node tests and an isolated actual-GP5 Chrome/simulated-MIDI check pass.
+- [ ] Owner enables Hex tolerance in Practice and checks the jazz standard with Fishman: fifth-string rakes, one attack for X chords, transitions at measures 3/4, repeated chords, fast notes, reversed strums and Strict comparison. Muted strums with no MIDI still need a detectable attack. Physical/audio acceptance remains pending.
+
 ### Independent measure and recording selections — 2026-10-15
 
 - [x] Measure/beat fields, timeline guides, saved marker clicks and secondary point-list selection change only the score target. Selected recording time, audio position and playing/paused state are preserved. The sheet reveals the measure without seeking its playback cursor.
