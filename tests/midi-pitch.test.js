@@ -18,12 +18,12 @@ function harness(events=[chord(),{...chord('next'),startTick:480}],settings={}) 
 
 test('confirmed ±12 interprets both captured semitone corrections without score-based guessing',()=>{
   const p=new MidiPitchState(12);
-  p.bend(bend(3,-682,0));const down=p.interpret(on(63,3,0));
+  p.noteOn(on(63,3,0));p.bend(bend(3,-682,0));const down=p.interpret(on(63,3,0));
   assert.equal(down.midi,62);assert.equal(down.rawMidi,63);assert.ok(Math.abs(down.soundingMidi-62)<.002);
-  p.bend(bend(3,683,0));assert.equal(p.interpret(on(61,3,0)).midi,62);
+  p.noteOn(on(61,3,0));p.bend(bend(3,683,0));assert.equal(p.interpret(on(61,3,0)).midi,62);
   assert.equal(p.interpret(on(63,2,0)).midi,63,'other channels remain independent');
   for(const [range,expected] of [[0,63],[2,63],[24,61]]) {
-    const state=new MidiPitchState(range);state.bend(bend(3,-682,0));assert.equal(state.interpret(on(63,3,0)).midi,expected);
+    const state=new MidiPitchState(range);state.noteOn(on(63,3,0));state.bend(bend(3,-682,0));assert.equal(state.interpret(on(63,3,0)).midi,expected);
   }
 });
 
@@ -67,11 +67,13 @@ test('correcting a completed historical target cannot solve or seek the current 
   assert.equal(h.state.results.correct,4);assert.equal(h.state.results.wrong,0);
 });
 
-test('pause cancels onset correction eligibility while channel bend state survives normal pause/resume',()=>{
+test('pause clears onset correction eligibility and stale bend offsets before resume',()=>{
   const h=harness();h.c.noteOn(on(63,3,0));h.time=10;h.c.toggle();h.c.noteOn(bend(3,-682,15));
   assert.equal(h.state.results.wrong,1);h.time=1000;h.c.toggle();h.c.noteOn(bend(3,-682,1010));
   assert.equal(h.state.results.wrong,1);h.c.noteOn({type:'note-off',channel:3,midi:63,at:1011});
-  h.c.noteOn(on(63,3,1020));assert.equal(h.state.results.correct,1);
+  h.c.noteOn(on(63,3,1020));assert.equal(h.state.results.correct,0);
+  assert.equal(h.state.results.wrong,2);
+  h.c.noteOn(bend(3,-682,1030));assert.equal(h.state.results.correct,1);assert.equal(h.state.results.wrong,1);
 });
 
 test('Poly and ordinary short attacks keep their attack rules; the fret-26 spike is not silently filtered',()=>{
@@ -81,6 +83,7 @@ test('Poly and ordinary short attacks keep their attack rules; the fret-26 spike
   s.noteOn(0,{...on(76,4,0),velocity:10});s.pitchBend(bend(4,-682,3),3,0);s.noteOff({channel:4,midi:76});
   assert.equal(s.stats().wrong,1);assert.equal(s.records[0].wrongNotes[0].midi,75);
   assert.equal(s.records[0].wrongNotes[0].rawMidi,76);assert.equal(s.liveWrong.size,0);
+  assert.equal(s.noteOn(0,on(55,4,192)).midi,55,'the spike correction cannot offset a new G3 base note');
   const short=new WaitSession([chord('one',[62])],{hex:true});assert.equal(short.noteOn(0,on(62,3,0)).complete,true);
   short.noteOff({channel:3,midi:62});assert.equal(short.stats().correct,1);
 });
@@ -115,4 +118,41 @@ test('capture retains the raw wrong onset and records its later correction witho
   assert.equal(report.events[1].grading.type,'pitch-corrected');assert.equal(report.events[1].grading.correction.toMidi,62);
   assert.equal(report.snapshots[0].view.pitchCorrections[0].corrections[0].rawMidi,63);
   assert.equal(h.state.results.wrong,0);assert.equal(h.state.results.correct,1);
+});
+
+test('unanchored stale +7 and -10 channel bends cannot transpose a fresh G3 or E4',()=>{
+  const p=new MidiPitchState(12);p.bend(bend(4,4779,0));p.bend(bend(2,-6826,1));
+  const g=p.noteOn(on(55,4,100)),e=p.noteOn(on(64,2,120));
+  assert.equal(g.midi,55);assert.equal(e.midi,64);
+  assert.equal(g.bendValue,0);assert.equal(g.channelBendValue,4779);
+  assert.equal(e.bendValue,0);assert.equal(e.channelBendValue,-6826);
+});
+
+test('an observed correction follows only its own raw base, and a late unassociated bend revokes it',()=>{
+  const p=new MidiPitchState(12);
+  p.noteOn(on(76,4,0));p.bend(bend(4,4779,5));assert.equal(p.interpret(on(76,4,0)).midi,83);
+  assert.equal(p.noteOn(on(55,4,100)).midi,55);
+  p.noteOn(on(63,3,200));p.bend(bend(3,-682,220));p.noteOff({channel:3,midi:63});
+  assert.equal(p.noteOn(on(63,3,500)).midi,62,'an observed correction can follow an exact repeated base');
+  p.noteOff({channel:3,midi:63});p.bend(bend(3,4779,600));
+  assert.equal(p.noteOn(on(63,3,700)).midi,63,'an unrelated bend cannot seed another attack');
+});
+
+test('captured first Am7 strum advances despite old bend state, keeping only its actual raw F4 spike error',()=>{
+  const first=chord('am',[45,55,60,64]);first.notes.forEach((n,i)=>n.string=[6,4,3,2][i]);
+  const h=harness([first,{...chord('next'),startTick:480}]);h.c.stop();
+  h.c.noteOn(bend(4,4779,1000));h.c.noteOn(bend(2,-6826,1001));h.c.start();
+  assert.equal(h.c.pitchState.range,12);
+  for(const n of [on(45,6,3350),on(65,3,3371),on(60,3,3383),on(55,4,3384),on(60,3,3396),on(64,2,3408)])h.c.noteOn(n);
+  assert.equal(h.state.currentEvent.id,'next');assert.equal(h.state.results.correct,4);assert.equal(h.state.results.wrong,1);
+  assert.deepEqual(h.state.history[0].wrongNotes.map(n=>n.rawMidi),[65]);
+});
+
+test('new attempts and restarted sessions clear a learned bend anchor while retaining the selected range',()=>{
+  const h=harness(undefined,{pitchBendRange:12});h.c.noteOn(on(63,3,0));h.c.noteOn(bend(3,-682,20));
+  assert.equal(h.c.pitchState.interpret(on(63,3,0)).midi,62);
+  h.c.newAttemptHere();assert.equal(h.c.pitchState.interpret(on(63,3,100)).midi,63);
+  h.c.noteOn(on(63,3,100));assert.equal(h.state.results.wrong,1);
+  h.c.noteOn(bend(3,-682,120));h.c.start();
+  assert.equal(h.c.pitchState.range,12);assert.equal(h.c.pitchState.interpret(on(63,3,200)).midi,63);
 });

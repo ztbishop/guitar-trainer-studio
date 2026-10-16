@@ -12,6 +12,7 @@ export class WaitSession {
     });
     this.hex=hex;this.lastFeedback=null;this.liveWrong=new Map();this.held=new Map();
     this.pitch=pitchState??new MidiPitchState(pitchBendRange);this.pitchAttacks=new Map();
+    this.pitch.reset();
     this.chordMode=chordMode==='together'?'together':'collect';
     this.chordWindowMs=Number.isFinite(chordWindowMs)&&chordWindowMs>=50&&chordWindowMs<=1000?chordWindowMs:200;
   }
@@ -26,10 +27,10 @@ export class WaitSession {
     this.lastFeedback={type:'retry',eventId:record.eventId,complete:false};return true;
   }
   noteOn(index,note,at=note.at??0) {
-    const played=this.hex?this.pitch.interpret(note):note;
+    const played=this.hex?this.pitch.noteOn({...note,at}):note;
     const feedback=this.grade(index,played,at);
     if(feedback && this.hex)feedback.pitch={rawMidi:played.rawMidi,soundingMidi:played.soundingMidi,
-      midi:played.midi,bendValue:played.bendValue,range:this.pitch.range};
+      midi:played.midi,bendValue:played.bendValue,channelBendValue:played.channelBendValue,range:this.pitch.range};
     if(this.hex)this.pitchAttacks.set(note.channel,{note:{...note,at},index,at,feedback});
     return feedback;
   }
@@ -112,6 +113,7 @@ export class WaitSession {
       channel:slot.channel,noteIds:slot.noteIds,at,complete:true};
   }
   noteOff(note) {
+    this.pitch.noteOff(note);
     if(this.pitchAttacks.get(note.channel)?.note.midi===note.midi)this.pitchAttacks.delete(note.channel);
     for(const [key,value] of this.held)if(value.channel===note.channel && (value.rawMidi??value.midi)===note.midi)this.held.delete(key);
     let changed=false;
@@ -120,7 +122,7 @@ export class WaitSession {
   }
   pitchBend(note,at=note.at??0,currentIndex=null,allowCorrection=true) {
     if(!this.hex)return null;
-    this.pitch.bend(note);
+    this.pitch.bend({...note,at});
     // Continuous bends do not create attacks. Only reconcile a wrong onset
     // during its short initial pitch-settling interval, on its original target.
     const attack=this.pitchAttacks.get(note.channel),old=attack?.feedback;

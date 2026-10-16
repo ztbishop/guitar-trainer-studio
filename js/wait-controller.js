@@ -54,6 +54,7 @@ export class WaitController {
     this.advance(this.now());this.pausedAt=this.now();
     this.session.held.clear();
     this.session.pitchAttacks.clear();
+    this.pitchState.reset();
     this.manualPaused=true;this.pausedFrom=this.phase;this.phase='paused';this.transport.pause();this.publish();return true;
   }
   start(tick=0) {
@@ -96,7 +97,7 @@ export class WaitController {
       return result;
     }
     if(!this.active || !['waiting','seeking'].includes(this.phase)) {
-      if(note.type==='note-on'){this.session.held.clear();this.session.pitchAttacks.clear();}
+      if(note.type==='note-on'){this.session.held.clear();this.session.pitchAttacks.clear();this.pitchState.reset();}
       return null;
     }
     if(note.type!=='note-on')return null;

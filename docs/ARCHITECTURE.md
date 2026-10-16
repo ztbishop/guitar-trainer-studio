@@ -1,5 +1,11 @@
 # Guitar Trainer Studio Architecture
 
+## Onset-bound bend applicability and lifecycle — 2026-10-16
+
+This supersedes the broad bend-state interpretation/persistence in the preceding implementation below. MidiPitchState keeps raw channel bends for diagnostics separately from active raw onsets and applicable correction anchors. noteOn binds channel/rawMidi/time; bend can anchor an applied value only within 60 ms of that active onset. interpret uses the anchor only for its own rawMidi. An exact raw-base repeat can reuse it; a changed base or late/unassociated bend removes it. Raw Note-Off ends active eligibility but preserves an already observed repeat anchor. Raw bend values alone cannot transpose a new base note. This is bounded attack correction, not a full MIDI expression model.
+
+WaitSession construction resets its shared interpreter, so starts/new attempts/loops/configuration begin without inherited offsets; pause/paused attacks reset it as well. The chosen range remains unchanged. Session-local correction history, raw message preservation and original-target reconciliation remain intact. Applied bendValue and diagnostic channelBendValue are reported separately. The renderer uses the same anchored interpretation and has no grading authority. No alphaTab/native transport, Poly or Realtime changes.
+
 ## Wait Hex sounding-pitch interpretation — 2026-10-16
 
 midi-pitch.js is the pure per-channel bend interpreter and saved range validator. WaitSession calls it for Hex Note-Ons; existing raw routing/channel acceptance/duplicate suppression remains in midi-router. Interpreted MIDI is round(rawMidi + bendValue * range / 8192). MIDI settings expose independently saved ±2/±12/±24 or Ignore, with owner-confirmed ±12 on first use. This affects Wait Hex only; playback pitch, score targets, Poly and Realtime are unchanged.

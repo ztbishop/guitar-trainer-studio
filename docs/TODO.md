@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Fix stale bend state blocking the first chord — 2026-10-16
+
+- [x] Latest capture confirms a regression: raw G3/E4 were shifted +7/-10 semitones by unrelated channel bend values retained before recording. The first raw strum actually contains all four required Am7 pitches.
+- [x] Apply only bend offsets observed within 60 ms of their own active raw onset. Exact repeats of that raw base can retain the observed correction; a different raw base, late/unassociated bend, pause or new session/attempt clears its applicability. Bare cached channel bend values never offset a fresh onset. This is scoped onset recognition, not universal continuous-bend interpretation.
+- [x] 273 Node tests pass, retaining prior E7/Bm correction cases and adding stale ± offsets, changed-base isolation, pause/new-attempt/start resets and the captured first Am7 sequence. Actual raw-message replay through the router/controller advances on the first strum's E, 58.1 ms after A; only its separate raw F4 spike remains an error. Syntax and whitespace checks pass.
+- [ ] Owner hard-refreshes and retries normal strums with the saved ±12 unchanged. Physical browser/Fishman acceptance remains pending. Extreme tracking spikes remain a separate policy decision.
+
 ### Wait Hex pitch-bend interpretation — 2026-10-16
 
 - [x] Owner confirms Fishman range ±12. Wait Hex now interprets per-channel Note-On + bend using that saved matching range, with ±2/±24/Ignore choices in MIDI settings. Normal attacks remain immediate; ordinary short notes are retained.
