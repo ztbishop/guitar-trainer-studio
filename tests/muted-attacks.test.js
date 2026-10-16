@@ -100,3 +100,60 @@ test('Hex tolerance preference persists independently and invalid values remain 
   assert.equal(readPracticePreferences(store).allowMutedStringNoise,true);
   value=JSON.stringify({allowMutedStringNoise:'true'});assert.equal(readPracticePreferences(store).allowMutedStringNoise,false);
 });
+
+for(const hex of [false,true])test(`Wait keeps changing and repeated X pitches out of the following chord (${hex?'Hex':'Poly'})`,()=>{
+  const s=new WaitSession([{...event('x'),isPercussive:true},event('a')],{hex});
+  assert.equal(s.noteOn(0,note(40,0,6)).complete,true);
+  // One muted gesture: a brief pitch estimate changes to a required chord tone.
+  for(const n of [note(45,12,5),note(61,24,3),note(60,43,3),note(64,49,2),note(55,71,4)]) {
+    assert.equal(s.noteOn(1,n).type,'ignored-strum-tail');
+  }
+  assert.equal(s.records[1].slots.some(slot=>slot.hit),false);
+  assert.equal(s.stats().wrong,0);
+  // A quiet 60 ms gap ends this X gesture even before the 200 ms upper bound.
+  for(const [i,p] of [45,55,60,64].entries())s.noteOn(1,note(p,131+i*15,[6,4,3,2][i]));
+  assert.equal(s.records[1].slots.every(slot=>slot.hit),true);
+  assert.equal(s.stats().correct,5);assert.equal(s.stats().wrong,0);
+});
+
+test('Hex X handoff accepts a fresh reversed strum and expires at the configured bound',()=>{
+  const targets=[{...event('x'),isPercussive:true},event('a')];
+  const s=new WaitSession(targets,{hex:true});
+  s.noteOn(0,note(64,0,2));s.noteOn(1,note(60,20,3));s.noteOn(1,note(55,40,4));
+  assert.equal(s.noteOn(1,note(64,70,2)).type,'correct');
+  for(const [i,p] of [60,55,45].entries())s.noteOn(1,note(p,80+i*10,[3,4,6][i]));
+  assert.equal(s.stats().correct,5);
+  const bounded=new WaitSession(targets,{hex:true,chordWindowMs:50});
+  bounded.noteOn(0,note(40,0,6));bounded.noteOn(1,note(61,45,3));
+  assert.equal(bounded.noteOn(1,note(60,51,3)).type,'correct');
+});
+
+for(const hex of [false,true])test(`one X gesture cannot solve a second X target; a fast fresh single still works (${hex?'Hex':'Poly'})`,()=>{
+  const x={...event('x'),isPercussive:true};
+  const s=new WaitSession([x,{...x,id:'x2'},event('single',[60],[3])],{hex});
+  s.noteOn(0,note(40,0,6));
+  for(const n of [note(60,15,3),note(61,30,3),note(60,45,3)])assert.equal(s.noteOn(1,n).type,'ignored-strum-tail');
+  assert.equal(s.stats().correct,1);
+  assert.equal(s.noteOn(1,note(40,110,6)).complete,true);
+  assert.equal(s.noteOn(2,note(60,180,3)).complete,true);
+  assert.equal(s.stats().correct,3);assert.equal(s.stats().wrong,0);
+});
+
+for(const hex of [false,true])test(`Wait chord correction ignores collected tones but retains a genuine wrong fret (${hex?'Hex':'Poly'})`,()=>{
+  const s=new WaitSession([event('bm',[47,57,62,65])],{hex});
+  for(const [i,p] of [47,57,62].entries())s.noteOn(0,note(p,i*30,[6,4,3][i]));
+  const wrong=s.noteOn(0,note(66,100,2)); // fret 7 instead of fret 6 on string 2
+  assert.equal(wrong.type,'wrong');assert.equal(wrong.wrongPitch,true);
+  for(const [i,p] of [47,57,62].entries())assert.equal(s.noteOn(0,note(p,1000+i*30,[6,4,3][i])).type,'ignored-collected-tone');
+  assert.equal(s.noteOn(0,note(65,1100,2)).complete,true);
+  assert.equal(s.stats().wrong,1);assert.equal(s.stats().correct,4);
+  assert.equal(s.feedbackHistory()[0].outcome,'completed-with-errors');
+  assert.equal(s.feedbackHistory()[0].wrongNotes[0].midi,66);
+});
+
+test('Together still expires incomplete chords before accepting replayed tones',()=>{
+  const s=new WaitSession([event('a')],{hex:true,chordMode:'together',chordWindowMs:100});
+  s.noteOn(0,note(45,0,6));assert.equal(s.noteOn(0,note(45,50,6)).type,'ignored-collected-tone');
+  assert.equal(s.noteOn(0,note(45,101,6)).type,'correct');
+  assert.equal(s.stats().retries,1);assert.equal(s.stats().correct,1);assert.equal(s.stats().wrong,0);
+});

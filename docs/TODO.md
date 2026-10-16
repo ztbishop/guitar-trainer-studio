@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Wait X handoff and repeated chord tones — 2026-10-16
+
+- [x] Keep repeated/changing pitch messages inside one X gesture out of the next target. A quiet 60 ms gap or a repeated starting identity after 60 ms starts a new gesture, within the existing maximum 200 ms (or shorter configured window) guard. Pitched-chord handoff and Realtime remain unchanged.
+- [x] Replaying collected required tones in Wait adds neither credit nor a wrong-note penalty. Hex unisons still require distinct channels; Together expiry still clears partial hits. Genuine wrong pitches retain their penalties and feedback.
+- [x] 243 Node tests, changed application-module syntax and whitespace checks pass. Synthetic cases cover the captured changing-pitch X sequence, consecutive X targets, reversed strums, fast singles, Hex unisons, Together expiry and the measure-4 fret-7/fret-6 correction.
+- [ ] Fresh Fishman acceptance in the normal Live Server/browser: enable Allow muted-string noise (Hex), clear results, then check X → chord transitions, repeated/reversed strums and correcting measure 4. Compare Strict separately. Very rapid X/chord gestures remain subject to the bounded heuristic; MIDI alone cannot prove gesture identity. No new overall accuracy claim from replaying the old, differently advanced performance.
+
 ### Muted strums, Hex tolerance and handoff — 2026-10-16
 
 - [x] All-X beats accept one fresh attack at any pitch in Wait/Realtime and Hex/Poly. Mixed X notes impose no pitched requirement; native rendering is preserved.

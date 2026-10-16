@@ -79,7 +79,8 @@ test('new score configuration clears partial hits and pending cursor work',()=>{
 test('hex unisons require distinct channels; single-channel unisons share pitch target',()=>{
  const events=[event('a',0,[60,60])];const single=new WaitSession(events);assert.equal(single.noteOn(0,note(60)).complete,true);
  const hex=new WaitSession(events,{hex:true});assert.equal(hex.noteOn(0,note(60,1)).complete,false);
- assert.equal(hex.noteOn(0,note(60,1)).type,'wrong');assert.equal(hex.noteOn(0,note(60,2)).complete,true);
+ assert.equal(hex.noteOn(0,note(60,1)).type,'ignored-collected-tone');assert.equal(hex.stats().wrong,0);
+ assert.equal(hex.noteOn(0,note(60,2)).complete,true);
 });
 const context=vm.createContext({console,process});vm.runInContext(fs.readFileSync(new URL('../assets/vendor/alphatab/alphaTab.js',import.meta.url),'utf8'),context);
 const at=context.alphaTab;

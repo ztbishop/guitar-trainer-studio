@@ -1,5 +1,11 @@
 # Guitar Trainer Studio Architecture
 
+## Wait collected tones and percussive gesture boundary — 2026-10-16
+
+WaitSession returns ignored-collected-tone for already-collected required pitches without adding credit, penalties or wrong-pitch history. Hex channel identity still prevents one channel from filling multiple same-pitch slots. Together expiry precedes duplicate handling and preserves its existing full-chord retry behavior. Real wrong pitches, stored feedback and Realtime grading are unchanged. This supersedes older statements that Wait duplicate required tones retain penalties.
+
+Percussive tail state additionally retains lastAt and firstIdentity. Within the existing min(200 ms, configured chord window) bound, all X-tail messages remain ignored, including changing pitches on repeated channels. A quiet gap of TimingDefaults.chordGroupingMs (60 ms), or a repeated starting identity at least that long after the start, ends the guard. Hex identity is channel; Poly identity is pitch. Pitched tails retain the previous seen-identity/pitch rules. Sessions/seeks/loops reset the guard as before; the controller's pause-adjusted clock remains authoritative. This bounded heuristic can still merge exceptionally rapid gestures; hardware acceptance is pending. Rendering, alphaTab transport and MIDI normalization do not participate in this decision.
+
 ## Muted attack semantics and scoped tolerance — 2026-10-16
 
 score-playback preserves isDead/stringCount, removes optional X notes from mixed practice groups, and flags all-X groups as isPercussive while retaining native source IDs. attack-rules builds shared Wait/Realtime slots: all-X groups have one wildcard slot covering their written notes. Native score/timeline data stays intact. practice-visuals omits dead-note frets from prescribed fretboard targets.

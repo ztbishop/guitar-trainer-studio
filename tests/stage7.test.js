@@ -36,7 +36,7 @@ test('Collect notes remains unlimited and Together leaves single-note targets im
 });
 test('single-channel unisons merge; hex unisons need two fresh channels within the window',()=>{
  const events=[event('a',[60,60])];assert.equal(together(events).noteOn(0,note(60,0)).complete,true);
- const hex=together(events,{hex:true});hex.noteOn(0,note(60,0,1));assert.equal(hex.noteOn(0,note(60,50,1)).type,'wrong');
+ const hex=together(events,{hex:true});hex.noteOn(0,note(60,0,1));assert.equal(hex.noteOn(0,note(60,50,1)).type,'ignored-collected-tone');
  assert.equal(hex.noteOn(0,note(60,100,2)).complete,true);
  const expired=together(events,{hex:true});expired.noteOn(0,note(60,0,1));assert.equal(expired.noteOn(0,note(60,201,2)).complete,false);
  assert.equal(expired.noteOn(0,note(60,220,1)).complete,true);

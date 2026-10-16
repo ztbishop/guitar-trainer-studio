@@ -48,7 +48,7 @@ test('ambiguous errors stay unassigned after later correction and duplicates do 
   assert.deepEqual(s.records[0].wrongNotes[0].inferredNoteIds,[]);
   assert.deepEqual(projection(s),[]);
   assert.deepEqual(noteStatesFromRecords(s.records),{low:'correct',high:'correct'});
-  assert.equal(s.records[0].wrongNotes.length,1);assert.equal(s.stats().wrong,2);
+  assert.equal(s.records[0].wrongNotes.length,1);assert.equal(s.stats().wrong,1);
 });
 
 test('multiple independent Poly releases and current repeat occurrences clear stale inferred marks',()=>{

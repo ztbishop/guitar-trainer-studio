@@ -25,9 +25,9 @@ test('Poly Wait retains wrong pitches after release without recoloring accepted 
  s.noteOn(0,on(64));assert.deepEqual(noteStatesFromRecords(s.records),{'a:0':'correct','a:1':'correct'});
  assert.equal(s.feedbackHistory()[0].outcome,'completed-with-errors');assert.equal(s.stats().accuracy,67);
 });
-test('clean completion stays green and duplicate required pitches keep scoring without false pitch history',()=>{
+test('clean completion stays green and duplicate collected tones add no penalty or false pitch history',()=>{
  const s=new WaitSession([target('a',[60,64])]);s.noteOn(0,on(60));s.noteOn(0,on(60));s.noteOn(0,on(64));
- assert.equal(s.stats().wrong,1);assert.equal(s.records[0].wrongNotes.length,0);
+ assert.equal(s.stats().wrong,0);assert.equal(s.records[0].wrongNotes.length,0);
  assert.deepEqual(noteStatesFromRecords(s.records),{'a:0':'correct','a:1':'correct'});
 });
 test('multiple channels and pitches release independently, including while paused',()=>{

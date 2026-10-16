@@ -1,6 +1,7 @@
 // Untimed attack collection for a gated note-for-note session. No transport/UI APIs.
 import {inferPolyExpectedNoteIds} from './poly-feedback.js';
 import {attackSlots,ignoresMutedString} from './attack-rules.js';
+import {TimingDefaults} from './practice-timing.js';
 export class WaitSession {
   constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,allowMutedStringNoise=false} = {}) {
     this.events=events;this.allowMutedStringNoise=allowMutedStringNoise;this.tail=null;
@@ -26,14 +27,26 @@ export class WaitSession {
     const event=this.events[index],key=this.hex?`${note.channel}:${note.midi}`:String(note.midi);
     // Collect may finish on the low strings of a fresh strum after earlier partial
     // hits. Its remaining old chord tones belong to that strum, not the next gate.
-    // A repeated attack identity starts a new gesture; single notes have no guard.
+    // Pitched tails use repeated identities to recognize a new gesture. X tails
+    // can change pitch repeatedly on one string, so retain the whole burst until
+    // a quiet gap or a fresh attack on its starting identity. Singles have no guard.
     if(this.tail && this.tail.index===index-1 && at>=this.tail.at && at-this.tail.at<=this.tail.window) {
       const tail=this.tail,identity=this.hex?String(note.channel):String(note.midi);
-      if(!tail.seen.has(identity) && (tail.percussive || tail.pitches.has(note.midi))) {
-        tail.seen.add(identity);
-        return {type:'ignored-strum-tail',eventId:this.records[index-1].eventId,midi:note.midi,complete:false};
+      if(tail.percussive) {
+        const gap=TimingDefaults.chordGroupingMs;
+        const fresh=at-tail.lastAt>=gap || (identity===tail.firstIdentity && at-tail.at>=gap);
+        if(!fresh) {
+          tail.lastAt=at;
+          return {type:'ignored-strum-tail',eventId:this.records[index-1].eventId,midi:note.midi,complete:false};
+        }
+        this.tail=null;
+      } else {
+        if(!tail.seen.has(identity) && tail.pitches.has(note.midi)) {
+          tail.seen.add(identity);
+          return {type:'ignored-strum-tail',eventId:this.records[index-1].eventId,midi:note.midi,complete:false};
+        }
+        if(tail.seen.has(identity))this.tail=null;
       }
-      if(tail.seen.has(identity))this.tail=null;
     } else this.tail=null;
     if(ignoresMutedString(event,note,this.hex,this.allowMutedStringNoise))return {type:'ignored-muted-string',eventId:event.id,midi:note.midi,complete:false};
     const identity=this.hex?String(note.channel):String(note.midi);
@@ -44,9 +57,10 @@ export class WaitSession {
     const duplicate=this.hex && record.slots.some(s=>s.hit && s.midi===note.midi && s.channel===note.channel);
     const slot=record.slots.find(s=>!s.hit && (event.isPercussive || s.midi===note.midi));
     if(!slot || duplicate) {
-      // Repeated/duplicate required tones retain the prior scoring penalty, but
-      // they are not received-wrong pitches and must not turn a solved tab red.
       const wrongPitch=!record.slots.some(s=>s.midi===note.midi);
+      // Replaying a collected tone cannot fill another Hex unison slot and does
+      // not add a penalty while the learner supplies the missing chord tones.
+      if(!wrongPitch)return {type:'ignored-collected-tone',eventId:record.eventId,midi:note.midi,complete:false};
       record.wrong++;
       const feedback={type:'wrong',eventId:record.eventId,midi:note.midi,channel:note.channel,
         stringHint:note.stringHint??null,at,wrongPitch,complete:false};
@@ -61,6 +75,7 @@ export class WaitSession {
     record.attemptStartAt??=at;
     const complete=record.slots.every(s=>s.hit);
     if(complete && (record.slots.length>1 || event.isPercussive))this.tail={index,at:record.burst.at,window,
+      lastAt:at,firstIdentity:record.burst.seen.values().next().value,
       seen:new Set(record.burst.seen),pitches:new Set(record.slots.map(s=>s.midi)),percussive:event.isPercussive};
     return this.lastFeedback={type:'correct',eventId:record.eventId,midi:note.midi,noteIds:slot.noteIds,expiredAttempt,complete};
   }

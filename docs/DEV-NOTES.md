@@ -1,5 +1,15 @@
 # Development notes
 
+## Wait correction penalties and changing-pitch X tails — 2026-10-16
+
+Owner authorized this grading correction after a read-only diagnosis. The latest 1,636-message capture exactly reproduced 260 correct / 58 wrong (82%) through the prior engine. Its mutually exclusive penalty groups were 32 omitted-string inputs, 19 repeats on required strings and seven other wrong-pitch inputs on required strings. Hex noise tolerance was off; enabling it in the prior-engine replay gave 91%. The owner's measure-4 error was received F#4 on string 2 (fret 7 versus expected F4/fret 6). Correct B/A/D reattacks during correction also incurred penalties.
+
+Wait now returns ignored-collected-tone without adding credit, wrong count or wrong-pitch history when a required pitch is already collected. Same-channel Hex repeats cannot fill another unison slot; a distinct channel remains necessary. Together expiry runs first, so a fresh attempt still requires the full chord within its window. Genuine wrong pitches and their retained feedback remain intact; Realtime is unchanged.
+
+The previous X tail guard ended when any seen channel/pitch repeated, allowing a brief changing estimate on string 3 to seed the following pitched target. Percussive tails now ignore the whole burst, including repeated/changing identities. A 60 ms quiet gap (shared chordGroupingMs), or reattack of the starting channel in Hex / starting pitch in Poly at least 60 ms after gesture start, ends the guard. Its existing maximum 200 ms / shorter configured window still bounds it. Pitched-tail rules and ordinary single-note targets are unchanged. This is a bounded gesture heuristic, not a duration filter or reliable physical-strum detector.
+
+Validation: 243 Node tests pass, including synthetic versions of the supplied sequences, multiple X targets, reversed strums, fast singles, unisons, Together expiry and retention of the genuine fret-7 error after replayed correct tones. Application syntax and whitespace checks pass. Existing tests that expected duplicate penalties were updated to the authorized behavior. Replaying the old full capture after changing target advancement diverges: the owner played against the old cursor, and some strums lack required MIDI tones. It cannot establish a new overall percentage. Fresh Fishman/browser acceptance remains pending. No personal capture/score files were added; no native alphaTab, MIDI normalization, UI, preference default, version, Git publishing or deferred-feature changes.
+
 ## Muted attacks and chord handoff — 2026-10-16
 
 Owner supplied fvjgfr-002.gp5 and a 628-message TriplePlay capture. Read-only replay reproduced all 149 graded attacks and 43 wrong attacks. Eight of the first 32 targets were all-X beats incorrectly requiring four pitches. Measure-3/4 wrong upper notes followed advancement partway through the preceding strum (35 ms and 28–53 ms). Fret 26 was derived from received F#4 on channel/string 6 (velocity 10, 66 ms), not proof of that physical fret.
