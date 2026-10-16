@@ -17,10 +17,11 @@ export function stopMidiCapture(){if(recording)markMidiSnapshot('Stopped');recor
 function targetInfo(event){return event?{eventId:event.id,measure:event.measureNumber,occurrence:event.occurrence,
   isPercussive:Boolean(event.isPercussive),mutedStrings:[...(event.mutedStrings??[])],
   notes:event.notes.map(n=>({midi:n.midi,string:n.string,fret:n.fret,isDead:Boolean(n.isDead),sourceNoteId:String(n.sourceNoteId)}))}:null;}
-export function captureMidiEvent(note,{input,accepted}={}) {
+export function captureMidiEvent(note,{input,accepted,receivedAt=performance.now()}={}) {
   if(!recording)return null;
   const target=AppState.mode==='wait'?AppState.waitTrainer?.currentEvent:AppState.trainer.currentEvent;
   const row={sequence:events.length+1,timeMs:note.at-startedClock,at:note.at,type:note.type,channel:note.channel,
+    receivedTimeMs:receivedAt-startedClock,dispatchDelayMs:Math.max(0,receivedAt-note.at),
     midi:note.midi,noteName:note.noteName,velocity:note.velocity,stringHint:note.stringHint,
     raw:[...note.raw],bendValue:note.bendValue,accepted:Boolean(accepted),
     device:{id:input?.id,name:input?.name},mode:AppState.mode,inputMode:AppState.inputMode,
@@ -46,6 +47,7 @@ export function captureMidiEvent(note,{input,accepted}={}) {
 }
 export function captureMidiOutcome(row,outcome) {
   if(!row)return;
+  row.handlerDurationMs=Math.max(0,performance.now()-startedClock-row.receivedTimeMs);
   row.grading=outcome && typeof outcome==='object'?{
     type:outcome.type,eventId:outcome.eventId,midi:outcome.midi,wrongPitch:outcome.wrongPitch,
     complete:outcome.complete,target:targetInfo(AppState.expectedEvents.find(event=>event.id===outcome.eventId)),
@@ -68,6 +70,8 @@ export function captureFeedbackView(marks,trainer) {
     scoreFileName:AppState.ui.loadedFileName,practiceTrackId:AppState.practiceTrackId,
     visibility:{staff:AppState.ui.showNotationFeedback,tabHighlights:AppState.ui.showTabCircles,tabFrets:AppState.ui.showTabMistakes,polyInference:AppState.ui.inferPolyMistakes},
     results:structuredClone(trainer.results??null),lastFeedback:structuredClone(trainer.lastFeedback??null),
+    heldSupport:structuredClone((trainer.history??[]).filter(r=>r.supportedHeldNotes?.length)
+      .map(r=>({eventId:r.eventId,pass:r.pass,notes:r.supportedHeldNotes}))),
     liveWrongNotes:structuredClone(trainer.liveWrongNotes??[]),marks:structuredClone(marks)};
 }
 export function markMidiSnapshot(label='Screenshot') {

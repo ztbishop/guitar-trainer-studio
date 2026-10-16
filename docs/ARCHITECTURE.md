@@ -1,5 +1,15 @@
 # Guitar Trainer Studio Architecture
 
+## Repeated Hex chord evidence — 2026-10-16
+
+wait-chord-gesture.js owns pure eligibility for one supported held tone in a consecutive identical pitched chord. WaitSession owns held channel/pitch onset evidence, per-slot attack/held provenance and settlement; WaitController.advance invokes settlement using its existing pause-adjusted 50 ms clock and the same gate-completion path as received attacks. Routing remains raw normalization/filtering/held-duplicate suppression: it never manufactures a Note-On. Realtime is unchanged.
+
+Scope is Collect/One at a time, six-string Hex, at least three slots, exactly one pending tone and all other tones freshly hit on distinct channels within min(200 ms, configured window). Matching prior/current MIDI+written-string signatures constrain repeated-chord recognition; fresh attack grading remains pitch-based. The prior tone must have actual-attack provenance, its original channel/pitch onset must remain held, and its channel must differ from the fresh ones. An inferred tone cannot support another occurrence. Releases, replacement pitches and noncentral bend invalidate evidence. Pause, session replacement, seeks, loops and new attempts clear it. Together, Poly, new chord shapes, muted targets and ordinary singles retain their attack rules.
+
+Settlement waits the full bounded gesture window and at least chordGroupingMs quiet. The existing clock must service the decision within another chordGroupingMs; delayed/stale callbacks cannot create credit. Wrong pitches in a gesture prevent support. Fully attacked chords keep immediate progression. Supported slots count toward recognized chord correctness, with evidence='held'; feedbackHistory.supportedHeldNotes explicitly records freshAttack:false, stats.supportedHeld counts them and diagnostics disclose the distinction. Capture snapshots preserve the support list separately from raw events. This is conservative chord recognition, not independent detection of each string's reattack.
+
+midi-router records listener-entry performance time before normalization; midi-capture stores receivedTimeMs, dispatchDelayMs and handlerDurationMs for an opt-in capture. These are browser/app timing diagnostics, not pickup or end-to-end latency. Existing capture remains before channel/held-duplicate filtering. Replay can verify every delivered byte and decision through this boundary but cannot establish whether a live physical strike generated or delivered a message upstream.
+
 ## Wait collected tones and percussive gesture boundary — 2026-10-16
 
 WaitSession returns ignored-collected-tone for already-collected required pitches without adding credit, penalties or wrong-pitch history. Hex channel identity still prevents one channel from filling multiple same-pitch slots. Together expiry precedes duplicate handling and preserves its existing full-chord retry behavior. Real wrong pitches, stored feedback and Realtime grading are unchanged. This supersedes older statements that Wait duplicate required tones retain penalties.

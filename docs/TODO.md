@@ -1,5 +1,14 @@
 # Guitar Trainer Studio: status and to-do
 
+### MIDI input audit and repeated Hex chord recognition — 2026-10-16
+
+- [x] Replayed all 486 raw messages from the latest capture through the actual router: all 486 preserved byte-for-byte; all 243 selected-channel messages delivered; no held duplicates suppressed. This is reproducible code-path evidence, not proof of live device/browser delivery before the capture boundary.
+- [x] Wait One at a time can recognize one still-held matching tone in a repeated identical six-string Hex chord with at least three tones, when all other tones have fresh attacks on distinct channels within a short gesture. It waits min(200 ms, configured window) from gesture start plus at least 60 ms quiet before settlement through the existing controller clock. Fresh full chords remain immediate.
+- [x] Release, changed pitch, noncentral pitch bend, wrong notes in the gesture, paused/restarted practice, stale gestures, ambiguous/reused channels, new chords, Poly and Together prevent support. Support cannot chain to another chord without a real reattack of that tone.
+- [x] Diagnostics/history/snapshot reports distinguish held-note support from verified attacks; help explains chord recognition versus reattack verification. Capture also records browser dispatch delay and app handler duration without altering routing.
+- [x] 255 Node tests pass; raw-router/controller/recording-on-and-off tests cover evidence preservation, delayed settlement and wrong-fret retention. Isolated replay of all three held-E chord pairs now completes each without errors. The final C case remains pending: it was released with no fresh Note-On and cannot safely be inferred. No personal capture/score data added.
+- [ ] Owner fresh Live Server/Fishman check: normal repeated Am7 strums in Hex / One at a time, with diagnostics recording on. Observe held-note support count, X transitions and intentional wrong upper notes. If the released-C stall remains, compare the same short passage in the existing Fishman monitor separately; this distinguishes missing-before-capture input from app decisions. Physical/live browser acceptance remains pending.
+
 ### Wait X handoff and repeated chord tones — 2026-10-16
 
 - [x] Keep repeated/changing pitch messages inside one X gesture out of the next target. A quiet 60 ms gap or a repeated starting identity after 60 ms starts a new gesture, within the existing maximum 200 ms (or shorter configured window) guard. Pitched-chord handoff and Realtime remain unchanged.

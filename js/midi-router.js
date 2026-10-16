@@ -87,6 +87,7 @@ function setActiveInput(input) {
 
   if (activeInput) {
     activeListener = (message) => {
+      const receivedAt=performance.now();
       const normalized = normalizeMidiMessage(message, {
         inputMode: AppState.inputMode,
         hexChannelBase: AppState.midi.hexChannelBase,
@@ -95,7 +96,7 @@ function setActiveInput(input) {
 
       if (!normalized) return;
       const accepted=isEventInSelectedChannelRange(normalized);
-      const capture=captureMidiEvent(normalized,{input:activeInput,accepted});
+      const capture=captureMidiEvent(normalized,{input:activeInput,accepted,receivedAt});
       // Release tracked notes even if the selected filter has changed.
       if (normalized.type === 'note-off') removeActiveNote(normalized);
       if (!accepted) {

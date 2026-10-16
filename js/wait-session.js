@@ -2,13 +2,14 @@
 import {inferPolyExpectedNoteIds} from './poly-feedback.js';
 import {attackSlots,ignoresMutedString} from './attack-rules.js';
 import {TimingDefaults} from './practice-timing.js';
+import {supportedHeldTone} from './wait-chord-gesture.js';
 export class WaitSession {
   constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,allowMutedStringNoise=false} = {}) {
     this.events=events;this.allowMutedStringNoise=allowMutedStringNoise;this.tail=null;
     this.records=events.map(event=>{
       return {eventId:event.id,slots:attackSlots(event,hex,false),wrong:0,wrongNotes:[],retries:0,attemptStartAt:null,skipped:false,burst:null};
     });
-    this.hex=hex;this.lastFeedback=null;this.liveWrong=new Map();
+    this.hex=hex;this.lastFeedback=null;this.liveWrong=new Map();this.held=new Map();
     this.chordMode=chordMode==='together'?'together':'collect';
     this.chordWindowMs=Number.isFinite(chordWindowMs)&&chordWindowMs>=50&&chordWindowMs<=1000?chordWindowMs:200;
   }
@@ -25,6 +26,10 @@ export class WaitSession {
   noteOn(index,note,at=note.at??0) {
     const record=this.records[index];if(!record || record.skipped) return null;
     const event=this.events[index],key=this.hex?`${note.channel}:${note.midi}`:String(note.midi);
+    // Hex channels describe monophonic strings. A changed pitch invalidates the
+    // old held evidence even if the source omitted its release.
+    if(this.hex)for(const [heldKey,value] of this.held)if(value.channel===note.channel)this.held.delete(heldKey);
+    this.held.set(`${note.channel}:${note.midi}`,{...note,at});
     // Collect may finish on the low strings of a fresh strum after earlier partial
     // hits. Its remaining old chord tones belong to that strum, not the next gate.
     // Pitched tails use repeated identities to recognize a new gesture. X tails
@@ -51,7 +56,8 @@ export class WaitSession {
     if(ignoresMutedString(event,note,this.hex,this.allowMutedStringNoise))return {type:'ignored-muted-string',eventId:event.id,midi:note.midi,complete:false};
     const identity=this.hex?String(note.channel):String(note.midi);
     const window=Math.min(200,this.chordWindowMs);
-    if(!record.burst || at-record.burst.at>window || record.burst.keys.has(key))record.burst={at,keys:new Set(),seen:new Set()};
+    if(!record.burst || at-record.burst.at>window || record.burst.keys.has(key))record.burst={at,keys:new Set(),seen:new Set(),wrong:false};
+    record.burst.lastAt=at;
     record.burst.keys.add(key);record.burst.seen.add(identity);
     const expiredAttempt=this.expire(index,at);
     const duplicate=this.hex && record.slots.some(s=>s.hit && s.midi===note.midi && s.channel===note.channel);
@@ -61,6 +67,7 @@ export class WaitSession {
       // Replaying a collected tone cannot fill another Hex unison slot and does
       // not add a penalty while the learner supplies the missing chord tones.
       if(!wrongPitch)return {type:'ignored-collected-tone',eventId:record.eventId,midi:note.midi,complete:false};
+      record.burst.wrong=true;
       record.wrong++;
       const feedback={type:'wrong',eventId:record.eventId,midi:note.midi,channel:note.channel,
         stringHint:note.stringHint??null,at,wrongPitch,complete:false};
@@ -71,7 +78,7 @@ export class WaitSession {
       }
       return this.lastFeedback=feedback;
     }
-    slot.hit=true;slot.channel=note.channel;
+    slot.hit=true;slot.channel=note.channel;slot.hitAt=at;slot.evidence='attack';
     record.attemptStartAt??=at;
     const complete=record.slots.every(s=>s.hit);
     if(complete && (record.slots.length>1 || event.isPercussive))this.tail={index,at:record.burst.at,window,
@@ -79,20 +86,38 @@ export class WaitSession {
       seen:new Set(record.burst.seen),pitches:new Set(record.slots.map(s=>s.midi)),percussive:event.isPercussive};
     return this.lastFeedback={type:'correct',eventId:record.eventId,midi:note.midi,noteIds:slot.noteIds,expiredAttempt,complete};
   }
+  settle(index,at) {
+    const supported=supportedHeldTone(this.events,this.records,this.held,index,at,this);
+    if(!supported)return null;
+    const {slot,source}=supported,record=this.records[index];
+    slot.hit=true;slot.channel=source.channel;slot.evidence='held';
+    // All fresh tones have already arrived; none of them is carried to the next
+    // target. Held support is recorded separately from a received MIDI attack.
+    this.tail=null;
+    return this.lastFeedback={type:'supported-held-tone',eventId:record.eventId,midi:slot.midi,
+      channel:slot.channel,noteIds:slot.noteIds,at,complete:true};
+  }
   noteOff(note) {
+    this.held.delete(`${note.channel}:${note.midi}`);
     return this.liveWrong.delete(`${note.channel}:${note.midi}`);
+  }
+  pitchBend(note) {
+    if(!this.hex || note.bendValue===0)return;
+    for(const [key,value] of this.held)if(value.channel===note.channel)this.held.delete(key);
   }
   clearLiveWrong() { this.liveWrong.clear(); }
   feedbackHistory(pass=1) {
     return this.records.filter(r=>!r.skipped).map(record=>({eventId:record.eventId,pass,
       completed:record.slots.every(s=>s.hit),
       outcome:record.slots.every(s=>s.hit)?(record.wrongNotes.length?'completed-with-errors':'completed-clean'):'pending',
+      supportedHeldNotes:record.slots.filter(s=>s.evidence==='held').map(s=>({midi:s.midi,channel:s.channel,noteIds:[...s.noteIds],evidence:'held',freshAttack:false})),
       wrongNotes:record.wrongNotes.map(note=>({...note})),retries:record.retries}));
   }
   stats() {
     const records=this.records.filter(r=>!r.skipped);const slots=records.flatMap(r=>r.slots);
     const correct=slots.filter(s=>s.hit).length;const wrong=records.reduce((n,r)=>n+r.wrong,0);
     const retries=records.reduce((n,r)=>n+r.retries,0);
-    return {correct,wrong,retries,missed:0,pending:slots.length-correct,total:slots.length,accuracy:correct+wrong?Math.round(100*correct/(correct+wrong)):null};
+    return {correct,wrong,retries,missed:0,pending:slots.length-correct,total:slots.length,
+      supportedHeld:slots.filter(s=>s.evidence==='held').length,accuracy:correct+wrong?Math.round(100*correct/(correct+wrong)):null};
   }
 }

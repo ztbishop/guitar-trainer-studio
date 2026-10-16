@@ -32,7 +32,7 @@ export class WaitController {
     if(this.phase==='complete') {matchState='match';status='Wait practice complete';}
     const stats=this.session?.stats()??null;
     this.onChange({phase:this.phase,active:this.active,currentEvent,currentEventIndex:this.index,matchState,status,
-      summary:stats?`${this.loop?`Pass ${this.pass} • `:''}Correct ${stats.correct} • Wrong ${stats.wrong} • Remaining ${stats.pending}${stats.retries?` • Chord retries ${stats.retries}`:''}`:'No targets loaded',
+      summary:stats?`${this.loop?`Pass ${this.pass} • `:''}Correct ${stats.correct} • Wrong ${stats.wrong} • Remaining ${stats.pending}${stats.retries?` • Chord retries ${stats.retries}`:''}${stats.supportedHeld?` • Held-note support ${stats.supportedHeld} (reattack unverified)`:''}`:'No targets loaded',
       results:stats,noteStates:noteStatesFromRecords(this.session?.records,true,{hex:this.hex}),lastFeedback:this.session?.lastFeedback,
       history:this.session?.feedbackHistory(this.pass)??[],passHistory:this.passHistory,
       liveWrongNotes:[...(this.session?.liveWrong.values()??[])],
@@ -48,6 +48,7 @@ export class WaitController {
       this.beginGate(this.index,true);return true;
     }
     this.advance(this.now());this.pausedAt=this.now();
+    this.session.held.clear();
     this.manualPaused=true;this.pausedFrom=this.phase;this.phase='paused';this.transport.pause();this.publish();return true;
   }
   start(tick=0) {
@@ -82,16 +83,22 @@ export class WaitController {
     // Accept attacks during positioning; never depend on playback/duration.
     // Releases also apply while paused, so stale held markers never reappear.
     if(note.type==='note-off') {if(this.session.noteOff(note))this.publish();return null;}
-    if(!this.active || !['waiting','seeking'].includes(this.phase) || note.type!=='note-on')return null;
+    if(note.type==='pitch-bend'){this.session.pitchBend(note);return null;}
+    if(!this.active || !['waiting','seeking'].includes(this.phase)) {
+      if(note.type==='note-on')this.session.held.clear();
+      return null;
+    }
+    if(note.type!=='note-on')return null;
     const at=(Number.isFinite(note.at)?note.at:this.now())-this.pauseOffset;
     const result=this.session.noteOn(this.index,note,at);
     this.publish();
-    if(result?.complete) {
-      this.session.clearLiveWrong();
-      const next=this.index+1;
-      if(next<this.events.length)this.gate(next);else this.complete();
-    }
+    if(result?.complete)this.finishGate();
     return result;
+  }
+  finishGate() {
+    this.session.clearLiveWrong();
+    const next=this.index+1;
+    if(next<this.events.length)this.gate(next);else this.complete();
   }
   positionChanged({currentTick,isSeek=false}) {
     if(!this.active)return;
@@ -111,6 +118,7 @@ export class WaitController {
   advance(at=this.now()) {
     if(!this.active || !['waiting','seeking'].includes(this.phase))return;
     if(this.session.expire(this.index,at-this.pauseOffset))this.publish();
+    if(this.session.settle(this.index,at-this.pauseOffset)?.complete)this.finishGate();
   }
   restartAt(tick) {
     const paused=this.manualPaused;
