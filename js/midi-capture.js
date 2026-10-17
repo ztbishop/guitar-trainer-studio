@@ -57,6 +57,7 @@ export function captureMidiOutcome(row,outcome) {
     complete:outcome.complete,target:targetInfo(AppState.expectedEvents.find(event=>event.id===outcome.eventId)),
     correction:outcome.correction?structuredClone(outcome.correction):undefined,
     pitch:outcome.pitch?structuredClone(outcome.pitch):undefined,
+    trackingSpike:outcome.trackingSpike?structuredClone(outcome.trackingSpike):undefined,
   }:null;
   const target=AppState.mode==='wait'?AppState.waitTrainer?.currentEvent:AppState.trainer.currentEvent;
   row.targetAfter=targetInfo(target);
@@ -81,6 +82,8 @@ export function captureFeedbackView(marks,trainer) {
       .map(r=>({eventId:r.eventId,pass:r.pass,notes:r.supportedHeldNotes}))),
     pitchCorrections:structuredClone((trainer.history??[]).filter(r=>r.pitchCorrections?.length)
       .map(r=>({eventId:r.eventId,pass:r.pass,corrections:r.pitchCorrections}))),
+    trackingSpikes:structuredClone((trainer.history??[]).filter(r=>r.trackingSpikes?.length)
+      .map(r=>({eventId:r.eventId,pass:r.pass,corrections:r.trackingSpikes}))),
     liveWrongNotes:structuredClone(trainer.liveWrongNotes??[]),marks:structuredClone(marks)};
 }
 export function markMidiSnapshot(label='Screenshot') {

@@ -13,7 +13,7 @@ import { buildNotationMarks, buildFretboardModel, buildWrongPitchMarks } from '.
 import { buildWrongFretMarks, buildTabErrorTargets } from './tab-feedback.js';
 import { buildPolyMistakeMarks, buildPolyWrongFretMarks } from './poly-feedback.js';
 import { setNotationFeedback } from './alphatab-host.js';
-import { initMidiRouter, setActiveMidiInput, clearActiveMidiNotes } from './midi-router.js';
+import { initMidiRouter, setActiveMidiInput, clearActiveMidiNotes, saveActiveMidiSettings } from './midi-router.js';
 import {
   advanceRealtimeClock,
   handlePlaybackPosition,
@@ -65,7 +65,7 @@ const waitController = new WaitController({
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
 
 function configureWaitSession() {
-  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,allowMutedStringNoise:AppState.allowMutedStringNoise,pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
+  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,allowMutedStringNoise:AppState.allowMutedStringNoise,filterHexSpikes:AppState.filterHexSpikes,pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
 }
 
 function changePracticeLoop(loop) {
@@ -234,6 +234,11 @@ function wirePracticeControls() {
     clearActiveMidiNotes();configureWaitSession();renderTrainerUi();
   });
   chordControls.sync();
+  const spikeFilter=document.getElementById('filter-hex-spikes');
+  spikeFilter.addEventListener('change',()=>{
+    waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
+    AppState.filterHexSpikes=spikeFilter.checked;savePracticePreferences(AppState);configureWaitSession();renderTrainerUi();
+  });
   const mutedNoise=document.getElementById('allow-muted-string-noise');
   mutedNoise.addEventListener('change',()=>{
     const enabled=mutedNoise.checked;
@@ -256,6 +261,7 @@ function wirePracticeControls() {
     const value = Number(event.target.value);
     AppState.trainer.latencyMs = Number.isFinite(value) ? Math.max(0,Math.min(1000,value)) : 0;
     event.target.value = String(AppState.trainer.latencyMs);
+    saveActiveMidiSettings();
     resetRealtimeSession('latency-change');
     renderTrainerUi();
   });
@@ -371,20 +377,23 @@ function renderMidiUi() {
   const orderHelp=document.getElementById('hex-channel-order-help');
   if(orderHelp){const base=AppState.midi.hexChannelBase;orderHelp.textContent=`Six-string mapping, lowest to highest: ${Array.from({length:6},(_,i)=>base+(AppState.midi.hexChannelReverse?-i:i)).join(', ')}. Base choices keep all six channels within 1–16.`;}
   if (inputSelect) {
-    const signature=JSON.stringify([AppState.midi.supported,AppState.midi.availableInputs,Boolean(AppState.midi.activeInputId)]);
+    const waiting=AppState.midi.waitingInputName;
+    const signature=JSON.stringify([AppState.midi.supported,AppState.midi.availableInputs,waiting]);
     if(inputSelect.dataset.inputOptions!==signature) {
       inputSelect.dataset.inputOptions=signature;
       inputSelect.innerHTML = '';
+      if(waiting && AppState.midi.supported) {
+        const option=document.createElement('option');option.value='';option.disabled=true;
+        option.textContent=`Waiting for ${waiting}`;inputSelect.appendChild(option);
+      }
       if (!AppState.midi.availableInputs.length) {
         const option = document.createElement('option');
         option.value = '';
-        option.textContent = AppState.midi.supported ? 'No MIDI inputs found' : 'Web MIDI unavailable';
+        option.textContent = AppState.midi.supported ? 'None (no MIDI inputs connected)' : 'Web MIDI unavailable';
         inputSelect.appendChild(option);
-        inputSelect.disabled = true;
+        inputSelect.disabled = !AppState.midi.supported;
       } else {
-        if(!AppState.midi.activeInputId) {
-          const option=document.createElement('option');option.value='';option.textContent='Select MIDI input';inputSelect.appendChild(option);
-        }
+        const option=document.createElement('option');option.value='';option.textContent='None';inputSelect.appendChild(option);
         AppState.midi.availableInputs.forEach((input) => {
           const option = document.createElement('option');
           option.value = input.id;
@@ -395,6 +404,9 @@ function renderMidiUi() {
       }
     }
     inputSelect.value=AppState.midi.activeInputId || '';
+    // The waiting placeholder and None share an empty ID. Selecting the next
+    // option still changes selectedIndex and lets None cancel a pending return.
+    if(waiting && AppState.midi.supported)inputSelect.selectedIndex=0;
   }
 
   const evt = AppState.midi.lastEvent;
@@ -471,8 +483,13 @@ function renderTrainerUi() {
   chordControls?.sync();
   const mutedNoise=document.getElementById('allow-muted-string-noise');
   if(mutedNoise){mutedNoise.checked=AppState.allowMutedStringNoise;mutedNoise.disabled=AppState.inputMode!=='hex-6ch' || AppState.media.editing;}
+  const spikeFilter=document.getElementById('filter-hex-spikes');
+  if(spikeFilter){spikeFilter.checked=AppState.filterHexSpikes;spikeFilter.disabled=AppState.mode!=='wait' || AppState.inputMode!=='hex-6ch' || AppState.media.editing;}
   const latencyInput = document.getElementById('midi-latency-ms');
-  if (latencyInput) latencyInput.disabled = AppState.mode === 'wait';
+  if (latencyInput) {
+    latencyInput.disabled = AppState.mode === 'wait';
+    if(document.activeElement!==latencyInput)latencyInput.value=String(AppState.trainer.latencyMs);
+  }
   const pillEl = document.getElementById('trainer-match-pill');
   const statusEl = document.getElementById('trainer-status');
   const summaryEl = document.getElementById('trainer-summary');
@@ -576,19 +593,16 @@ function renderTrainerUi() {
 function wireMidiControls() {
   document.getElementById('wait-hex-bend-range')?.addEventListener('change',event=>{
     const value=Number(event.target.value);if(!validPitchRange(value))return;
-    AppState.midi.pitchBendRange=value;savePitchRange(value);
+    AppState.midi.pitchBendRange=value;savePitchRange(value);saveActiveMidiSettings();
     clearActiveMidiNotes();configureWaitSession();renderMidiUi();renderTrainerUi();
   });
   document.getElementById('midi-input-select')?.addEventListener('change', (event) => {
     setActiveMidiInput(event.target.value);
-    resetRealtimeSession('input-device-change');
-    configureWaitSession();
-    renderMidiUi();
-    renderTrainerUi();
   });
 
   for(const mode of document.querySelectorAll('input[name="midi-input-mode"]'))mode.addEventListener('change', (event) => {
     AppState.inputMode = event.target.value;
+    saveActiveMidiSettings();
     clearActiveMidiNotes();
     resetRealtimeSession('input-settings-change');
     configureWaitSession();
@@ -602,6 +616,7 @@ function wireMidiControls() {
 
   document.getElementById('midi-single-channel-select')?.addEventListener('change', (event) => {
     AppState.midi.singleChannel = event.target.value || 'any';
+    saveActiveMidiSettings();
     clearActiveMidiNotes();
     resetRealtimeSession('input-settings-change');
     configureWaitSession();
@@ -612,6 +627,7 @@ function wireMidiControls() {
 
   document.getElementById('hex-channel-base-select')?.addEventListener('change', (event) => {
     AppState.midi.hexChannelBase = Number(event.target.value) || 1;
+    saveActiveMidiSettings();
     clearActiveMidiNotes();
     resetRealtimeSession('input-settings-change');
     configureWaitSession();
@@ -624,6 +640,7 @@ function wireMidiControls() {
     AppState.midi.hexChannelReverse=Boolean(event.target.checked);
     const reverse=AppState.midi.hexChannelReverse;
     AppState.midi.hexChannelBase=Math.max(reverse?6:1,Math.min(reverse?16:11,AppState.midi.hexChannelBase));
+    saveActiveMidiSettings();
     clearActiveMidiNotes();resetRealtimeSession('input-settings-change');configureWaitSession();
     refreshTrainerMatchState(AppState.tickPosition);renderMidiUi();renderTrainerUi();
   });
@@ -642,6 +659,7 @@ async function bootstrap() {
   Object.assign(AppState.ui,preferences.feedback);
   AppState.waitChord=preferences.waitChord;
   AppState.allowMutedStringNoise=preferences.allowMutedStringNoise;
+  AppState.filterHexSpikes=preferences.filterHexSpikes;
   const displayPreferences=readDisplayPreferences();
   AppState.viewMode=displayPreferences.viewMode;
   Object.assign(AppState.ui,displayPreferences.ui);

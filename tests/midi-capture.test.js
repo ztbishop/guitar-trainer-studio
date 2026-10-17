@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {AppState} from '../js/app-state.js';
-import {initMidiRouter,normalizeMidiMessage} from '../js/midi-router.js';
+import {initMidiRouter,setActiveMidiInput,normalizeMidiMessage} from '../js/midi-router.js';
 import {WaitSession} from '../js/wait-session.js';
 import {startMidiCapture,stopMidiCapture,captureMidiEvent,captureMidiOutcome,midiCaptureReport,captureStatus,captureFeedbackView,markMidiSnapshot,midiCaptureText,initMidiCaptureControls} from '../js/midi-capture.js';
 import {buildWrongFretMarks} from '../js/tab-feedback.js';
@@ -18,7 +18,7 @@ test('router capture exposes short wrong attacks and Wait target transitions in 
       AppState.midi.activeInputId='';AppState.midi.hexChannelReverse=false;AppState.ui.loadedFileName='example.gp3';
       const targets=[60,62].map((midi,i)=>({id:`target-${i}`,measureNumber:1,notes:[{id:`n${i}`,midi,string:2,fret:i+1}]}));
       AppState.expectedEvents=targets;
-      const session=new WaitSession(targets,{hex:inputMode==='hex-6ch'});let index=0;
+      const session=new WaitSession(targets,{hex:inputMode==='hex-6ch',filterHexSpikes:false});let index=0;
       AppState.waitTrainer={currentEvent:targets[0],phase:'waiting'};
       await initMidiRouter({onMidiEvent:note=>{
         if(note.type==='note-off'){session.noteOff(note);return null;}
@@ -27,6 +27,7 @@ test('router capture exposes short wrong attacks and Wait target transitions in 
         if(result?.complete){index++;AppState.waitTrainer.currentEvent=targets[index]??null;}
         return result;
       }});
+      setActiveMidiInput(input.id);AppState.inputMode=inputMode;
       startMidiCapture();const now=performance.now();
       const send=(data,offset)=>receive({data,timeStamp:now+offset});
       send([0x94,60,90],0); // Correct, cursor advances immediately.
@@ -46,7 +47,7 @@ test('router capture exposes short wrong attacks and Wait target transitions in 
       assert.equal(report.events[3].grading,null);
       assert.equal(report.events[5].accepted,inputMode==='single-channel');
       assert.equal(session.feedbackHistory()[1].wrongNotes[0].midi,74);
-      const control=new WaitSession(targets,{hex:inputMode==='hex-6ch'});
+      const control=new WaitSession(targets,{hex:inputMode==='hex-6ch',filterHexSpikes:false});
       control.noteOn(0,{midi:60,channel:5});control.noteOn(1,{midi:74,channel:5});control.noteOn(1,{midi:62,channel:5});
       assert.deepEqual(session.stats(),control.stats());
       report.events[1].raw[0]=0;

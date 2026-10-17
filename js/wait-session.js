@@ -4,13 +4,15 @@ import {attackSlots,ignoresMutedString} from './attack-rules.js';
 import {TimingDefaults} from './practice-timing.js';
 import {supportedHeldTone} from './wait-chord-gesture.js';
 import {MidiPitchState,PITCH_SETTLE_MS} from './midi-pitch.js';
+import {spikeCandidate,confirmedSpike} from './hex-tracking-spikes.js';
 export class WaitSession {
-  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,allowMutedStringNoise=false,pitchBendRange=12,pitchState=null} = {}) {
+  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,allowMutedStringNoise=false,filterHexSpikes=true,pitchBendRange=12,pitchState=null} = {}) {
     this.events=events;this.allowMutedStringNoise=allowMutedStringNoise;this.tail=null;
     this.records=events.map(event=>{
       return {eventId:event.id,slots:attackSlots(event,hex,false),wrong:0,wrongNotes:[],retries:0,attemptStartAt:null,skipped:false,burst:null};
     });
     this.hex=hex;this.lastFeedback=null;this.liveWrong=new Map();this.held=new Map();
+    this.filterHexSpikes=filterHexSpikes;this.spikeCandidates=new Map();
     this.pitch=pitchState??new MidiPitchState(pitchBendRange);this.pitchAttacks=new Map();
     this.pitch.reset();
     this.chordMode=chordMode==='together'?'together':'collect';
@@ -27,8 +29,23 @@ export class WaitSession {
     this.lastFeedback={type:'retry',eventId:record.eventId,complete:false};return true;
   }
   noteOn(index,note,at=note.at??0) {
+    const candidate=this.spikeCandidates.get(note.channel);
+    this.spikeCandidates.delete(note.channel);
     const played=this.hex?this.pitch.noteOn({...note,at}):note;
     const feedback=this.grade(index,played,at);
+    if(this.hex && this.filterHexSpikes && feedback) {
+      const record=this.records[index];
+      const correction=confirmedSpike(candidate,played,feedback,record,index,at);
+      if(correction) {
+        record.wrongNotes.splice(record.wrongNotes.indexOf(candidate.wrong),1);record.wrong--;
+        this.liveWrong.delete(`${note.channel}:${candidate.wrong.midi}`);
+        if(record.burst)record.burst.wrong=record.wrongNotes.some(n=>n.at>=record.burst.at);
+        (record.trackingSpikes??=[]).push(correction);feedback.trackingSpike=correction;
+        this.lastFeedback=feedback;
+      }
+      const pending=spikeCandidate(this.events[index],played,feedback,record,index,at);
+      if(pending)this.spikeCandidates.set(note.channel,pending);
+    }
     if(feedback && this.hex)feedback.pitch={rawMidi:played.rawMidi,soundingMidi:played.soundingMidi,
       midi:played.midi,bendValue:played.bendValue,channelBendValue:played.channelBendValue,range:this.pitch.range};
     if(this.hex)this.pitchAttacks.set(note.channel,{note:{...note,at},index,at,feedback});
@@ -113,6 +130,8 @@ export class WaitSession {
       channel:slot.channel,noteIds:slot.noteIds,at,complete:true};
   }
   noteOff(note) {
+    const candidate=this.spikeCandidates.get(note.channel);
+    if(candidate?.rawMidi===note.midi && candidate.releasedAt===undefined)candidate.releasedAt=note.at;
     this.pitch.noteOff(note);
     if(this.pitchAttacks.get(note.channel)?.note.midi===note.midi)this.pitchAttacks.delete(note.channel);
     for(const [key,value] of this.held)if(value.channel===note.channel && (value.rawMidi??value.midi)===note.midi)this.held.delete(key);
@@ -163,6 +182,7 @@ export class WaitSession {
       outcome:record.slots.every(s=>s.hit)?(record.wrongNotes.length?'completed-with-errors':'completed-clean'):'pending',
       supportedHeldNotes:record.slots.filter(s=>s.evidence==='held').map(s=>({midi:s.midi,channel:s.channel,noteIds:[...s.noteIds],evidence:'held',freshAttack:false})),
       pitchCorrections:(record.pitchCorrections??[]).map(c=>({...c})),
+      trackingSpikes:(record.trackingSpikes??[]).map(c=>({...c})),
       wrongNotes:record.wrongNotes.map(note=>({...note})),retries:record.retries}));
   }
   stats() {

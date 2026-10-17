@@ -27,6 +27,7 @@ test('disconnect/reconnect storms detach once, reject stale messages and never a
   await withNavigator(access,async()=>{
     let stateCalls=0,grades=0;
     await initMidiRouter({onStateChange:()=>stateCalls++,onMidiEvent:()=>grades++});
+    setActiveMidiInput('usb');
     assert.equal(usb.adds,1,'implicit-open notification does not attach recursively');
     usb.send([0x90,60,100]);const stale=usb.receive;
     const before=stateCalls;usb.state='disconnected';
@@ -49,6 +50,7 @@ test('rapid unplug/replug cycles keep one listener and retain all fresh attacks'
   reset();const access={inputs:new Map()},usb=port('usb',access);access.inputs.set('usb',usb);
   await withNavigator(access,async()=>{
     let grades=0;await initMidiRouter({onMidiEvent:()=>grades++});
+    setActiveMidiInput('usb');
     for(let i=0;i<100;i++) {
       usb.send([0x90,60,100]);usb.state='disconnected';access.onstatechange({port:usb});
       usb.state='connected';access.onstatechange({port:usb});
@@ -64,6 +66,7 @@ test('frame batching applies only to UI: every MIDI event is delivered synchrono
     const frames=[];let paints=0,grades=0;
     const schedule=frameTask(()=>paints++,fn=>frames.push(fn));
     await initMidiRouter({onStateChange:(_,reason)=>{if(reason==='message')schedule();},onMidiEvent:()=>{grades++;schedule();}});
+    setActiveMidiInput('usb');
     for(let i=0;i<2500;i++){usb.send([0x90,60,100]);usb.send([0x80,60,0]);}
     assert.equal(grades,5000);assert.equal(paints,0);assert.equal(frames.length,1);
     frames.shift()();assert.equal(paints,1);usb.send([0x90,60,100]);assert.equal(grades,5001);assert.equal(frames.length,1);
@@ -78,7 +81,7 @@ test('late permission completions cannot replace a newer MIDI access session',as
     const oldAccess={inputs:new Map()},newAccess={inputs:new Map()},usb=port('usb',newAccess);
     newAccess.inputs.set('usb',usb);
     const first=initMidiRouter({}),second=initMidiRouter({});
-    pending[1](newAccess);await second;pending[0](oldAccess);assert.equal(await first,null);
+    pending[1](newAccess);await second;setActiveMidiInput('usb');pending[0](oldAccess);assert.equal(await first,null);
     assert.equal(AppState.midi.activeInputId,'usb');assert.equal(oldAccess.onstatechange,undefined);
     assert.equal(usb.adds,1);newAccess.onstatechange=null;
   }finally{if(original)Object.defineProperty(globalThis,'navigator',original);else delete globalThis.navigator;}

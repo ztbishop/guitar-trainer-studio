@@ -1,5 +1,21 @@
 # Guitar Trainer Studio: status and to-do
 
+### Confirmed Wait Hex tracking-spike tolerance — 2026-10-16
+
+- [x] Implement optional saved Practice filter (default on) requiring a very soft, released, distant wrong pitch and stronger correct next attack on the same configured Hex channel, same target/retry. Bounds: velocity ≤20, duration ≤70 ms, distance ≥9 semitones, follow-up ≤200 ms and ≥2× velocity.
+- [x] Preserve short correct notes, high written frets, unconfirmed/adjacent/loud/sustained errors, Poly and Realtime. Keep original raw MIDI and wrong outcome plus explicit reconciliation evidence. Candidates clear on pause/new session and cannot cross targets or retries.
+- [x] 308 automated tests, changed-module syntax checks and whitespace checks pass. Capture-derived measure-2/7 patterns covered; measure-6 adjacent errors remain visible.
+- [ ] Owner hard-refreshes and repeats the passage in Wait Hex, checks on/off behavior and intentional neighboring-fret errors. Hardware acceptance pending. Older entries saying extreme-spike handling is missing are historical and superseded by this section.
+
+
+### Saved MIDI device profiles and late connection — 2026-10-16
+
+- [x] Save Poly/Hex, single channel, Hex base/reverse, pitch-bend range and latency per input; restore before attaching its listener. Global Practice/feedback preferences remain independent.
+- [x] Remember the last selected input across reloads and wait for late connection without switching to Microsoft loopback. First use and explicit None select no input; None cancels pending reconnection while retaining profiles. Manual selection replaces the remembered input.
+- [x] Prefer browser port ID; recover a changed ID only from one matching name/manufacturer, preserving that profile. Ambiguous matches wait for manual choice. Invalid or blocked browser storage is contained.
+- [x] 285 Node tests pass, including saved settings, multiple devices, startup/late plug/reload/unplug orders, explicit None, ID fallback and the first message using restored Hex/channel settings. Previous disconnect-storm checks still pass.
+- [ ] Owner hard-refreshes, selects/configures TriplePlay once, then tests reload while connected and opening the app before plugging in. Verify both restore settings; test choosing None while waiting, switching to another device and back, and paused unplug/replug. Browser/Fishman acceptance remains pending.
+
 ### USB disconnect robustness and MIDI UI workload — 2026-10-16
 
 - [x] Owner reports Chrome hanging, possibly coinciding with unplugging TriplePlay rather than file updates. No full-browser crash reproduced; do not claim a confirmed browser/driver root cause.

@@ -114,6 +114,7 @@ test('router clears on filter/device changes, releases filtered notes, and prese
   const access={inputs:new Map([['first',first],['second',second]])};
   Object.defineProperty(globalThis,'navigator',{value:{requestMIDIAccess:async()=>access},configurable:true});
   await initMidiRouter({onMidiEvent:event=>{routed.push(event);return handleMidiEvent(event);}, onStateChange:()=>refreshTrainerMatchState()});
+  setActiveMidiInput('first');
   first.send([0x90,60,100]); assert.equal(AppState.midi.activeNotes.size,1);
   first.send([0x90,60,100]);
   assert.equal(routed.length,1,'a repeated Note-On while held must not reach grading');

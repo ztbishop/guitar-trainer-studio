@@ -1,5 +1,18 @@
 # Guitar Trainer Studio Architecture
 
+## Confirmed tracking-spike reconciliation — 2026-10-16
+
+hex-tracking-spikes.js is a pure candidate/confirmation policy (velocity ≤20, release ≤70 ms, distance ≥9 semitones, correct follow-up ≤200 ms and ≥2× velocity). WaitSession owns a bounded per-channel candidate map with references to original wrong entries and original target/retry. It always grades first and can remove exactly one penalty only after a captured raw release and the next correct same-channel attack on that same target/retry. Mapped written-string pitch establishes distance/confirmation, without making general grading position-based. Intervening attacks consume candidates; optional filterHexSpikes gates use in Hex only. Bend updates can edit the same entry, but removal requires it still exist. Pause clears candidates; session lifecycle resets them. Releases share the controller's pause-adjusted attack clock.
+
+practice-preferences owns the independent validated filterHexSpikes boolean (first-use on), bootstrap wires its Wait-Hex-only toggle and existing stop/reconfigure path, and app-state carries the choice. Realtime, Poly, MIDI routing and native alphaTab do not filter input. feedbackHistory.trackingSpikes, confirming outcome.trackingSpike and capture snapshots expose reconciliation while original raw onset/wrong evidence stays intact. This supersedes historical statements that no spike filter exists. A brief provisional wrong mark is possible; no buffering or synthetic attack is used.
+
+
+## MIDI device preferences — 2026-10-16
+
+midi-device-preferences.js owns versioned, validated browser storage under gts.midiDevices: up to 64 profiles keyed by WebMIDI input ID and a last-selected identity (null means None). Profiles contain inputMode, singleChannel, hexChannelBase, hexChannelReverse, pitchBendRange and latencyMs. Exact ID wins; only the last-selected device can migrate automatically through a unique name/manufacturer match. This is browser/origin-local persistence, with safe in-memory operation when storage is unavailable.
+
+midi-router saves the outgoing profile, restores the incoming profile before attaching its listener, and publishes the completed transition so bootstrap resets/configures existing sessions with restored settings. Controls save edits immediately through saveActiveMidiSettings; latency display reflects restored values. Inventory refresh waits for the persisted selection, including startup before USB insertion, with no first-device/loopback fallback. None clears automatic selection without deleting profiles. waitingInputName exposes a pending return to the device selector; its disabled placeholder allows choosing None even while no inputs are connected. Existing listener/access epochs, stale message guards and bounded detach/close behavior remain intact. No grading or native alphaTab behavior changes. This supersedes the older ID-only/manual-reselect guidance below.
+
 ## MIDI lifecycle and UI scheduling — 2026-10-16
 
 midi-router owns connected input inventory, selected/preferred input identity and listener/access epochs. It ignores output-only or structurally unchanged connection notifications, filters disconnected ports, detaches/closes its former owned port once and rejects stale queued callbacks. Preferred input IDs survive unplugging; another device is not silently substituted. Reinitialization detaches prior handlers and late permission completions are ignored. If the same physical port is rebound during initialization, deferred old-port cleanup does not close the new binding. close failures are contained without retry loops. Availability/selection notifications publish after the transition completes, not from clearActiveMidiNotes mid-switch.

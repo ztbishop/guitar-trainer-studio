@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {WaitSession} from '../js/wait-session.js';
 import {WaitController} from '../js/wait-controller.js';
 import {AppState} from '../js/app-state.js';
-import {initMidiRouter,clearActiveMidiNotes} from '../js/midi-router.js';
+import {initMidiRouter,setActiveMidiInput,clearActiveMidiNotes} from '../js/midi-router.js';
 import {startMidiCapture,stopMidiCapture,midiCaptureReport,captureFeedbackView} from '../js/midi-capture.js';
 
 const chord=(id='a',pitches=[45,55,60,64])=>({id,startTick:0,stringCount:6,notes:pitches.map((midi,i)=>({id:`${id}:${i}`,midi,string:[6,4,3,2][i]}))});
@@ -102,7 +102,7 @@ test('raw MIDI boundary preserves every delivered message and keeps recording in
     Object.assign(AppState,{mode:'wait',inputMode:'hex-6ch'});Object.assign(AppState.midi,{activeInputId:'',hexChannelBase:6,hexChannelReverse:true});
     const runs=[];
     for(const recording of [false,true]) {
-      const delivered=[];await initMidiRouter({onMidiEvent:e=>{delivered.push([e.type,e.channel,e.midi]);return null;}});clearActiveMidiNotes();
+      const delivered=[];await initMidiRouter({onMidiEvent:e=>{delivered.push([e.type,e.channel,e.midi]);return null;}});setActiveMidiInput(input.id);AppState.inputMode='hex-6ch';Object.assign(AppState.midi,{hexChannelBase:6,hexChannelReverse:true});clearActiveMidiNotes();
       if(recording)startMidiCapture();else stopMidiCapture();
       messages.forEach((data,i)=>receive({data,timeStamp:performance.now()+i}));runs.push(delivered);
       if(recording) {

@@ -13,7 +13,7 @@ export class WaitController {
   configure(events,endTick,hex=false,loop=false,chordSettings={},loopCountIn=false) {
     this.stop();this.events=events;this.endTick=endTick;this.hex=hex;
     this.loop=loop;this.loopCountIn=loopCountIn;this.pass=1;this.lastPassResults=null;this.passHistory=[];
-    this.chordSettings={chordMode:chordSettings.mode,chordWindowMs:chordSettings.windowMs,allowMutedStringNoise:chordSettings.allowMutedStringNoise};
+    this.chordSettings={chordMode:chordSettings.mode,chordWindowMs:chordSettings.windowMs,allowMutedStringNoise:chordSettings.allowMutedStringNoise,filterHexSpikes:chordSettings.filterHexSpikes};
     this.pitchState=new MidiPitchState(chordSettings.pitchBendRange);
     this.chordSettings.pitchState=this.pitchState;
     this.session=new WaitSession(events,{hex,...this.chordSettings});this.index=-1;this.publish();
@@ -54,6 +54,7 @@ export class WaitController {
     this.advance(this.now());this.pausedAt=this.now();
     this.session.held.clear();
     this.session.pitchAttacks.clear();
+    this.session.spikeCandidates.clear();
     this.pitchState.reset();
     this.manualPaused=true;this.pausedFrom=this.phase;this.phase='paused';this.transport.pause();this.publish();return true;
   }
@@ -88,7 +89,10 @@ export class WaitController {
     // Target identity is ready before the asynchronous native cursor seek.
     // Accept attacks during positioning; never depend on playback/duration.
     // Releases also apply while paused, so stale held markers never reappear.
-    if(note.type==='note-off') {if(this.session.noteOff(note))this.publish();return null;}
+    if(note.type==='note-off') {
+      const at=(Number.isFinite(note.at)?note.at:this.now())-this.pauseOffset;
+      if(this.session.noteOff({...note,at}))this.publish();return null;
+    }
     if(note.type==='pitch-bend') {
       const active=this.active && ['waiting','seeking'].includes(this.phase);
       const at=(Number.isFinite(note.at)?note.at:this.now())-this.pauseOffset;
@@ -97,7 +101,7 @@ export class WaitController {
       return result;
     }
     if(!this.active || !['waiting','seeking'].includes(this.phase)) {
-      if(note.type==='note-on'){this.session.held.clear();this.session.pitchAttacks.clear();this.pitchState.reset();}
+      if(note.type==='note-on'){this.session.held.clear();this.session.pitchAttacks.clear();this.session.spikeCandidates.clear();this.pitchState.reset();}
       return null;
     }
     if(note.type!=='note-on')return null;

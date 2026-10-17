@@ -155,6 +155,8 @@
           <label class="toggle-row" for="allow-muted-string-noise"><input id="allow-muted-string-noise" type="checkbox" /><span>Allow muted-string noise (Hex)</span></label>
           <p class="field-help">Chord targets only: ignore input from omitted strings. Extra notes on those strings will not count as mistakes. Off = Strict. Changing this pauses practice and clears results.</p>
           <p class="field-help">An all-X beat needs one fresh attack at any pitch. In mixed chords, X notes are optional. Muted strums must produce MIDI to advance Wait.</p>
+          <label class="toggle-row" for="filter-hex-spikes"><input id="filter-hex-spikes" type="checkbox" checked /><span>Filter confirmed tracking spikes (Wait Hex)</span></label>
+          <p class="field-help">Disregard a very soft, brief, distant wrong pitch only after the correct tone promptly follows on the same string channel. Short correct notes and nearby wrong frets still count normally. Changing this pauses Wait and clears its results.</p>
           <details class="practice-advanced"><summary>MIDI timing adjustment</summary><label class="field-group" for="midi-latency-ms">
             <span class="field-label">MIDI input latency (ms)</span>
             <span class="field-help">Realtime only: increase if your MIDI guitar reports notes late. Changing this resets Realtime results.</span>
@@ -397,6 +399,8 @@
                 <option value="">Detecting MIDI...</option>
               </select>
             </label>
+
+            <p class="field-help">Settings save per device. Your last selected input reconnects automatically, including when plugged in after opening the app. Choose None to disable automatic selection.</p>
 
             <fieldset class="menu-radio-group"><legend>Input source</legend>
               <label><input type="radio" name="midi-input-mode" value="single-channel" checked /><span>Single channel</span></label>
