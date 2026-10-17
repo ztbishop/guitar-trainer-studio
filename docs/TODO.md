@@ -1,5 +1,16 @@
 # Guitar Trainer Studio: status and to-do
 
+### USB disconnect robustness and MIDI UI workload — 2026-10-16
+
+- [x] Owner reports Chrome hanging, possibly coinciding with unplugging TriplePlay rather than file updates. No full-browser crash reproduced; do not claim a confirmed browser/driver root cause.
+- [x] Ignore disconnected ports and output-only/unchanged connection notifications. Detach and close the old selected input once; discard queued stale listener callbacks. Keep the selected input preference during unplugging, reconnect that ID when it returns, and show Select MIDI input if manual choice is needed instead of silently picking another device.
+- [x] Prevent late permission requests from overwriting newer access sessions. Emit one completed device transition instead of notifying UI while a listener switch is half-finished.
+- [x] Group MIDI device/debug DOM updates by frame, cache dropdown options and eliminate duplicate trainer paints from message-state notifications and completed Wait gates. All raw capture and grading callbacks remain immediate; trainer/capture feedback still publishes synchronously.
+- [x] Cache completed report text until evidence changes and serialize without cloning the entire capture first. Public report objects still return independent copies; the final capture-limit row is populated before automatic text generation.
+- [x] 279 Node tests and changed-module syntax/whitespace checks pass. New evidence includes 10,000-event disconnect/output/unchanged storms, 100 reconnect cycles, stale callbacks, out-of-order permissions, all 5,000 MIDI messages delivered before UI paint, one publish per solved gate and report-cache invalidation.
+- [ ] Owner hard-refreshes, tests one unplug/replug while paused, then during Wait practice if stable, with and without recording. Confirm the tab remains responsive and the same input returns; a changed OS device ID requires selecting it again. Real Chrome/Fishman/native-driver freeze acceptance remains pending. Live Server and the owner's Chrome session were not closed or replaced during this work.
+- [ ] Extreme tracking-spike handling remains pending after stability testing; this change intentionally leaves pitch grading rules unchanged.
+
 ### Fix stale bend state blocking the first chord — 2026-10-16
 
 - [x] Latest capture confirms a regression: raw G3/E4 were shifted +7/-10 semitones by unrelated channel bend values retained before recording. The first raw strum actually contains all four required Am7 pitches.

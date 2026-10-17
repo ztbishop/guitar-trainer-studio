@@ -1,5 +1,13 @@
 # Guitar Trainer Studio Architecture
 
+## MIDI lifecycle and UI scheduling — 2026-10-16
+
+midi-router owns connected input inventory, selected/preferred input identity and listener/access epochs. It ignores output-only or structurally unchanged connection notifications, filters disconnected ports, detaches/closes its former owned port once and rejects stale queued callbacks. Preferred input IDs survive unplugging; another device is not silently substituted. Reinitialization detaches prior handlers and late permission completions are ignored. If the same physical port is rebound during initialization, deferred old-port cleanup does not close the new binding. close failures are contained without retry loops. Availability/selection notifications publish after the transition completes, not from clearActiveMidiNotes mid-switch.
+
+Router onStateChange supplies message/device/inventory/settings reasons. Bootstrap schedules only device/debug DOM work through frame-task.js and skips the redundant pre-grading full trainer refresh on ordinary messages. MIDI callbacks and capture remain synchronous. WaitController publishes the next gate once on completion; bootstrap tracks publication revisions to avoid drawing the same result again. Device resets suppress intermediate Wait DOM paints while preserving state updates. Cached dropdown options are rebuilt only when inventory/channel choices change. Native alphaTab timing, rendering ownership and grading decisions are unchanged.
+
+midi-capture revision-caches formatted report text, invalidating on mutations to serialized evidence. Its internal reportData tree can be stringified synchronously without a full clone; the exported object API still clones to protect evidence. Capture-limit UI waits for the final grading outcome before generating text. These reduce repeated DOM/allocation work, but do not prove the cause of a reported full-browser USB-disconnect hang. Physical Chrome/Fishman acceptance remains pending.
+
 ## Onset-bound bend applicability and lifecycle — 2026-10-16
 
 This supersedes the broad bend-state interpretation/persistence in the preceding implementation below. MidiPitchState keeps raw channel bends for diagnostics separately from active raw onsets and applicable correction anchors. noteOn binds channel/rawMidi/time; bend can anchor an applied value only within 60 ms of that active onset. interpret uses the anchor only for its own rawMidi. An exact raw-base repeat can reuse it; a changed base or late/unassociated bend removes it. Raw Note-Off ends active eligibility but preserves an already observed repeat anchor. Raw bend values alone cannot transpose a new base note. This is bounded attack correction, not a full MIDI expression model.
