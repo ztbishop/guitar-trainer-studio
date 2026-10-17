@@ -93,7 +93,7 @@ export class WaitController {
       const active=this.active && ['waiting','seeking'].includes(this.phase);
       const at=(Number.isFinite(note.at)?note.at:this.now())-this.pauseOffset;
       const result=this.session.pitchBend(note,at,this.index,active);
-      if(result){this.publish();if(result.complete)this.finishGate();}
+      if(result){if(result.complete)this.finishGate();else this.publish();}
       return result;
     }
     if(!this.active || !['waiting','seeking'].includes(this.phase)) {
@@ -103,8 +103,7 @@ export class WaitController {
     if(note.type!=='note-on')return null;
     const at=(Number.isFinite(note.at)?note.at:this.now())-this.pauseOffset;
     const result=this.session.noteOn(this.index,note,at);
-    this.publish();
-    if(result?.complete)this.finishGate();
+    if(result?.complete)this.finishGate();else this.publish();
     return result;
   }
   finishGate() {

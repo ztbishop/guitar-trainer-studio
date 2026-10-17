@@ -124,3 +124,22 @@ test('recording controls generate selectable text and use a copy fallback withou
   }
 });
 
+test('large report text is cached until evidence changes and serializes without cloning the full capture',()=>{
+  startMidiCapture();
+  const note=normalizeMidiMessage({data:[0x90,60,100],timeStamp:performance.now()});
+  const row=captureMidiEvent(note,{accepted:true});
+  const original=JSON.stringify,clone=globalThis.structuredClone;let serializations=0;
+  try {
+    JSON.stringify=(...args)=>{serializations++;return original(...args);};
+    globalThis.structuredClone=()=>{throw Error('Text serialization should not clone the whole evidence tree');};
+    const first=midiCaptureText();assert.equal(midiCaptureText(),first);assert.equal(serializations,1);
+  }finally{JSON.stringify=original;globalThis.structuredClone=clone;}
+  captureMidiOutcome(row,{type:'correct',midi:60});
+  assert.match(midiCaptureText(),/"type": "correct"/);
+  const release=captureMidiEvent({...note,type:'note-off',at:note.at+20},{accepted:true});captureMidiOutcome(release,null);
+  assert.match(midiCaptureText(),/duration 20.00ms/);
+  stopMidiCapture();assert.match(midiCaptureText(),/"recording": false/);
+  const report=midiCaptureReport();report.events[0].raw[0]=0;
+  assert.equal(midiCaptureReport().events[0].raw[0],0x90,'the exported object still owns independent copies');
+});
+

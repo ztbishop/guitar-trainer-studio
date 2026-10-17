@@ -41,21 +41,25 @@ import {readDisplayPreferences,saveDisplayPreferences} from './display-preferenc
 import {initMediaControls} from './media-controls.js';
 import {initWorkspacePanels} from './workspace-panels.js';
 import {readPitchRange,savePitchRange,validPitchRange} from './midi-pitch.js';
+import {frameTask} from './frame-task.js';
 import {beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTime,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setMediaEditing,revealMediaScoreTarget} from './alphatab-host.js';
 
 let transportControls=null;
 let chordControls=null;
 let attemptControls=null;
 let audioControls=null,scoreLibrary=null,mediaControls=null,pitchControls=null;
+let waitUiRevision=0,suppressWaitPaint=false;
+const scheduleMidiUi=frameTask(()=>renderMidiUi());
 
 const waitController = new WaitController({
   acquire:acquireWaitTransport,hold:holdWaitAtTick,
   pause:pauseWaitTransport,release:releaseWaitTransport,finish:finishWaitTransport,
   countIn:startCountIn,
 }, state => {
+  waitUiRevision++;
   AppState.waitTrainer=state;
   if(AppState.mode==='wait')AppState.activeTargets=state.currentEvent?[state.currentEvent]:[];
-  if(AppState.mode==='wait')renderTrainerUi();
+  if(AppState.mode==='wait' && !suppressWaitPaint)renderTrainerUi();
 });
 
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
@@ -282,6 +286,9 @@ function wirePracticeControls() {
 
 function populateMidiChannelOptions(selectElement, { includeAny = false, min = 1, max = 16 } = {}) {
   if (!selectElement) return;
+  const signature=`${includeAny}:${min}:${max}`;
+  if(selectElement.dataset.channelOptions===signature)return;
+  selectElement.dataset.channelOptions=signature;
   selectElement.innerHTML = '';
 
   if (includeAny) {
@@ -364,23 +371,30 @@ function renderMidiUi() {
   const orderHelp=document.getElementById('hex-channel-order-help');
   if(orderHelp){const base=AppState.midi.hexChannelBase;orderHelp.textContent=`Six-string mapping, lowest to highest: ${Array.from({length:6},(_,i)=>base+(AppState.midi.hexChannelReverse?-i:i)).join(', ')}. Base choices keep all six channels within 1–16.`;}
   if (inputSelect) {
-    inputSelect.innerHTML = '';
-    if (!AppState.midi.availableInputs.length) {
-      const option = document.createElement('option');
-      option.value = '';
-      option.textContent = AppState.midi.supported ? 'No MIDI inputs found' : 'Web MIDI unavailable';
-      inputSelect.appendChild(option);
-      inputSelect.disabled = true;
-    } else {
-      AppState.midi.availableInputs.forEach((input) => {
+    const signature=JSON.stringify([AppState.midi.supported,AppState.midi.availableInputs,Boolean(AppState.midi.activeInputId)]);
+    if(inputSelect.dataset.inputOptions!==signature) {
+      inputSelect.dataset.inputOptions=signature;
+      inputSelect.innerHTML = '';
+      if (!AppState.midi.availableInputs.length) {
         const option = document.createElement('option');
-        option.value = input.id;
-        option.textContent = input.manufacturer ? `${input.name} — ${input.manufacturer}` : input.name;
+        option.value = '';
+        option.textContent = AppState.midi.supported ? 'No MIDI inputs found' : 'Web MIDI unavailable';
         inputSelect.appendChild(option);
-      });
-      inputSelect.value = AppState.midi.activeInputId || AppState.midi.availableInputs[0].id;
-      inputSelect.disabled = false;
+        inputSelect.disabled = true;
+      } else {
+        if(!AppState.midi.activeInputId) {
+          const option=document.createElement('option');option.value='';option.textContent='Select MIDI input';inputSelect.appendChild(option);
+        }
+        AppState.midi.availableInputs.forEach((input) => {
+          const option = document.createElement('option');
+          option.value = input.id;
+          option.textContent = input.manufacturer ? `${input.name} — ${input.manufacturer}` : input.name;
+          inputSelect.appendChild(option);
+        });
+        inputSelect.disabled = false;
+      }
     }
+    inputSelect.value=AppState.midi.activeInputId || '';
   }
 
   const evt = AppState.midi.lastEvent;
@@ -695,7 +709,8 @@ async function bootstrap() {
   let previousMidiInputId = AppState.midi.activeInputId;
   await initMidiRouter({
     onMidiEvent: (event) => {
-      if(AppState.media.returning || AppState.media.editing){renderMidiUi();return null;}
+      if(AppState.media.returning || AppState.media.editing){scheduleMidiUi();return null;}
+      const revision=waitUiRevision;
       let outcome;
       if(AppState.mode==='wait')outcome=waitController.noteOn(event);
       else {
@@ -703,16 +718,19 @@ async function bootstrap() {
         handleMidiEvent(event);
         outcome=AppState.trainer.lastFeedback!==previous?AppState.trainer.lastFeedback:null;
       }
-      renderMidiUi();
-      renderTrainerUi();
+      scheduleMidiUi();
+      if(AppState.mode!=='wait' || revision===waitUiRevision)renderTrainerUi();
       return outcome;
     },
-    onStateChange: () => {
+    onStateChange: (_,reason) => {
+      if(reason==='message'){scheduleMidiUi();return;}
       if (previousMidiInputId !== AppState.midi.activeInputId) {
         previousMidiInputId = AppState.midi.activeInputId;
-        resetRealtimeSession('midi-device-change');
-        configureWaitSession();
+        suppressWaitPaint=true;
+        try{resetRealtimeSession('midi-device-change');configureWaitSession();}
+        finally{suppressWaitPaint=false;}
       }
+      else if(reason==='inventory'){renderMidiUi();return;}
       refreshTrainerMatchState(AppState.tickPosition);
       renderMidiUi();
       renderTrainerUi();

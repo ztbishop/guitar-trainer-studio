@@ -3,17 +3,19 @@ import {AppState} from './app-state.js';
 
 const LIMIT=10000;
 let recording=false,events=[],startedAt=null,startedClock=0,reason='',listeners=[],score=null,latestView=null,snapshots=[];
+let revision=0,textRevision=-1,cachedText='';
 const held=new Map();
 const notify=()=>listeners.forEach(fn=>fn());
 export function captureStatus(){return {recording,count:events.length,limit:LIMIT,reason};}
 export function startMidiCapture(){
+  revision++;cachedText='';textRevision=-1;
   events=[];held.clear();latestView=null;snapshots=[];startedAt=new Date().toISOString();startedClock=performance.now();
   score={fileName:AppState.ui.loadedFileName,title:AppState.score?.title,practiceTrackId:AppState.practiceTrackId};
   const track=AppState.tracks.find((t,i)=>String(t.index??i)===String(AppState.practiceTrackId));
   score.staves=track?.staves?.map(s=>({tuning:[...(s.tuning??[])],capo:s.capo,transpositionPitch:s.transpositionPitch}));
   recording=true;reason='';notify();
 }
-export function stopMidiCapture(){if(recording)markMidiSnapshot('Stopped');recording=false;reason||='Stopped';notify();}
+export function stopMidiCapture(){const changed=recording || !reason;if(recording)markMidiSnapshot('Stopped');recording=false;reason||='Stopped';if(changed)revision++;notify();}
 function targetInfo(event){return event?{eventId:event.id,measure:event.measureNumber,occurrence:event.occurrence,
   isPercussive:Boolean(event.isPercussive),mutedStrings:[...(event.mutedStrings??[])],
   notes:event.notes.map(n=>({midi:n.midi,string:n.string,fret:n.fret,isDead:Boolean(n.isDead),sourceNoteId:String(n.sourceNoteId)}))}:null;}
@@ -43,6 +45,7 @@ export function captureMidiEvent(note,{input,accepted,receivedAt=performance.now
     if(onset){row.noteOnSequence=onset.sequence;row.durationMs=onset.durationMs=Math.max(0,note.at-onset.at);held.delete(key);}
   }
   events.push(row);
+  revision++;
   if(events.length>=LIMIT){recording=false;reason='Capture limit reached';}
   notify();return row;
 }
@@ -59,13 +62,14 @@ export function captureMidiOutcome(row,outcome) {
   row.targetAfter=targetInfo(target);
   const ids=new Set(row.targetBefore?.notes.map(n=>n.sourceNoteId)??[]);
   row.feedbackAfter=structuredClone((latestView?.marks??[]).filter(m=>row.grading?.eventId!=null && m.eventId===row.grading.eventId || ids.has(m.sourceNoteId)));
+  revision++;
   notify();
 }
-export function midiCaptureReport(){return {
+function reportData(){return {
   format:'guitar-trainer-midi-capture',version:1,startedAt,recording,reason,
-  score:structuredClone(score),
-  events:structuredClone(events),snapshots:structuredClone(snapshots),
+  score,events,snapshots,
 };}
+export function midiCaptureReport(){return structuredClone(reportData());}
 // Capture the projections sent to the host; never recompute grading.
 export function captureFeedbackView(marks,trainer) {
   if(!recording)return;
@@ -82,9 +86,11 @@ export function captureFeedbackView(marks,trainer) {
 export function markMidiSnapshot(label='Screenshot') {
   if(!recording || snapshots.length>=100)return false;
   snapshots.push({number:snapshots.length+1,label,timeMs:performance.now()-startedClock,afterSequence:events.length,view:structuredClone(latestView)});
+  revision++;
   notify();return true;
 }
 export function midiCaptureText() {
+  if(textRevision===revision)return cachedText;
   const lines=['Guitar Trainer MIDI and feedback report','Started: '+(startedAt??'No recording'),
     'Score: '+(score?.fileName??''),'Messages: '+events.length+' | Snapshots: '+snapshots.length,
     'Times are milliseconds from recording start. Unknown duration means no matching release was captured.',
@@ -94,8 +100,10 @@ export function midiCaptureText() {
     (row.stringHint==null?'':' string '+row.stringHint)+(row.durationMs==null?'':' duration '+row.durationMs.toFixed(2)+'ms')+
     ' | '+(row.accepted?'accepted channel':'filtered channel')+' | '+(row.grading?.type??'no grade')+
     ' | target '+(row.targetBefore?.eventId??'none')+' → '+(row.targetAfter?.eventId??'none'));
-  lines.push('','Complete evidence, expected pitches, feedback and screenshot snapshots:',JSON.stringify(midiCaptureReport(),null,2));
-  return lines.join('\n');
+  // Stringify the read-only evidence directly; cloning the entire recording
+  // first doubles peak memory and is unnecessary in this synchronous operation.
+  lines.push('','Complete evidence, expected pitches, feedback and screenshot snapshots:',JSON.stringify(reportData(),null,2));
+  cachedText=lines.join('\n');textRevision=revision;return cachedText;
 }
 export function initMidiCaptureControls(refreshView=()=>{}){
   const start=document.getElementById('midi-capture-start'),stop=document.getElementById('midi-capture-stop'),
@@ -104,7 +112,7 @@ export function initMidiCaptureControls(refreshView=()=>{}){
   const sync=()=>{const s=captureStatus();start.disabled=s.recording;stop.disabled=!s.recording;mark.disabled=!s.recording || snapshots.length>=100;
     copy.disabled=save.disabled=!startedAt;
     status.textContent=`${s.recording?'Recording':s.reason||'Ready'} • ${s.count} MIDI messages • ${snapshots.length} snapshots`;
-    if(!s.recording && startedAt)report.value=midiCaptureText();};
+    if(!s.recording && startedAt && !(s.reason==='Capture limit reached' && events.at(-1)?.grading===undefined))report.value=midiCaptureText();};
   listeners.push(sync);
   start.addEventListener('click',()=>{startMidiCapture();report.value='Recording… stop to generate the text report.';refreshView();});
   stop.addEventListener('click',()=>{refreshView();stopMidiCapture();});

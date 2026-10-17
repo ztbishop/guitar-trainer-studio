@@ -10,6 +10,7 @@ import { channelToStringHint, midiToNoteName } from './note-utils.js';
 let midiAccess = null;
 let activeInput = null;
 let activeListener = null;
+let preferredInputId='',inventorySignature=null,listenerEpoch=0,accessEpoch=0;
 let callbacks = {
   onMidiEvent: null,
   onStateChange: null,
@@ -43,21 +44,21 @@ function removeActiveNote(normalized) {
   }
 }
 
-export function clearActiveMidiNotes() {
+export function clearActiveMidiNotes(notify=true) {
   AppState.midi.activeNotes.clear();
   AppState.midi.activeNotesByChannel.clear();
   AppState.midi.lastEvent = null;
   AppState.midi.recentEvents = [];
-  updateStateChange();
+  if(notify)updateStateChange();
 }
 
-function updateStateChange() {
-  callbacks.onStateChange?.({ ...AppState.midi });
+function updateStateChange(reason='settings') {
+  callbacks.onStateChange?.({ ...AppState.midi },reason);
 }
 
 function getInputs() {
   if (!midiAccess) return [];
-  return Array.from(midiAccess.inputs.values()).map((input) => ({
+  return Array.from(midiAccess.inputs.values()).filter(input=>input.state!=='disconnected').map((input) => ({
     id: input.id,
     name: input.name || 'Unknown MIDI input',
     manufacturer: input.manufacturer || '',
@@ -77,16 +78,23 @@ function isEventInSelectedChannelRange(event) {
 }
 
 function setActiveInput(input) {
+  if(input?.state==='disconnected')input=null;
+  if(input===activeInput)return false;
+  const previousInput=activeInput;
   if (activeInput && activeListener) {
     activeInput.removeEventListener('midimessage', activeListener);
   }
 
   activeInput = input || null;
+  const epoch=++listenerEpoch;
+  if(input)preferredInputId=input.id;
   AppState.midi.activeInputId = input?.id || '';
-  clearActiveMidiNotes();
+  clearActiveMidiNotes(false);
 
   if (activeInput) {
+    const source=activeInput;
     activeListener = (message) => {
+      if(epoch!==listenerEpoch || activeInput!==source || source.state==='disconnected')return;
       const receivedAt=performance.now();
       const normalized = normalizeMidiMessage(message, {
         inputMode: AppState.inputMode,
@@ -96,11 +104,11 @@ function setActiveInput(input) {
 
       if (!normalized) return;
       const accepted=isEventInSelectedChannelRange(normalized);
-      const capture=captureMidiEvent(normalized,{input:activeInput,accepted,receivedAt});
+      const capture=captureMidiEvent(normalized,{input:source,accepted,receivedAt});
       // Release tracked notes even if the selected filter has changed.
       if (normalized.type === 'note-off') removeActiveNote(normalized);
       if (!accepted) {
-        updateStateChange();
+        updateStateChange('message');
         captureMidiOutcome(capture,null);
         return;
       }
@@ -113,7 +121,7 @@ function setActiveInput(input) {
           AppState.midi.lastEvent=normalized;
           AppState.midi.recentEvents=[normalized,...AppState.midi.recentEvents].slice(0,8);
           AppState.ui.midiStatus=`Receiving from ${activeInput.name || 'MIDI input'}`;
-          updateStateChange();
+          updateStateChange('message');
           captureMidiOutcome(capture,{type:'ignored-held-duplicate',eventId:null,midi:normalized.midi});
           return;
         }
@@ -123,7 +131,7 @@ function setActiveInput(input) {
       AppState.midi.lastEvent = normalized;
       AppState.midi.recentEvents = [normalized, ...AppState.midi.recentEvents].slice(0, 8);
       AppState.ui.midiStatus = `Receiving from ${activeInput.name || 'MIDI input'}`;
-      updateStateChange();
+      updateStateChange('message');
       const outcome=callbacks.onMidiEvent?.(normalized);
       captureMidiOutcome(capture,outcome);
     };
@@ -135,49 +143,67 @@ function setActiveInput(input) {
     AppState.ui.midiStatus = AppState.midi.supported ? 'No MIDI input selected' : 'Web MIDI unavailable';
   }
 
-  updateStateChange();
+  // Removing a listener does not release an implicitly opened MIDI port. Close
+  // only our old port, once, without waiting or retrying during USB removal.
+  try {previousInput?.close?.()?.catch?.(()=>{});}catch{}
+  updateStateChange('device');return true;
 }
 
-function refreshInputs() {
-  AppState.midi.availableInputs = getInputs();
-
-  if (!AppState.midi.availableInputs.length) {
-    setActiveInput(null);
-    AppState.ui.midiStatus = AppState.midi.supported ? 'No MIDI inputs found' : 'Web MIDI unavailable';
-    updateStateChange();
-    return;
+function refreshInputs(event,initial=false) {
+  if(event?.port?.type==='output')return;
+  const inputs=getInputs(),signature=JSON.stringify(inputs);
+  const desiredId=preferredInputId || AppState.midi.activeInputId || inputs[0]?.id;
+  let input=inputs.some(item=>item.id===desiredId)?midiAccess.inputs.get(desiredId):null;
+  if(initial && !input && inputs.length)input=midiAccess.inputs.get(inputs[0].id);
+  if(signature===inventorySignature && input===activeInput)return;
+  inventorySignature=signature;AppState.midi.availableInputs=inputs;
+  if(!setActiveInput(input)) {
+    if(!input)AppState.ui.midiStatus=AppState.midi.supported?'No MIDI input selected':'Web MIDI unavailable';
+    updateStateChange('inventory');
   }
-
-  const desiredId = AppState.midi.activeInputId || AppState.midi.availableInputs[0].id;
-  const input = midiAccess.inputs.get(desiredId) || midiAccess.inputs.get(AppState.midi.availableInputs[0].id);
-  // Unrelated port changes must not erase notes held on the selected device.
-  if (input !== activeInput) setActiveInput(input || null);
-  else updateStateChange();
 }
 
 export async function initMidiRouter({ onMidiEvent, onStateChange } = {}) {
+  const epoch=++accessEpoch;
+  if(midiAccess)midiAccess.onstatechange=null;
+  const previousInput=activeInput;
+  if(activeInput && activeListener)activeInput.removeEventListener('midimessage',activeListener);
+  activeInput=null;activeListener=null;++listenerEpoch;clearActiveMidiNotes(false);
+  let previousClosed=false;
+  const closePrevious=()=>{
+    if(previousClosed || previousInput===activeInput)return;
+    previousClosed=true;try{previousInput?.close?.()?.catch?.(()=>{});}catch{}
+  };
   callbacks.onMidiEvent = onMidiEvent || null;
   callbacks.onStateChange = onStateChange || null;
   AppState.midi.accessRequested = true;
 
   if (!navigator.requestMIDIAccess) {
+    closePrevious();
     AppState.midi.supported = false;
+    AppState.midi.activeInputId='';AppState.midi.availableInputs=[];
     AppState.ui.midiStatus = 'Web MIDI is not supported in this browser';
     updateStateChange();
     return null;
   }
 
   try {
-    midiAccess = await navigator.requestMIDIAccess();
+    const access=await navigator.requestMIDIAccess();
+    if(epoch!==accessEpoch){closePrevious();return null;}
+    midiAccess = access;inventorySignature=null;preferredInputId=AppState.midi.activeInputId || '';
     AppState.midi.supported = true;
-    midiAccess.onstatechange = () => {
-      refreshInputs();
+    midiAccess.onstatechange = event => {
+      if(epoch===accessEpoch)refreshInputs(event);
     };
-    refreshInputs();
+    refreshInputs(null,true);
+    closePrevious();
     return midiAccess;
   } catch (error) {
+    closePrevious();
+    if(epoch!==accessEpoch)return null;
     console.error('Could not get MIDI access.', error);
     AppState.midi.supported = false;
+    AppState.midi.activeInputId='';AppState.midi.availableInputs=[];
     AppState.ui.midiStatus = 'Could not access MIDI devices';
     updateStateChange();
     return null;
@@ -187,7 +213,7 @@ export async function initMidiRouter({ onMidiEvent, onStateChange } = {}) {
 export function setActiveMidiInput(inputId) {
   if (!midiAccess) return false;
   const input = midiAccess.inputs.get(inputId);
-  if (!input) return false;
+  if (!input || input.state==='disconnected') return false;
   setActiveInput(input);
   return true;
 }
