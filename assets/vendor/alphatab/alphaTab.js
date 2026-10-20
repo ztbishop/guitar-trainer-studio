@@ -64512,7 +64512,7 @@
 				const notes = bg.onNotes;
 				const noteNumbers = notes.noteNumbers;
 				if (noteNumbers) {
-					for (const [str, noteNumber] of noteNumbers.notesPerString) if (!noteNumber.isEmpty) spaces[tuning.length - str].push(new Float32Array([this.beatGlyphsStart + bg.x + notes.x + noteNumbers.x - padding, noteNumbers.width + padding * 2]));
+					for (const [str, noteNumber] of noteNumbers.notesPerString) if (!noteNumber.isEmpty && spaces[tuning.length - str]) spaces[tuning.length - str].push(new Float32Array([this.beatGlyphsStart + bg.x + notes.x + noteNumbers.x - padding, noteNumbers.width + padding * 2]));
 				}
 			}
 		}

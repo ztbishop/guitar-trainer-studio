@@ -1,5 +1,12 @@
 # Development notes
 
+## GPX blank-system rendering fix — 2026-10-19
+
+The supplied Christmas Time Is Here GPX reproduced a native 1.8.4 TabBarRenderer.collectSpaces exception: pitched notes with string=-1/fret=-1 index outside the tab staff-line spaces array. The exception aborts painting a whole system while playback/feedback can continue. A one-line vendor guard skips only nonexistent line-gap entries; it does not invent fingering or edit score/playback/grading data. Initial lazy-loading suspicion was disproven by direct native rendering; lazy loading remains unchanged. The same alphaTab.js is loaded by the browser and renderer worker, so a main-thread-only compatibility patch would not cover the worker.
+
+309 Node tests pass, including a synthetic 32-bar native SVG regression at 900/1800px with an unassigned-string pitched note in bar 18 and final-system coverage. The supplied GPX renders all 32 bars (11/7 chunks respectively); no personal score was added to the repository. Vendor syntax and whitespace checks pass. Browser/Fishman visual acceptance remains pending. Preserve this narrow patch when updating vendor assets until upstream handles the case; the regression should catch replacement by an affected bundle.
+
+
 ## Confirmed Wait Hex tracking spikes — 2026-10-16
 
 Owner authorized the previously discussed narrow spike rule. Latest capture isolated measure-2 channel-4 MIDI 65 velocity 10, released after 45.1 ms then expected 56 after 192.1 ms; measure-7 channel-4 MIDI 76 velocity 10, released after 58.9 ms then expected 55 after 62.9 ms. The latter also receives an onset bend that updates the wrong sounding pitch to 75; its raw release remains 76. Measure-6 adjacent errors are velocity 127 and about 450 ms; they remain mistakes. Measure-5 velocity-77 / four-semitone error and measure-8 adjacent errors also fail this rule.

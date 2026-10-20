@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Blank systems in imported GPX — 2026-10-19
+
+- [x] Guard native alphaTab tab staff-line gap collection for notes without a valid string. Preserve pitches, score data, repeats, lazy loading and grading.
+- [x] 309 Node tests and vendor syntax check pass. Supplied 32-measure GPX renders 11 chunks at 900px and 7 at 1800px in the native SVG renderer.
+- [ ] Owner hard-refreshes Live Server, reloads Christmas Time Is Here, and confirms second/later systems, repeats, cursor and Fishman feedback in the usual browser.
+
+
 ### Confirmed Wait Hex tracking-spike tolerance — 2026-10-16
 
 - [x] Implement optional saved Practice filter (default on) requiring a very soft, released, distant wrong pitch and stronger correct next attack on the same configured Hex channel, same target/retry. Bounds: velocity ≤20, duration ≤70 ms, distance ≥9 semitones, follow-up ≤200 ms and ≥2× velocity.

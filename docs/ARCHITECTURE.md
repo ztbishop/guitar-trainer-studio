@@ -1,5 +1,10 @@
 # Guitar Trainer Studio Architecture
 
+## Native tab rendering compatibility — 2026-10-19
+
+Bundled assets/vendor/alphatab/alphaTab.js has a narrow TabBarRenderer.collectSpaces guard: emit a fret-number staff-line gap only when the indexed string line exists. GPX can contain pitched notes without string/fret assignments; indexing an absent line previously aborted the system paint. This patch covers both main-thread and worker rendering without score mutation or inferred fingering. All native layout, lazy loading, repeat transport and app grading remain unchanged. tests/native-tab-render.test.js exercises later/final systems through the actual renderer. Retain or reassess the guard on vendor updates.
+
+
 ## Confirmed tracking-spike reconciliation — 2026-10-16
 
 hex-tracking-spikes.js is a pure candidate/confirmation policy (velocity ≤20, release ≤70 ms, distance ≥9 semitones, correct follow-up ≤200 ms and ≥2× velocity). WaitSession owns a bounded per-channel candidate map with references to original wrong entries and original target/retry. It always grades first and can remove exactly one penalty only after a captured raw release and the next correct same-channel attack on that same target/retry. Mapped written-string pitch establishes distance/confirmation, without making general grading position-based. Intervening attacks consume candidates; optional filterHexSpikes gates use in Hex only. Bend updates can edit the same entry, but removal requires it still exist. Pause clears candidates; session lifecycle resets them. Releases share the controller's pause-adjusted attack clock.
