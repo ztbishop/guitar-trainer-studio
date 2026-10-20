@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Practice filter controls and menu layout — 2026-10-19
+
+- [x] Capture both filter checkbox values before WaitController.stop publishes a synchronous repaint. Previously that repaint restored the old checkbox value before it was saved, preventing both directions of change.
+- [x] Group MIDI tolerance options into full-width rows with attached descriptions, mode labels, and expandable technical help instead of alternating labels/help through the setup grid.
+- [x] 328 tests pass, including both actual handler bodies under a simulated synchronous stop repaint; bootstrap syntax and whitespace checks pass. Live Server browser check confirms range on/off and visually grouped rows. The separate test browser has no WebMIDI, so live Hex checkbox/device acceptance remains with the owner.
+
+
 ### Captured MIDI artifacts and optional score-range tolerance — 2026-10-19
 
 - [x] Audit the 452-message Christmas Time Is Here capture. All three disputed pitches occur in raw TriplePlay MIDI; string/fret feedback is a projection, not proof of a physical attack. See MIDI-ARTIFACT-AUDIT-2026-10-19.md.

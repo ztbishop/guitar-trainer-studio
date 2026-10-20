@@ -1,5 +1,10 @@
 # Guitar Trainer Studio Architecture
 
+## Practice filter UI synchronization — 2026-10-19
+
+bootstrap filter change handlers capture checked before invoking stop/pause, because WaitController.publish synchronously calls renderTrainerUi and restores form values from AppState. State is then updated, saved, configured and rendered. tests/practice-filter-controls.test.js exercises the real handlers against this reentrant repaint. Menu grouping belongs to index.html/menu-controls.css; each tolerance setting keeps its label and description together in a full-width parent group with expandable detailed policy text. Filtering semantics and availability rules are unchanged.
+
+
 ## Optional score range and released-onset tolerance — 2026-10-19
 
 score-range-filter.js is pure score-geometry policy, called by WaitSession after Hex onset interpretation and before grading. It validates native tuning/capo/transposition against target notes; current nonzero written frets define the shape, expanded by ±5 with open strings separately allowed. Written target pitches always pass. Hex uses the reported string; Poly tests every possible string without attaching inferred physical identity. Missing/inconsistent geometry fails open. The optional filterScoreRange preference defaults false, is restored independently, and travels through bootstrap → WaitController → WaitSession with the selected track's staves. An ignored event earns no credit/penalty and cannot become held evidence; its raw event and explicit written-score range stay in midi-capture. This is Wait-only score-based tolerance, not a physical hand-position limit or strict fingering grading.

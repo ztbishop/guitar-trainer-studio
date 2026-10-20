@@ -152,13 +152,27 @@
           <details class="practice-advanced"><summary>Chord timing help</summary><p class="field-help">One at a time collects correct notes without a time limit. For repeated Hex chords, fresh attacks on all but one tone can support one matching tone still held from the preceding chord, after a brief check for late notes. This recognizes the chord; it does not verify that string's reattack. Diagnostics count held-note support separately. Together requires fresh attacks within its chord window. Pause freezes the window; expired chords can be retried without a missed-note penalty. Changing the chord choice or window pauses practice and clears Wait results.</p></details>
           </div>
 
-          <label class="toggle-row" for="allow-muted-string-noise"><input id="allow-muted-string-noise" type="checkbox" /><span>Allow muted-string noise (Hex)</span></label>
-          <p class="field-help">Chord targets only: ignore input from omitted strings. Extra notes on those strings will not count as mistakes. Off = Strict. Changing this pauses practice and clears results.</p>
-          <p class="field-help">An all-X beat needs one fresh attack at any pitch. In mixed chords, X notes are optional. Muted strums must produce MIDI to advance Wait.</p>
-          <label class="toggle-row" for="filter-hex-spikes"><input id="filter-hex-spikes" type="checkbox" checked /><span>Filter confirmed tracking spikes (Wait Hex)</span></label>
-          <p class="field-help">Disregard a confirmed soft, distant spike, or a wrong onset released within 5 ms and replaced within 20 ms by the correct same-string tone at equal or greater velocity. Short correct notes still count immediately. Changing this pauses Wait and clears its results.</p>
-          <label class="toggle-row" for="filter-score-range"><input id="filter-score-range" type="checkbox" /><span>Ignore notes outside written fret range (Wait)</span></label>
-          <p class="field-help">Optional, off by default. Allow the current written fretted shape plus 5 frets on either side, and open strings. Hex checks the reported string; Poly ignores a pitch only if no string fits. This estimates the score's range, not your hand position, and can hide genuine mistakes. Unavailable fingering leaves input unchanged. Changing this pauses Wait and clears results.</p>
+          <section class="practice-input-filters" aria-labelledby="practice-filters-title">
+            <div class="popup-card-title" id="practice-filters-title">MIDI input tolerance</div>
+            <p class="field-help practice-filter-intro">Changing an option pauses practice and clears its results.</p>
+            <div class="practice-filter-option">
+              <label class="toggle-row" for="allow-muted-string-noise"><input id="allow-muted-string-noise" type="checkbox" aria-describedby="muted-noise-help" /><span>Allow muted-string noise <small>Hex</small></span></label>
+              <p id="muted-noise-help" class="field-help">For chords, ignore notes from strings omitted in the score. Off keeps those extra notes as mistakes.</p>
+            </div>
+            <div class="practice-filter-option">
+              <label class="toggle-row" for="filter-hex-spikes"><input id="filter-hex-spikes" type="checkbox" checked aria-describedby="spike-filter-help" /><span>Filter confirmed tracking spikes <small>Wait · Hex</small></span></label>
+              <p id="spike-filter-help" class="field-help">Remove a brief false-note penalty after the correct note confirms a tracking artifact on the same string.</p>
+            </div>
+            <div class="practice-filter-option">
+              <label class="toggle-row" for="filter-score-range"><input id="filter-score-range" type="checkbox" aria-describedby="range-filter-help" /><span>Ignore notes outside written fret range <small>Wait · Hex or Poly</small></span></label>
+              <p id="range-filter-help" class="field-help">Ignore pitches outside the written shape plus 5 frets on either side. Open strings remain allowed. Off by default; can hide real mistakes.</p>
+            </div>
+            <details class="practice-filter-details"><summary>How these filters differ</summary>
+              <p class="field-help"><strong>Tracking spikes:</strong> checks the MIDI sequence, not hand position. A soft, distant spike must be released within 70 ms and followed within 200 ms by the correct same-string tone at twice its velocity. Alternatively, a wrong onset must be released within 5 ms and replaced within 20 ms by the correct same-string tone at equal or greater velocity. Short correct notes count immediately.</p>
+              <p class="field-help"><strong>Written range:</strong> checks score positions without waiting for a confirming note. Hex checks the reported string; Poly ignores a pitch only if no string fits. It estimates the written range, not your physical hand position. Missing fingering leaves input unchanged.</p>
+              <p class="field-help">Filters marked Wait apply in Wait mode. The spike filter also requires Hex input. An all-X beat needs one fresh MIDI attack; in mixed chords, X notes are optional.</p>
+            </details>
+          </section>
           <details class="practice-advanced"><summary>MIDI timing adjustment</summary><label class="field-group" for="midi-latency-ms">
             <span class="field-label">MIDI input latency (ms)</span>
             <span class="field-help">Realtime only: increase if your MIDI guitar reports notes late. Changing this resets Realtime results.</span>

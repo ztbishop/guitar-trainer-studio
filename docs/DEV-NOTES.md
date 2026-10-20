@@ -1,5 +1,14 @@
 # Development notes
 
+## Practice filter checkbox repaint fix — 2026-10-19
+
+Owner could not change either newly added filter and reported the menu layout as unusable. Both change handlers read input.checked after waitController.stop(), whose publish() synchronously invokes renderTrainerUi() and resets the element from the old AppState value. Capture enabled before any transport/state publishing, as the existing muted-string handler already did. Both true→false and false→true now survive stop/pause/configure/render. No filtering or grading rules changed.
+
+practice-input-filters spans the setup grid; each checkbox and aria-describedby explanation is grouped in one row with mode labels. Technical thresholds move into How these filters differ. This fixes the label/help interleaving in the two-column parent. Disabled options are visibly dimmed; existing Wait/Hex/media availability rules remain.
+
+328 tests pass. New tests execute the actual handler bodies with stop/pause/configure callbacks that repaint checked from state. Syntax/whitespace checks pass. In a separate in-app browser at existing Live Server, range was checked and unchecked successfully and the grouped menu was visually inspected. No WebMIDI in that test browser, so live Hex interaction is not claimed. Owner's normal browser and Fishman session were not operated. Suggested commit: Fix Practice filter toggles and group tolerance settings.
+
+
 ## Christmas MIDI artifact audit and score-range tolerance — 2026-10-19
 
 The owner disputes measure-5 A-string fret 12, measure-10 B-string fret 3 and repeated-measure-5 G-string fret 23. Raw capture rows #119/#313/#433 contain those MIDI pitches, respectively 57/62/78; the app did not infer the raw pitch. Physical fingering is not established by MIDI. #119 has velocity 10 and lasts 1125.1 ms on string 5 while the target is string 1/fret 5. The previous filter requires a unique written pitch on the reported string and a release ≤70 ms, so it cannot remove this event. #313 lasts 2 ms at velocity 114, followed by required MIDI 63 at velocity 116 after 6 ms; it fails the earlier softness/distance bounds. #433 lasts 4 ms at velocity 40, followed by required MIDI 65 at velocity 83 after 13 ms; it fails the earlier velocity cap. No broad hand-position safeguard existed. Earlier blanket claims were inaccurate; narrow historical entries below are superseded only by the explicitly described extensions here.

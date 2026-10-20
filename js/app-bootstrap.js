@@ -236,13 +236,15 @@ function wirePracticeControls() {
   chordControls.sync();
   const spikeFilter=document.getElementById('filter-hex-spikes');
   spikeFilter.addEventListener('change',()=>{
+    const enabled=spikeFilter.checked;
     waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
-    AppState.filterHexSpikes=spikeFilter.checked;savePracticePreferences(AppState);configureWaitSession();renderTrainerUi();
+    AppState.filterHexSpikes=enabled;savePracticePreferences(AppState);configureWaitSession();renderTrainerUi();
   });
   const rangeFilter=document.getElementById('filter-score-range');
   rangeFilter?.addEventListener('change',()=>{
+    const enabled=rangeFilter.checked;
     waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
-    AppState.filterScoreRange=rangeFilter.checked;savePracticePreferences(AppState);configureWaitSession();renderTrainerUi();
+    AppState.filterScoreRange=enabled;savePracticePreferences(AppState);configureWaitSession();renderTrainerUi();
   });
   const mutedNoise=document.getElementById('allow-muted-string-noise');
   mutedNoise.addEventListener('change',()=>{
