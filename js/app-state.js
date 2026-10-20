@@ -61,6 +61,8 @@ export const AppState = {
     hexChannelBase: 1,
     hexChannelReverse: false,
     pitchBendRange: 12,
+    ignoreBriefErrors: false,
+    minErrorMs: 30,
     singleChannel: 'any',
     activeNotes: new Map(),
     activeNotesByChannel: new Map(),

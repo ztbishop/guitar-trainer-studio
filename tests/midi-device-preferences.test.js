@@ -5,11 +5,11 @@ import {AppState} from '../js/app-state.js';
 import {initMidiRouter,setActiveMidiInput,saveActiveMidiSettings} from '../js/midi-router.js';
 
 const device=(id,name='TriplePlay')=>({id,name,manufacturer:'Fishman'});
-const hex={inputMode:'hex-6ch',singleChannel:'9',hexChannelBase:10,hexChannelReverse:true,pitchBendRange:24,latencyMs:87};
+const hex={...MIDI_DEVICE_DEFAULTS,inputMode:'hex-6ch',singleChannel:'9',hexChannelBase:10,hexChannelReverse:true,pitchBendRange:24,latencyMs:87};
 const memory=()=>({value:null,getItem(){return this.value;},setItem(key,value){assert.equal(key,MIDI_DEVICES_KEY);this.value=value;}});
 const settings=()=>({inputMode:AppState.inputMode,singleChannel:AppState.midi.singleChannel,hexChannelBase:AppState.midi.hexChannelBase,
-  hexChannelReverse:AppState.midi.hexChannelReverse,pitchBendRange:AppState.midi.pitchBendRange,latencyMs:AppState.trainer.latencyMs});
-function apply(s){AppState.inputMode=s.inputMode;AppState.trainer.latencyMs=s.latencyMs;for(const k of ['singleChannel','hexChannelBase','hexChannelReverse','pitchBendRange'])AppState.midi[k]=s[k];}
+  hexChannelReverse:AppState.midi.hexChannelReverse,pitchBendRange:AppState.midi.pitchBendRange,latencyMs:AppState.trainer.latencyMs,ignoreBriefErrors:AppState.midi.ignoreBriefErrors,minErrorMs:AppState.midi.minErrorMs});
+function apply(s){AppState.inputMode=s.inputMode;AppState.trainer.latencyMs=s.latencyMs;for(const k of ['singleChannel','hexChannelBase','hexChannelReverse','pitchBendRange','ignoreBriefErrors','minErrorMs'])AppState.midi[k]=s[k];}
 function port(id,name) {
   return {...device(id,name),state:'connected',type:'input',adds:0,
     addEventListener(_,fn){this.receive=fn;this.adds++;},removeEventListener(){this.receive=null;},close(){return Promise.resolve();},
@@ -91,4 +91,19 @@ test('None cancels waiting, survives reload and later plugging in; manual select
     assert.equal(AppState.midi.activeInputId,'loop');
     setActiveMidiInput('');await init();assert.equal(AppState.midi.activeInputId,'');
   });
+});
+
+test('brief-error choice and duration stay per device, including disabled remembered duration',async()=>{
+ const storage=memory();await environment(storage,async(access,init)=>{
+  const mg=port('mg','MIDI Guitar'),tp=port('tp');access.inputs.set('mg',mg);access.inputs.set('tp',tp);await init();
+  setActiveMidiInput('mg');assert.equal(AppState.midi.ignoreBriefErrors,false);assert.equal(AppState.midi.minErrorMs,30);
+  AppState.midi.ignoreBriefErrors=true;AppState.midi.minErrorMs=45;saveActiveMidiSettings();
+  setActiveMidiInput('tp');assert.equal(AppState.midi.ignoreBriefErrors,false);assert.equal(AppState.midi.minErrorMs,30);
+  AppState.midi.minErrorMs=70;saveActiveMidiSettings();setActiveMidiInput('mg');
+  assert.equal(AppState.midi.ignoreBriefErrors,true);assert.equal(AppState.midi.minErrorMs,45);
+  AppState.midi.ignoreBriefErrors=false;saveActiveMidiSettings();setActiveMidiInput('tp');setActiveMidiInput('mg');
+  assert.equal(AppState.midi.ignoreBriefErrors,false);assert.equal(AppState.midi.minErrorMs,45);
+ });
+ const p=new MidiDevicePreferences(storage);assert.equal(p.profile(device('mg')).settings.minErrorMs,45);
+ for(const value of [null,'30',4,101,NaN,25.5])assert.equal(validateMidiSettings({minErrorMs:value}).minErrorMs,30);
 });

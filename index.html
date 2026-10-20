@@ -167,9 +167,21 @@
               <label class="toggle-row" for="filter-score-range"><input id="filter-score-range" type="checkbox" aria-describedby="range-filter-help" /><span>Ignore notes outside written fret range <small>Wait · Hex or Poly</small></span></label>
               <p id="range-filter-help" class="field-help">Ignore pitches outside the written shape plus 5 frets on either side. Open strings remain allowed. Off by default; can hide real mistakes.</p>
             </div>
+            <div class="practice-filter-option">
+              <label class="toggle-row" for="ignore-brief-errors"><input id="ignore-brief-errors" type="checkbox" aria-describedby="brief-error-help" /><span>Ignore brief off-target notes <small>Wait · Hex or Poly</small></span></label>
+              <p id="brief-error-help" class="field-help">Correct notes count immediately. Brief wrong notes may be forgiven. Saved separately for each MIDI input; off on first use.</p>
+              <div id="brief-error-duration-row" class="menu-row brief-error-duration" hidden>
+                <label for="minimum-error-ms">Minimum error duration (ms)</label>
+                <div class="menu-number"><input id="minimum-error-ms" type="number" min="5" max="100" step="5" value="30" aria-describedby="brief-error-help" />
+                  <div class="menu-steppers"><button id="minimum-error-down" type="button" aria-label="Decrease minimum error duration by 5 milliseconds">▾</button><button id="minimum-error-up" type="button" aria-label="Increase minimum error duration by 5 milliseconds">▴</button></div>
+                </div>
+              </div>
+              <p id="brief-error-availability" class="field-help"></p>
+            </div>
             <details class="practice-filter-details"><summary>How these filters differ</summary>
               <p class="field-help"><strong>Tracking spikes:</strong> checks the MIDI sequence, not hand position. It also ignores one stronger retrigger of a completed soft single note (velocity 20 or less), within 60 ms of its onset and 20 ms of its release, on the same string and pitch across the next target. If the next target needs that pitch, it still counts normally. A soft, distant spike must be released within 70 ms and followed within 200 ms by the correct same-string tone at twice its velocity. Alternatively, a wrong onset must be released within 5 ms and replaced within 20 ms by the correct same-string tone at equal or greater velocity. Short correct notes count immediately.</p>
               <p class="field-help"><strong>Written range:</strong> checks score positions without waiting for a confirming note. Hex checks the reported string; Poly ignores a pitch only if no string fits. It estimates the written range, not your physical hand position. Missing fingering leaves input unchanged.</p>
+              <p class="field-help"><strong>Brief off-target notes:</strong> forgive wrong pitches released before the chosen duration (5–100 ms). At or above the threshold, count the penalty against its original target. Correct pitches still count immediately, including very short notes. This can hide real brief mistakes; it does not prove a note was a ghost. Default 30 ms, adjustable in 5 ms steps or by typing. The enabled choice and duration save per MIDI input.</p>
               <p class="field-help">Filters marked Wait apply in Wait mode. The spike filter also requires Hex input. An all-X beat needs one fresh MIDI attack; in mixed chords, X notes are optional.</p>
             </details>
           </section>

@@ -1,7 +1,8 @@
+import {briefErrorMs} from './brief-error-filter.js';
 // Device identity/validated browser preferences only; no MIDI or grading calls.
 export const MIDI_DEVICES_KEY='gts.midiDevices';
 export const MIDI_DEVICE_DEFAULTS={inputMode:'single-channel',singleChannel:'any',hexChannelBase:1,
-  hexChannelReverse:false,pitchBendRange:12,latencyMs:0};
+  hexChannelReverse:false,pitchBendRange:12,latencyMs:0,ignoreBriefErrors:false,minErrorMs:30};
 const identity=input=>input && typeof input.id==='string' && input.id.length>0
   ?{id:input.id,name:typeof input.name==='string'?input.name:'',manufacturer:typeof input.manufacturer==='string'?input.manufacturer:''}:null;
 const label=d=>JSON.stringify([d.name.trim().toLowerCase(),d.manufacturer.trim().toLowerCase()]);
@@ -14,6 +15,8 @@ export function validateMidiSettings(value={}) {
   s.hexChannelBase=Math.max(s.hexChannelReverse?6:1,Math.min(s.hexChannelReverse?16:11,s.hexChannelBase));
   if([0,2,12,24].includes(value?.pitchBendRange))s.pitchBendRange=value.pitchBendRange;
   if(Number.isFinite(value?.latencyMs))s.latencyMs=Math.max(0,Math.min(1000,value.latencyMs));
+  if(typeof value?.ignoreBriefErrors==='boolean')s.ignoreBriefErrors=value.ignoreBriefErrors;
+  s.minErrorMs=briefErrorMs(value?.minErrorMs);
   return s;
 }
 export class MidiDevicePreferences {

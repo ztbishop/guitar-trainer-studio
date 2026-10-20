@@ -16,14 +16,14 @@ let devicePreferences=null;
 function currentSettings() {
   return {inputMode:AppState.inputMode,singleChannel:AppState.midi.singleChannel,
     hexChannelBase:AppState.midi.hexChannelBase,hexChannelReverse:AppState.midi.hexChannelReverse,
-    pitchBendRange:AppState.midi.pitchBendRange,latencyMs:AppState.trainer.latencyMs};
+    pitchBendRange:AppState.midi.pitchBendRange,latencyMs:AppState.trainer.latencyMs,ignoreBriefErrors:AppState.midi.ignoreBriefErrors,minErrorMs:AppState.midi.minErrorMs};
 }
 export function saveActiveMidiSettings() {
   if(activeInput)devicePreferences?.remember(activeInput,currentSettings());
 }
 function restoreSettings(settings) {
   AppState.inputMode=settings.inputMode;AppState.trainer.latencyMs=settings.latencyMs;
-  for(const key of ['singleChannel','hexChannelBase','hexChannelReverse','pitchBendRange'])AppState.midi[key]=settings[key];
+  for(const key of ['singleChannel','hexChannelBase','hexChannelReverse','pitchBendRange','ignoreBriefErrors','minErrorMs'])AppState.midi[key]=settings[key];
 }
 function noInputStatus(){return devicePreferences?.lastInput?`Waiting for ${devicePreferences.lastInput.name || 'the last MIDI input'}`:'No MIDI input selected';}
 let callbacks = {

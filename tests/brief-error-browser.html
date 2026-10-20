@@ -1,0 +1,7 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Brief-error filter browser check</title><link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../menu-controls.css"><style>body{display:block;overflow:auto;padding:20px;background:#e6eaf0}#practice-popup{position:static;transform:none;margin:auto;max-height:none;padding:22px;box-sizing:border-box}#fixture-note{margin:0 auto 12px;max-width:736px;font-size:13px}</style></head><body><p id="fixture-note">UI test only — synthetic MIDI input. Your saved device settings are unchanged.</p><section id="practice-popup" class="toolbar-popup panel popup-surface is-open"><h2>Practice · MIDI input tolerance</h2><div id="fixture-content"></div></section><script type="module">
+import {AppState} from '../js/app-state.js';import {initBriefErrorControls} from '../js/brief-error-controls.js';
+const source=await (await fetch('../index.html')).text();const parsed=new DOMParser().parseFromString(source,'text/html');
+document.getElementById('fixture-content').append(parsed.querySelector('.practice-input-filters'));
+AppState.mode='wait';AppState.midi.activeInputId='browser-fixture';let controls;
+controls=initBriefErrorControls(settings=>{controls?.sync();Object.assign(AppState.midi,settings);});
+</script></body></html>

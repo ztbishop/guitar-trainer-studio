@@ -7,7 +7,7 @@ export function noteStatesFromRecords(records=[],summarizeErrors=true,{hex=false
   for(const record of records) {
     if(record.skipped)continue;
     for(const slot of record.slots) {
-      const completedWithErrors=hex && summarizeErrors && record.wrongNotes?.some(n=>n.wrongPitch &&
+      const completedWithErrors=hex && summarizeErrors && record.wrongNotes?.some(n=>!n.pending && n.wrongPitch &&
         (!hex || !Number.isInteger(n.stringHint) || n.stringHint<1 || n.stringHint>6 || n.stringHint===slot.string)) && record.slots.every(s=>s.hit);
       const status=completedWithErrors ? 'completed-with-errors' : slot.hit ? 'correct' : slot.missed ? 'missed' : null;
       if(status)for(const id of slot.noteIds)states[id]=status;

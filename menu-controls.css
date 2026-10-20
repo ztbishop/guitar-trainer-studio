@@ -363,3 +363,7 @@
 #practice-popup .practice-filter-option .toggle-row:has(input:disabled) { opacity: .55; cursor: default; }
 #practice-popup .practice-filter-details { margin-top: 12px; }
 #practice-popup .practice-filter-details .field-help { margin: 8px 0; }
+
+#practice-popup .brief-error-duration { margin: 10px 0 0 32px; gap: 12px; }
+#practice-popup .brief-error-duration[hidden] { display: none; }
+#practice-popup #brief-error-availability:empty { display: none; }

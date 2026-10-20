@@ -1,3 +1,4 @@
+import {initBriefErrorControls} from './brief-error-controls.js';
 import {initMidiCaptureControls,captureFeedbackView} from './midi-capture.js';
 // app-bootstrap.js
 // Owns: startup wiring and module initialization order
@@ -48,6 +49,7 @@ let transportControls=null;
 let chordControls=null;
 let attemptControls=null;
 let audioControls=null,scoreLibrary=null,mediaControls=null,pitchControls=null;
+let briefErrorControls=null;
 let waitUiRevision=0,suppressWaitPaint=false;
 const scheduleMidiUi=frameTask(()=>renderMidiUi());
 
@@ -65,7 +67,7 @@ const waitController = new WaitController({
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
 
 function configureWaitSession() {
-  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,allowMutedStringNoise:AppState.allowMutedStringNoise,filterHexSpikes:AppState.filterHexSpikes,filterScoreRange:AppState.filterScoreRange,rangeStaves:AppState.tracks.find((track,index)=>String(track.index??index)===String(AppState.practiceTrackId))?.staves??[],pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
+  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,allowMutedStringNoise:AppState.allowMutedStringNoise,filterHexSpikes:AppState.filterHexSpikes,filterScoreRange:AppState.filterScoreRange,ignoreBriefErrors:AppState.midi.ignoreBriefErrors,minErrorMs:AppState.midi.minErrorMs,rangeStaves:AppState.tracks.find((track,index)=>String(track.index??index)===String(AppState.practiceTrackId))?.staves??[],pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
 }
 
 function changePracticeLoop(loop) {
@@ -222,6 +224,10 @@ function wireTransportButtons() {
 }
 
 function wirePracticeControls() {
+  briefErrorControls=initBriefErrorControls(settings=>{
+    waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
+    Object.assign(AppState.midi,settings);saveActiveMidiSettings();configureWaitSession();renderTrainerUi();
+  });
   attemptControls=initAttemptControls(()=>{
     clearActiveMidiNotes();
     if(AppState.mode==='wait')waitController.newAttemptHere(AppState.tickPosition);
@@ -485,6 +491,7 @@ function renderTrainerUi() {
     const panel=document.getElementById(id);if(panel)panel.inert=Boolean(AppState.media.returning);
   }
   mediaControls?.sync();
+  briefErrorControls?.sync();
   attemptControls?.sync();
   transportControls?.sync();
   chordControls?.sync();

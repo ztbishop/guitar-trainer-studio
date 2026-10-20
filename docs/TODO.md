@@ -1,5 +1,14 @@
 # Guitar Trainer Studio: status and to-do
 
+### Optional brief off-target tolerance — 2026-10-20
+
+- [x] Add visible Practice → MIDI input tolerance checkbox, Ignore brief off-target notes, default off. Correct pitches count immediately; wrong MIDI pitches released before the chosen threshold are forgiven. Wait Hex and Poly only; Realtime unchanged.
+- [x] Default 30 ms, valid integer 5–100 ms; direct numeric entry and ±5 ms arrow buttons. Show duration when enabled. Save enabled choice and duration per MIDI input; disabling retains duration. Legacy/new device profiles default off/30. Device identity/reconnect behavior is preserved.
+- [x] Keep pending errors anchored to their original target; mature held errors through the existing clock or releases. Preserve duration handling across target changes, Together retries, pause/resume, final completion and loop archival. Raw messages and later decisions remain in capture evidence.
+- [x] 358 tests, changed-module syntax and whitespace checks pass. MG3 replay at 30 ms keeps all 84 correct attacks and target identities, removes 18 of 32 penalties (72% → 86% for that recorded segment). Synthetic browser check verifies checkbox, numeric entry and arrows; real app menu shows device-selection help when no input is selected.
+- [ ] Owner hard-refreshes normal Live Server browser, selects MG3, enables at 30 ms, compares off/on, reloads and switches to TriplePlay to confirm independent saved choices. Check deliberate sustained errors, very short correct notes and loops. Physical acceptance pending.
+
+
 ### Weak precursor retrigger across Wait targets — 2026-10-19
 
 - [x] Audit 48-message Christmas capture: measure-1 low C3 soft velocity-10 onset completes its target; release at 35 ms; same-channel/pitch velocity-119 retrigger at 42 ms is wrongly attributed to measure 2. This precedes every actual measure-2 chord attack; the held-note hypothesis is not the captured cause.

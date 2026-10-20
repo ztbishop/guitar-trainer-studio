@@ -13,7 +13,7 @@ export class WaitController {
   configure(events,endTick,hex=false,loop=false,chordSettings={},loopCountIn=false) {
     this.stop();this.events=events;this.endTick=endTick;this.hex=hex;
     this.loop=loop;this.loopCountIn=loopCountIn;this.pass=1;this.lastPassResults=null;this.passHistory=[];
-    this.chordSettings={chordMode:chordSettings.mode,chordWindowMs:chordSettings.windowMs,allowMutedStringNoise:chordSettings.allowMutedStringNoise,filterHexSpikes:chordSettings.filterHexSpikes,filterScoreRange:chordSettings.filterScoreRange,rangeStaves:chordSettings.rangeStaves};
+    this.chordSettings={chordMode:chordSettings.mode,chordWindowMs:chordSettings.windowMs,allowMutedStringNoise:chordSettings.allowMutedStringNoise,filterHexSpikes:chordSettings.filterHexSpikes,filterScoreRange:chordSettings.filterScoreRange,rangeStaves:chordSettings.rangeStaves,ignoreBriefErrors:chordSettings.ignoreBriefErrors,minErrorMs:chordSettings.minErrorMs};
     this.pitchState=new MidiPitchState(chordSettings.pitchBendRange);
     this.chordSettings.pitchState=this.pitchState;
     this.session=new WaitSession(events,{hex,...this.chordSettings});this.index=-1;this.publish();
@@ -31,6 +31,7 @@ export class WaitController {
       if(this.session.lastFeedback?.type==='retry' && this.session.lastFeedback.eventId===currentEvent?.id)status+=' • chord window expired; play the whole chord again';
       if(this.session.chordMode==='together' && record?.slots.length>1)status+=` • chord window ${this.session.chordWindowMs} ms`;
     }
+    if(this.phase==='settling')status='Correct notes complete • checking pending MIDI releases';
     if(this.phase==='paused') status='Paused • press Play to resume Wait Mode';
     if(this.phase==='count-in') status='Count-in • get ready';
     if(this.phase==='complete') {matchState='match';status='Wait practice complete';}
@@ -49,6 +50,7 @@ export class WaitController {
       this.pauseOffset+=Math.max(0,this.now()-this.pausedAt);this.pausedAt=null;
       this.manualPaused=false;
       this.phase=this.pausedFrom==='seeking' ? (this.desiredTick===null?'waiting':'seeking') : this.pausedFrom;
+      if(this.phase==='settling'){this.publish();return true;}
       this.beginGate(this.index,true);return true;
     }
     this.advance(this.now());this.pausedAt=this.now();
@@ -90,7 +92,7 @@ export class WaitController {
     // Accept attacks during positioning; never depend on playback/duration.
     // Releases also apply while paused, so stale held markers never reappear.
     if(note.type==='note-off') {
-      const at=(Number.isFinite(note.at)?note.at:this.now())-this.pauseOffset;
+      const at=(this.phase==='paused'?this.pausedAt:(Number.isFinite(note.at)?note.at:this.now()))-this.pauseOffset;
       if(this.session.noteOff({...note,at}))this.publish();return null;
     }
     if(note.type==='pitch-bend') {
@@ -113,7 +115,7 @@ export class WaitController {
   finishGate() {
     this.session.clearLiveWrong();
     const next=this.index+1;
-    if(next<this.events.length)this.gate(next);else this.complete();
+    if(next<this.events.length)this.gate(next);else if(this.session.pendingErrors.size){this.phase='settling';this.publish();}else this.complete();
   }
   positionChanged({currentTick,isSeek=false}) {
     if(!this.active)return;
@@ -121,7 +123,7 @@ export class WaitController {
     if(this.desiredTick!==null && this.desiredTick!==undefined) {
       if(isSeek && Math.abs(currentTick-this.desiredTick)<=2) {
         this.position=this.desiredTick;this.desiredTick=null;
-        if(this.phase!=='count-in' && this.pausedFrom!=='count-in') {
+        if(this.phase!=='count-in' && this.pausedFrom!=='count-in' && this.phase!=='settling' && this.pausedFrom!=='settling') {
           this.phase=this.manualPaused?'paused':'waiting';this.pausedFrom='waiting';
         }
         this.publish();
@@ -131,7 +133,9 @@ export class WaitController {
     if(isSeek && Math.abs(currentTick-this.position)>2) this.restartAt(currentTick);
   }
   advance(at=this.now()) {
-    if(!this.active || !['waiting','seeking'].includes(this.phase))return;
+    if(!this.active || !['waiting','seeking','settling'].includes(this.phase))return;
+    if(this.session.flushPendingErrors(at-this.pauseOffset))this.publish();
+    if(this.phase==='settling'){if(!this.session.pendingErrors.size)this.complete();return;}
     if(this.session.expire(this.index,at-this.pauseOffset))this.publish();
     if(this.session.settle(this.index,at-this.pauseOffset)?.complete)this.finishGate();
   }

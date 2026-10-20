@@ -1,5 +1,14 @@
 # Guitar Trainer Studio Architecture
 
+## Per-device brief-error duration tolerance — 2026-10-20
+
+brief-error-filter.js owns duration validation/defaults; brief-error-controls.js owns the visible checkbox and conditional number/arrow UI. midi-device-preferences validates ignoreBriefErrors (false initially) and minErrorMs (30 initially; integer 5–100), midi-router saves/restores them with each active input profile, and bootstrap passes them only to WaitController/WaitSession. Global practice preferences and Realtime behavior are independent.
+
+WaitSession stores pending wrong entries in their original record with pending=true, tracked separately from counted wrongs. pendingErrors drives threshold maturation; activeBriefErrors retains onset/release identity for timestamp-based release reconciliation. Correct grading/progression remains immediate. Pending entries are excluded from public wrong histories and note-state projections. Raw-channel/raw-pitch releases below threshold remove a pending/counted duration-managed entry without credit; flushPendingErrors counts it once at threshold. Existing Hex corrections share removeWrong, preventing negative/double penalties. briefErrorDecisions records both counted and forgiven outcomes; capture rows retain raw data and selected duration settings.
+
+WaitController services pending errors through its existing clock even after target advancement. Pause/release uses active time. When a final correct target has outstanding pending errors, phase=settling holds pass finalization until durations resolve; native seek acknowledgements preserve that phase, and loop history is archived only afterward. Stop/new attempt/configure/seek lifecycle still replaces sessions. Browser control tests use a clearly marked synthetic-input fixture with no persisted device changes. No extra native alphaTab integration or background scheduling service is introduced.
+
+
 ## Accepted-single precursor tracking — 2026-10-19
 
 WaitSession.singlePrecursors is a bounded per-channel map of soft correctly completed single-note attacks, separate from wrong-onset spike candidates. Matching raw releases update anchors. Pure helpers in hex-tracking-spikes.js validate one same-identity stronger retrigger across one target boundary (velocity ≤20 then ≥2×, release ≤70 ms, onset gap ≤60 ms, release gap ≤20 ms). Required pitches on the new target bypass this tolerance. Same-channel attacks consume anchors; noncentral bends and Wait pause/inactive reset clear them. Recreated sessions clear state for loops/seeks/new attempts. An ignored-previous-onset earns no credit/penalty and adds an explicit trackingSpikes record with previousEventId; it does not create held support. Enabled only by the existing Wait Hex filterHexSpikes preference. Normal held-note releases, MIDI routing, native transport and Poly/Realtime are unchanged.

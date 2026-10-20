@@ -30,6 +30,7 @@ export function captureMidiEvent(note,{input,accepted,receivedAt=performance.now
     hexBase:AppState.midi.hexChannelBase,hexReverse:AppState.midi.hexChannelReverse,singleChannel:AppState.midi.singleChannel,
     allowMutedStringNoise:AppState.allowMutedStringNoise===true,
     filterHexSpikes:AppState.filterHexSpikes!==false,filterScoreRange:AppState.filterScoreRange===true,
+    ignoreBriefErrors:AppState.midi.ignoreBriefErrors===true,minErrorMs:AppState.midi.minErrorMs,
     pitchBendRange:AppState.midi.pitchBendRange,
     scoreFileName:AppState.ui.loadedFileName,practiceTrackId:AppState.practiceTrackId,
     tick:AppState.tickPosition,targetBefore:targetInfo(target),
@@ -55,7 +56,7 @@ export function captureMidiOutcome(row,outcome) {
   row.handlerDurationMs=Math.max(0,performance.now()-startedClock-row.receivedTimeMs);
   row.grading=outcome && typeof outcome==='object'?{
     type:outcome.type,eventId:outcome.eventId,midi:outcome.midi,wrongPitch:outcome.wrongPitch,
-    complete:outcome.complete,target:targetInfo(AppState.expectedEvents.find(event=>event.id===outcome.eventId)),
+    complete:outcome.complete,minimumMs:outcome.minimumMs,target:targetInfo(AppState.expectedEvents.find(event=>event.id===outcome.eventId)),
     range:outcome.range?structuredClone(outcome.range):undefined,
     correction:outcome.correction?structuredClone(outcome.correction):undefined,
     pitch:outcome.pitch?structuredClone(outcome.pitch):undefined,
@@ -84,6 +85,7 @@ export function captureFeedbackView(marks,trainer) {
       .map(r=>({eventId:r.eventId,pass:r.pass,notes:r.supportedHeldNotes}))),
     pitchCorrections:structuredClone((trainer.history??[]).filter(r=>r.pitchCorrections?.length)
       .map(r=>({eventId:r.eventId,pass:r.pass,corrections:r.pitchCorrections}))),
+    briefErrorDecisions:structuredClone((trainer.history??[]).filter(r=>r.briefErrorDecisions?.length).map(r=>({eventId:r.eventId,pass:r.pass,decisions:r.briefErrorDecisions}))),
     trackingSpikes:structuredClone((trainer.history??[]).filter(r=>r.trackingSpikes?.length)
       .map(r=>({eventId:r.eventId,pass:r.pass,corrections:r.trackingSpikes}))),
     liveWrongNotes:structuredClone(trainer.liveWrongNotes??[]),marks:structuredClone(marks)};
