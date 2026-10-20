@@ -1,5 +1,16 @@
 # Development notes
 
+## Measure-1 C3 precursor/retrigger attributed to measure 2 — 2026-10-19
+
+The 48-message capture reports both tolerance settings true. #13 at 8477.7 ms is channel-6 MIDI 48/C3 (fret 8), velocity 10, accepted as the final single note of measure 1. #15 releases it at 8512.7 ms (35 ms duration). #17 retriggers MIDI 48 at 8519.7 ms, velocity 119, 42 ms after onset / 7 ms after release, and is graded against measure 2's C#3/fret 9 chord. It lasts 454 ms; correct C#3 arrives at 10030.7 ms, before the remaining chord notes. No measure-2 notes preceded #17. This is not an unchanged held note or stale Note-Off generating a grade: it is a separate raw Note-On after a release. The previous strum-tail rule protects multi-note/X gesture tails; this previous target is a single. Neither the existing within-target wrong-onset rule nor the ±5 range rule covers this adjacent target-boundary case.
+
+Added acceptedSinglePrecursor/confirmedPreviousOnset pure policy to hex-tracking-spikes.js. A correctly completed unique written single on its mapped string at velocity ≤20 may anchor one same-channel/string/raw/interpreted-pitch retrigger at ≥2× velocity, after a captured release ≤70 ms, ≤60 ms from onset and ≤20 ms from release. Only the immediately following target can use it, and any pitch required there remains a normal attack. Same-channel intervening attacks consume the anchor; noncentral bends, pause/inactive attacks and session replacement invalidate it. No generated credit, ignored held-note requirement or general previous-pitch grace period is introduced. Other string attacks need not invalidate the narrow matched identity. The heuristic is part of the existing optional Wait Hex confirmed-spike filter; Poly and Realtime remain unchanged.
+
+WaitSession records ignored-previous-onset plus a trackingSpikes reason and previousEventId; raw messages remain intact. The strong retrigger never becomes held support or a pending bend-correction attack. Existing accepted target timing stays immediate. UI summary/help now mentions stronger retriggers.
+
+342 tests pass, including exact 35/42/7 ms pattern, negative timing/velocity/string/pitch/filter/Poly cases, required repeated notes, intervening attacks/bends, target boundaries and pause. Actual router/controller replay delivers all 24 configured-channel messages from 48 raw rows, matches every recorded target identity, retains 9 accepted notes and ends at attack:5760; filter off gives one wrong/90%, on gives zero wrong/100% for this short captured segment only. Native hardware timing/playing intent is not established by replay. Syntax/whitespace checks pass; owner Live Server/Fishman check remains pending. No personal capture committed or native alphaTab/transport/version changes.
+
+
 ## Practice filter checkbox repaint fix — 2026-10-19
 
 Owner could not change either newly added filter and reported the menu layout as unusable. Both change handlers read input.checked after waitController.stop(), whose publish() synchronously invokes renderTrainerUi() and resets the element from the old AppState value. Capture enabled before any transport/state publishing, as the existing muted-string handler already did. Both true→false and false→true now survive stop/pause/configure/render. No filtering or grading rules changed.

@@ -5,7 +5,7 @@ import {TimingDefaults} from './practice-timing.js';
 import {supportedHeldTone} from './wait-chord-gesture.js';
 import {MidiPitchState,PITCH_SETTLE_MS} from './midi-pitch.js';
 import {outsideScoreRange} from './score-range-filter.js';
-import {spikeCandidate,confirmedSpike} from './hex-tracking-spikes.js';
+import {spikeCandidate,confirmedSpike,acceptedSinglePrecursor,confirmedPreviousOnset} from './hex-tracking-spikes.js';
 export class WaitSession {
   constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,allowMutedStringNoise=false,filterHexSpikes=true,filterScoreRange=false,rangeStaves=[],pitchBendRange=12,pitchState=null} = {}) {
     this.events=events;this.allowMutedStringNoise=allowMutedStringNoise;this.tail=null;
@@ -14,7 +14,7 @@ export class WaitSession {
     });
     this.hex=hex;this.lastFeedback=null;this.liveWrong=new Map();this.held=new Map();
     this.filterScoreRange=filterScoreRange;this.rangeStaves=rangeStaves;
-    this.filterHexSpikes=filterHexSpikes;this.spikeCandidates=new Map();
+    this.filterHexSpikes=filterHexSpikes;this.spikeCandidates=new Map();this.singlePrecursors=new Map();
     this.pitch=pitchState??new MidiPitchState(pitchBendRange);this.pitchAttacks=new Map();
     this.pitch.reset();
     this.chordMode=chordMode==='together'?'together':'collect';
@@ -31,9 +31,18 @@ export class WaitSession {
     this.lastFeedback={type:'retry',eventId:record.eventId,complete:false};return true;
   }
   noteOn(index,note,at=note.at??0) {
+    const previous=this.singlePrecursors.get(note.channel);
+    this.singlePrecursors.delete(note.channel);
     const candidate=this.spikeCandidates.get(note.channel);
     this.spikeCandidates.delete(note.channel);
     const played=this.hex?this.pitch.noteOn({...note,at}):note;
+    const retrigger=this.hex && this.filterHexSpikes?confirmedPreviousOnset(previous,this.events[index],played,index,at):null;
+    if(retrigger) {
+      for(const [key,value] of this.held)if(value.channel===note.channel)this.held.delete(key);
+      this.pitchAttacks.delete(note.channel);
+      (this.records[index].trackingSpikes??=[]).push(retrigger);
+      return this.lastFeedback={type:'ignored-previous-onset',eventId:this.events[index].id,midi:played.midi,trackingSpike:retrigger,complete:false};
+    }
     const range=this.filterScoreRange?outsideScoreRange(this.events[index],played,this.rangeStaves,{hex:this.hex}):null;
     if(range) {
       if(this.hex)for(const [key,value] of this.held)if(value.channel===note.channel)this.held.delete(key);
@@ -51,6 +60,8 @@ export class WaitSession {
         (record.trackingSpikes??=[]).push(correction);feedback.trackingSpike=correction;
         this.lastFeedback=feedback;
       }
+      const precursor=acceptedSinglePrecursor(this.events[index],played,feedback,index,at);
+      if(precursor)this.singlePrecursors.set(note.channel,precursor);
       const pending=spikeCandidate(this.events[index],played,feedback,record,index,at);
       if(pending)this.spikeCandidates.set(note.channel,pending);
     }
@@ -138,6 +149,8 @@ export class WaitSession {
       channel:slot.channel,noteIds:slot.noteIds,at,complete:true};
   }
   noteOff(note) {
+    const precursor=this.singlePrecursors.get(note.channel);
+    if(precursor?.rawMidi===note.midi && precursor.releasedAt===undefined)precursor.releasedAt=note.at;
     const candidate=this.spikeCandidates.get(note.channel);
     if(candidate?.rawMidi===note.midi && candidate.releasedAt===undefined)candidate.releasedAt=note.at;
     this.pitch.noteOff(note);
@@ -149,6 +162,7 @@ export class WaitSession {
   }
   pitchBend(note,at=note.at??0,currentIndex=null,allowCorrection=true) {
     if(!this.hex)return null;
+    if(note.bendValue!==0)this.singlePrecursors.delete(note.channel);
     this.pitch.bend({...note,at});
     // Continuous bends do not create attacks. Only reconcile a wrong onset
     // during its short initial pitch-settling interval, on its original target.

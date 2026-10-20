@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+### Weak precursor retrigger across Wait targets — 2026-10-19
+
+- [x] Audit 48-message Christmas capture: measure-1 low C3 soft velocity-10 onset completes its target; release at 35 ms; same-channel/pitch velocity-119 retrigger at 42 ms is wrongly attributed to measure 2. This precedes every actual measure-2 chord attack; the held-note hypothesis is not the captured cause.
+- [x] Under Filter confirmed tracking spikes (Wait Hex), tolerate one stronger immediate retrigger of an accepted soft single across exactly one target boundary: precursor velocity ≤20, matching raw/interpreted pitch and string/channel, captured release ≤70 ms, retrigger ≤60 ms from onset and ≤20 ms from release, ≥2× velocity. Never ignore a pitch required by the current target.
+- [x] 342 tests, syntax and whitespace checks pass. Raw-router replay processes all 48 messages/24 selected-channel messages, preserves all 9 correct attacks and target identities, and changes the single disputed penalty from wrong to ignored-previous-onset.
+- [ ] Owner hard-refreshes and retries measures 1→2 with confirmed-spike filtering enabled, including deliberate delayed wrong notes and genuine repeated written notes. Physical Fishman acceptance pending.
+
+
 ### Practice filter controls and menu layout — 2026-10-19
 
 - [x] Capture both filter checkbox values before WaitController.stop publishes a synchronous repaint. Previously that repaint restored the old checkbox value before it was saved, preventing both directions of change.

@@ -29,3 +29,25 @@ export function confirmedSpike(candidate,note,feedback,record,index,at) {
     stringHint:note.stringHint,velocity:candidate.velocity,durationMs:candidate.releasedAt-candidate.at,
     attackAt:candidate.at,at,followMs:at-candidate.at};
 }
+
+// A soft accepted single can be a precursor to the same physical attack.
+// Reconcile only its immediate stronger retrigger across one target boundary.
+export function acceptedSinglePrecursor(event,note,feedback,index,at) {
+  if(feedback?.type!=='correct' || !feedback.complete || event?.isPercussive || event?.notes?.length!==1 ||
+      !Number.isFinite(at) || !Number.isInteger(note.channel) || !Number.isInteger(note.stringHint) ||
+      note.stringHint!==event.notes[0].string || !Number.isFinite(note.velocity) ||
+      note.velocity<=0 || note.velocity>20)return null;
+  return {index,eventId:event.id,at,midi:note.midi,rawMidi:note.rawMidi,channel:note.channel,stringHint:note.stringHint,velocity:note.velocity};
+}
+export function confirmedPreviousOnset(previous,event,note,index,at) {
+  if(!previous || index!==previous.index+1 || !event || event.isPercussive ||
+      event.notes.some(n=>n.midi===note.midi) || note.channel!==previous.channel ||
+      note.stringHint!==previous.stringHint || note.midi!==previous.midi || note.rawMidi!==previous.rawMidi ||
+      !Number.isFinite(note.velocity) || note.velocity<2*previous.velocity ||
+      !Number.isFinite(previous.releasedAt) || previous.releasedAt<previous.at || previous.releasedAt>at ||
+      previous.releasedAt-previous.at>70 || at<previous.at || at-previous.at>60 || at-previous.releasedAt>20)return null;
+  return {reason:'previous-soft-onset-retrigger',previousEventId:previous.eventId,rawMidi:previous.rawMidi,
+    midi:note.midi,channel:note.channel,stringHint:note.stringHint,velocity:previous.velocity,
+    replacementVelocity:note.velocity,durationMs:previous.releasedAt-previous.at,followMs:at-previous.at,
+    releaseGapMs:at-previous.releasedAt,attackAt:previous.at,at};
+}

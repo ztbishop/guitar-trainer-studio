@@ -161,14 +161,14 @@
             </div>
             <div class="practice-filter-option">
               <label class="toggle-row" for="filter-hex-spikes"><input id="filter-hex-spikes" type="checkbox" checked aria-describedby="spike-filter-help" /><span>Filter confirmed tracking spikes <small>Wait · Hex</small></span></label>
-              <p id="spike-filter-help" class="field-help">Remove a brief false-note penalty after the correct note confirms a tracking artifact on the same string.</p>
+              <p id="spike-filter-help" class="field-help">Filter brief false starts and immediate stronger retriggers of a soft note on the same string.</p>
             </div>
             <div class="practice-filter-option">
               <label class="toggle-row" for="filter-score-range"><input id="filter-score-range" type="checkbox" aria-describedby="range-filter-help" /><span>Ignore notes outside written fret range <small>Wait · Hex or Poly</small></span></label>
               <p id="range-filter-help" class="field-help">Ignore pitches outside the written shape plus 5 frets on either side. Open strings remain allowed. Off by default; can hide real mistakes.</p>
             </div>
             <details class="practice-filter-details"><summary>How these filters differ</summary>
-              <p class="field-help"><strong>Tracking spikes:</strong> checks the MIDI sequence, not hand position. A soft, distant spike must be released within 70 ms and followed within 200 ms by the correct same-string tone at twice its velocity. Alternatively, a wrong onset must be released within 5 ms and replaced within 20 ms by the correct same-string tone at equal or greater velocity. Short correct notes count immediately.</p>
+              <p class="field-help"><strong>Tracking spikes:</strong> checks the MIDI sequence, not hand position. It also ignores one stronger retrigger of a completed soft single note (velocity 20 or less), within 60 ms of its onset and 20 ms of its release, on the same string and pitch across the next target. If the next target needs that pitch, it still counts normally. A soft, distant spike must be released within 70 ms and followed within 200 ms by the correct same-string tone at twice its velocity. Alternatively, a wrong onset must be released within 5 ms and replaced within 20 ms by the correct same-string tone at equal or greater velocity. Short correct notes count immediately.</p>
               <p class="field-help"><strong>Written range:</strong> checks score positions without waiting for a confirming note. Hex checks the reported string; Poly ignores a pitch only if no string fits. It estimates the written range, not your physical hand position. Missing fingering leaves input unchanged.</p>
               <p class="field-help">Filters marked Wait apply in Wait mode. The spike filter also requires Hex input. An all-X beat needs one fresh MIDI attack; in mixed chords, X notes are optional.</p>
             </details>

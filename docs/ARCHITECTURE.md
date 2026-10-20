@@ -1,5 +1,10 @@
 # Guitar Trainer Studio Architecture
 
+## Accepted-single precursor tracking — 2026-10-19
+
+WaitSession.singlePrecursors is a bounded per-channel map of soft correctly completed single-note attacks, separate from wrong-onset spike candidates. Matching raw releases update anchors. Pure helpers in hex-tracking-spikes.js validate one same-identity stronger retrigger across one target boundary (velocity ≤20 then ≥2×, release ≤70 ms, onset gap ≤60 ms, release gap ≤20 ms). Required pitches on the new target bypass this tolerance. Same-channel attacks consume anchors; noncentral bends and Wait pause/inactive reset clear them. Recreated sessions clear state for loops/seeks/new attempts. An ignored-previous-onset earns no credit/penalty and adds an explicit trackingSpikes record with previousEventId; it does not create held support. Enabled only by the existing Wait Hex filterHexSpikes preference. Normal held-note releases, MIDI routing, native transport and Poly/Realtime are unchanged.
+
+
 ## Practice filter UI synchronization — 2026-10-19
 
 bootstrap filter change handlers capture checked before invoking stop/pause, because WaitController.publish synchronously calls renderTrainerUi and restores form values from AppState. State is then updated, saved, configured and rendered. tests/practice-filter-controls.test.js exercises the real handlers against this reentrant repaint. Menu grouping belongs to index.html/menu-controls.css; each tolerance setting keeps its label and description together in a full-width parent group with expandable detailed policy text. Filtering semantics and availability rules are unchanged.
