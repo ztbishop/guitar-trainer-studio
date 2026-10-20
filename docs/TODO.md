@@ -1,5 +1,14 @@
 # Guitar Trainer Studio: status and to-do
 
+### Captured MIDI artifacts and optional score-range tolerance — 2026-10-19
+
+- [x] Audit the 452-message Christmas Time Is Here capture. All three disputed pitches occur in raw TriplePlay MIDI; string/fret feedback is a projection, not proof of a physical attack. See MIDI-ARTIFACT-AUDIT-2026-10-19.md.
+- [x] Extend existing Wait Hex spike tolerance for wrong onsets released within 5 ms and replaced within 20 ms by the unique written same-string tone at equal/greater velocity, same target/retry. Preserve the earlier soft/distant policy and short correct notes.
+- [x] Owner approved optional written-range tolerance for Wait Hex and Poly, default off and independently saved. Current fretted shape ±5 frets plus open strings; Hex uses reported string, Poly requires no plausible string. Invalid/missing fingering leaves input unchanged. This is score-based tolerance, not measured hand position or strict position grading.
+- [x] Record enabled filters and ignored-range evidence without modifying raw MIDI. 326 tests, changed-module syntax and whitespace checks pass. Supplied-capture replay preserves all target identities and 88 correct notes; with both filters, 7 wrong remain, versus the captured 10.
+- [ ] Owner hard-refreshes, keeps confirmed-spike filtering on, enables Practice → Ignore notes outside written fret range (Wait), retries the passage and deliberately tests nearby mistakes. Compare range off; verify saved choice after reload. Hardware/browser acceptance pending.
+
+
 ### Blank systems in imported GPX — 2026-10-19
 
 - [x] Guard native alphaTab tab staff-line gap collection for notes without a valid string. Preserve pitches, score data, repeats, lazy loading and grading.

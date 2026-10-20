@@ -65,7 +65,7 @@ const waitController = new WaitController({
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
 
 function configureWaitSession() {
-  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,allowMutedStringNoise:AppState.allowMutedStringNoise,filterHexSpikes:AppState.filterHexSpikes,pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
+  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,allowMutedStringNoise:AppState.allowMutedStringNoise,filterHexSpikes:AppState.filterHexSpikes,filterScoreRange:AppState.filterScoreRange,rangeStaves:AppState.tracks.find((track,index)=>String(track.index??index)===String(AppState.practiceTrackId))?.staves??[],pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
 }
 
 function changePracticeLoop(loop) {
@@ -238,6 +238,11 @@ function wirePracticeControls() {
   spikeFilter.addEventListener('change',()=>{
     waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
     AppState.filterHexSpikes=spikeFilter.checked;savePracticePreferences(AppState);configureWaitSession();renderTrainerUi();
+  });
+  const rangeFilter=document.getElementById('filter-score-range');
+  rangeFilter?.addEventListener('change',()=>{
+    waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
+    AppState.filterScoreRange=rangeFilter.checked;savePracticePreferences(AppState);configureWaitSession();renderTrainerUi();
   });
   const mutedNoise=document.getElementById('allow-muted-string-noise');
   mutedNoise.addEventListener('change',()=>{
@@ -484,6 +489,8 @@ function renderTrainerUi() {
   const mutedNoise=document.getElementById('allow-muted-string-noise');
   if(mutedNoise){mutedNoise.checked=AppState.allowMutedStringNoise;mutedNoise.disabled=AppState.inputMode!=='hex-6ch' || AppState.media.editing;}
   const spikeFilter=document.getElementById('filter-hex-spikes');
+  const rangeFilter=document.getElementById('filter-score-range');
+  if(rangeFilter){rangeFilter.checked=AppState.filterScoreRange;rangeFilter.disabled=AppState.mode!=='wait' || AppState.media.editing;}
   if(spikeFilter){spikeFilter.checked=AppState.filterHexSpikes;spikeFilter.disabled=AppState.mode!=='wait' || AppState.inputMode!=='hex-6ch' || AppState.media.editing;}
   const latencyInput = document.getElementById('midi-latency-ms');
   if (latencyInput) {
@@ -660,6 +667,7 @@ async function bootstrap() {
   AppState.waitChord=preferences.waitChord;
   AppState.allowMutedStringNoise=preferences.allowMutedStringNoise;
   AppState.filterHexSpikes=preferences.filterHexSpikes;
+  AppState.filterScoreRange=preferences.filterScoreRange;
   const displayPreferences=readDisplayPreferences();
   AppState.viewMode=displayPreferences.viewMode;
   Object.assign(AppState.ui,displayPreferences.ui);

@@ -156,7 +156,9 @@
           <p class="field-help">Chord targets only: ignore input from omitted strings. Extra notes on those strings will not count as mistakes. Off = Strict. Changing this pauses practice and clears results.</p>
           <p class="field-help">An all-X beat needs one fresh attack at any pitch. In mixed chords, X notes are optional. Muted strums must produce MIDI to advance Wait.</p>
           <label class="toggle-row" for="filter-hex-spikes"><input id="filter-hex-spikes" type="checkbox" checked /><span>Filter confirmed tracking spikes (Wait Hex)</span></label>
-          <p class="field-help">Disregard a very soft, brief, distant wrong pitch only after the correct tone promptly follows on the same string channel. Short correct notes and nearby wrong frets still count normally. Changing this pauses Wait and clears its results.</p>
+          <p class="field-help">Disregard a confirmed soft, distant spike, or a wrong onset released within 5 ms and replaced within 20 ms by the correct same-string tone at equal or greater velocity. Short correct notes still count immediately. Changing this pauses Wait and clears its results.</p>
+          <label class="toggle-row" for="filter-score-range"><input id="filter-score-range" type="checkbox" /><span>Ignore notes outside written fret range (Wait)</span></label>
+          <p class="field-help">Optional, off by default. Allow the current written fretted shape plus 5 frets on either side, and open strings. Hex checks the reported string; Poly ignores a pitch only if no string fits. This estimates the score's range, not your hand position, and can hide genuine mistakes. Unavailable fingering leaves input unchanged. Changing this pauses Wait and clears results.</p>
           <details class="practice-advanced"><summary>MIDI timing adjustment</summary><label class="field-group" for="midi-latency-ms">
             <span class="field-label">MIDI input latency (ms)</span>
             <span class="field-help">Realtime only: increase if your MIDI guitar reports notes late. Changing this resets Realtime results.</span>

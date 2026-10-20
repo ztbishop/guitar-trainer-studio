@@ -180,7 +180,8 @@ test('Hex MIDI immediately produces live and retained Wait fret numbers without 
   const {WaitSession}=await import('../js/wait-session.js');
   const h=render(1,1,'5.4.4'),native=h.notes[0];
   const target={id:'a',notes:[{id:'n',sourceNoteId:String(native.id),midi:native.realValue,string:7-native.string,fret:native.fret}]};
-  const session=new WaitSession([target],{hex:true});
+  // This checks strict retained-error projection independently of artifact tolerance.
+  const session=new WaitSession([target],{hex:true,filterHexSpikes:false});
   const input=normalizeMidiMessage({data:[0x92,62,100],receivedTime:0},{inputMode:'hex-6ch',hexChannelBase:1});
   assert.equal(input.stringHint,4);session.noteOn(0,input);
   const args={track:{staves:[h.staff]},currentEvent:target,inputMode:'hex-6ch',verified:false};

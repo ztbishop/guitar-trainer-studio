@@ -103,3 +103,42 @@ test('tracking preference defaults on, saves false, and rejects nonboolean value
   assert.equal(readPracticePreferences(storage).filterHexSpikes,false);
   value='{"filterHexSpikes":"false"}';assert.equal(readPracticePreferences(storage).filterHexSpikes,true);
 });
+
+test('Christmas measure 10 and repeat measure 5 reconcile released onset transients',()=>{
+  for(const [expected,wrong,velocity,duration,delay,followVelocity] of [[63,62,114,2,6,116],[65,78,40,4,13,83]]) {
+    const s=new WaitSession([chord('capture',expected)],{hex:true});
+    s.noteOn(0,on(wrong,0,velocity));s.noteOff(off(wrong,duration));
+    const result=s.noteOn(0,on(expected,delay,followVelocity));
+    assert.equal(result.trackingSpike.reason,'released-onset-transient');
+    assert.equal(s.stats().wrong,0);assert.equal(s.stats().correct,1);
+    assert.equal(s.feedbackHistory()[0].wrongNotes.length,0);
+  }
+});
+
+for(const [name,change] of Object.entries({
+  '6 ms duration':{duration:6},'21 ms follow-up':{delay:21},'weaker replacement':{followVelocity:113},
+  'unreleased onset':{release:false},'other string':{channel:3},'still-wrong replacement':{expected:64},
+  'filter off':{filterHexSpikes:false},'Poly mode':{hex:false},
+}))test(`onset transient safeguard retains ${name}`,()=>{
+  const c={duration:2,delay:6,followVelocity:116,release:true,channel:4,expected:63,hex:true,filterHexSpikes:true,...change};
+  const s=new WaitSession([chord('capture',63)],c);
+  s.noteOn(0,on(62,0,114));if(c.release)s.noteOff(off(62,c.duration));
+  s.noteOn(0,on(c.expected,c.delay,c.followVelocity,c.channel));assert.ok(s.stats().wrong>=1);
+});
+
+test('a 2 ms correct note is accepted immediately and the sustained measure-5 event is not a transient',()=>{
+  const s=new WaitSession([chord('capture',63)],{hex:true});
+  assert.equal(s.noteOn(0,on(63,0,114)).type,'correct');s.noteOff(off(63,2));
+  assert.equal(s.stats().correct,1);
+  const other=new WaitSession([{id:'m5',notes:[{id:'a',midi:69,string:1,fret:5}]}],{hex:true});
+  other.noteOn(0,on(57,0,10,5));other.noteOff(off(57,1125.1,5));other.noteOn(0,on(69,1258.1,88,1));
+  assert.equal(other.stats().wrong,1);
+});
+
+test('transient candidates cannot cross a target or Together retry',()=>{
+  const s=new WaitSession([chord('first',63),chord('next',63)],{hex:true});
+  s.noteOn(0,on(62,0,114));s.noteOff(off(62,2));s.noteOn(1,on(63,6,116));assert.equal(s.stats().wrong,1);
+  const retry=new WaitSession([chord('retry',63)],{hex:true,chordMode:'together',chordWindowMs:50});
+  retry.noteOn(0,on(64,0,100,2));retry.noteOn(0,on(62,49,114));retry.noteOff(off(62,51));
+  retry.noteOn(0,on(63,55,116));assert.equal(retry.stats().wrong,1);assert.equal(retry.stats().retries,1);
+});

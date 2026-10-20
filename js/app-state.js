@@ -19,6 +19,7 @@ export const AppState = {
   waitChord: { mode: 'collect', windowMs: 200 },
   allowMutedStringNoise: false,
   filterHexSpikes: true,
+  filterScoreRange: false,
   inputMode: 'single-channel',
   correctnessMode: 'pitch-only',
   alphaTabReady: false,

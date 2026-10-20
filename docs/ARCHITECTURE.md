@@ -1,5 +1,12 @@
 # Guitar Trainer Studio Architecture
 
+## Optional score range and released-onset tolerance — 2026-10-19
+
+score-range-filter.js is pure score-geometry policy, called by WaitSession after Hex onset interpretation and before grading. It validates native tuning/capo/transposition against target notes; current nonzero written frets define the shape, expanded by ±5 with open strings separately allowed. Written target pitches always pass. Hex uses the reported string; Poly tests every possible string without attaching inferred physical identity. Missing/inconsistent geometry fails open. The optional filterScoreRange preference defaults false, is restored independently, and travels through bootstrap → WaitController → WaitSession with the selected track's staves. An ignored event earns no credit/penalty and cannot become held evidence; its raw event and explicit written-score range stay in midi-capture. This is Wait-only score-based tolerance, not a physical hand-position limit or strict fingering grading.
+
+hex-tracking-spikes.js also confirms a second pattern besides the original soft/distant rule: wrong onset released ≤5 ms and replaced ≤20 ms after onset by the unique written same-string pitch at equal/greater velocity. Candidates remain channel-, target- and retry-bound and are removed on intervening same-channel attacks/pause/session replacement. Corrections retain a reason in trackingSpikes. The original correct-onset path stays immediate. UI help describes both policies; diagnostics include filterHexSpikes/filterScoreRange so future reports identify the policy actually selected. See MIDI-ARTIFACT-AUDIT-2026-10-19.md for captured evidence and limitations.
+
+
 ## Native tab rendering compatibility — 2026-10-19
 
 Bundled assets/vendor/alphatab/alphaTab.js has a narrow TabBarRenderer.collectSpaces guard: emit a fret-number staff-line gap only when the indexed string line exists. GPX can contain pitched notes without string/fret assignments; indexing an absent line previously aborted the system paint. This patch covers both main-thread and worker rendering without score mutation or inferred fingering. All native layout, lazy loading, repeat transport and app grading remain unchanged. tests/native-tab-render.test.js exercises later/final systems through the actual renderer. Retain or reassess the guard on vendor updates.

@@ -29,6 +29,7 @@ export function captureMidiEvent(note,{input,accepted,receivedAt=performance.now
     device:{id:input?.id,name:input?.name},mode:AppState.mode,inputMode:AppState.inputMode,
     hexBase:AppState.midi.hexChannelBase,hexReverse:AppState.midi.hexChannelReverse,singleChannel:AppState.midi.singleChannel,
     allowMutedStringNoise:AppState.allowMutedStringNoise===true,
+    filterHexSpikes:AppState.filterHexSpikes!==false,filterScoreRange:AppState.filterScoreRange===true,
     pitchBendRange:AppState.midi.pitchBendRange,
     scoreFileName:AppState.ui.loadedFileName,practiceTrackId:AppState.practiceTrackId,
     tick:AppState.tickPosition,targetBefore:targetInfo(target),
@@ -55,6 +56,7 @@ export function captureMidiOutcome(row,outcome) {
   row.grading=outcome && typeof outcome==='object'?{
     type:outcome.type,eventId:outcome.eventId,midi:outcome.midi,wrongPitch:outcome.wrongPitch,
     complete:outcome.complete,target:targetInfo(AppState.expectedEvents.find(event=>event.id===outcome.eventId)),
+    range:outcome.range?structuredClone(outcome.range):undefined,
     correction:outcome.correction?structuredClone(outcome.correction):undefined,
     pitch:outcome.pitch?structuredClone(outcome.pitch):undefined,
     trackingSpike:outcome.trackingSpike?structuredClone(outcome.trackingSpike):undefined,

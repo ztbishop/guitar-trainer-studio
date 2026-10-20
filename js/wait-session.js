@@ -4,14 +4,16 @@ import {attackSlots,ignoresMutedString} from './attack-rules.js';
 import {TimingDefaults} from './practice-timing.js';
 import {supportedHeldTone} from './wait-chord-gesture.js';
 import {MidiPitchState,PITCH_SETTLE_MS} from './midi-pitch.js';
+import {outsideScoreRange} from './score-range-filter.js';
 import {spikeCandidate,confirmedSpike} from './hex-tracking-spikes.js';
 export class WaitSession {
-  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,allowMutedStringNoise=false,filterHexSpikes=true,pitchBendRange=12,pitchState=null} = {}) {
+  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,allowMutedStringNoise=false,filterHexSpikes=true,filterScoreRange=false,rangeStaves=[],pitchBendRange=12,pitchState=null} = {}) {
     this.events=events;this.allowMutedStringNoise=allowMutedStringNoise;this.tail=null;
     this.records=events.map(event=>{
       return {eventId:event.id,slots:attackSlots(event,hex,false),wrong:0,wrongNotes:[],retries:0,attemptStartAt:null,skipped:false,burst:null};
     });
     this.hex=hex;this.lastFeedback=null;this.liveWrong=new Map();this.held=new Map();
+    this.filterScoreRange=filterScoreRange;this.rangeStaves=rangeStaves;
     this.filterHexSpikes=filterHexSpikes;this.spikeCandidates=new Map();
     this.pitch=pitchState??new MidiPitchState(pitchBendRange);this.pitchAttacks=new Map();
     this.pitch.reset();
@@ -32,6 +34,12 @@ export class WaitSession {
     const candidate=this.spikeCandidates.get(note.channel);
     this.spikeCandidates.delete(note.channel);
     const played=this.hex?this.pitch.noteOn({...note,at}):note;
+    const range=this.filterScoreRange?outsideScoreRange(this.events[index],played,this.rangeStaves,{hex:this.hex}):null;
+    if(range) {
+      if(this.hex)for(const [key,value] of this.held)if(value.channel===note.channel)this.held.delete(key);
+      this.pitchAttacks.delete(note.channel);
+      return this.lastFeedback={type:'ignored-score-range',eventId:this.events[index].id,midi:played.midi,range,complete:false};
+    }
     const feedback=this.grade(index,played,at);
     if(this.hex && this.filterHexSpikes && feedback) {
       const record=this.records[index];
