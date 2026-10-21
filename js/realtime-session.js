@@ -1,109 +1,120 @@
-// A score-independent, attack-based realtime evaluator. No MIDI device or UI APIs.
-import { TimingDefaults, isWithinHitWindow } from './practice-timing.js';
+// Timed attack matching, sharing input-tolerance rules with the untimed session.
+import {TimingDefaults,isWithinHitWindow} from './practice-timing.js';
 import {inferPolyExpectedNoteIds} from './poly-feedback.js';
 import {attackSlots,ignoresMutedString} from './attack-rules.js';
+import {WaitSession} from './wait-session.js';
+import {supportedHeldTone} from './wait-chord-gesture.js';
 
-export class RealtimeSession {
-  constructor(events, { hex = false, timing = TimingDefaults, latencyMs = 0, extraStringTolerance = 'off' } = {}) {
-    this.events = events;
-    this.timing = { ...timing };
-    this.latencyMs = latencyMs;
-    this.hex = hex;
-    this.extraStringTolerance = extraStringTolerance;
+export class RealtimeSession extends WaitSession {
+  constructor(events,options={}) {
+    super(events,options);
+    this.options=options;this.timing={...TimingDefaults,...options.timing};this.latencyMs=options.latencyMs??0;
     this.reset(0);
   }
-  reset(scoreMs = 0, speed = 1) {
-    this.records = this.events.map(event => {
-      return {eventId:event.id, event, timeMs:event.startTimeMs, slots:attackSlots(event,this.hex,null), firstHitMs:null, wrong:0, wrongNotes:[], finalized:false, skipped:event.startTimeMs + this.timing.lateMs*speed < scoreMs};
-    });
-    this.wrongNotes = [];
-    this.liveWrong = new Map();
-    this.lastFeedback = null;
-    this.started = false;
-    this.completed = false;
-    this.anchor = null;
-    this.finalizeIndex = 0;
+  reset(scoreMs=0,speed=1) {
+    // Reinitialize tolerance evidence without retaining held notes across attempts.
+    const clean=new WaitSession(this.events,this.options);
+    for(const key of ['held','pitch','pitchAttacks','spikeCandidates','singlePrecursors','pendingErrors','activeBriefErrors'])this[key]=clean[key];
+    this.records=this.events.map(event=>({eventId:event.id,event,timeMs:event.startTimeMs,slots:attackSlots(event,this.hex,null),
+      firstHitMs:null,wrong:0,wrongNotes:[],retries:0,burst:null,finalized:false,skipped:event.startTimeMs+this.timing.lateMs*speed<scoreMs}));
+    this.orphanWrong=[];this.orphanRecord={wrong:0,wrongNotes:this.orphanWrong};this.liveWrong=new Map();this.lastFeedback=null;this.started=false;this.completed=false;
+    this.anchor=null;this.finalizeIndex=0;this.lastClock=null;this.clockAt=0;this.finishRequested=false;this.pauseOffset=0;this.pausedAt=null;
   }
-  anchorPosition(scoreMs, at, speed = 1) {
-    this.anchor = { scoreMs, at, speed };
+  get wrongNotes(){return [...this.orphanWrong.filter(n=>!n.pending),...this.records.flatMap(r=>r.wrongNotes.filter(n=>!n.pending))];}
+  anchorPosition(scoreMs,at,speed=1){this.anchor={scoreMs,at,speed};}
+  scoreTime(at){return this.anchor?this.anchor.scoreMs+(at-this.anchor.at)*this.anchor.speed:null;}
+  setRunning(running,at){
+    if(!running && this.pausedAt===null){this.pausedAt=at;this.pauseEvidence();}
+    if(running && this.pausedAt!==null){this.pauseOffset+=Math.max(0,at-this.pausedAt);this.pausedAt=null;}
   }
-  scoreTime(at) {
-    return this.anchor ? this.anchor.scoreMs + (at-this.anchor.at)*this.anchor.speed : null;
-  }
-  advance(scoreMs, speed = 1) {
-    if (!this.started || this.completed) return;
-    while (this.finalizeIndex < this.records.length) {
-      const record = this.records[this.finalizeIndex];
-      if (scoreMs <= record.timeMs + this.timing.lateMs*speed) break;
-      if (!record.skipped) {
-        const missing = record.slots.filter(slot=>!slot.hit && !slot.missed);
-        missing.forEach(slot=>slot.missed=true);
-        if (missing.length) this.lastFeedback = {type:'missed',eventId:record.eventId,pitches:missing.map(slot=>slot.midi),isPercussive:record.event.isPercussive};
+  eventTime(at){return (this.pausedAt??at)-this.pauseOffset;}
+  pauseEvidence(){this.held.clear();this.pitch.reset();this.pitchAttacks.clear();this.spikeCandidates.clear();this.singlePrecursors.clear();}
+  advance(scoreMs,speed=1,at=null) {
+    if(!this.started || this.completed)return;
+    if(Number.isFinite(at))this.clockAt=at;
+    else if(Number.isFinite(scoreMs)&&this.lastClock)this.clockAt=this.lastClock.at+(scoreMs-this.lastClock.scoreMs)/speed;
+    this.flushPendingErrors(this.clockAt);
+    for(let i=this.finalizeIndex;i<this.records.length;i++){
+      const r=this.records[i];
+      if(r.skipped || r.finalized)continue;
+      const support=supportedHeldTone(this.events,this.records,this.held,i,this.clockAt,{...this,realtime:true,chordWindowMs:this.timing.chordGroupingMs});
+      if(support && isWithinHitWindow((scoreMs-r.timeMs)/speed,this.timing)){
+        const noteIds=[];
+        for(const {slot,source} of support.supports){slot.hit={at:this.clockAt,channel:source.channel};slot.channel=source.channel;slot.evidence='held';slot.originAt=source.originAt??source.hitAt;noteIds.push(...slot.noteIds);}
+        this.lastFeedback={type:'supported-held-tone',eventId:r.eventId,noteIds,complete:true};
       }
-      record.finalized=true;
-      this.finalizeIndex++;
     }
+    while(this.finalizeIndex<this.records.length){
+      const r=this.records[this.finalizeIndex];if(scoreMs<=r.timeMs+this.timing.lateMs*speed)break;
+      if(!r.skipped){const missing=r.slots.filter(s=>!s.hit&&!s.missed);missing.forEach(s=>s.missed=true);
+        if(missing.length)this.lastFeedback={type:'missed',eventId:r.eventId,pitches:missing.map(s=>s.midi),isPercussive:r.event.isPercussive};}
+      r.finalized=true;this.finalizeIndex++;
+    }
+    if(this.finishRequested&&!this.pendingErrors.size)this.completed=true;
   }
-  noteOn(note, scoreMs, speed = 1) {
-    if (!this.started || this.completed || !Number.isFinite(scoreMs)) return null;
-    const correctedMs = scoreMs-this.latencyMs*speed;
-    // Finalization uses the same compensated clock, allowing delayed device input.
-    this.advance(correctedMs,speed);
-    const nearby=this.records.filter(r=>!r.skipped && isWithinHitWindow((correctedMs-r.timeMs)/speed,this.timing))
+  selectTarget(note,correctedMs,speed){
+    const nearby=this.records.filter(r=>!r.skipped&&!r.finalized&&isWithinHitWindow((correctedMs-r.timeMs)/speed,this.timing))
       .sort((a,b)=>Math.abs(a.timeMs-correctedMs)-Math.abs(b.timeMs-correctedMs));
     const nearest=nearby[0];
-    if(nearest && ignoresMutedString(nearest.event,note,this.hex,this.extraStringTolerance))
-      return {type:'ignored-muted-string',eventId:nearest.eventId,midi:note.midi};
-    if(nearest?.event.isPercussive && nearest.slots[0].hit)return {type:'ignored-strum-tail',eventId:nearest.eventId,midi:note.midi};
-    const candidates=[];
-    for (const record of this.records) {
-      if (record.skipped) continue;
-      const deltaMs=(correctedMs-record.timeMs)/speed;
-      if (!isWithinHitWindow(deltaMs,this.timing)) continue;
-      if(record.event.isPercussive && record!==nearest)continue;
-      if(ignoresMutedString(record.event,note,this.hex,this.extraStringTolerance))continue;
-      const slot=record.slots.find(slot=>!slot.hit && !slot.missed && (record.event.isPercussive || slot.midi===note.midi));
-      const duplicateChannel=this.hex && record.slots.some(slot=>slot.hit?.channel===note.channel && slot.midi===note.midi);
-      const chordFits=record.firstHitMs===null || Math.abs(correctedMs-record.firstHitMs)/speed<=this.timing.chordGroupingMs;
-      if(slot && !duplicateChannel && chordFits) candidates.push({record,slot,deltaMs});
+    if(nearest&&(ignoresMutedString(nearest.event,note,this.hex,this.extraStringTolerance)||nearest.event.isPercussive))return nearest;
+    const candidates=nearby.filter(r=>!r.event.isPercussive&&!ignoresMutedString(r.event,note,this.hex,this.extraStringTolerance)&&
+      r.slots.some(s=>!s.hit&&!s.missed&&s.midi===note.midi)&&
+      !(this.hex&&r.slots.some(s=>s.hit?.channel===note.channel&&s.midi===note.midi))&&
+      (r.firstHitMs===null||Math.abs(correctedMs-r.firstHitMs)/speed<=this.timing.chordGroupingMs));
+    candidates.sort((a,b)=>Number(b.slots.length>1&&b.firstHitMs!==null)-Number(a.slots.length>1&&a.firstHitMs!==null)||Math.abs(a.timeMs-correctedMs)-Math.abs(b.timeMs-correctedMs));
+    return candidates[0]??nearest;
+  }
+  noteOn(note,scoreMs,speed=1){
+    if(!this.started||this.completed||!Number.isFinite(scoreMs))return null;
+    const correctedMs=scoreMs-this.latencyMs*speed,at=note.at??correctedMs/speed;
+    // Incoming attacks get first chance before held-note settlement.
+    this.clockAt=at;this.lastClock={scoreMs:correctedMs,at};
+    this.flushPendingErrors(at);
+    const preview=this.hex?this.pitch.interpret(note):note;
+    const record=this.selectTarget(preview,correctedMs,speed);
+    this.inputClock={scoreMs:correctedMs,speed};
+    if(!record){this.advance(correctedMs,speed,at);const wrong={type:'wrong',eventId:null,midi:note.midi,channel:note.channel,at,scoreMs:correctedMs,wrongPitch:false};if(this.ignoreBriefErrors){wrong.pending=true;this.pendingErrors.set(wrong,this.orphanRecord);this.activeBriefErrors.set(wrong,this.orphanRecord);}else this.orphanRecord.wrong++;
+      this.orphanWrong.push(wrong);return this.lastFeedback={...wrong,type:wrong.pending?'pending-off-target':'wrong'};}
+    const result=super.noteOn(this.records.indexOf(record),{...note,at,_scoreMs:correctedMs,_speed:speed},at);
+    this.advance(correctedMs,speed,at);return result;
+  }
+  grade(index,note,at,correcting=false){
+    const r=this.records[index],event=r.event,{scoreMs,speed}=this.inputClock;
+    if(!r||r.skipped)return null;
+    if(this.hex)for(const [key,value] of this.held)if(value.channel===note.channel)this.held.delete(key);
+    this.held.set(note.channel+':'+note.midi,{...note,at});
+    if(ignoresMutedString(event,note,this.hex,this.extraStringTolerance))return {type:'ignored-muted-string',eventId:r.eventId,midi:note.midi};
+    if(event.isPercussive&&r.slots[0].hit)return {type:'ignored-strum-tail',eventId:r.eventId,midi:note.midi};
+    if(!correcting){
+      if(!r.burst||at-r.burst.at>this.timing.chordGroupingMs)r.burst={at,lastAt:at,wrong:false};
+      r.burst.lastAt=at;
     }
-    // Finish an already-started chord within its existing grouping tolerance
-    // before assigning its remaining tones to a nearby future occurrence.
-    const ongoing=c=>c.record.slots.length>1 && c.record.firstHitMs!==null;
-    candidates.sort((a,b)=>Number(ongoing(b))-Number(ongoing(a)) || Math.abs(a.deltaMs)-Math.abs(b.deltaMs) || a.record.timeMs-b.record.timeMs);
-    if(candidates.length) {
-      const {record,slot,deltaMs}=candidates[0];
-      slot.hit={at:note.at,scoreMs:correctedMs,deltaMs,channel:note.channel,stringHint:note.stringHint??null};
-      record.firstHitMs ??= correctedMs;
-      return this.lastFeedback={type:'correct',eventId:record.eventId,midi:note.midi,deltaMs,noteIds:slot.noteIds};
+    if(correcting)for(const s of r.slots)if(!s.hit&&s.midi===note.midi)s.missed=false;
+    const slot=r.slots.find(s=>!s.hit&&!s.missed&&(event.isPercussive||s.midi===note.midi));
+    const duplicate=this.hex&&r.slots.some(s=>s.hit?.channel===note.channel&&s.midi===note.midi);
+    const fits=r.firstHitMs===null||Math.abs(scoreMs-r.firstHitMs)/speed<=this.timing.chordGroupingMs;
+    if(slot&&!duplicate&&fits){
+      const deltaMs=(scoreMs-r.timeMs)/speed;
+      slot.hit={at,scoreMs,deltaMs,channel:note.channel,stringHint:note.stringHint??null};
+      slot.channel=note.channel;slot.hitAt=at;slot.evidence='attack';delete slot.originAt;r.firstHitMs??=scoreMs;
+      return this.lastFeedback={type:'correct',eventId:r.eventId,midi:note.midi,deltaMs,noteIds:slot.noteIds,complete:r.slots.every(s=>s.hit)};
     }
-    if(nearest) nearest.wrong++;
-    const wrong={type:'wrong',eventId:nearest?.eventId??null,midi:note.midi,at:note.at,scoreMs:correctedMs,
-      channel:note.channel,stringHint:note.stringHint??null,wrongPitch:Boolean(nearest && !nearest.slots.some(s=>s.midi===note.midi))};
-    if(wrong.wrongPitch) {
-      if(!this.hex)wrong.inferredNoteIds=inferPolyExpectedNoteIds(nearest.slots);
-      nearest.wrongNotes.push({...wrong});this.liveWrong.set(`${note.channel}:${note.midi}`,{...wrong});
-    }
-    this.wrongNotes.push(wrong);
+    const wrong={type:'wrong',eventId:r.eventId,midi:note.midi,rawMidi:note.rawMidi,channel:note.channel,stringHint:note.stringHint??null,at,scoreMs,wrongPitch:!r.slots.some(s=>s.midi===note.midi)};
+    if(!this.hex&&wrong.wrongPitch)wrong.inferredNoteIds=inferPolyExpectedNoteIds(r.slots);
+    if(this.ignoreBriefErrors){wrong.pending=true;this.pendingErrors.set(wrong,r);this.activeBriefErrors.set(wrong,r);}else r.wrong++;
+    r.wrongNotes.push(wrong);r.burst.wrong=true;
+    if(wrong.wrongPitch&&!wrong.pending)this.liveWrong.set(note.channel+':'+note.midi,{...wrong});
     return this.lastFeedback=wrong;
   }
-  noteOff(note) { return this.liveWrong.delete(`${note.channel}:${note.midi}`); }
-  feedbackHistory() {
-    return this.records.filter(r=>!r.skipped).map(r=>({eventId:r.eventId,completed:r.finalized,
-      wrongNotes:r.wrongNotes.map(n=>({...n})),pass:1}));
+  pitchBend(note,at=note.at??0,currentIndex=null,allowCorrection=true){
+    const attack=this.pitchAttacks.get(note.channel);
+    if(attack){const r=this.records[attack.index];this.inputClock={scoreMs:attack.note._scoreMs??r.timeMs,speed:attack.note._speed??1};}
+    if(!this.hex && note.bendValue!==0)for(const [key,value] of this.held)if(value.channel===note.channel)this.held.delete(key);
+    return super.pitchBend(note,at,attack?.index,allowCorrection);
   }
-  finish() {
-    if (!this.started) return;
-    this.advance(Infinity);
-    this.completed=true;
-  }
-  stats() {
-    const slots=this.records.filter(r=>!r.skipped).flatMap(r=>r.slots);
-    const correct=slots.filter(s=>s.hit).length;
-    const missed=slots.filter(s=>s.missed).length;
-    const wrong=this.wrongNotes.length;
-    const graded=correct+missed;
-    return {correct,missed,wrong,pending:slots.length-graded,total:slots.length,accuracy:graded+wrong ? Math.round(100*correct/(graded+wrong)) : null};
-  }
-  recordFor(id) { return this.records.find(record=>record.eventId===id); }
+  feedbackHistory(){return super.feedbackHistory().map(r=>({...r,wrongNotes:r.wrongNotes.filter(n=>n.wrongPitch),completed:this.recordFor(r.eventId).finalized}));}
+  finish(){if(!this.started)return;this.finishRequested=true;this.advance(Infinity);}
+  recordFor(id){return this.records.find(r=>r.eventId===id);}
+  stats(){const slots=this.records.filter(r=>!r.skipped).flatMap(r=>r.slots),correct=slots.filter(s=>s.hit).length,missed=slots.filter(s=>s.missed).length,wrong=this.wrongNotes.length;
+    return {correct,missed,wrong,pending:slots.length-correct-missed,total:slots.length,...(slots.some(s=>s.evidence==='held')?{supportedHeld:slots.filter(s=>s.evidence==='held').length}:{}),accuracy:correct+missed+wrong?Math.round(100*correct/(correct+missed+wrong)):null};}
 }

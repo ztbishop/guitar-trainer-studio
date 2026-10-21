@@ -16,6 +16,12 @@ Repository: [ztbishop/guitar-trainer-studio](https://github.com/ztbishop/guitar-
 
 No build step or npm dependency installation is required to run the app. Serve the folder rather than opening `index.html` as a local file so browser modules, workers, and assets can load. Hard-refresh the browser after updates if it retains old files.
 
+## MIDI tolerance across practice modes
+
+Practice → MIDI input tolerance applies in Realtime and both Wait chord modes. **Allow held notes in repeated chords** offers Off, One note (default), and Multiple notes for Poly/Hex. Consecutive identical pitched chords still need at least one fresh required attack; other credited notes must remain held. One prevents inferred-note carryover through successive chords; Multiple permits it, so reattacking only one tone can complete repeated chords. Diagnostics distinguish held credit from verified reattacks. Single notes and X beats retain their attack rules.
+
+Confirmed tracking-spike filtering requires Hex; written-fret-range and brief off-target filtering support Poly/Hex in all practice modes. Extra-string tolerance remains Hex-only. Saved defaults/choices remain independent. Physical Fishman acceptance of these extensions remains pending. This supersedes older Wait-only descriptions below.
+
 ## Current capabilities
 
 Opening an uncompressed MusicXML (.xml/.musicxml) can offer **Combine notation and tab** when two explicitly grouped Guitar parts closely match. Keep separate is the initial choice, and the app asks again every time, including library reopening. Combining uses the notation part's rhythms, visibility, ties and chord symbols with the tab's fingering; tied continuations retain their original fingering and do not require reattacks. The original XML must reconcile safely or the parts stay separate with an explanation. It retains one practice track and does not edit your original/library file. Older remembered merge choices are ignored. Compressed .mxl files retain normal import behavior without this pairing check. Display → Visible tracks → All tracks remains available independently of single-track grading.

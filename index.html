@@ -149,12 +149,21 @@
             <span class="field-help">Together only.</span>
           </label>
           <p id="wait-chord-status" class="field-help" role="status"></p>
-          <details class="practice-advanced"><summary>Chord timing help</summary><p class="field-help">One at a time collects correct notes without a time limit. For repeated Hex chords, fresh attacks on all but one tone can support one matching tone still held from the preceding chord, after a brief check for late notes. This recognizes the chord; it does not verify that string's reattack. Diagnostics count held-note support separately. Together requires fresh attacks within its chord window. Pause freezes the window; expired chords can be retried without a missed-note penalty. Changing the chord choice or window pauses practice and clears Wait results.</p></details>
+          <details class="practice-advanced"><summary>Chord timing help</summary><p class="field-help">One at a time collects correct notes without a time limit. Together requires attacks within its chord window. Held-note tolerance can supply eligible lingering tones in either mode; at least one required fresh attack is always needed. Pause freezes the window; expired chords can be retried. Changing chord settings pauses practice and clears results.</p></details>
           </div>
 
           <section class="practice-input-filters" aria-labelledby="practice-filters-title">
             <div class="popup-card-title" id="practice-filters-title">MIDI input tolerance</div>
             <p class="field-help practice-filter-intro">Changing an option pauses practice and clears its results.</p>
+            <div class="practice-filter-option">
+              <label for="held-note-tolerance">Allow held notes in repeated chords <small>Hex or Poly</small></label>
+              <select id="held-note-tolerance" aria-describedby="held-note-help">
+                <option value="off">Off — fresh attacks required</option>
+                <option value="one" selected>One note</option>
+                <option value="multiple">Multiple notes</option>
+              </select>
+              <p id="held-note-help" class="field-help">For repeated identical chords in all practice modes. One note (default) allows one held tone for one repeat. Multiple allows continued carryover, so reattacking only one required note can complete each chord. Released notes cannot count.</p>
+            </div>
             <div class="practice-filter-option">
               <label for="extra-string-tolerance">Ignore extra chord strings <small>Hex</small></label>
               <select id="extra-string-tolerance" aria-describedby="muted-noise-help">
@@ -166,15 +175,15 @@
               <p class="field-help">Written X notes need no tolerance setting. An all-X beat requires one fresh MIDI attack at any pitch from any string. In mixed chords, pitched notes are required; identified Hex X-string input is forgiven. Poly cannot identify individual X strings.</p>
             </div>
             <div class="practice-filter-option">
-              <label class="toggle-row" for="filter-hex-spikes"><input id="filter-hex-spikes" type="checkbox" checked aria-describedby="spike-filter-help" /><span>Filter confirmed tracking spikes <small>Wait · Hex</small></span></label>
+              <label class="toggle-row" for="filter-hex-spikes"><input id="filter-hex-spikes" type="checkbox" checked aria-describedby="spike-filter-help" /><span>Filter confirmed tracking spikes <small>Hex</small></span></label>
               <p id="spike-filter-help" class="field-help">Filter brief false starts and immediate stronger retriggers of a soft note on the same string.</p>
             </div>
             <div class="practice-filter-option">
-              <label class="toggle-row" for="filter-score-range"><input id="filter-score-range" type="checkbox" aria-describedby="range-filter-help" /><span>Ignore notes outside written fret range <small>Wait · Hex or Poly</small></span></label>
+              <label class="toggle-row" for="filter-score-range"><input id="filter-score-range" type="checkbox" aria-describedby="range-filter-help" /><span>Ignore notes outside written fret range <small>Hex or Poly</small></span></label>
               <p id="range-filter-help" class="field-help">Ignore pitches outside the written shape plus 5 frets on either side. Open strings remain allowed. Off by default; can hide real mistakes.</p>
             </div>
             <div class="practice-filter-option">
-              <label class="toggle-row" for="ignore-brief-errors"><input id="ignore-brief-errors" type="checkbox" aria-describedby="brief-error-help" /><span>Ignore brief off-target notes <small>Wait · Hex or Poly</small></span></label>
+              <label class="toggle-row" for="ignore-brief-errors"><input id="ignore-brief-errors" type="checkbox" aria-describedby="brief-error-help" /><span>Ignore brief off-target notes <small>Hex or Poly</small></span></label>
               <p id="brief-error-help" class="field-help">Correct notes count immediately. Brief wrong notes may be forgiven. Saved separately for each MIDI input; off on first use.</p>
               <div id="brief-error-duration-row" class="menu-row brief-error-duration" hidden>
                 <label for="minimum-error-ms">Minimum error duration (ms)</label>
@@ -188,7 +197,7 @@
               <p class="field-help"><strong>Tracking spikes:</strong> checks the MIDI sequence, not hand position. It also ignores one stronger retrigger of a completed soft single note (velocity 20 or less), within 60 ms of its onset and 20 ms of its release, on the same string and pitch across the next target. If the next target needs that pitch, it still counts normally. A soft, distant spike must be released within 70 ms and followed within 200 ms by the correct same-string tone at twice its velocity. Alternatively, a wrong onset must be released within 5 ms and replaced within 20 ms by the correct same-string tone at equal or greater velocity. Short correct notes count immediately.</p>
               <p class="field-help"><strong>Written range:</strong> checks score positions without waiting for a confirming note. Hex checks the reported string; Poly ignores a pitch only if no string fits. It estimates the written range, not your physical hand position. Missing fingering leaves input unchanged.</p>
               <p class="field-help"><strong>Brief off-target notes:</strong> forgive wrong pitches released before the chosen duration (5–100 ms). At or above the threshold, count the penalty against its original target. Correct pitches still count immediately, including very short notes. This can hide real brief mistakes; it does not prove a note was a ghost. Default 30 ms, adjustable in 5 ms steps or by typing. The enabled choice and duration save per MIDI input.</p>
-              <p class="field-help">Filters marked Wait apply in Wait mode. The spike filter also requires Hex input. An all-X beat needs one fresh MIDI attack; in mixed chords, X notes are optional.</p>
+              <p class="field-help">These tolerances apply in Realtime and both Wait chord modes. String-based rules and the spike filter require Hex input. An all-X beat needs one fresh MIDI attack; in mixed chords, X notes are optional.</p>
             </details>
           </section>
           <details class="practice-advanced"><summary>MIDI timing adjustment</summary><label class="field-group" for="midi-latency-ms">
@@ -474,8 +483,8 @@
             </label>
             <label class="toggle-row"><input id="hex-channel-reverse" type="checkbox" /><span>Reverse channel order — count downward from base</span></label>
             <p id="hex-channel-order-help" class="help-text">Six-string mapping: lowest string uses the base channel.</p>
-            <label class="field-group field-group--compact" for="wait-hex-bend-range"><span class="field-label">Wait pitch-bend range</span><select id="wait-hex-bend-range"><option value="0">Ignore bends</option><option value="2">±2 semitones</option><option value="12" selected>±12 semitones</option><option value="24">±24 semitones</option></select></label>
-            <p class="help-text">Match your MIDI device. Saved for Wait Hex practice. Early bend corrections follow their own raw note; old bends do not transpose a different note or a restarted attempt. Later bends do not create attacks. Changing this setting clears Wait results.</p>
+            <label class="field-group field-group--compact" for="wait-hex-bend-range"><span class="field-label">Hex pitch-bend range</span><select id="wait-hex-bend-range"><option value="0">Ignore bends</option><option value="2">±2 semitones</option><option value="12" selected>±12 semitones</option><option value="24">±24 semitones</option></select></label>
+            <p class="help-text">Match your MIDI device. Saved for Hex practice in all modes. Early bend corrections follow their own raw note; old bends do not transpose a different note or a restarted attempt. Later bends do not create attacks. Changing this setting clears practice results.</p>
           </div>
 
           <div class="status-grid status-grid--two">

@@ -10,12 +10,12 @@ export function initBriefErrorControls(onChange,doc=globalThis.document) {
   down.addEventListener('click',()=>commit(Math.max(5,settings().minErrorMs-5)));
   up.addEventListener('click',()=>commit(Math.min(100,settings().minErrorMs+5)));
   function sync() {
-    const value=settings(),available=AppState.mode==='wait' && !AppState.media.editing && Boolean(AppState.midi.activeInputId);
+    const value=settings(),available=!AppState.media.editing && Boolean(AppState.midi.activeInputId);
     toggle.checked=value.ignoreBriefErrors;toggle.disabled=!available;
     row.hidden=!value.ignoreBriefErrors;input.disabled=!available;
     if(doc.activeElement!==input)input.value=String(value.minErrorMs);
     down.disabled=!available || value.minErrorMs<=5;up.disabled=!available || value.minErrorMs>=100;
-    status.textContent=!AppState.midi.activeInputId?'Select a MIDI input in Settings to save this option.':AppState.mode!=='wait'?'Available in Wait mode.':AppState.media.editing?'Close the sync editor to use practice filters.':'';
+    status.textContent=!AppState.midi.activeInputId?'Select a MIDI input in Settings to save this option.':AppState.media.editing?'Close the sync editor to use practice filters.':'';
   }
   sync();return {sync};
 }

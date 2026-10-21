@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### All-mode MIDI tolerance — 2026-10-21
+
+- [x] Shared Off / One note (default) / Multiple notes for Poly/Hex, Realtime and both Wait chord modes. Require fresh attack evidence, retain held provenance and explain the Multiple trade-off.
+- [x] Extend written-range, brief-error and confirmed Hex artifact filtering to Realtime; retain independent saved choices and original-target decisions. Remove Wait-only UI restrictions.
+- [x] Automated all-mode/input matrix plus isolated Live Server menu/choice/persistence checks. See development notes for final validation.
+- [ ] Owner hard-refreshes usual browser: compare Off/One/Multiple with repeated chords in Poly/Hex, both Wait choices and Realtime. Check releases, deliberate mistakes, singles, X transitions, pause/resume and loops. Compare each filter on/off. Physical MIDI, listening and loaded-score acceptance remain pending.
+
 ### Written X and extra chord strings — 2026-10-21
 
 - [x] Always forgive identified written X-string input in mixed Hex targets without crediting pitched slots. All-X beats still require one fresh arbitrary MIDI attack in Poly/Hex, Wait/Realtime, independently of scope.

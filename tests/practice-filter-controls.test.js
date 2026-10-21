@@ -12,7 +12,7 @@ for(const [control,property] of [['spikeFilter','filterHexSpikes'],['rangeFilter
       const repaint=()=>{input.checked=state[property];};
       const context=vm.createContext({AppState:state,[control]:input,
         waitController:{stop:repaint},pauseWaitTransport:repaint,clearActiveMidiNotes(){},
-        savePracticePreferences(s){saved=s[property]},configureWaitSession:repaint,renderTrainerUi:repaint});
+        resetRealtimeSession(){},savePracticePreferences(s){saved=s[property]},configureWaitSession:repaint,renderTrainerUi:repaint});
       vm.runInContext(body,context);
       assert.equal(state[property],!previous);assert.equal(saved,!previous);assert.equal(input.checked,!previous);
     }

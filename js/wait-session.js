@@ -8,8 +8,8 @@ import {MidiPitchState,PITCH_SETTLE_MS} from './midi-pitch.js';
 import {outsideScoreRange} from './score-range-filter.js';
 import {spikeCandidate,confirmedSpike,acceptedSinglePrecursor,confirmedPreviousOnset} from './hex-tracking-spikes.js';
 export class WaitSession {
-  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,extraStringTolerance='off',filterHexSpikes=true,filterScoreRange=false,ignoreBriefErrors=false,minErrorMs=30,rangeStaves=[],pitchBendRange=12,pitchState=null} = {}) {
-    this.events=events;this.extraStringTolerance=extraStringTolerance;this.tail=null;
+  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,extraStringTolerance='off',heldNoteTolerance='one',filterHexSpikes=true,filterScoreRange=false,ignoreBriefErrors=false,minErrorMs=30,rangeStaves=[],pitchBendRange=12,pitchState=null} = {}) {
+    this.heldNoteTolerance=heldNoteTolerance;this.events=events;this.extraStringTolerance=extraStringTolerance;this.tail=null;
     this.records=events.map(event=>{
       return {eventId:event.id,slots:attackSlots(event,hex,false),wrong:0,wrongNotes:[],retries:0,attemptStartAt:null,skipped:false,burst:null};
     });
@@ -85,7 +85,7 @@ export class WaitSession {
     let changed=false;
     for(const [entry,record] of this.pendingErrors)if(Number.isFinite(at) && at-entry.at>=this.minErrorMs) {
       this.pendingErrors.delete(entry);delete entry.pending;record.wrong++;changed=true;
-      if(this.held.has(entry.channel+':'+entry.midi))this.liveWrong.set(entry.channel+':'+entry.midi,{...entry});
+      if(entry.wrongPitch && this.held.has(entry.channel+':'+entry.midi))this.liveWrong.set(entry.channel+':'+entry.midi,{...entry});
       if(this.lastFeedback?.type==='pending-off-target' && this.lastFeedback.eventId===entry.eventId && this.lastFeedback.at===entry.at)this.lastFeedback={...entry};
       (record.briefErrorDecisions??=[]).push({type:'counted-off-target',midi:entry.midi,rawMidi:entry.rawMidi,channel:entry.channel,attackAt:entry.at,at,minimumMs:this.minErrorMs});
     }
@@ -152,7 +152,7 @@ export class WaitSession {
       }
       return this.lastFeedback=feedback;
     }
-    slot.hit=true;slot.channel=note.channel;slot.hitAt=at;slot.evidence='attack';
+    slot.hit=true;slot.channel=note.channel;slot.hitAt=at;slot.evidence='attack';delete slot.originAt;
     record.attemptStartAt??=at;
     const complete=record.slots.every(s=>s.hit);
     if(complete && (record.slots.length>1 || event.isPercussive))this.tail={index,at:record.burst.at,window,
@@ -163,13 +163,17 @@ export class WaitSession {
   settle(index,at) {
     const supported=supportedHeldTone(this.events,this.records,this.held,index,at,this);
     if(!supported)return null;
-    const {slot,source}=supported,record=this.records[index];
-    slot.hit=true;slot.channel=source.channel;slot.evidence='held';
+    const record=this.records[index],noteIds=[];
+    for(const {slot,source} of supported.supports){
+      slot.hit=true;slot.channel=source.channel;slot.evidence='held';slot.originAt=source.originAt??source.hitAt;
+      noteIds.push(...slot.noteIds);
+    }
+    const {slot}=supported.supports[0];
     // All fresh tones have already arrived; none of them is carried to the next
     // target. Held support is recorded separately from a received MIDI attack.
     this.tail=null;
     return this.lastFeedback={type:'supported-held-tone',eventId:record.eventId,midi:slot.midi,
-      channel:slot.channel,noteIds:slot.noteIds,at,complete:true};
+      channel:slot.channel,noteIds,at,complete:true};
   }
   noteOff(note) {
     let briefChanged=false;

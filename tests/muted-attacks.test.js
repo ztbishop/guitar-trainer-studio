@@ -41,7 +41,7 @@ test('native X notes retain notation identity but create one unpitched attack; m
 test('Hex tolerance ignores omitted-string notes without crediting their pitches; Strict and Poly still grade them',()=>{
   const chord=event('a');
   for(const create of [opts=>new WaitSession([chord],opts),opts=>realtime([chord],opts)]){
-    const hit=(s,n)=>s instanceof WaitSession?s.noteOn(0,n):s.noteOn(n,0);
+    const hit=(s,n)=>s instanceof RealtimeSession?s.noteOn(n,0):s.noteOn(0,n);
     const tolerant=create({hex:true,extraStringTolerance:'all'});
     assert.equal(hit(tolerant,note(45,0,5)).type,'ignored-muted-string');assert.equal(tolerant.stats().correct,0);assert.equal(tolerant.stats().wrong,0);
     assert.equal(hit(tolerant,note(44,1,6)).type,'wrong');

@@ -18,6 +18,7 @@ export const AppState = {
   waitTrainer: null,
   waitChord: { mode: 'collect', windowMs: 200 },
   extraStringTolerance: 'off',
+  heldNoteTolerance: 'one',
   filterHexSpikes: true,
   filterScoreRange: false,
   inputMode: 'single-channel',

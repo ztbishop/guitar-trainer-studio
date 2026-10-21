@@ -13,7 +13,7 @@ export class WaitController {
   configure(events,endTick,hex=false,loop=false,chordSettings={},loopCountIn=false) {
     this.stop();this.events=events;this.endTick=endTick;this.hex=hex;
     this.loop=loop;this.loopCountIn=loopCountIn;this.pass=1;this.lastPassResults=null;this.passHistory=[];
-    this.chordSettings={chordMode:chordSettings.mode,chordWindowMs:chordSettings.windowMs,extraStringTolerance:chordSettings.extraStringTolerance,filterHexSpikes:chordSettings.filterHexSpikes,filterScoreRange:chordSettings.filterScoreRange,rangeStaves:chordSettings.rangeStaves,ignoreBriefErrors:chordSettings.ignoreBriefErrors,minErrorMs:chordSettings.minErrorMs};
+    this.chordSettings={chordMode:chordSettings.mode,chordWindowMs:chordSettings.windowMs,extraStringTolerance:chordSettings.extraStringTolerance,heldNoteTolerance:chordSettings.heldNoteTolerance,filterHexSpikes:chordSettings.filterHexSpikes,filterScoreRange:chordSettings.filterScoreRange,rangeStaves:chordSettings.rangeStaves,ignoreBriefErrors:chordSettings.ignoreBriefErrors,minErrorMs:chordSettings.minErrorMs};
     this.pitchState=new MidiPitchState(chordSettings.pitchBendRange);
     this.chordSettings.pitchState=this.pitchState;
     this.session=new WaitSession(events,{hex,...this.chordSettings});this.index=-1;this.publish();
@@ -136,8 +136,8 @@ export class WaitController {
     if(!this.active || !['waiting','seeking','settling'].includes(this.phase))return;
     if(this.session.flushPendingErrors(at-this.pauseOffset))this.publish();
     if(this.phase==='settling'){if(!this.session.pendingErrors.size)this.complete();return;}
+    if(this.session.settle(this.index,at-this.pauseOffset)?.complete){this.finishGate();return;}
     if(this.session.expire(this.index,at-this.pauseOffset))this.publish();
-    if(this.session.settle(this.index,at-this.pauseOffset)?.complete)this.finishGate();
   }
   restartAt(tick) {
     const paused=this.manualPaused;

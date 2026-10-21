@@ -67,7 +67,7 @@ const waitController = new WaitController({
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
 
 function configureWaitSession() {
-  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,extraStringTolerance:AppState.extraStringTolerance,filterHexSpikes:AppState.filterHexSpikes,filterScoreRange:AppState.filterScoreRange,ignoreBriefErrors:AppState.midi.ignoreBriefErrors,minErrorMs:AppState.midi.minErrorMs,rangeStaves:AppState.tracks.find((track,index)=>String(track.index??index)===String(AppState.practiceTrackId))?.staves??[],pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
+  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,extraStringTolerance:AppState.extraStringTolerance,heldNoteTolerance:AppState.heldNoteTolerance,filterHexSpikes:AppState.filterHexSpikes,filterScoreRange:AppState.filterScoreRange,ignoreBriefErrors:AppState.midi.ignoreBriefErrors,minErrorMs:AppState.midi.minErrorMs,rangeStaves:AppState.tracks.find((track,index)=>String(track.index??index)===String(AppState.practiceTrackId))?.staves??[],pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
 }
 
 function changePracticeLoop(loop) {
@@ -228,7 +228,7 @@ function wireTransportButtons() {
 function wirePracticeControls() {
   briefErrorControls=initBriefErrorControls(settings=>{
     waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
-    Object.assign(AppState.midi,settings);saveActiveMidiSettings();configureWaitSession();renderTrainerUi();
+    Object.assign(AppState.midi,settings);saveActiveMidiSettings();resetRealtimeSession('input-tolerance');configureWaitSession();renderTrainerUi();
   });
   attemptControls=initAttemptControls(()=>{
     clearActiveMidiNotes();
@@ -246,13 +246,20 @@ function wirePracticeControls() {
   spikeFilter.addEventListener('change',()=>{
     const enabled=spikeFilter.checked;
     waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
-    AppState.filterHexSpikes=enabled;savePracticePreferences(AppState);configureWaitSession();renderTrainerUi();
+    AppState.filterHexSpikes=enabled;savePracticePreferences(AppState);resetRealtimeSession('input-tolerance');configureWaitSession();renderTrainerUi();
   });
   const rangeFilter=document.getElementById('filter-score-range');
   rangeFilter?.addEventListener('change',()=>{
     const enabled=rangeFilter.checked;
     waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
-    AppState.filterScoreRange=enabled;savePracticePreferences(AppState);configureWaitSession();renderTrainerUi();
+    AppState.filterScoreRange=enabled;savePracticePreferences(AppState);resetRealtimeSession('input-tolerance');configureWaitSession();renderTrainerUi();
+  });
+  const heldNotes=document.getElementById('held-note-tolerance');
+  heldNotes.addEventListener('change',()=>{
+    const value=heldNotes.value;
+    waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
+    AppState.heldNoteTolerance=value;savePracticePreferences(AppState);
+    resetRealtimeSession('held-note-setting');configureWaitSession();renderTrainerUi();
   });
   const mutedNoise=document.getElementById('extra-string-tolerance');
   mutedNoise.addEventListener('change',()=>{
@@ -499,10 +506,12 @@ function renderTrainerUi() {
   chordControls?.sync();
   const mutedNoise=document.getElementById('extra-string-tolerance');
   if(mutedNoise){mutedNoise.value=AppState.extraStringTolerance;mutedNoise.disabled=AppState.inputMode!=='hex-6ch' || AppState.media.editing;}
+  const heldNotes=document.getElementById('held-note-tolerance');
+  if(heldNotes){heldNotes.value=AppState.heldNoteTolerance;heldNotes.disabled=AppState.media.editing;}
   const spikeFilter=document.getElementById('filter-hex-spikes');
   const rangeFilter=document.getElementById('filter-score-range');
-  if(rangeFilter){rangeFilter.checked=AppState.filterScoreRange;rangeFilter.disabled=AppState.mode!=='wait' || AppState.media.editing;}
-  if(spikeFilter){spikeFilter.checked=AppState.filterHexSpikes;spikeFilter.disabled=AppState.mode!=='wait' || AppState.inputMode!=='hex-6ch' || AppState.media.editing;}
+  if(rangeFilter){rangeFilter.checked=AppState.filterScoreRange;rangeFilter.disabled=AppState.media.editing;}
+  if(spikeFilter){spikeFilter.checked=AppState.filterHexSpikes;spikeFilter.disabled=AppState.inputMode!=='hex-6ch' || AppState.media.editing;}
   const latencyInput = document.getElementById('midi-latency-ms');
   if (latencyInput) {
     latencyInput.disabled = AppState.mode === 'wait';
@@ -612,7 +621,7 @@ function wireMidiControls() {
   document.getElementById('wait-hex-bend-range')?.addEventListener('change',event=>{
     const value=Number(event.target.value);if(!validPitchRange(value))return;
     AppState.midi.pitchBendRange=value;savePitchRange(value);saveActiveMidiSettings();
-    clearActiveMidiNotes();configureWaitSession();renderMidiUi();renderTrainerUi();
+    clearActiveMidiNotes();resetRealtimeSession('midi-settings');configureWaitSession();renderMidiUi();renderTrainerUi();
   });
   document.getElementById('midi-input-select')?.addEventListener('change', (event) => {
     setActiveMidiInput(event.target.value);
@@ -677,6 +686,7 @@ async function bootstrap() {
   Object.assign(AppState.ui,preferences.feedback);
   AppState.waitChord=preferences.waitChord;
   AppState.extraStringTolerance=preferences.extraStringTolerance;
+  AppState.heldNoteTolerance=preferences.heldNoteTolerance;
   AppState.filterHexSpikes=preferences.filterHexSpikes;
   AppState.filterScoreRange=preferences.filterScoreRange;
   const displayPreferences=readDisplayPreferences();
@@ -751,9 +761,7 @@ async function bootstrap() {
       let outcome;
       if(AppState.mode==='wait')outcome=waitController.noteOn(event);
       else {
-        const previous=AppState.trainer.lastFeedback;
-        handleMidiEvent(event);
-        outcome=AppState.trainer.lastFeedback!==previous?AppState.trainer.lastFeedback:null;
+        outcome=handleMidiEvent(event);
       }
       scheduleMidiUi();
       if(AppState.mode!=='wait' || revision===waitUiRevision)renderTrainerUi();

@@ -57,8 +57,8 @@ test('measure-4 fret 7 remains wrong even when fret 6 from the prior Bm chord is
   s.noteOn(1,on(65,2,720));assert.equal(s.feedbackHistory()[1].outcome,'completed-with-errors');
 });
 
-test('new chords, Poly, Together, first targets, unsupported strings and two missing tones stay attack-based',()=>{
-  for(const options of [{hex:false},{chordMode:'together'}])assert.equal(repeated(options).settle(1,700),null);
+test('new chords, first targets, unsupported strings and two missing tones stay attack-based',()=>{
+  for(const options of [{hex:false},{chordMode:'together'}])assert.equal(repeated(options).settle(1,700).complete,true);
   for(const mutate of [s=>s.events[1].stringCount=7,s=>s.records[1].slots[0].midi=46,s=>s.records[1].slots[1].hit=false,s=>s.events[0].isPercussive=true]) {
     const s=repeated();mutate(s);assert.equal(s.settle(1,700),null);
   }

@@ -13,15 +13,21 @@ import {practiceEvents,practiceTimeAtTick,mediaPracticeTime} from './media-pract
 const timeAtTick=tick=>practiceTimeAtTick(AppState,tick,tickToTimeMs(AppState.playbackTimeline,tick));
 
 let realtime = null;
+let finishTimer=null;
 let lastPositionTick = null;
 let finishedAwaitingRewind = false;
 
 export function resetRealtimeSession(reason = 'reset', tick = AppState.tickPosition) {
+  clearTimeout(finishTimer);finishTimer=null;
   lastPositionTick = tick;
   finishedAwaitingRewind = false;
   realtime = new RealtimeSession(practiceEvents(AppState), {
     hex: AppState.inputMode === 'hex-6ch', latencyMs: AppState.trainer.latencyMs || 0,
-    extraStringTolerance: AppState.extraStringTolerance,
+    extraStringTolerance: AppState.extraStringTolerance,heldNoteTolerance:AppState.heldNoteTolerance,
+    filterHexSpikes:AppState.filterHexSpikes,filterScoreRange:AppState.filterScoreRange,
+    ignoreBriefErrors:AppState.midi.ignoreBriefErrors,minErrorMs:AppState.midi.minErrorMs,
+    pitchBendRange:AppState.midi.pitchBendRange,
+    rangeStaves:AppState.tracks.find((track,index)=>String(track.index??index)===String(AppState.practiceTrackId))?.staves??[],
   });
   realtime.reset(timeAtTick(tick) ?? 0, AppState.playbackSpeed || 1);
   AppState.trainer.sessionReason = reason;
@@ -78,7 +84,7 @@ export function handlePlaybackPosition({currentTick, at = performance.now(), spe
   realtime.anchorPosition(scoreMs,at,speed);
   if (AppState.isPlaying) {
     realtime.started = true;
-    realtime.advance(scoreMs-(AppState.trainer.latencyMs||0)*speed,speed);
+    realtime.advance(scoreMs-(AppState.trainer.latencyMs||0)*speed,speed,realtime.eventTime(at));
   }
   publishRealtimeStats();
   updateActiveTargetsFromPlayback(currentTick);
@@ -92,6 +98,7 @@ export function handlePlaybackState() {
     realtime.started = true;
   }
   const at=performance.now();
+  realtime.setRunning(AppState.isPlaying,at);
   realtime.anchorPosition(mediaPracticeTime(AppState,at,timeAtTick(AppState.tickPosition)??0),at,AppState.playbackSpeed||1);
   publishRealtimeStats();
   refreshTrainerMatchState();
@@ -102,7 +109,7 @@ export function advanceRealtimeClock(at = performance.now()) {
   if (!realtime?.started || !AppState.isPlaying || realtime.completed) return;
   const scoreMs = mediaPracticeTime(AppState,at,realtime.scoreTime(at));
   if (scoreMs === null) return;
-  realtime.advance(scoreMs-realtime.latencyMs*realtime.anchor.speed,realtime.anchor.speed);
+  realtime.advance(scoreMs-realtime.latencyMs*realtime.anchor.speed,realtime.anchor.speed,realtime.eventTime(at));
   publishRealtimeStats();
   refreshTrainerMatchState();
 }
@@ -110,7 +117,11 @@ export function advanceRealtimeClock(at = performance.now()) {
 export function finishRealtimeSession() {
   if(AppState.media.editing || !AppState.isPlaying)return;
   realtime?.finish();
-  finishedAwaitingRewind=Boolean(realtime?.completed) && !AppState.practiceLoop.enabled;
+  if(realtime?.pendingErrors.size){
+    const session=realtime,at=session.clockAt;
+    finishTimer=setTimeout(()=>{if(realtime!==session)return;session.flushPendingErrors(at+session.minErrorMs);session.advance(Infinity);publishRealtimeStats();refreshTrainerMatchState();},session.minErrorMs);
+  }
+  finishedAwaitingRewind=Boolean(realtime?.finishRequested) && !AppState.practiceLoop.enabled;
   publishRealtimeStats();
   refreshTrainerMatchState();
 }
@@ -360,13 +371,16 @@ export function refreshTrainerMatchState(position = AppState.tickPosition) {
 }
 
 export function handleMidiEvent(midiEvent) {
+  let outcome=null;
   AppState.midi.lastEvent = midiEvent;
   if(AppState.media.editing)return null;
-  if(midiEvent?.type==='note-off' && realtime?.noteOff(midiEvent))publishRealtimeStats();
+  if(midiEvent?.type==='note-off' && realtime?.noteOff({...midiEvent,at:realtime.eventTime(midiEvent.at??performance.now())}))publishRealtimeStats();
   if (midiEvent?.type === 'note-on' && AppState.isPlaying && realtime?.started) {
     const at = Number.isFinite(midiEvent.at) ? midiEvent.at : performance.now();
-    realtime.noteOn(midiEvent,mediaPracticeTime(AppState,at,realtime.scoreTime(at)),realtime.anchor?.speed || 1);
+    outcome=realtime.noteOn({...midiEvent,at:realtime.eventTime(at)},mediaPracticeTime(AppState,at,realtime.scoreTime(at)),realtime.anchor?.speed || 1);
     publishRealtimeStats();
   }
-  return refreshTrainerMatchState(AppState.tickPosition);
+  if(midiEvent?.type==='pitch-bend' && realtime){outcome=realtime.pitchBend(midiEvent,realtime.eventTime(midiEvent.at??performance.now()),null,AppState.isPlaying);publishRealtimeStats();}
+  refreshTrainerMatchState(AppState.tickPosition);
+  return outcome;
 }

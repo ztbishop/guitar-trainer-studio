@@ -3,13 +3,14 @@ export const PRACTICE_PREFERENCES_KEY = 'gts.practicePreferences';
 export const FEEDBACK_PREFERENCE_KEYS = ['showNotationFeedback', 'showTabCircles', 'showTabMistakes', 'inferPolyMistakes'];
 
 export function readPracticePreferences(storage) {
-  const defaults = {mode: 'realtime', feedback: Object.fromEntries(FEEDBACK_PREFERENCE_KEYS.map(key => [key, true])), waitChord: {mode: 'collect', windowMs: 200}, extraStringTolerance: 'off', filterHexSpikes:true, filterScoreRange:false};
+  const defaults = {mode: 'realtime', feedback: Object.fromEntries(FEEDBACK_PREFERENCE_KEYS.map(key => [key, true])), waitChord: {mode: 'collect', windowMs: 200}, extraStringTolerance: 'off', heldNoteTolerance:'one', filterHexSpikes:true, filterScoreRange:false};
   try {
     storage ??= globalThis.window?.localStorage;
     const saved = JSON.parse(storage?.getItem(PRACTICE_PREFERENCES_KEY) ?? 'null');
     if (['realtime', 'wait'].includes(saved?.mode)) defaults.mode = saved.mode;
     if(['off','internal','all'].includes(saved?.extraStringTolerance))defaults.extraStringTolerance=saved.extraStringTolerance;
     else if(saved?.allowMutedStringNoise===true)defaults.extraStringTolerance='all';
+    if(['off','one','multiple'].includes(saved?.heldNoteTolerance))defaults.heldNoteTolerance=saved.heldNoteTolerance;
     if(typeof saved?.filterScoreRange==='boolean')defaults.filterScoreRange=saved.filterScoreRange;
     if(typeof saved?.filterHexSpikes==='boolean')defaults.filterHexSpikes=saved.filterHexSpikes;
     for (const key of FEEDBACK_PREFERENCE_KEYS) {
@@ -30,6 +31,7 @@ export function savePracticePreferences(state, storage) {
       feedback: Object.fromEntries(FEEDBACK_PREFERENCE_KEYS.map(key => [key, state.ui[key]])),
       waitChord: {...state.waitChord},
       extraStringTolerance: ['off','internal','all'].includes(state.extraStringTolerance)?state.extraStringTolerance:'off',
+      heldNoteTolerance:['off','one','multiple'].includes(state.heldNoteTolerance)?state.heldNoteTolerance:'one',
       filterHexSpikes: state.filterHexSpikes!==false,
       filterScoreRange: state.filterScoreRange===true,
     }));

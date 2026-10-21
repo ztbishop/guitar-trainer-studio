@@ -23,6 +23,6 @@ test('typed values validate and reset bad input, buttons clamp, and restored dev
  AppState.midi.minErrorMs=100;h.sync();assert.equal(n('minimum-error-up').disabled,true);n('minimum-error-up').events.click();assert.equal(AppState.midi.minErrorMs,100);
  AppState.midi.minErrorMs=5;h.sync();assert.equal(n('minimum-error-down').disabled,true);
  h.doc.activeElement=null;Object.assign(AppState.midi,{ignoreBriefErrors:true,minErrorMs:60});h.sync();assert.equal(n('minimum-error-ms').value,'60');
- AppState.mode='realtime';h.sync();assert.equal(n('ignore-brief-errors').disabled,true);
+ AppState.mode='realtime';h.sync();assert.equal(n('ignore-brief-errors').disabled,false);
  AppState.mode='wait';AppState.midi.activeInputId='';h.sync();assert.match(n('brief-error-availability').textContent,/Select a MIDI input/);
 });
