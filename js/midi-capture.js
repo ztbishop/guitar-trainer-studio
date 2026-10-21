@@ -15,6 +15,10 @@ export function startMidiCapture(){
   score.staves=track?.staves?.map(s=>({tuning:[...(s.tuning??[])],capo:s.capo,transpositionPitch:s.transpositionPitch}));
   recording=true;reason='';notify();
 }
+export function clearMidiCapture(){
+  recording=false;events=[];snapshots=[];held.clear();score=null;latestView=null;
+  startedAt=null;startedClock=0;reason='';revision++;textRevision=-1;cachedText='';notify();
+}
 export function stopMidiCapture(){const changed=recording || !reason;if(recording)markMidiSnapshot('Stopped');recording=false;reason||='Stopped';if(changed)revision++;notify();}
 function targetInfo(event){return event?{eventId:event.id,measure:event.measureNumber,occurrence:event.occurrence,
   isPercussive:Boolean(event.isPercussive),mutedStrings:[...(event.mutedStrings??[])],
@@ -112,20 +116,36 @@ export function midiCaptureText() {
   lines.push('','Complete evidence, expected pitches, feedback and screenshot snapshots:',JSON.stringify(reportData(),null,2));
   cachedText=lines.join('\n');textRevision=revision;return cachedText;
 }
+// A bounded UI summary; full serialization belongs only to explicit export actions.
+export function midiCapturePreview(){
+  if(!startedAt)return '';
+  const lines=['Guitar Trainer MIDI and feedback report — preview',
+    'Messages: '+events.length+' | Snapshots: '+snapshots.length,
+    'Copy report or Save text report includes the complete evidence.'];
+  for(const snapshot of snapshots.slice(-3))lines.push('Snapshot: '+String(snapshot.label).slice(0,80));
+  if(events.length>12)lines.push('Showing the last 12 messages only.');
+  for(const row of events.slice(-12))lines.push('#'+row.sequence+' '+row.timeMs.toFixed(2)+'ms '+row.type+' ch'+row.channel+
+    (row.midi==null?'':' MIDI '+row.midi)+' | '+(row.grading?.type??'no grade'));
+  return lines.join('\n');
+}
 export function initMidiCaptureControls(refreshView=()=>{}){
   const start=document.getElementById('midi-capture-start'),stop=document.getElementById('midi-capture-stop'),
     mark=document.getElementById('midi-capture-mark'),copy=document.getElementById('midi-capture-copy'),
     save=document.getElementById('midi-capture-save'),status=document.getElementById('midi-capture-status'),report=document.getElementById('midi-capture-report');
+  const clear=document.getElementById('midi-capture-clear');
+  let previewRevision=-1,manualFull=false;
   const sync=()=>{const s=captureStatus();start.disabled=s.recording;stop.disabled=!s.recording;mark.disabled=!s.recording || snapshots.length>=100;
-    copy.disabled=save.disabled=!startedAt;
+    copy.disabled=save.disabled=!startedAt;if(clear)clear.disabled=!startedAt;
     status.textContent=`${s.recording?'Recording':s.reason||'Ready'} • ${s.count} MIDI messages • ${snapshots.length} snapshots`;
-    if(!s.recording && startedAt && !(s.reason==='Capture limit reached' && events.at(-1)?.grading===undefined))report.value=midiCaptureText();};
+    if(!s.recording && previewRevision!==revision && !manualFull){report.value=midiCapturePreview();previewRevision=revision;}};
   listeners.push(sync);
-  start.addEventListener('click',()=>{startMidiCapture();report.value='Recording… stop to generate the text report.';refreshView();});
+  start.addEventListener('click',()=>{manualFull=false;startMidiCapture();report.value='Recording… stop for a short preview. Copy or save exports the full report.';refreshView();});
+  clear?.addEventListener('click',()=>{manualFull=false;clearMidiCapture();});
+  report.addEventListener('blur',()=>{if(manualFull){manualFull=false;previewRevision=-1;sync();}});
   stop.addEventListener('click',()=>{refreshView();stopMidiCapture();});
   mark.addEventListener('click',()=>{refreshView();markMidiSnapshot();});
-  copy.addEventListener('click',async()=>{refreshView();stopMidiCapture();try{await navigator.clipboard.writeText(report.value);status.textContent+=' • Copied';}
-    catch {report.focus();report.select();status.textContent+=' • Press Ctrl+C to copy the selected report';}});
+  copy.addEventListener('click',async()=>{refreshView();stopMidiCapture();try{await navigator.clipboard.writeText(midiCaptureText());status.textContent+=' • Copied full report';}
+    catch {manualFull=true;report.value=midiCaptureText();report.focus();report.select();status.textContent+=' • Press Ctrl+C to copy the selected report';}});
   save.addEventListener('click',()=>{
     refreshView();stopMidiCapture();
     const url=URL.createObjectURL(new Blob([midiCaptureText()],{type:'text/plain'}));

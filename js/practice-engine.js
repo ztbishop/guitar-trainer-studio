@@ -380,7 +380,7 @@ export function handleMidiEvent(midiEvent) {
     outcome=realtime.noteOn({...midiEvent,at:realtime.eventTime(at)},mediaPracticeTime(AppState,at,realtime.scoreTime(at)),realtime.anchor?.speed || 1);
     publishRealtimeStats();
   }
-  if(midiEvent?.type==='pitch-bend' && realtime){outcome=realtime.pitchBend(midiEvent,realtime.eventTime(midiEvent.at??performance.now()),null,AppState.isPlaying);publishRealtimeStats();}
+  if(midiEvent?.type==='pitch-bend' && realtime){outcome=realtime.pitchBend(midiEvent,realtime.eventTime(midiEvent.at??performance.now()),null,AppState.isPlaying);if(outcome)publishRealtimeStats();}
   refreshTrainerMatchState(AppState.tickPosition);
   return outcome;
 }

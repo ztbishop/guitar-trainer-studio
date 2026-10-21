@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {AppState} from '../js/app-state.js';
 import {initMidiRouter,setActiveMidiInput,normalizeMidiMessage} from '../js/midi-router.js';
 import {WaitSession} from '../js/wait-session.js';
-import {startMidiCapture,stopMidiCapture,captureMidiEvent,captureMidiOutcome,midiCaptureReport,captureStatus,captureFeedbackView,markMidiSnapshot,midiCaptureText,initMidiCaptureControls} from '../js/midi-capture.js';
+import {startMidiCapture,stopMidiCapture,captureMidiEvent,captureMidiOutcome,midiCaptureReport,captureStatus,captureFeedbackView,markMidiSnapshot,midiCaptureText,midiCapturePreview,clearMidiCapture,initMidiCaptureControls} from '../js/midi-capture.js';
 import {buildWrongFretMarks} from '../js/tab-feedback.js';
 import {buildPolyWrongFretMarks} from '../js/poly-feedback.js';
 
@@ -118,7 +118,9 @@ test('recording controls generate selectable text and use a copy fallback withou
     assert.match(el('report').value,/Guitar Trainer MIDI and feedback report/);
     assert.match(el('report').value,/Screenshot/);
     await el('copy').listeners.click();assert.equal(el('report').selected,true);
+    assert.match(el('report').value,/Complete evidence/);
     assert.match(el('status').textContent,/Ctrl\+C/);
+    el('report').listeners.blur();assert.doesNotMatch(el('report').value,/Complete evidence/);
   } finally {
     stopMidiCapture();globalThis.document=oldDocument;
     if(oldNavigator)Object.defineProperty(globalThis,'navigator',oldNavigator);else delete globalThis.navigator;
@@ -144,3 +146,39 @@ test('large report text is cached until evidence changes and serializes without 
   assert.equal(midiCaptureReport().events[0].raw[0],0x90,'the exported object still owns independent copies');
 });
 
+
+
+test('capture-limit UI stays bounded and never serializes full evidence until Copy',async()=>{
+  const oldDocument=globalThis.document,oldNavigator=Object.getOwnPropertyDescriptor(globalThis,'navigator');
+  const elements=new Map(['start','stop','mark','copy','save','clear','status','report'].map(id=>['midi-capture-'+id,
+    {listeners:{},addEventListener(type,fn){this.listeners[type]=fn;},focus(){},select(){}}]));
+  const stringify=JSON.stringify;let serialized=0,copied='';
+  try{
+    globalThis.document={getElementById:id=>elements.get(id)};
+    Object.defineProperty(globalThis,'navigator',{configurable:true,value:{clipboard:{writeText:async text=>{copied=text;}}}});
+    initMidiCaptureControls();clearMidiCapture();startMidiCapture();
+    JSON.stringify=(...args)=>{serialized++;return stringify(...args);};
+    const started=performance.now();
+    for(let i=0;i<10000;i++){
+      const row=captureMidiEvent({type:'pitch-bend',midi:null,channel:1,at:started+i,raw:[224,0,64],bendValue:0},{accepted:true});
+      captureMidiOutcome(row,null);
+    }
+    assert.equal(captureStatus().reason,'Capture limit reached');assert.equal(serialized,0);
+    const preview=elements.get('midi-capture-report').value;
+    assert.ok(preview.length<4096);assert.match(preview,/#10000 /);assert.doesNotMatch(preview,/#1 /);
+    assert.equal(midiCaptureReport().events.length,10000);
+    await elements.get('midi-capture-copy').listeners.click();assert.equal(serialized,1);
+    assert.match(copied,/#1 /);assert.match(copied,/#10000 /);assert.match(copied,/Complete evidence/);
+    assert.equal(elements.get('midi-capture-report').value,preview,'successful Copy leaves preview bounded');
+    elements.get('midi-capture-clear').listeners.click();assert.equal(captureStatus().count,0);
+    assert.equal(midiCaptureReport().snapshots.length,0);assert.equal(midiCaptureReport().startedAt,null);
+    assert.equal(elements.get('midi-capture-report').value,'');assert.equal(elements.get('midi-capture-copy').disabled,true);
+  }finally{JSON.stringify=stringify;clearMidiCapture();globalThis.document=oldDocument;if(oldNavigator)Object.defineProperty(globalThis,'navigator',oldNavigator);else delete globalThis.navigator;}
+});
+
+test('clear discards held-message links and preview while a fresh recording retains raw data',()=>{
+  startMidiCapture();const note=normalizeMidiMessage({data:[0x90,60,90],timeStamp:performance.now()});
+  captureMidiEvent(note,{accepted:true});clearMidiCapture();assert.equal(captureMidiEvent(note),null);assert.equal(midiCapturePreview(),'');
+  startMidiCapture();const row=captureMidiEvent(note,{accepted:true});assert.equal(row.previousHeldSequence,null);
+  assert.deepEqual(row.raw,[0x90,60,90]);stopMidiCapture();assert.match(midiCapturePreview(),/#1 /);clearMidiCapture();
+});

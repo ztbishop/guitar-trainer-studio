@@ -1,5 +1,14 @@
 # Guitar Trainer Studio Architecture
 
+## Lightweight MIDI recording readout — 2026-10-21
+
+Owner reports progressively slow Settings opening, delayed cursor jumps and difficulty retrieving captures. Prior start/stop clearing restored responsiveness. Fix diagnostics before further held-note/X acceptance: the report textarea now contains only a bounded preview (last 12 messages and three snapshot labels). Complete evidence remains in memory; full cached text serialization happens only on explicit Copy/Save, never Stop or the 10,000-message limit. Clipboard failure temporarily exposes selectable full text and restores the preview on blur. Clear recording discards capture rows, snapshots, held-message links, metadata and cached text without touching practice/MIDI/session state. Start retains its existing replace behavior. UI help explains preview versus export and unsaved clearing.
+
+Bootstrap no longer performs a full trainer/score paint on every bend/controller message without a grading outcome; raw capture and synchronous routing/grading stay intact. Note-on/off events, grading outcomes and Wait controller publications retain existing rendering. This reduces unnecessary feedback projection/cloning under dense traffic without changing tolerance or X semantics. The live Chrome tab is not accessible through this chat; no attempt was made to reload it or claim its unsaved capture was recovered.
+
+Validation: 400 Node tests pass. New 10,000-message UI test verifies zero full JSON serializations through auto-stop, a preview below 4 KB, all 10,000 raw messages retained, full Copy contents, and Clear cleanup. Tests also verify temporary manual-copy fallback returns to preview and fresh recordings discard stale held links. Separate Live Server browser confirms Settings/diagnostics startup and Start/Stop preview behavior; actual long Fishman/MIDI Guitar sessions and loaded-score responsiveness remain pending. Physical claims about Multiple eligibility and apparent X skips remain unconfirmed without a fresh responsive capture. No version/native renderer/vendor changes, commits or pushes.
+
+
 ## MIDI tolerance across practice modes — 2026-10-21
 
 Owner authorized a shared Allow held notes in repeated chords control: Off / One note (default) / Multiple notes. It applies to Poly/Hex, Realtime and both Wait chord choices. Only consecutive identical pitched chords qualify; all required pitches must be supplied by fresh attacks or still-held evidence, and at least one required attack must be fresh. One does not chain inferred tones; Multiple can carry original held attacks through successive identical chords. Released/replaced notes, wrong-note gestures, first/new chords, X targets and singles cannot earn held credit. Hex retains distinct-channel and six-string mapping checks; Poly compares pitch slots without inventing strings. Diagnostics preserve held-credit provenance and freshAttack:false.

@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Lightweight capture readout before grading acceptance — 2026-10-21
+
+- [x] Keep stopped/limit-reached preview bounded; generate full Copy/Save report only on demand. Add Clear recording; restore preview after manual-copy fallback loses focus.
+- [x] Avoid trainer repaint for irrelevant bend/controller traffic while retaining raw capture and grading outcomes.
+- [x] 400 Node tests including maximum-size preview/export/clear evidence; isolated Live Server Start/Stop preview smoke check.
+- [ ] Owner hard-refreshes and records a longer passage; stop and reopen Settings, Copy/Save, Clear, then repeat to compare responsiveness. Test actual Fishman and MIDI Guitar traffic. Reassess Multiple held-note stalls and apparent X-beat skips using a fresh capture; neither symptom is established as a grading defect yet.
+
 ### All-mode MIDI tolerance — 2026-10-21
 
 - [x] Shared Off / One note (default) / Multiple notes for Poly/Hex, Realtime and both Wait chord modes. Require fresh attack evidence, retain held provenance and explain the Multiple trade-off.

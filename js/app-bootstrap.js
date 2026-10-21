@@ -764,7 +764,9 @@ async function bootstrap() {
         outcome=handleMidiEvent(event);
       }
       scheduleMidiUi();
-      if(AppState.mode!=='wait' || revision===waitUiRevision)renderTrainerUi();
+      // Continuous bend/controller traffic does not need a full score/UI repaint.
+      if((event.type==='note-on' || event.type==='note-off' || outcome) &&
+          (AppState.mode!=='wait' || revision===waitUiRevision))renderTrainerUi();
       return outcome;
     },
     onStateChange: (_,reason) => {
