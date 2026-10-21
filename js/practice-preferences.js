@@ -3,12 +3,13 @@ export const PRACTICE_PREFERENCES_KEY = 'gts.practicePreferences';
 export const FEEDBACK_PREFERENCE_KEYS = ['showNotationFeedback', 'showTabCircles', 'showTabMistakes', 'inferPolyMistakes'];
 
 export function readPracticePreferences(storage) {
-  const defaults = {mode: 'realtime', feedback: Object.fromEntries(FEEDBACK_PREFERENCE_KEYS.map(key => [key, true])), waitChord: {mode: 'collect', windowMs: 200}, allowMutedStringNoise: false, filterHexSpikes:true, filterScoreRange:false};
+  const defaults = {mode: 'realtime', feedback: Object.fromEntries(FEEDBACK_PREFERENCE_KEYS.map(key => [key, true])), waitChord: {mode: 'collect', windowMs: 200}, extraStringTolerance: 'off', filterHexSpikes:true, filterScoreRange:false};
   try {
     storage ??= globalThis.window?.localStorage;
     const saved = JSON.parse(storage?.getItem(PRACTICE_PREFERENCES_KEY) ?? 'null');
     if (['realtime', 'wait'].includes(saved?.mode)) defaults.mode = saved.mode;
-    if(typeof saved?.allowMutedStringNoise==='boolean')defaults.allowMutedStringNoise=saved.allowMutedStringNoise;
+    if(['off','internal','all'].includes(saved?.extraStringTolerance))defaults.extraStringTolerance=saved.extraStringTolerance;
+    else if(saved?.allowMutedStringNoise===true)defaults.extraStringTolerance='all';
     if(typeof saved?.filterScoreRange==='boolean')defaults.filterScoreRange=saved.filterScoreRange;
     if(typeof saved?.filterHexSpikes==='boolean')defaults.filterHexSpikes=saved.filterHexSpikes;
     for (const key of FEEDBACK_PREFERENCE_KEYS) {
@@ -28,7 +29,7 @@ export function savePracticePreferences(state, storage) {
       mode: state.mode,
       feedback: Object.fromEntries(FEEDBACK_PREFERENCE_KEYS.map(key => [key, state.ui[key]])),
       waitChord: {...state.waitChord},
-      allowMutedStringNoise: state.allowMutedStringNoise===true,
+      extraStringTolerance: ['off','internal','all'].includes(state.extraStringTolerance)?state.extraStringTolerance:'off',
       filterHexSpikes: state.filterHexSpikes!==false,
       filterScoreRange: state.filterScoreRange===true,
     }));

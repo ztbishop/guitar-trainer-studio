@@ -17,7 +17,7 @@ export const AppState = {
   mode: 'realtime',
   waitTrainer: null,
   waitChord: { mode: 'collect', windowMs: 200 },
-  allowMutedStringNoise: false,
+  extraStringTolerance: 'off',
   filterHexSpikes: true,
   filterScoreRange: false,
   inputMode: 'single-channel',

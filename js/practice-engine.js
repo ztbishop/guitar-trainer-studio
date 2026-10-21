@@ -21,7 +21,7 @@ export function resetRealtimeSession(reason = 'reset', tick = AppState.tickPosit
   finishedAwaitingRewind = false;
   realtime = new RealtimeSession(practiceEvents(AppState), {
     hex: AppState.inputMode === 'hex-6ch', latencyMs: AppState.trainer.latencyMs || 0,
-    allowMutedStringNoise: AppState.allowMutedStringNoise,
+    extraStringTolerance: AppState.extraStringTolerance,
   });
   realtime.reset(timeAtTick(tick) ?? 0, AppState.playbackSpeed || 1);
   AppState.trainer.sessionReason = reason;

@@ -10,11 +10,16 @@ export function attackSlots(event,hex,hit) {
   return [...slots.values()];
 }
 
-export function ignoresMutedString(event,note,hex,enabled) {
-  // Only configured six-string Hex chord input can identify an omitted string.
-  // Ignored input must neither penalize nor fill a required pitch on another string.
-  return Boolean(hex && enabled && !event.isPercussive && event.stringCount===6 && event.notes.length>1 &&
-    Number.isInteger(note.stringHint) && note.stringHint>=1 && note.stringHint<=6 &&
-    event.notes.every(n=>Number.isInteger(n.string) && n.string>=1 && n.string<=6) &&
-    !event.notes.some(n=>n.string===note.stringHint));
+export function ignoresMutedString(event,note,hex,tolerance) {
+  // String-specific forgiveness needs configured six-string Hex identity.
+  if(!hex || event.isPercussive || event.stringCount!==6 ||
+      !Number.isInteger(note.stringHint) || note.stringHint<1 || note.stringHint>6 ||
+      !event.notes.every(n=>Number.isInteger(n.string) && n.string>=1 && n.string<=6))return false;
+  const strings=[...new Set(event.notes.map(n=>n.string))];
+  // A required pitched string stays graded, even in conflicting voices.
+  if(strings.includes(note.stringHint))return false;
+  if(event.mutedStrings?.includes(note.stringHint))return true;
+  if(strings.length<2)return false;
+  return tolerance==='all' || tolerance==='internal' &&
+    note.stringHint>Math.min(...strings) && note.stringHint<Math.max(...strings);
 }

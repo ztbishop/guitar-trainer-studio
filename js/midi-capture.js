@@ -28,7 +28,7 @@ export function captureMidiEvent(note,{input,accepted,receivedAt=performance.now
     raw:[...note.raw],bendValue:note.bendValue,accepted:Boolean(accepted),
     device:{id:input?.id,name:input?.name},mode:AppState.mode,inputMode:AppState.inputMode,
     hexBase:AppState.midi.hexChannelBase,hexReverse:AppState.midi.hexChannelReverse,singleChannel:AppState.midi.singleChannel,
-    allowMutedStringNoise:AppState.allowMutedStringNoise===true,
+    extraStringTolerance:AppState.extraStringTolerance,
     filterHexSpikes:AppState.filterHexSpikes!==false,filterScoreRange:AppState.filterScoreRange===true,
     ignoreBriefErrors:AppState.midi.ignoreBriefErrors===true,minErrorMs:AppState.midi.minErrorMs,
     pitchBendRange:AppState.midi.pitchBendRange,

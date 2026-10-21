@@ -8,8 +8,8 @@ import {MidiPitchState,PITCH_SETTLE_MS} from './midi-pitch.js';
 import {outsideScoreRange} from './score-range-filter.js';
 import {spikeCandidate,confirmedSpike,acceptedSinglePrecursor,confirmedPreviousOnset} from './hex-tracking-spikes.js';
 export class WaitSession {
-  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,allowMutedStringNoise=false,filterHexSpikes=true,filterScoreRange=false,ignoreBriefErrors=false,minErrorMs=30,rangeStaves=[],pitchBendRange=12,pitchState=null} = {}) {
-    this.events=events;this.allowMutedStringNoise=allowMutedStringNoise;this.tail=null;
+  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,extraStringTolerance='off',filterHexSpikes=true,filterScoreRange=false,ignoreBriefErrors=false,minErrorMs=30,rangeStaves=[],pitchBendRange=12,pitchState=null} = {}) {
+    this.events=events;this.extraStringTolerance=extraStringTolerance;this.tail=null;
     this.records=events.map(event=>{
       return {eventId:event.id,slots:attackSlots(event,hex,false),wrong:0,wrongNotes:[],retries:0,attemptStartAt:null,skipped:false,burst:null};
     });
@@ -123,7 +123,7 @@ export class WaitSession {
         }
       } else this.tail=null;
     }
-    if(ignoresMutedString(event,note,this.hex,this.allowMutedStringNoise))return {type:'ignored-muted-string',eventId:event.id,midi:note.midi,complete:false};
+    if(ignoresMutedString(event,note,this.hex,this.extraStringTolerance))return {type:'ignored-muted-string',eventId:event.id,midi:note.midi,complete:false};
     const identity=this.hex?String(note.channel):String(note.midi);
     const window=Math.min(200,this.chordWindowMs);
     if(!correcting) {

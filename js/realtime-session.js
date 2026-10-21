@@ -4,12 +4,12 @@ import {inferPolyExpectedNoteIds} from './poly-feedback.js';
 import {attackSlots,ignoresMutedString} from './attack-rules.js';
 
 export class RealtimeSession {
-  constructor(events, { hex = false, timing = TimingDefaults, latencyMs = 0, allowMutedStringNoise = false } = {}) {
+  constructor(events, { hex = false, timing = TimingDefaults, latencyMs = 0, extraStringTolerance = 'off' } = {}) {
     this.events = events;
     this.timing = { ...timing };
     this.latencyMs = latencyMs;
     this.hex = hex;
-    this.allowMutedStringNoise = allowMutedStringNoise;
+    this.extraStringTolerance = extraStringTolerance;
     this.reset(0);
   }
   reset(scoreMs = 0, speed = 1) {
@@ -52,7 +52,7 @@ export class RealtimeSession {
     const nearby=this.records.filter(r=>!r.skipped && isWithinHitWindow((correctedMs-r.timeMs)/speed,this.timing))
       .sort((a,b)=>Math.abs(a.timeMs-correctedMs)-Math.abs(b.timeMs-correctedMs));
     const nearest=nearby[0];
-    if(nearest && ignoresMutedString(nearest.event,note,this.hex,this.allowMutedStringNoise))
+    if(nearest && ignoresMutedString(nearest.event,note,this.hex,this.extraStringTolerance))
       return {type:'ignored-muted-string',eventId:nearest.eventId,midi:note.midi};
     if(nearest?.event.isPercussive && nearest.slots[0].hit)return {type:'ignored-strum-tail',eventId:nearest.eventId,midi:note.midi};
     const candidates=[];
@@ -61,7 +61,7 @@ export class RealtimeSession {
       const deltaMs=(correctedMs-record.timeMs)/speed;
       if (!isWithinHitWindow(deltaMs,this.timing)) continue;
       if(record.event.isPercussive && record!==nearest)continue;
-      if(ignoresMutedString(record.event,note,this.hex,this.allowMutedStringNoise))continue;
+      if(ignoresMutedString(record.event,note,this.hex,this.extraStringTolerance))continue;
       const slot=record.slots.find(slot=>!slot.hit && !slot.missed && (record.event.isPercussive || slot.midi===note.midi));
       const duplicateChannel=this.hex && record.slots.some(slot=>slot.hit?.channel===note.channel && slot.midi===note.midi);
       const chordFits=record.firstHitMs===null || Math.abs(correctedMs-record.firstHitMs)/speed<=this.timing.chordGroupingMs;

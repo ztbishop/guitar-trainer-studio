@@ -21,6 +21,13 @@ test('native X notes retain notation identity but create one unpitched attack; m
   const timeline=buildPlaybackTimeline(gen.tickLookup),events=getPracticeEvents(timeline,'0');
   assert.equal(events[1].isPercussive,true);assert.equal(events[1].notes.length,4);assert.deepEqual(events[1].pitches,[]);
   assert.equal(events[2].isPercussive,false);assert.equal(events[2].notes.length,1);
+  assert.equal(events[2].mutedStrings.length,1);
+  for(const Session of [WaitSession,RealtimeSession]){
+    const session=new Session([events[2]],{hex:true});session.started=true;
+    const n=note(91,events[2].startTimeMs,events[2].mutedStrings[0]);
+    const result=Session===WaitSession?session.noteOn(0,n):session.noteOn(n,events[2].startTimeMs);
+    assert.equal(result.type,'ignored-muted-string');assert.equal(session.stats().correct,0);assert.equal(session.stats().wrong,0);
+  }
   assert.equal(timeline.events[2].notes.length,2);assert.ok(timeline.events[1].notes.every(n=>n.isDead));
   for(const hex of [false,true]){
     const s=new WaitSession([events[1]],{hex});assert.equal(s.stats().total,1);
@@ -35,18 +42,18 @@ test('Hex tolerance ignores omitted-string notes without crediting their pitches
   const chord=event('a');
   for(const create of [opts=>new WaitSession([chord],opts),opts=>realtime([chord],opts)]){
     const hit=(s,n)=>s instanceof WaitSession?s.noteOn(0,n):s.noteOn(n,0);
-    const tolerant=create({hex:true,allowMutedStringNoise:true});
+    const tolerant=create({hex:true,extraStringTolerance:'all'});
     assert.equal(hit(tolerant,note(45,0,5)).type,'ignored-muted-string');assert.equal(tolerant.stats().correct,0);assert.equal(tolerant.stats().wrong,0);
     assert.equal(hit(tolerant,note(44,1,6)).type,'wrong');
     assert.equal(hit(create({hex:true}),note(48,0,5)).type,'wrong');
-    assert.equal(hit(create({hex:false,allowMutedStringNoise:true}),note(48,0,5)).type,'wrong');
-    assert.equal(hit(create({hex:true,allowMutedStringNoise:true}),note(48,0,null)).type,'wrong');
+    assert.equal(hit(create({hex:false,extraStringTolerance:'all'}),note(48,0,5)).type,'wrong');
+    assert.equal(hit(create({hex:true,extraStringTolerance:'all'}),note(48,0,null)).type,'wrong');
   }
 });
 
 test('tolerance stays strict for single-note targets and unsupported string layouts',()=>{
   for(const e of [event('a',[45],[6]),{...event('b'),stringCount:7}]){
-    const s=new WaitSession([e],{hex:true,allowMutedStringNoise:true});assert.equal(s.noteOn(0,note(48,0,5)).type,'wrong');
+    const s=new WaitSession([e],{hex:true,extraStringTolerance:'all'});assert.equal(s.noteOn(0,note(48,0,5)).type,'wrong');
   }
 });
 
@@ -95,10 +102,10 @@ test('short legitimate notes are not rejected or delayed in either mode',()=>{
 
 test('Hex tolerance preference persists independently and invalid values remain Strict',()=>{
   let value=null;const store={getItem:()=>value,setItem:(key,v)=>value=v};
-  assert.equal(readPracticePreferences(store).allowMutedStringNoise,false);
-  savePracticePreferences({mode:'wait',ui:{},waitChord:{mode:'collect',windowMs:200},allowMutedStringNoise:true},store);
-  assert.equal(readPracticePreferences(store).allowMutedStringNoise,true);
-  value=JSON.stringify({allowMutedStringNoise:'true'});assert.equal(readPracticePreferences(store).allowMutedStringNoise,false);
+  assert.equal(readPracticePreferences(store).extraStringTolerance,'off');
+  savePracticePreferences({mode:'wait',ui:{},waitChord:{mode:'collect',windowMs:200},extraStringTolerance:'all'},store);
+  assert.equal(readPracticePreferences(store).extraStringTolerance,'all');
+  value=JSON.stringify({extraStringTolerance:'true'});assert.equal(readPracticePreferences(store).extraStringTolerance,'off');
 });
 
 for(const hex of [false,true])test(`Wait keeps changing and repeated X pitches out of the following chord (${hex?'Hex':'Poly'})`,()=>{
@@ -156,4 +163,40 @@ test('Together still expires incomplete chords before accepting replayed tones',
   s.noteOn(0,note(45,0,6));assert.equal(s.noteOn(0,note(45,50,6)).type,'ignored-collected-tone');
   assert.equal(s.noteOn(0,note(45,101,6)).type,'correct');
   assert.equal(s.stats().retries,1);assert.equal(s.stats().correct,1);assert.equal(s.stats().wrong,0);
+});
+
+for(const mode of ['Wait','Realtime'])test(mode+' separates written X forgiveness from extra-string scope',()=>{
+  const chord={...event('mixed',[48,55],[6,3]),mutedStrings:[5]};
+  const create=(e,scope,hex=true)=>mode==='Wait'?new WaitSession([e],{hex,extraStringTolerance:scope}):realtime([e],{hex,extraStringTolerance:scope});
+  const hit=(s,n)=>mode==='Wait'?s.noteOn(0,n):s.noteOn(n,0);
+  for(const scope of ['off','internal','all']) {
+    const s=create(chord,scope);
+    assert.equal(hit(s,note(61,0,5)).type,'ignored-muted-string');
+    assert.equal(s.stats().correct,0);assert.equal(s.stats().wrong,0);
+    assert.equal(hit(s,note(49,1,6)).type,'wrong');
+    assert.equal(hit(create(chord,scope),note(61,0,4)).type,scope==='off'?'wrong':'ignored-muted-string');
+    assert.equal(hit(create(chord,scope),note(61,0,1)).type,scope==='all'?'ignored-muted-string':'wrong');
+    const x=create({...event('x'),isPercussive:true},scope,false);
+    assert.equal(x.stats().correct,0);assert.equal(hit(x,note(91,0,null)).type,'correct');
+    assert.equal(x.stats().correct,1);
+    assert.equal(hit(create(chord,scope,false),note(61,0,5)).type,'wrong');
+    assert.equal(hit(create(chord,scope),note(61,0,null)).type,'wrong');
+    const single={...event('single',[48],[6]),mutedStrings:[5]};
+    assert.equal(hit(create(single,scope),note(61,0,5)).type,'ignored-muted-string');
+    assert.equal(hit(create(single,scope),note(61,0,4)).type,'wrong');
+    const unison=event('unison',[48,48],[3,3]);
+    assert.equal(hit(create(unison,scope),note(61,0,4)).type,'wrong');
+  }
+});
+
+test('legacy tolerance migrates without overriding a saved new choice',()=>{
+  const load=value=>readPracticePreferences({getItem:()=>JSON.stringify(value)}).extraStringTolerance;
+  assert.equal(load({allowMutedStringNoise:true}),'all');
+  assert.equal(load({allowMutedStringNoise:false}),'off');
+  assert.equal(load({allowMutedStringNoise:true,extraStringTolerance:'internal'}),'internal');
+  for(const scope of ['off','internal','all']){
+    let value;const store={getItem:()=>value,setItem:(k,v)=>value=v};
+    savePracticePreferences({mode:'wait',ui:{},waitChord:{mode:'collect',windowMs:200},extraStringTolerance:scope},store);
+    assert.equal(readPracticePreferences(store).extraStringTolerance,scope);
+  }
 });

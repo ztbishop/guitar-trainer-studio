@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Written X and extra chord strings — 2026-10-21
+
+- [x] Always forgive identified written X-string input in mixed Hex targets without crediting pitched slots. All-X beats still require one fresh arbitrary MIDI attack in Poly/Hex, Wait/Realtime, independently of scope.
+- [x] Replace broad checkbox with Off / Skipped strings only / All unwritten strings. Require two distinct pitched strings for optional tolerance; preserve legacy saved true as All. Other filters remain independent.
+- [x] Automated session, native mixed-X metadata and preference regression coverage; see development notes and handoff for final checks.
+- [ ] Owner hard-refreshes normal Live Server: test all-X, mixed pitched/X, single notes, internal rakes and outer-string mistakes across all three scopes, Wait/Realtime, then reload to verify saved selection. Physical Fishman/browser acceptance remains pending.
+
 ### Continued TriplePlay USB freeze mitigation — 2026-10-20
 
 - [x] Owner confirms whole Chrome freezes on active TriplePlay removal despite earlier guards. Skip close calls on disconnected inputs, including reinitialization cleanup; invalidate listener epochs before detachment. Connected switches/None still close once without waiting/retry.

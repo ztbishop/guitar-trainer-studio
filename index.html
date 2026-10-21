@@ -156,8 +156,14 @@
             <div class="popup-card-title" id="practice-filters-title">MIDI input tolerance</div>
             <p class="field-help practice-filter-intro">Changing an option pauses practice and clears its results.</p>
             <div class="practice-filter-option">
-              <label class="toggle-row" for="allow-muted-string-noise"><input id="allow-muted-string-noise" type="checkbox" aria-describedby="muted-noise-help" /><span>Allow muted-string noise <small>Hex</small></span></label>
-              <p id="muted-noise-help" class="field-help">For chords, ignore notes from strings omitted in the score. Off keeps those extra notes as mistakes.</p>
+              <label for="extra-string-tolerance">Ignore extra chord strings <small>Hex</small></label>
+              <select id="extra-string-tolerance" aria-describedby="muted-noise-help">
+                <option value="off">Off</option>
+                <option value="internal">Skipped strings only</option>
+                <option value="all">All unwritten strings</option>
+              </select>
+              <p id="muted-noise-help" class="field-help">For chords with at least two pitched strings. Skipped strings lie between written pitched strings; All also forgives outside strings. Ignored input cannot satisfy required pitches. Other enabled filters still apply.</p>
+              <p class="field-help">Written X notes need no tolerance setting. An all-X beat requires one fresh MIDI attack at any pitch from any string. In mixed chords, pitched notes are required; identified Hex X-string input is forgiven. Poly cannot identify individual X strings.</p>
             </div>
             <div class="practice-filter-option">
               <label class="toggle-row" for="filter-hex-spikes"><input id="filter-hex-spikes" type="checkbox" checked aria-describedby="spike-filter-help" /><span>Filter confirmed tracking spikes <small>Wait · Hex</small></span></label>
