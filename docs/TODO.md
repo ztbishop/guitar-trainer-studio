@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+### Continued TriplePlay USB freeze mitigation — 2026-10-20
+
+- [x] Owner confirms whole Chrome freezes on active TriplePlay removal despite earlier guards. Skip close calls on disconnected inputs, including reinitialization cleanup; invalidate listener epochs before detachment. Connected switches/None still close once without waiting/retry.
+- [x] 366 Node tests pass, plus router syntax and whitespace checks. Simulations cover notification storms, reconnect cycles, dead-port close avoidance, callbacks during detach, inactive-device removal and throwing/rejected/unresolved connected closes.
+- [ ] Physical Chrome/TriplePlay acceptance remains pending. This is a mitigation, not a confirmed native-hang fix. See MIDI-DISCONNECT.md for acceptance and the None-before-removal comparison.
+
 ### Correct paired XML ties/visibility and repeat-open choice — 2026-10-20
 
 - [x] Supersede saved per-file combine choices: ask every qualifying open, including reopening identical files; ignore legacy keys. Clear captured file input so same-file selection fires again.

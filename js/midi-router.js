@@ -99,12 +99,12 @@ function setActiveInput(input,restore=null) {
   if(input===activeInput && AppState.midi.activeInputId===(input?.id || ''))return false;
   const previousInput=activeInput;
   saveActiveMidiSettings();
+  const epoch=++listenerEpoch;
   if (activeInput && activeListener) {
     activeInput.removeEventListener('midimessage', activeListener);
   }
 
   activeInput = input || null;
-  const epoch=++listenerEpoch;
   if(input) {
     restoreSettings(restore?.settings??devicePreferences?.profile(input)?.settings??MIDI_DEVICE_DEFAULTS);
     devicePreferences?.remember(input,currentSettings(),true,restore?.previousId??input.id);
@@ -164,10 +164,17 @@ function setActiveInput(input,restore=null) {
     AppState.ui.midiStatus = AppState.midi.supported ? noInputStatus() : 'Web MIDI unavailable';
   }
 
-  // Removing a listener does not release an implicitly opened MIDI port. Close
-  // only our old port, once, without waiting or retrying during USB removal.
-  try {previousInput?.close?.()?.catch?.(()=>{});}catch{}
+  closeConnectedInput(previousInput);
   updateStateChange('device');return true;
+}
+
+function closeConnectedInput(input) {
+  // A physical disconnect is already being handled by the browser/driver.
+  // Do not send another close into that path. Promise rejection handling cannot
+  // protect against a native hang. Still release connected ports on selection
+  // changes (including None), without waiting or retrying.
+  if(!input || input.state==='disconnected')return;
+  try {input.close?.()?.catch?.(()=>{});}catch{}
 }
 
 function refreshInputs(event) {
@@ -189,12 +196,13 @@ export async function initMidiRouter({ onMidiEvent, onStateChange,deviceStorage 
   if(midiAccess)midiAccess.onstatechange=null;
   saveActiveMidiSettings();
   const previousInput=activeInput;
+  ++listenerEpoch;
   if(activeInput && activeListener)activeInput.removeEventListener('midimessage',activeListener);
-  activeInput=null;activeListener=null;++listenerEpoch;clearActiveMidiNotes(false);
+  activeInput=null;activeListener=null;clearActiveMidiNotes(false);
   let previousClosed=false;
   const closePrevious=()=>{
     if(previousClosed || previousInput===activeInput)return;
-    previousClosed=true;try{previousInput?.close?.()?.catch?.(()=>{});}catch{}
+    previousClosed=true;closeConnectedInput(previousInput);
   };
   callbacks.onMidiEvent = onMidiEvent || null;
   callbacks.onStateChange = onStateChange || null;

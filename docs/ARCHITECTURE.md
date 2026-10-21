@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Disconnected MIDI cleanup policy — 2026-10-20
+
+This supersedes October 16 close-on-disconnect wording below. midi-router invalidates its listener epoch before detachment, clears held notes and drops its binding on physical removal without calling close on the disconnected port. Browser/driver removal owns native teardown; JavaScript promise catches cannot contain native deadlocks. Connected selection changes/None still close the former owned input once without await/retry. Initialization uses the same state gate and retains protection against closing a rebound port. Saved profiles and automatic reconnect remain unchanged. Tests cover application lifecycle only; see MIDI-DISCONNECT.md for context and physical acceptance.
+
 ## Native voice colors and paired-score grading
 
 Native alphaTab defaults to black first-voice and translucent gray secondary-voice glyphs. Owner decision 2026-10-20 overrides both mainGlyphColor and secondaryGlyphColor to opaque black in alphatab-host.js initialization for all scores/tracks, including paired imports. Native voice structure is preserved; custom green/red correctness overlays keep their independent colors. score-playback.js includes attacks from every voice of the selected track and groups simultaneous onsets into one practice target. Staff notation and tab render the same retained note identities, rather than forming independent grading streams. practice-visuals.js projects their session results back to source-note IDs. Voice color has no role in MIDI matching, target eligibility or correctness. The paired-import two-voice regression checks this interaction through native MIDI lookup, Wait/Realtime evaluation and source-note feedback publication.

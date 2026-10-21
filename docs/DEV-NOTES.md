@@ -1,5 +1,13 @@
 # Development notes
 
+## Continued active TriplePlay disconnect freeze — 2026-10-20
+
+Started with clean Git status. docs/README.md is absent; root README and current guidance apply. Owner reports complete Chrome freeze after removing active TriplePlay despite October 16 guards. Earlier fake-port tests proved bounded application work, not native USB stability. The router still explicitly closed the disconnected port; catching a promise cannot prevent native hangs.
+
+The router now skips close for disconnected inputs in selection and initialization cleanup. Connected switching/None still releases the former input once with no waits/retries. Listener epochs invalidate before detachment. Saved settings, reconnect policy, held-note clearing and capture/grading remain unchanged. This supersedes earlier close-on-disconnect wording. Native alphaTab rendering, transport, version and Live Server are untouched.
+
+366 Node tests pass on Node 24.14.0, plus syntax and whitespace checks. Four added tests cover dead-port close avoidance including initialization before notification, callbacks during detach, inactive removal and connected close exceptions/rejections/unresolved promises. Existing storm/cycle tests now require zero closes on disconnected ports. This does not simulate a native deadlock or establish physical acceptance. Installed Chrome executable reports 155.0.8059.85; no running Chrome session was closed or changed. See MIDI-DISCONNECT.md for sources and pending hardware checks. No commits/pushes.
+
 ## Correct paired-source ties/visibility and ask on every open — 2026-10-20
 
 Owner found hidden upper chords in measures 39–40 and could not reconsider an earlier merge. The previous approach incorrectly treated tab visibility/ties as authoritative: this XML hides tab continuations and omits their ties while notation explicitly carries them. Earlier 447/447 synthetic replay was self-consistent with the faulty imported targets, not evidence of source fidelity. It is superseded by this audit. Earlier notes describing saved choices and tab-authoritative rhythms are historical.

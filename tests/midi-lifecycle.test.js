@@ -33,7 +33,7 @@ test('disconnect/reconnect storms detach once, reject stale messages and never a
     const before=stateCalls;usb.state='disconnected';
     for(let i=0;i<10000;i++)access.onstatechange({port:usb});
     assert.equal(AppState.midi.activeInputId,'');assert.equal(AppState.midi.activeNotes.size,0);
-    assert.equal(stateCalls-before,1);assert.equal(usb.closes,1);assert.equal(usb.removes,1);
+    assert.equal(stateCalls-before,1);assert.equal(usb.closes,0);assert.equal(usb.removes,1);
     assert.equal(other.adds,0);assert.deepEqual(AppState.midi.availableInputs.map(p=>p.id),['other']);
     stale({data:[0x90,62,100],timeStamp:performance.now()});assert.equal(grades,1);
     assert.equal(setActiveMidiInput('usb'),false);
@@ -55,7 +55,7 @@ test('rapid unplug/replug cycles keep one listener and retain all fresh attacks'
       usb.send([0x90,60,100]);usb.state='disconnected';access.onstatechange({port:usb});
       usb.state='connected';access.onstatechange({port:usb});
     }
-    assert.equal(grades,100);assert.equal(usb.adds,101);assert.equal(usb.removes,100);assert.equal(usb.closes,100);
+    assert.equal(grades,100);assert.equal(usb.adds,101);assert.equal(usb.removes,100);assert.equal(usb.closes,0);
     assert.equal(AppState.midi.activeNotes.size,0);
   });
 });
@@ -93,4 +93,57 @@ test('one solved Wait target publishes the new gate once rather than drawing two
   c.configure([60,62].map((midi,i)=>({id:String(i),startTick:i*480,notes:[{id:'n'+i,midi}]})),960);
   c.start();publications=0;c.noteOn({type:'note-on',midi:60,channel:1,at:0});
   assert.equal(c.index,1);assert.equal(publications,1);assert.equal(c.session.stats().correct,1);
+});
+
+test('physical removal never calls a dead port close, including reinitialization before notification',async()=>{
+  const access={inputs:new Map()},usb=port('usb',access);access.inputs.set('usb',usb);
+  await withNavigator(access,async()=>{
+    await initMidiRouter();setActiveMidiInput('usb');
+    let deadCloses=0;
+    usb.close=()=>{deadCloses++;return new Promise(()=>{});};
+    usb.state='disconnected';access.onstatechange({port:usb});
+    assert.equal(deadCloses,0);assert.equal(AppState.midi.activeInputId,'');
+    usb.state='connected';access.onstatechange({port:usb});
+    assert.equal(AppState.midi.activeInputId,'usb');
+    usb.state='disconnected';await initMidiRouter();
+    assert.equal(deadCloses,0);assert.equal(AppState.midi.activeInputId,'');
+  });
+});
+
+test('connected switches close once and invalidate callbacks before listener removal',async()=>{
+  const access={inputs:new Map()},usb=port('usb',access),other=port('other',access);
+  access.inputs.set('usb',usb);access.inputs.set('other',other);
+  await withNavigator(access,async()=>{
+    let grades=0;await initMidiRouter({onMidiEvent:()=>grades++});setActiveMidiInput('usb');
+    const remove=usb.removeEventListener;
+    usb.removeEventListener=function(type,fn){fn({data:[0x90,65,100]});remove.call(this,type,fn);};
+    setActiveMidiInput('other');assert.equal(grades,0);assert.equal(usb.closes,1);
+    setActiveMidiInput('');assert.equal(other.closes,1);assert.equal(AppState.midi.activeInputId,'');
+    setActiveMidiInput('usb');await initMidiRouter();assert.equal(grades,0);
+  });
+});
+
+test('unselected device removal leaves the active listener and held notes intact',async()=>{
+  const access={inputs:new Map()},usb=port('usb',access),other=port('other',access);
+  access.inputs.set('usb',usb);access.inputs.set('other',other);
+  await withNavigator(access,async()=>{
+    const reasons=[];await initMidiRouter({onStateChange:(_,reason)=>reasons.push(reason)});
+    setActiveMidiInput('usb');usb.send([0x90,60,100]);reasons.length=0;
+    other.state='disconnected';access.onstatechange({port:other});
+    assert.deepEqual(reasons,['inventory']);assert.equal(AppState.midi.activeInputId,'usb');
+    assert.equal(AppState.midi.activeNotes.size,1);assert.equal(usb.removes,0);
+    assert.equal(usb.closes,0);assert.equal(other.closes,0);
+  });
+});
+
+test('connected close failures or unresolved promises do not prevent switching inputs',async()=>{
+  for(const failure of [()=>{throw Error('close failed');},()=>Promise.reject(Error('close rejected')),()=>new Promise(()=>{})]) {
+    const access={inputs:new Map()},usb=port('usb',access),other=port('other',access);
+    access.inputs.set('usb',usb);access.inputs.set('other',other);
+    await withNavigator(access,async()=>{
+      await initMidiRouter();setActiveMidiInput('usb');usb.close=failure;
+      assert.equal(setActiveMidiInput('other'),true);assert.equal(AppState.midi.activeInputId,'other');
+      await Promise.resolve();
+    });
+  }
 });
