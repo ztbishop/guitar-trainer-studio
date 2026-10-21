@@ -195,6 +195,8 @@ function wireFilePicker() {
   fileInput.addEventListener('change', async (event) => {
     const file = event.target?.files?.[0];
     if (!file) return;
+    // Selecting the same file again must fire change and offer pairing again.
+    event.target.value='';
     try {
       await loadScoreFile(file);
     } catch (error) {

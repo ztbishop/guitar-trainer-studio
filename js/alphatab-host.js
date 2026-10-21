@@ -12,6 +12,9 @@ import {countInTiming,scheduleCountIn} from './count-in.js';
 import {playbackGroups} from './audio-controls.js';
 import {validatePoints,tickAtMediaTime,mediaTimeAtTick} from './media-sync.js';
 import {effectiveChordDiagramPlacement} from './display-preferences.js';
+import {findNotationTabPairs,combineNotationTabPair} from './musicxml-pairing.js';
+import {chooseNotationTabPair,cancelNotationTabChoice} from './musicxml-pairing-controls.js';
+import {rebuildPairedMusicXml} from './musicxml-repair.js';
 
 let mediaSnapshot=null,mediaHandler=null,mediaPoints=[],mediaRestoreTick=null;
 let mediaRevealTick=null,mediaRevealGeneration=0;
@@ -696,6 +699,9 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
       scriptFile: getAssetUrl('./assets/vendor/alphatab/alphaTab.js'),
     },
     display: {
+      // Keep all musical voices equally readable; correctness overlays own
+      // their separate green/red colors and do not use these native defaults.
+      resources: { mainGlyphColor: '#000000', secondaryGlyphColor: '#000000' },
       scale: AppState.ui.zoomPercent / 100,
       layoutMode: alphaTabGlobal.LayoutMode?.Page,
       systemsLayoutMode: alphaTabGlobal.SystemsLayoutMode?.Automatic,
@@ -912,6 +918,7 @@ export async function loadScoreFile(file) {
     AppState.media.preview=false;AppState.media.returning=false;AppState.media.points=null;AppState.media.clock=null;mediaSnapshot=null;mediaHandler=null;mediaRestoreTick=null;
   }
   const generation=++scoreLoadGeneration;
+  cancelNotationTabChoice();
   AppState.currentScoreFile=null;
   pendingScoreFile=null;
   pauseSeekPending = false;
@@ -939,10 +946,57 @@ export async function loadScoreFile(file) {
   const buffer = await readFileAsArrayBuffer(file);
   if(generation!==scoreLoadGeneration)return false;
   const bytes = new Uint8Array(buffer);
-  pendingScoreFile={fileName:file.name,bytes};
   const wrapperEl = document.getElementById('alphatab-wrapper');
   if (wrapperEl) wrapperEl.scrollTop = 0;
-  const accepted=alphaTabApi.load(bytes);
+  let input=bytes;
+  // Only explicit partwise MusicXML pairs qualify. Other formats retain their
+  // native loader path; bulk library storage never parses or repairs scores.
+  if(/\.(xml|musicxml)$/i.test(file.name) && typeof DOMParser!=='undefined') {
+    const xml=new DOMParser().parseFromString(new TextDecoder().decode(bytes),'application/xml');
+    const root=xml.documentElement;
+    if(root?.localName==='score-partwise' && !xml.querySelector('parsererror')) {
+      const list=[...root.children].find(node=>node.localName==='part-list');
+      const groups=[],active=new Map();let index=0;
+      for(const node of list?.children || []) {
+        if(node.localName==='part-group') {
+          const number=node.getAttribute('number') || '1';
+          if(node.getAttribute('type')==='start')active.set(number,[]);
+          else if(active.has(number)){groups.push(active.get(number));active.delete(number);}
+        } else if(node.localName==='score-part') {
+          for(const group of active.values())group.push(index);
+          index++;
+        }
+      }
+      if(groups.some(group=>group.length===2)) {
+        const at=detectAlphaTabGlobal();
+        input=at.importer.ScoreLoader.loadScoreFromBytes(bytes,alphaTabApi.settings);
+        const pairs=findNotationTabPairs(input,groups);
+        if(pairs.length) {
+          const selected=[];
+          for(const pair of pairs) {
+            const combine=await chooseNotationTabPair(pair);
+            if(generation!==scoreLoadGeneration)return false;
+            if(combine)selected.push(pair);
+          }
+          if(selected.length) {
+            try {
+              const repaired=rebuildPairedMusicXml(xml,selected);
+              const repairedBytes=new TextEncoder().encode(new XMLSerializer().serializeToString(repaired));
+              input=at.importer.ScoreLoader.loadScoreFromBytes(repairedBytes,alphaTabApi.settings);
+              const repairs=selected.map(pair=>({notation:input.tracks[pair.notation.index],tab:input.tracks[pair.tab.index],transfers:[]}));
+              for(const pair of repairs)combineNotationTabPair(input,pair);
+            } catch(error) {
+              // Fail closed: never partially merge or conceal a reconciliation failure.
+              input=bytes;
+              window.alert(`The parts were kept separate. ${error.message}`);
+            }
+          }
+        }
+      }
+    }
+  }
+  pendingScoreFile={fileName:file.name,bytes};
+  const accepted=alphaTabApi.load(input);
   if(!accepted)pendingScoreFile=null;
   return accepted;
 }

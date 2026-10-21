@@ -1,5 +1,32 @@
 # Guitar Trainer Studio: status and to-do
 
+### Correct paired XML ties/visibility and repeat-open choice — 2026-10-20
+
+- [x] Supersede saved per-file combine choices: ask every qualifying open, including reopening identical files; ignore legacy keys. Clear captured file input so same-file selection fires again.
+- [x] Rebuild from original notation rhythm/visibility/ties/symbols with tab fingering and chain-origin fingering for sustained notes. Use native reimport/rendering; fail closed to separate parts when original sources cannot reconcile. No MIDI/session-rule or vendor changes.
+- [x] Supersede the earlier 447-attack replay claim: original-source/browser checks establish 447 note entries, 30 tied continuations and 417 fresh slots / 223 targets. Fresh attacks match GPX within triplet rounding; all six practice configurations pass at 100%. Actual app prompts pass Combine/Keep separate/Combine with a legacy choice seeded. 362 Node tests and syntax checks pass.
+- [ ] Owner hard-refreshes and reopens XML, confirms each-time choice and visible sustained upper chords/ties in measures 37–45. Play only fresh bass notes while chords sustain; verify physical Fishman Wait progression, Realtime feedback and listening. Hardware/audio acceptance remains pending.
+
+### Black notation for all voices — 2026-10-20
+
+- [x] Owner approved equal black native glyph colors for primary/secondary voices across all scores and visible tracks. Host resource settings preserve musical voices and independent green/red practice overlays; no grading/MIDI/transport changes.
+- [x] 362 Node tests, host syntax and whitespace checks pass; bundled native settings parsing confirms both colors resolve to opaque #000000.
+- [ ] Owner hard-refreshes Live Server and checks measures 37–44 of Four on six, All tracks display and green/red practice feedback. Browser/Fishman acceptance pending.
+
+### Paired import gray-voice follow-up — 2026-10-20
+
+- [x] Owner reports combine import appears to work. Explain screenshot gray bass as native secondary-voice coloring; retain native colors. Pitched notes in both voices remain targets.
+- [x] Exact supplied repaired XML replay: 225 attack groups / 447 note slots, zero percussive groups; 100% with no errors/misses in Poly/Hex Realtime and both Wait chord modes. All 447 Wait feedback source-note marks become correct. Add independent synthetic two-voice regression.
+- [ ] Physical Fishman and browser green-feedback alignment on both notation/tab remain owner acceptance, especially measures 37–44; synthetic replay does not establish hardware delivery or visual overlay placement.
+
+### Optional paired MusicXML notation/tab import — 2026-10-20
+
+- [x] Detect explicit two-part groups in uncompressed .xml/.musicxml on opening, including library reopen. Offer Combine parts / Keep separate only for closely matching notation-only/tab-only Guitar parts; no general track merge or multi-track grading.
+- [x] Disclose differing measures; retain tab pitches, fingering, durations and ties, enable native notation, transfer chord symbols at original onsets, and remove the redundant notation track only after consent. Original/library bytes remain unchanged. Remember both choices by file SHA-256 and pair in this browser.
+- [x] 361 Node tests pass; native SVG/MIDI checks pass. Supplied Four on six XML identifies measures 38/45 and transfers 67 chord symbols. Comparison measured about 1.5 ms after about 53 ms native parsing in one local Node run, not a browser performance guarantee.
+- [ ] Owner checks the dialog, both choices, saved reopening, chord symbols (including measure 24), notation/tab, playback and Wait/Realtime with Fishman in the normal Live Server browser. Physical/browser acceptance pending.
+- [ ] Compressed .mxl pairing, general manual merging, conversion/export and moving saved decisions with library backups are outside this increment; native .mxl loading remains supported unchanged.
+
 ### Optional brief off-target tolerance — 2026-10-20
 
 - [x] Add visible Practice → MIDI input tolerance checkbox, Ignore brief off-target notes, default off. Correct pitches count immediately; wrong MIDI pitches released before the chosen threshold are forgiven. Wait Hex and Poly only; Realtime unchanged.

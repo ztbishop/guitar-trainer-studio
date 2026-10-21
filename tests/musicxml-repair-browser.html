@@ -1,0 +1,71 @@
+<!doctype html><meta charset="utf-8"><title>MusicXML pairing repair checks</title>
+<p>Automated test harness. Original score text is supplied in memory; no library or MIDI settings are changed.</p>
+<script src="../assets/vendor/alphatab/alphaTab.js"></script>
+<script type="module">
+import {rebuildPairedMusicXml,describeMusicXmlPart} from '../js/musicxml-repair.js';
+import {findNotationTabPairs,combineNotationTabPair} from '../js/musicxml-pairing.js';
+import {buildPlaybackTimeline,getPracticeEvents} from '../js/score-playback.js';
+import {WaitSession} from '../js/wait-session.js';
+import {RealtimeSession} from '../js/realtime-session.js';
+window.runRepairChecks=(xml,gpx)=>{
+  const assert=(condition,message)=>{if(!condition)throw new Error(message);};
+  const at=window.alphaTab,settings=new at.Settings();settings.core.engine='svg';settings.core.enableLazyLoading=false;
+  const load=bytes=>at.importer.ScoreLoader.loadScoreFromBytes(bytes,settings);
+  const original=load(new TextEncoder().encode(xml));
+  const [pair]=findNotationTabPairs(original,[[0,1]]);assert(pair,'candidate found');
+  const doc=new DOMParser().parseFromString(xml,'application/xml');
+  const serialized=new XMLSerializer().serializeToString(doc);
+  const expected=describeMusicXmlPart([...doc.documentElement.children].find(n=>n.localName==='part'));
+  const rebuilt=rebuildPairedMusicXml(doc,[pair]);
+  assert(new XMLSerializer().serializeToString(doc)===serialized,'original XML document is untouched');
+  for(const mutate of [
+    d=>{d.querySelector('part > measure note pitch step').textContent='F';},
+    d=>{d.querySelector('part > measure note').append(d.createElement('grace'));},
+    d=>{const tie=d.createElement('tie');tie.setAttribute('type','stop');d.querySelector('part > measure note').append(tie);},
+    d=>{[...d.documentElement.children].filter(n=>n.localName==='part')[1].querySelector('notations > technical').remove();}
+  ]){
+    const invalid=doc.cloneNode(true);mutate(invalid);let rejected=false;
+    try{rebuildPairedMusicXml(invalid,[pair]);}catch{rejected=true;}
+    assert(rejected,'unsafe source reconciliation is rejected');
+  }
+  const score=load(new TextEncoder().encode(new XMLSerializer().serializeToString(rebuilt)));
+  combineNotationTabPair(score,{notation:score.tracks[0],tab:score.tracks[1],transfers:[]});
+  const staff=score.tracks[0].staves[0];
+  const chords=staff.bars.flatMap((bar,i)=>bar.voices.flatMap(v=>v.beats.filter(b=>b.chordId).map(b=>({bar:i+1,start:b.playbackStart,name:staff.chords.get(b.chordId)?.name}))));
+  assert(chords.length===67,'all 67 source chord symbols retained');
+  assert(chords.some(c=>c.bar===24 && c.start===2880 && c.name==='C7'),'measure 24 C7 retains original beat 4');
+  assert(staff.bars[44].voices[0].beats[0].playbackDuration===3840,'measure 45 upper chord keeps full source sustain');
+  const actual=staff.bars.flatMap((bar,i)=>bar.voices.flatMap(v=>v.beats.flatMap(b=>b.notes.map(n=>({bar:i,start:b.playbackStart/960,pitch:n.realValue,stop:n.isTieDestination,visible:n.isVisible})))));
+  const key=n=>`${n.bar}:${Math.round(n.start*1000)}:${n.pitch}:${n.stop}`;
+  assert(JSON.stringify(actual.map(key).sort())===JSON.stringify(expected.map(key).sort()),`native notes/ties agree with original notation: ${JSON.stringify({unexpected:actual.filter(n=>!expected.some(e=>key(e)===key(n))).slice(0,8),missing:expected.filter(n=>!actual.some(e=>key(e)===key(n))).map(({node,...n})=>n).slice(0,8)})}`);
+  assert(actual.every(n=>n.visible),'all source-visible notes render');
+  const timelineFor=s=>{const midi=new at.midi.MidiFile(),gen=new at.midi.MidiFileGenerator(s,settings,new at.midi.AlphaSynthMidiFileHandler(midi));gen.generate();return buildPlaybackTimeline(gen.tickLookup,{tempo:s.tempo,ticksPerQuarter:midi.division});};
+  const timeline=timelineFor(score),events=getPracticeEvents(timeline,'0');
+  const expectedAttacks=expected.filter(n=>!n.stop);
+  assert(events.reduce((n,e)=>n+e.notes.length,0)===expectedAttacks.length,'only original fresh attacks are graded');
+  for(const m of [39,40,41,42,43,44]){
+    const upper=staff.bars[m-1].voices[0].beats[0].notes;
+    assert(upper.length===3 && upper.every(n=>n.isVisible && n.isTieDestination),`visible sustained chord in ${m}`);
+    const start=events.find(e=>e.measureNumber===m && e.beatIndex===0);
+    assert(start && start.notes.length===1 && start.notes[0].midi===43,`only fresh bass attack at start of ${m}`);
+  }
+  const reference=load(new Uint8Array(gpx)),referenceEvents=getPracticeEvents(timelineFor(reference),'0');
+  const attacks=events=>events.flatMap(e=>e.notes.map(n=>({bar:e.measureNumber,start:e.startTick,pitch:n.midi}))).sort((a,b)=>a.start-b.start||a.pitch-b.pitch);
+  const actualAttacks=attacks(events),referenceAttacks=attacks(referenceEvents);
+  assert(actualAttacks.length===referenceAttacks.length && actualAttacks.every((n,i)=>n.bar===referenceAttacks[i].bar && n.pitch===referenceAttacks[i].pitch && Math.abs(n.start-referenceAttacks[i].start)<=3),`fresh attacks match GPX within triplet rounding: ${JSON.stringify({actual:actualAttacks.length,reference:referenceAttacks.length,differences:actualAttacks.filter((n,i)=>n.pitch!==referenceAttacks[i]?.pitch || Math.abs(n.start-referenceAttacks[i]?.start)>3).slice(0,5)})}`);
+  const results=[];
+  for(const hex of [false,true]){
+    for(const chordMode of ['collect','together']){
+      const session=new WaitSession(events,{hex,chordMode});
+      for(const [index,e] of events.entries())for(const n of e.notes){const input={midi:n.midi,channel:hex?7-n.string:1,stringHint:n.string,velocity:100,at:index*100};assert(session.noteOn(index,input,input.at).type==='correct','Wait correct fresh note accepted');session.noteOff({...input,at:input.at+1});}
+      assert(session.stats().accuracy===100,'Wait finishes without reattacking ties');results.push({hex,chordMode,...session.stats()});
+    }
+    const session=new RealtimeSession(events,{hex});session.started=true;
+    for(const e of events)for(const n of e.notes)assert(session.noteOn({midi:n.midi,channel:hex?7-n.string:1,velocity:100},e.startTimeMs).type==='correct','Realtime fresh note accepted');
+    session.finish();assert(session.stats().accuracy===100,'Realtime no missed tied notes');results.push({hex,mode:'realtime',...session.stats()});
+  }
+  const renders=[];
+  for(const width of [900,1800]){const renderer=new at.rendering.ScoreRenderer(settings);renderer.width=width;let chunks=0;renderer.error.on(e=>{throw e;});renderer.partialRenderFinished.on(r=>{if(r.renderResult)chunks++;});renderer.renderScore(score,[0]);assert(chunks>0,'native SVG rendered');renders.push({width,chunks});}
+  return {notes:actual.length,sourceTiedNotes:expected.filter(n=>n.stop).length,freshNotes:expectedAttacks.length,targets:events.length,results,renders};
+};
+</script>
