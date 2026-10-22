@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+### Explicit held-note limits — 2026-10-21
+
+- [x] Replace unlimited Multiple with Two notes / Three notes, retain Off / One note default, enforce caps in every practice/input configuration and migrate saved Multiple to Two.
+- [x] Add cap matrix and preference migration coverage. See handoff for final checks.
+- [ ] Owner hard-refreshes and compares Two against One/Three on repeated chords with MIDI Guitar; check reload persistence and X transitions. Physical/browser acceptance pending.
+
 ### Multiple held-note refresh — 2026-10-21
 
 - [x] Keep separate real-attack evidence for correct prior-chord tails and collected-tone reattacks in Multiple. Allow Wait Collect corrections spanning attempts without requiring all collected tones in the latest gesture. Preserve One/Off, releases, chord identity and X rules.

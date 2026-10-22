@@ -18,7 +18,7 @@ No build step or npm dependency installation is required to run the app. Serve t
 
 ## MIDI tolerance across practice modes
 
-Practice → MIDI input tolerance applies in Realtime and both Wait chord modes. **Allow held notes in repeated chords** offers Off, One note (default), and Multiple notes for Poly/Hex. Consecutive identical pitched chords still need at least one fresh required attack; other credited notes must remain held. One prevents inferred-note carryover through successive chords; Multiple permits it, so reattacking only one tone can complete repeated chords. Diagnostics distinguish held credit from verified reattacks. Single notes and X beats retain their attack rules.
+Practice → MIDI input tolerance applies in Realtime and both Wait chord modes. **Allow held notes in repeated chords** offers Off, One note (default), Two notes, and Three notes for Poly/Hex. Consecutive identical pitched chords still need at least one fresh required attack; other credited notes must remain held. One prevents inferred-note carryover through successive chords; Two/Three permit carryover up to their selected maximum. At least one required fresh attack is always necessary. Saved legacy Multiple choices become Two. Diagnostics distinguish held credit from verified reattacks. Single notes and X beats retain their attack rules.
 
 Confirmed tracking-spike filtering requires Hex; written-fret-range and brief off-target filtering support Poly/Hex in all practice modes. Extra-string tolerance remains Hex-only. Saved defaults/choices remain independent. Physical Fishman acceptance of these extensions remains pending. This supersedes older Wait-only descriptions below.
 

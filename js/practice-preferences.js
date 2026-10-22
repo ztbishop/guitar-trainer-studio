@@ -10,7 +10,8 @@ export function readPracticePreferences(storage) {
     if (['realtime', 'wait'].includes(saved?.mode)) defaults.mode = saved.mode;
     if(['off','internal','all'].includes(saved?.extraStringTolerance))defaults.extraStringTolerance=saved.extraStringTolerance;
     else if(saved?.allowMutedStringNoise===true)defaults.extraStringTolerance='all';
-    if(['off','one','multiple'].includes(saved?.heldNoteTolerance))defaults.heldNoteTolerance=saved.heldNoteTolerance;
+    if(['off','one','two','three'].includes(saved?.heldNoteTolerance))defaults.heldNoteTolerance=saved.heldNoteTolerance;
+    else if(saved?.heldNoteTolerance==='multiple')defaults.heldNoteTolerance='two';
     if(typeof saved?.filterScoreRange==='boolean')defaults.filterScoreRange=saved.filterScoreRange;
     if(typeof saved?.filterHexSpikes==='boolean')defaults.filterHexSpikes=saved.filterHexSpikes;
     for (const key of FEEDBACK_PREFERENCE_KEYS) {
@@ -31,7 +32,7 @@ export function savePracticePreferences(state, storage) {
       feedback: Object.fromEntries(FEEDBACK_PREFERENCE_KEYS.map(key => [key, state.ui[key]])),
       waitChord: {...state.waitChord},
       extraStringTolerance: ['off','internal','all'].includes(state.extraStringTolerance)?state.extraStringTolerance:'off',
-      heldNoteTolerance:['off','one','multiple'].includes(state.heldNoteTolerance)?state.heldNoteTolerance:'one',
+      heldNoteTolerance:['off','one','two','three'].includes(state.heldNoteTolerance)?state.heldNoteTolerance:'one',
       filterHexSpikes: state.filterHexSpikes!==false,
       filterScoreRange: state.filterScoreRange===true,
     }));

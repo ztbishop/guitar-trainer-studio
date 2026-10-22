@@ -20,15 +20,15 @@ for(const mode of ['collect','together','realtime'])for(const hex of [false,true
   pitches.slice(0,3).forEach((p,j)=>h.hit(2,p,j,2000+j*10));h.settle(2,mode==='realtime'?2060:2200);
   assert.equal(h.s.records[2].slots.at(-1).hit?true:false,false);
  });
- test(mode+' '+hex+' Multiple requires a fresh attack but carries held notes across repeats',()=>{
-  const h=setup(mode,hex,{heldNoteTolerance:'multiple'});pitches.forEach((p,j)=>h.hit(0,p,j,j*10));
+ test(mode+' '+hex+' Three-note tolerance requires a fresh attack but carries held notes across repeats',()=>{
+  const h=setup(mode,hex,{heldNoteTolerance:'three'});pitches.forEach((p,j)=>h.hit(0,p,j,j*10));
   h.settle(1,990);assert.equal(h.s.records[1].slots.some(s=>s.hit),false);
   for(const i of [1,2]){h.hit(i,45,0,i*1000);h.settle(i,i*1000+(mode==='realtime'?60:200));assert.equal(h.s.records[i].slots.every(s=>s.hit),true);}
   assert.equal(h.s.stats().supportedHeld,6);
  });
  test(mode+' '+hex+' released notes, wrong notes and Off block held credit',()=>{
   for(const issue of ['release','wrong','off','changed']){
-   const h=setup(mode,hex,{heldNoteTolerance:issue==='off'?'off':'multiple'});pitches.forEach((p,j)=>h.hit(0,p,j,j*10));
+   const h=setup(mode,hex,{heldNoteTolerance:issue==='off'?'off':'three'});pitches.forEach((p,j)=>h.hit(0,p,j,j*10));
    if(issue==='release')h.s.noteOff(note(64,3,500,hex));
    if(issue==='changed')h.s.records[1].slots.at(-1).midi=65;
    h.hit(1,45,0,1000);if(issue==='wrong')h.hit(1,66,3,1010);
@@ -72,7 +72,7 @@ test('Realtime onset bend correction removes its original wrong mark and retains
 
 test('held preference defaults to One, saves all choices and rejects invalid values',()=>{
  assert.equal(readPracticePreferences({getItem:()=>null}).heldNoteTolerance,'one');
- for(const scope of ['off','one','multiple']){let value;const storage={getItem:()=>value,setItem:(k,v)=>value=v};savePracticePreferences({mode:'wait',ui:{},waitChord:{mode:'collect',windowMs:200},heldNoteTolerance:scope},storage);assert.equal(readPracticePreferences(storage).heldNoteTolerance,scope);}
+ for(const scope of ['off','one','two','three']){let value;const storage={getItem:()=>value,setItem:(k,v)=>value=v};savePracticePreferences({mode:'wait',ui:{},waitChord:{mode:'collect',windowMs:200},heldNoteTolerance:scope},storage);assert.equal(readPracticePreferences(storage).heldNoteTolerance,scope);}
  assert.equal(readPracticePreferences({getItem:()=>JSON.stringify({heldNoteTolerance:7})}).heldNoteTolerance,'one');
 });
 
@@ -99,12 +99,12 @@ test('Realtime range and brief filters coexist without delaying required pitches
 });
 
 test('Realtime held timing follows real milliseconds at non-unit speed and rejects first/X/single targets',()=>{
- const s=new RealtimeSession([chord(0),chord(1)],{heldNoteTolerance:'multiple'});s.started=true;
+ const s=new RealtimeSession([chord(0),chord(1)],{heldNoteTolerance:'three'});s.started=true;
  pitches.forEach((p,j)=>s.noteOn(note(p,j,j*10,false),j*20,2));
  s.noteOn(note(45,0,500,false),1000,2);s.advance(1118,2,559);assert.equal(s.stats().supportedHeld??0,0);
  s.advance(1120,2,560);assert.equal(s.stats().supportedHeld,3);
  for(const shape of [e=>({...e,isPercussive:true}),e=>({...e,notes:e.notes.slice(0,1)})]){
-  const h=setup('collect',false,{heldNoteTolerance:'multiple'});pitches.forEach((p,j)=>h.hit(0,p,j,j*10));h.s.events[1]=shape(h.s.events[1]);h.settle(1,1200);assert.equal(h.s.stats().supportedHeld,0);
+  const h=setup('collect',false,{heldNoteTolerance:'three'});pitches.forEach((p,j)=>h.hit(0,p,j,j*10));h.s.events[1]=shape(h.s.events[1]);h.settle(1,1200);assert.equal(h.s.stats().supportedHeld,0);
  }
 });
 
@@ -119,9 +119,9 @@ test('Realtime late-window onset can settle its pitch after miss finalization',(
 });
 
 
-for(const hex of [false,true])test('Multiple preserves a correct previous-chord tail refresh '+hex,()=>{
+for(const hex of [false,true])test('Three-note tolerance preserves a correct previous-chord tail refresh '+hex,()=>{
  for(const mode of ['collect','together'])for(const released of [false,true]){
-  const h=setup(mode,hex,{heldNoteTolerance:'multiple',chordWindowMs:1000});
+  const h=setup(mode,hex,{heldNoteTolerance:'three',chordWindowMs:1000});
   // Collect E early, release, then finish the chord with the other three tones.
   // Together uses a large window so the same partial-chord sequence is valid.
   h.hit(0,64,3,0);h.s.noteOff(note(64,3,100,hex));
@@ -137,12 +137,30 @@ for(const hex of [false,true])test('Multiple preserves a correct previous-chord 
  }
 });
 
-for(const hex of [false,true])test('Multiple collects corrective gestures and refreshes already-collected tones '+hex,()=>{
- const h=setup('collect',hex,{heldNoteTolerance:'multiple'});
+for(const hex of [false,true])test('Three-note tolerance collects corrective gestures and refreshes already-collected tones '+hex,()=>{
+ const h=setup('collect',hex,{heldNoteTolerance:'three'});
  h.hit(0,64,3,0);h.s.noteOff(note(64,3,100,hex));
  h.hit(0,45,0,500);h.hit(0,55,1,520);h.hit(0,60,2,540);h.hit(1,64,3,560);
  h.hit(1,55,1,600);h.hit(1,45,0,900);h.hit(1,60,2,920);
  assert.equal(h.hit(1,55,1,930).type,'ignored-collected-tone');
  h.settle(1,1100);assert.equal(h.s.records[1].slots.every(s=>s.hit),true);
  assert.equal(h.s.stats().correct,8);assert.equal(h.s.stats().wrong,0);
+});
+
+
+for(const mode of ['collect','together','realtime'])for(const hex of [false,true])test(mode+' '+hex+' enforces the selected held-note maximum',()=>{
+ for(const scope of ['one','two','three'])for(const freshCount of [1,2,3]){
+  const h=setup(mode,hex,{heldNoteTolerance:scope});pitches.forEach((p,j)=>h.hit(0,p,j,j*10));
+  pitches.slice(0,freshCount).forEach((p,j)=>h.hit(1,p,j,1000+j*10));h.settle(1,mode==='realtime'?1060:1200);
+  const permitted=4-freshCount<={one:1,two:2,three:3}[scope];
+  assert.equal(h.s.records[1].slots.every(s=>s.hit),permitted,scope+' fresh='+freshCount);
+  assert.equal(h.s.stats().supportedHeld??0,permitted?4-freshCount:0);
+ }
+});
+
+test('saved unlimited Multiple migrates to Two without overriding explicit choices',()=>{
+ const load=value=>readPracticePreferences({getItem:()=>JSON.stringify(value)}).heldNoteTolerance;
+ assert.equal(load({heldNoteTolerance:'multiple'}),'two');
+ for(const choice of ['off','one','two','three'])assert.equal(load({heldNoteTolerance:choice}),choice);
+ assert.equal(load({heldNoteTolerance:'four'}),'one');
 });

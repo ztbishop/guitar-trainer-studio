@@ -1,5 +1,12 @@
 # Development notes
 
+## Explicit held-note limits — 2026-10-21
+
+Owner requested bounded One / Two / Three choices because unlimited Multiple is too forgiving with MIDI Guitar. Dropdown retains Off and first-use One. Shared recognition enforces a maximum of 1/2/3 pending held-note slots per repeated chord, with at least one fresh required attack in every case. Two and Three retain the prior refreshed-tone/corrective-strum evidence and continued carryover rules. One, same-chord checks, releases, timing windows and X behavior remain unchanged. Saved legacy multiple migrates to two; valid explicit choices persist independently of other preferences. No unlimited runtime option remains.
+
+Validation: all-mode Poly/Hex regression matrix checks each cap with one, two or three fresh tones in a four-note chord; preference tests cover legacy migration, round trips and invalid values. Final suite/syntax/whitespace results appear in handoff. Physical MIDI/browser acceptance remains pending: owner should hard-refresh and try Two on the repeated MIDI Guitar passage, then compare One/Three and confirm saved choice after reload. No version, native renderer, commits or pushes.
+
+
 ## Multiple held-note refresh correction — 2026-10-21
 
 Owner authorized fixing Multiple after the E7 stall in the 16:14 capture. Prior exact-onset checks rejected a correct previous-chord tone refreshed in its protected strum tail. Multiple also required all already-collected tones to originate in the latest short gesture, defeating Wait Collect correction across several attempts.

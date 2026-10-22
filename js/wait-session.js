@@ -117,7 +117,7 @@ export class WaitSession {
         } else {
           if(!tail.seen.has(identity) && tail.pitches.has(note.midi)) {
             tail.seen.add(identity);
-            if(this.heldNoteTolerance==='multiple')refreshHeldEvidence(this.records[index-1],note,at,this.hex);
+            if(['two','three'].includes(this.heldNoteTolerance))refreshHeldEvidence(this.records[index-1],note,at,this.hex);
             return {type:'ignored-strum-tail',eventId:this.records[index-1].eventId,midi:note.midi,complete:false};
           }
           if(tail.seen.has(identity))this.tail=null;
@@ -140,7 +140,7 @@ export class WaitSession {
       // Replaying a collected tone cannot fill another Hex unison slot and does
       // not add a penalty while the learner supplies the missing chord tones.
       if(!wrongPitch){
-        if(this.heldNoteTolerance==='multiple')refreshHeldEvidence(record,note,at,this.hex);
+        if(['two','three'].includes(this.heldNoteTolerance))refreshHeldEvidence(record,note,at,this.hex);
         return {type:'ignored-collected-tone',eventId:record.eventId,midi:note.midi,complete:false};
       }
       record.burst.wrong=true;
