@@ -117,3 +117,32 @@ test('Realtime late-window onset can settle its pitch after miss finalization',(
  assert.equal(s.records[0].slots[1].missed,false);assert.equal(s.records[0].slots[1].hit.scoreMs,150);
  assert.equal(s.stats().correct,1);assert.equal(s.stats().wrong,0);
 });
+
+
+for(const hex of [false,true])test('Multiple preserves a correct previous-chord tail refresh '+hex,()=>{
+ for(const mode of ['collect','together'])for(const released of [false,true]){
+  const h=setup(mode,hex,{heldNoteTolerance:'multiple',chordWindowMs:1000});
+  // Collect E early, release, then finish the chord with the other three tones.
+  // Together uses a large window so the same partial-chord sequence is valid.
+  h.hit(0,64,3,0);h.s.noteOff(note(64,3,100,hex));
+  h.hit(0,45,0,500);h.hit(0,55,1,520);h.hit(0,60,2,540);
+  assert.equal(h.s.records[0].slots.every(s=>s.hit),true);
+  assert.equal(h.hit(1,64,3,560).type,'ignored-strum-tail');
+  assert.equal(h.s.records[0].slots.at(-1).hitAt,0,'original credited attack stays unchanged');
+  h.hit(1,45,0,800);
+  if(released)h.s.noteOff(note(64,3,850,hex));
+  h.settle(1,mode==='collect'?1000:1800);
+  assert.equal(h.s.records[1].slots.every(s=>s.hit),!released);
+  if(!released){assert.equal(h.s.records[1].slots.at(-1).originAt,560);assert.equal(h.s.stats().supportedHeld,3);}
+ }
+});
+
+for(const hex of [false,true])test('Multiple collects corrective gestures and refreshes already-collected tones '+hex,()=>{
+ const h=setup('collect',hex,{heldNoteTolerance:'multiple'});
+ h.hit(0,64,3,0);h.s.noteOff(note(64,3,100,hex));
+ h.hit(0,45,0,500);h.hit(0,55,1,520);h.hit(0,60,2,540);h.hit(1,64,3,560);
+ h.hit(1,55,1,600);h.hit(1,45,0,900);h.hit(1,60,2,920);
+ assert.equal(h.hit(1,55,1,930).type,'ignored-collected-tone');
+ h.settle(1,1100);assert.equal(h.s.records[1].slots.every(s=>s.hit),true);
+ assert.equal(h.s.stats().correct,8);assert.equal(h.s.stats().wrong,0);
+});

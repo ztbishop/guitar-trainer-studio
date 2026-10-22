@@ -1,5 +1,14 @@
 # Guitar Trainer Studio Architecture
 
+## Multiple held-note refresh correction — 2026-10-21
+
+Owner authorized fixing Multiple after the E7 stall in the 16:14 capture. Prior exact-onset checks rejected a correct previous-chord tone refreshed in its protected strum tail. Multiple also required all already-collected tones to originate in the latest short gesture, defeating Wait Collect correction across several attempts.
+
+Wait now records separate heldRefresh evidence for an unambiguous correct pitched-tail attack or a replay of an already-collected correct tone, only with Multiple enabled. Original credited hitAt and score credit are unchanged. Shared eligibility uses that real attack's channel/time for Multiple; still-held identity must match exactly. Multiple requires at least one fresh required tone in the bounded gesture, without requiring every previously collected tone to be freshly recollected in that same gesture. One/Off retain their former rules. Expired Together attempts and new credited attacks clear stale refresh evidence. Same-chord signatures, release/replacement checks, Hex channel/string safeguards, wrong-note blocking and X/single exclusions remain. No UI/default/preference, MIDI normalization, native rendering, X-tail or X-completion changes.
+
+Validation: 404 Node tests pass, including Poly/Hex tail-refresh support in both Wait chord modes, released-note rejection, corrective gestures and no extra score credit. Read-only replay of the supplied GP5/capture through sequence 4183 allows the stalled second E7 to settle at 19.120 seconds (one real fresh tone plus three still-held pitches), using the E4 tail refresh at 18.903 seconds. The following all-X target still has no credit. This isolated replay does not establish how the owner would play after earlier advancement; no new overall accuracy claim. Existing Realtime/mode/filter/X regressions pass. Changed module syntax and whitespace checks pass. Fresh normal Live Server/Fishman/MIDI Guitar acceptance remains pending. No personal capture files added, commits, pushes, version or tag changes.
+
+
 ## Lightweight MIDI recording readout — 2026-10-21
 
 Owner reports progressively slow Settings opening, delayed cursor jumps and difficulty retrieving captures. Prior start/stop clearing restored responsiveness. Fix diagnostics before further held-note/X acceptance: the report textarea now contains only a bounded preview (last 12 messages and three snapshot labels). Complete evidence remains in memory; full cached text serialization happens only on explicit Copy/Save, never Stop or the 10,000-message limit. Clipboard failure temporarily exposes selectable full text and restores the preview on blur. Clear recording discards capture rows, snapshots, held-message links, metadata and cached text without touching practice/MIDI/session state. Start retains its existing replace behavior. UI help explains preview versus export and unsaved clearing.

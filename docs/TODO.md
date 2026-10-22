@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+### Multiple held-note refresh — 2026-10-21
+
+- [x] Keep separate real-attack evidence for correct prior-chord tails and collected-tone reattacks in Multiple. Allow Wait Collect corrections spanning attempts without requiring all collected tones in the latest gesture. Preserve One/Off, releases, chord identity and X rules.
+- [x] 404 tests; isolated supplied E7 replay settles the stalled chord at 19.120 seconds with no credit on the following X target. No whole-performance accuracy claim.
+- [ ] Owner hard-refreshes, enables Multiple and replays measure 2 in Poly/Hex. Check lingering correct tones advance the identical E7, released tones still need attacks, and the X beat waits for its own gesture. Capture any remaining mismatch; physical/browser acceptance remains pending.
+
 ### Lightweight capture readout before grading acceptance — 2026-10-21
 
 - [x] Keep stopped/limit-reached preview bounded; generate full Copy/Save report only on demand. Add Clear recording; restore preview after manual-copy fallback loses focus.

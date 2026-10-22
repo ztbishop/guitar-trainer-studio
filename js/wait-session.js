@@ -3,7 +3,7 @@ import {briefErrorMs} from './brief-error-filter.js';
 import {inferPolyExpectedNoteIds} from './poly-feedback.js';
 import {attackSlots,ignoresMutedString} from './attack-rules.js';
 import {TimingDefaults} from './practice-timing.js';
-import {supportedHeldTone} from './wait-chord-gesture.js';
+import {supportedHeldTone,refreshHeldEvidence} from './wait-chord-gesture.js';
 import {MidiPitchState,PITCH_SETTLE_MS} from './midi-pitch.js';
 import {outsideScoreRange} from './score-range-filter.js';
 import {spikeCandidate,confirmedSpike,acceptedSinglePrecursor,confirmedPreviousOnset} from './hex-tracking-spikes.js';
@@ -28,7 +28,7 @@ export class WaitSession {
     if(this.chordMode!=='together' || !record || record.skipped || record.slots.length<=1 ||
         record.attemptStartAt===null || !Number.isFinite(at) || at-record.attemptStartAt<=this.chordWindowMs ||
         record.slots.every(s=>s.hit))return false;
-    record.slots.forEach(slot=>{slot.hit=false;slot.channel=null});
+    record.slots.forEach(slot=>{slot.hit=false;slot.channel=null;delete slot.heldRefresh;delete slot.originAt;});
     record.attemptStartAt=null;record.retries++;
     this.lastFeedback={type:'retry',eventId:record.eventId,complete:false};return true;
   }
@@ -117,6 +117,7 @@ export class WaitSession {
         } else {
           if(!tail.seen.has(identity) && tail.pitches.has(note.midi)) {
             tail.seen.add(identity);
+            if(this.heldNoteTolerance==='multiple')refreshHeldEvidence(this.records[index-1],note,at,this.hex);
             return {type:'ignored-strum-tail',eventId:this.records[index-1].eventId,midi:note.midi,complete:false};
           }
           if(tail.seen.has(identity))this.tail=null;
@@ -138,7 +139,10 @@ export class WaitSession {
       const wrongPitch=!record.slots.some(s=>s.midi===note.midi);
       // Replaying a collected tone cannot fill another Hex unison slot and does
       // not add a penalty while the learner supplies the missing chord tones.
-      if(!wrongPitch)return {type:'ignored-collected-tone',eventId:record.eventId,midi:note.midi,complete:false};
+      if(!wrongPitch){
+        if(this.heldNoteTolerance==='multiple')refreshHeldEvidence(record,note,at,this.hex);
+        return {type:'ignored-collected-tone',eventId:record.eventId,midi:note.midi,complete:false};
+      }
       record.burst.wrong=true;
       if(!this.ignoreBriefErrors)record.wrong++;
       const feedback={type:'wrong',eventId:record.eventId,midi:note.midi,channel:note.channel,
@@ -152,7 +156,7 @@ export class WaitSession {
       }
       return this.lastFeedback=feedback;
     }
-    slot.hit=true;slot.channel=note.channel;slot.hitAt=at;slot.evidence='attack';delete slot.originAt;
+    slot.hit=true;slot.channel=note.channel;slot.hitAt=at;slot.evidence='attack';delete slot.originAt;delete slot.heldRefresh;
     record.attemptStartAt??=at;
     const complete=record.slots.every(s=>s.hit);
     if(complete && (record.slots.length>1 || event.isPercussive))this.tail={index,at:record.burst.at,window,
@@ -165,7 +169,7 @@ export class WaitSession {
     if(!supported)return null;
     const record=this.records[index],noteIds=[];
     for(const {slot,source} of supported.supports){
-      slot.hit=true;slot.channel=source.channel;slot.evidence='held';slot.originAt=source.originAt??source.hitAt;
+      slot.hit=true;slot.channel=source.channel;slot.evidence='held';slot.originAt=source.originAt??source.hitAt;delete slot.heldRefresh;
       noteIds.push(...slot.noteIds);
     }
     const {slot}=supported.supports[0];
