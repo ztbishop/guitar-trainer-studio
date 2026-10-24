@@ -17,6 +17,7 @@ Guitar Trainer Studio runs in a browser and uses alphaTab to display and play yo
 - [Settings and other menus](#settings-and-other-menus)
 - [Updating your local copy](#updating-your-local-copy)
 - [Troubleshooting](#troubleshooting)
+- [Appendix: MIDI input options](#appendix-midi-input-options)
 
 ## Open the app or run it locally
 
@@ -85,6 +86,8 @@ Pitch-to-MIDI conversion is not perfect. It can produce extra, wrong, delayed, l
 If a complex chord is not registering reliably, **try raking the strings a little more slowly and evenly**, especially with polyphonic audio-to-MIDI tracking without a hex pickup. This may help separate the attacks; it is an experiment, not a guaranteed fix. Start with **Wait → One at a time**, which collects the required pitches without a time limit. With **Together**, every required attack must still fit within the selected chord window; widen it deliberately if needed. In Realtime, lower the tempo while practicing rather than stretching a chord across later beats. “Poly” in Settings describes MIDI channel handling; it is not a guarantee about tracking quality.
 
 After checking the converter, review **Practice → MIDI input tolerance** below. These options can make practice more comfortable but do not recover required notes that never arrive. For persistent problems, use **Settings → MIDI & practice diagnostics** to inspect or record the incoming events alongside the feedback.
+
+For other hardware/software paths, see the [MIDI input comparison appendix](#appendix-midi-input-options).
 
 ## Scores and your library
 
@@ -234,6 +237,29 @@ Updates are manual; the app does not check for new versions or replace your file
 - **Guide or app will not load from disk?** Use the website, launcher or Live Server instead of double-clicking an HTML file.
 
 This is beta software. Compatibility depends on score contents, browser and MIDI device behavior. Automated checks do not establish physical MIDI accuracy or every score/provider combination.
+
+## Appendix: MIDI input options
+
+These are examples to research, not a complete list or a compatibility certification. The maintainer has used a Fishman Connect and MIDI Guitar 3 with this app; the other setups below have **not been tested with Guitar Trainer**. Manufacturer descriptions establish advertised features, not comparative tracking quality. Even the owner-used options depend on configuration, software version and playing technique. Check current compatibility, availability and total setup cost before buying; prices are omitted because they change.
+
+On a narrow screen, scroll the chart sideways to see all columns.
+
+| Option | Instrument and signal | What else is needed / limitations | Experience with this app |
+| --- | --- | --- | --- |
+| [Fishman TriplePlay / Connect](https://fishman.com/tripleplay-support/) | Six-string guitar; dedicated pickup converts separate string signals to MIDI. | Compatible pickup fit and device setup. Poly or per-string Hex output must match the app; this is not a bass pickup recommendation. | Owner-used Connect setup; not every TriplePlay model/configuration tested. |
+| [Jam Origin MIDI Guitar 3](https://jam.live/products/MG3/) | Guitar audio → polyphonic MIDI; software, no special pickup. | Audio interface plus MIDI routing to the browser. Use standard MIDI/Poly for ordinary guitar audio; MPE channels are not physical string channels. | Owner-used Poly setup; not every patch/version tested. |
+| [Jam Origin MIDI Bass 3](https://jam.live/products/MB3/) | Bass audio → MIDI/MPE; software optimized for bass. | Audio interface and MIDI routing. Check current note-range/polyphony limits; bass setup in this app remains unverified. | Not tested. |
+| [MiGiC NX / MiGiC Poly](https://migic.com/products/guitar-midi) | Guitar audio → MIDI; NX is monophonic, Poly advertises chord tracking. | Audio interface, compatible software host/setup and MIDI routing. Software alternatives to investigate; no claim that tracking equals MIDI Guitar 3 or that bass is supported. | Neither tested. |
+| [Submarine SubSix](https://www.submarinepickup.com/pages/compare) | Six independent guitar **audio** channels; passive pickup, not a MIDI converter. | Multichannel audio input, breakout cabling and separate audio-to-MIDI conversion software. Submarine/SubPro have different routing; they are not equivalent six-channel MIDI devices. | Not tested. |
+| [BOSS GK-5 / GK-5B + GM-800](https://www.boss.info/us/products/gm-800/) | Guitar or bass divided-pickup system; GM-800 provides guitar-to-MIDI output over USB or MIDI cable. | Compatible guitar/bass pickup, Serial GK cable and processor; the pickup alone is not a USB MIDI converter. Match outgoing channels to the app. | Not tested. |
+| [Sonuus G2M V3](https://www.sonuus.com/products_g2m_spec.html) | Guitar or bass audio → monophonic five-pin MIDI. | MIDI-to-USB interface for the computer. Check the specific version, instrument mode, pitch-bend settings and current availability. | Not tested. |
+| [REAPER ReaTune](https://www.reaper.fm/guides/ReaEffectsGuide.pdf) | Software pitch tracker with a MIDI-output option; a single-note experiment. | REAPER, an audio interface and MIDI routing. Included with REAPER; not a free standalone converter. Low-bass response and repeated-note attacks need testing. | Not tested; experimental route. |
+
+**Monophonic** means one note at a time, not simultaneous chord recognition. Such converters may suit melody or single-note bass practice, but do not replace a polyphonic converter for simultaneous chord tracking. A product making a synth sound is not by itself evidence that it sends usable live MIDI to other apps.
+
+Whichever route you choose, confirm that it delivers live MIDI Note On/Off events at the expected pitches to an input your browser can select. A virtual MIDI port may be needed for software output. Try single notes, repeated same-pitch attacks, releases and the softest notes you normally play before testing chords; compare the converter's output with the app's diagnostics. Use a trial where available rather than buying on an untested compatibility assumption.
+
+Bass entries are research pointers, not a claim of fully validated bass support. The app's configured Hex mapping is for six guitar strings; do not apply it to bass or MPE channels merely because several MIDI channels appear. Broader bass/position-mapping work remains separate from this comparison.
 
 ## For developers and contributors
 

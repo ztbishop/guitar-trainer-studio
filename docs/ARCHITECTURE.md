@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## MIDI options comparison appendix — 2026-10-24
+
+README.md owns a source-linked comparison appendix, linked from its TOC and clean-input setup section; README.html continues to render the same Markdown through the existing guide renderer. guide.css adds a 140px minimum cell width within its existing horizontally scrollable table, keeping columns readable on phones without widening the page; this standalone stylesheet does not affect the app. The appendix distinguishes owner-used Connect/MIDI Guitar 3 setups from untested alternatives, MIDI converters from SubSix multichannel audio, mono/poly claims, routing requirements and unverified bass support. This is a documentation comparison, not a device support registry, purchase endorsement or tested-quality ranking. No hardware autodetection, MIDI adapter, bass mapping, settings, runtime module or grading changes are introduced; all existing integration boundaries remain.
+
 ## Tracking-related feedback guidance — 2026-10-24
 
 README.md's Reading the feedback section and index.html Quick Help now explicitly connect upstream tracking errors to correctly played notes appearing wrong or unrecognized. They identify the existing independent Tab highlights, Incorrect fret numbers and Poly estimates controls as optional visual simplification. Hiding them neither changes grading/Wait progression nor recovers missing input; setup/tolerance guidance remains separate. This is explanatory content only: no controls, defaults, storage, feedback projection, session logic, MIDI or alphaTab behavior changed and no new module was introduced.

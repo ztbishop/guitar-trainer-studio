@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### MIDI hardware/software comparison appendix — 2026-10-24
+
+- [x] Compare the two existing owner-used paths with MIDI Bass 3, MiGiC NX/Poly, SubSix, BOSS GK/GM-800, Sonuus G2M V3 and experimental REAPER ReaTune. Link primary sources, omit volatile prices, distinguish audio-only pickup/routing requirements and clearly mark untested setups.
+- [x] Keep MiGiC chord tracking as a manufacturer claim, not evidence of parity with MIDI Guitar 3. Bass pointers do not expand the app's validated scope or six-guitar-string Hex mapping.
+- [x] 459 Node regressions and whitespace checks pass; isolated desktop/phone Chrome verifies appendix links/anchor, eight sourced rows and readable horizontal table scrolling. Screenshots reviewed; details in DEV-NOTES.md.
+- [ ] Owner wording review and alternative-device compatibility remain separate; the comparison does not establish physical acceptance.
+
 ### Clarify misleading tracking feedback and optional simpler visuals — 2026-10-24
 
 - [x] Explain in README/Quick Help that correct playing can appear wrong/unrecognized after tracking errors; identify independent tab highlights/fret numbers/Poly estimates controls for less distracting feedback.

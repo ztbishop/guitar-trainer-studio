@@ -11,5 +11,5 @@ code { background: #edf1f6; padding: .1em .3em; border-radius: 4px; overflow-wra
 pre { overflow: auto; padding: 16px; background: #edf1f6; }
 img { max-width: 100%; }
 table { display: block; overflow-x: auto; border-collapse: collapse; }
-td, th { padding: 9px; border: 1px solid #dce3ec; text-align: left; }
+td, th { min-width: 140px; padding: 9px; border: 1px solid #dce3ec; text-align: left; }
 @media print { body, main { background: white; box-shadow: none; padding: 0; } nav { display: none; } }
