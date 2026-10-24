@@ -66,13 +66,62 @@ function revealScoreCursor() {
 // Upstream 1.8.4's worker getter returns itself rather than its cached field.
 // Guard the exact defect; later fixed bundles retain their own implementation.
 export function installAlphaTabCompatibility(at) {
+  const audioPatched=installAlphaTabAudioStartupCompatibility(at);
   const prototype=at?.synth?.AlphaSynthWebWorkerApi?.prototype;
   const property=prototype && Object.getOwnPropertyDescriptor(prototype,'loadedMidiInfo');
   if(property?.get && /return this\.loadedMidiInfo\s*;/.test(String(property.get))) {
     Object.defineProperty(prototype,'loadedMidiInfo',{...property,get(){return this._loadedMidiInfo;}});
     return true;
   }
-  return false;
+  return audioPatched;
+}
+
+// The bundled classic-script 1.8.4 output starts its source after addModule,
+// but Pause can stop that unstarted source and leave the async start alive.
+// Keep native sample handling/cleanup; cancel only obsolete startup callbacks.
+const patchedAudioOutputs=new WeakSet();
+export function installAlphaTabAudioStartupCompatibility(at) {
+  const prototype=at?.synth?.AlphaSynthAudioWorkletOutput?.prototype;
+  const base=at?.synth?.AlphaSynthWebAudioOutputBase?.prototype;
+  if(!prototype || !base || at.meta?.version!=='1.8.4' || patchedAudioOutputs.has(prototype)
+      || !String(prototype.play).includes('BrowserUiFacade.createAlphaSynthAudioWorklet'))return false;
+  const nativePause=prototype.pause,starts=new WeakMap();
+  prototype.pause=function() {
+    const pending=starts.get(this);
+    starts.delete(this);
+    // stop() is invalid before start(). A disconnected, unstarted node needs
+    // no stop; native pause still clears worklet messages and connections.
+    if(pending && !pending.started && this.source===pending.source) {
+      this.source.disconnect();this.source=null;
+    }
+    nativePause.call(this);
+  };
+  prototype.play=function() {
+    this.pause();
+    base.play.call(this);
+    const context=this.context,source=this.source,start={source,started:false};
+    starts.set(this,start);this._pendingEvents=undefined;
+    // This app loads alphaTab.js as a classic script. Match that bundle's
+    // native module URL; do not introduce a CDN or a second audio engine.
+    context.audioWorklet.addModule(this._settings.core.scriptFile).then(()=>{
+      if(starts.get(this)!==start || this.context!==context)return;
+      const worklet=new AudioWorkletNode(context,'alphatab',{
+        numberOfOutputs:1,outputChannelCount:[2],
+        processorOptions:{bufferTimeInMilliseconds:this._bufferTimeInMilliseconds},
+      });
+      this._worklet=worklet;
+      worklet.port.addEventListener('message',this._boundHandleMessage);worklet.port.start();
+      source.connect(worklet);source.start(0);start.started=true;
+      worklet.connect(context.destination);
+      const pending=this._pendingEvents;this._pendingEvents=undefined;
+      if(pending)for(const event of pending)worklet.port.postMessage(event);
+    }).catch(error=>{
+      if(starts.get(this)!==start)return;
+      this.pause();console.error('alphaTab audio startup failed',error);
+    });
+  };
+  patchedAudioOutputs.add(prototype);
+  return true;
 }
 
 // Select external playback while retaining the original score timeline and

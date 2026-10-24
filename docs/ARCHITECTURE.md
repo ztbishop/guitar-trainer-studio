@@ -1,5 +1,15 @@
 # Guitar Trainer Studio Architecture
 
+## Cancel pending native audio startup and publishing workflow — 2026-10-24
+
+`alphatab-host.js` owns `installAlphaTabAudioStartupCompatibility`, called by the existing `installAlphaTabCompatibility` before constructing the API. The bundled classic-script alphaTab 1.8.4 AudioWorklet output creates a BufferSource synchronously but starts it only after async module loading; native Pause previously stopped an unstarted source and left that callback alive. The compatibility installer gates on `meta.version` plus the known native startup method signature, is idempotent per prototype, and leaves other/newer implementations and ScriptProcessor/media outputs unchanged. Bundled vendor bytes remain untouched.
+
+The guarded Worklet play method retains native base source allocation, module URL (`settings.core.scriptFile` for this app's classic bundle), processor options, bound message handler and pending sample delivery. A per-output WeakMap identifies each startup; Pause removes that identity, disconnects an unstarted source without calling invalid stop(), then delegates native Pause for worklet/message cleanup. Started sources still use native stop/disconnect. Completion checks the startup identity and context before creating/connecting nodes, so pause, restart, destroy or source replacement invalidates obsolete work. Current load failures clean up and log; obsolete rejections cannot cancel a newer start. This intentionally depends on the pinned native output fields; a vendor upgrade requires reviewing the guard and running the native lifecycle/browser tests rather than applying this shim blindly. No practice state, grading, MIDI normalization, alphaTab cursor/seek policy or Wait progression is changed.
+
+`tests/audio-startup.test.js` owns native-class lifecycle regressions; `tests/run-fast-pause-browser.cjs` owns deterministic delayed-worklet browser reproduction and recovery checks. The existing sync-practice browser runner removes its former worklet-ready wait. See DEV-NOTES for before/after evidence and actual validation.
+
+AGENTS.md now records standing owner authorization for descriptive commits and normal pushes after verified updates. Routine updates do not create versions/tags/releases. Explicit version/release requests use the separately documented release workflow, with ambiguity resolved before publication. Existing v0.0.3 already exists; retain version.json at 0.0.3 and hold new versions/tags/releases pending the owner's documentation update. These instructions supersede older dated owner-only publishing descriptions.
+
 ## Manual downloads and menu scope — 2026-10-24
 
 Owner approved retaining Settings for MIDI device configuration and Practice for session/feedback choices. LED hardware integration and automatic app version checking remain deferred. No Piano Trainer changes are included.

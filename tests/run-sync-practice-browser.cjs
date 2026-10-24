@@ -58,9 +58,6 @@ function recording() {
       assert(await page.locator('.notation-feedback-overlay .target-notehead[data-state="correct"]').count()>0,'staff correct feedback');
       assert(await page.locator('.notation-feedback-overlay .tab-correct-highlight').count()>0,'active tab correct feedback');
       assert(await page.locator('.fretboard-marker-target[data-state="correct"]').count()>0,'fretboard correct feedback');
-      // Worker Playing precedes async native AudioWorklet startup. Wait for
-      // actual output before pausing, as a player would hear it start first.
-      await page.waitForFunction(()=>syncState.media.preview || syncHost.getAlphaTabApi().player.output._worklet);
       await page.locator('#play-pause-button').click();
       await page.waitForFunction(()=>!syncState.isPlaying);
     };

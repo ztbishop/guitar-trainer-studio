@@ -1,5 +1,9 @@
 # TriplePlay USB disconnect investigation
 
+## Owner disposition — 2026-10-24
+
+The owner reports the Fishman disconnect freeze on every Web MIDI site they have used, not only Guitar Trainer. Close the app-specific fix investigation for beta and retain this as a known cross-site compatibility limitation. This is owner evidence, not proof of a particular Chromium/Windows/driver cause or confirmation that the symptom is fixed. The earlier native-cleanup mitigation remains; avoid treating the pending destructive-trigger comparisons below as mandatory release acceptance. Reopen if fresh evidence identifies app-specific behavior. The owner separately confirms normal real-guitar practice checks are complete.
+
 ## Status — 2026-10-20
 
 The owner confirms that removing active Fishman TriplePlay can freeze all of Chrome, requiring Task Manager. Inactive-device removal has not been physically tested. Earlier guards did not resolve the reported freeze. No physical reproduction or native crash dump was available here.

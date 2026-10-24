@@ -1,5 +1,14 @@
 # Guitar Trainer Studio: status and to-do
 
+### Current beta acceptance, audio startup and Git workflow — 2026-10-24
+
+- [x] Owner confirms normal real-guitar practice checks completed; broader TriplePlay/MIDI Guitar user coverage can follow through beta testing. This supersedes blanket claims that normal practice has never received physical acceptance, without claiming every historical edge case/platform/provider was tested.
+- [x] Close the app-specific Fishman unplug-freeze investigation as a known cross-site Web MIDI limitation based on the owner's report. Retain troubleshooting/history in MIDI-DISCONNECT.md; the symptom is not claimed fixed and its browser/driver cause is not conclusively established.
+- [x] Reproduce InvalidStateError with deliberately delayed native AudioWorklet startup; cancel obsolete starts and unstarted sources through a guarded host compatibility fix without vendor, grading or MIDI changes. Add native lifecycle and real-browser regressions; remove the older browser test workaround waiting for the worklet before Pause.
+- [x] AGENTS.md authorizes descriptive commits/pushes after verified updates and defines explicit version/release handling. Retain 0.0.3 and all existing tags; owner holds the next version/tag/release for documentation work.
+- [x] 459 Node regressions, deterministic delayed-startup Chrome checks, existing sync-practice Chrome checks and changed-module syntax/whitespace checks pass; details in DEV-NOTES.md.
+- [ ] Owner can optionally check quick Play/Pause/Reset and subsequent resume in the normal browser; this specific edge case has automated browser evidence, not owner listening acceptance.
+
 ### Manual download guidance and menu scope — 2026-10-24
 
 - [x] Owner approved keeping Settings and Practice as-is, deferring LED integration and automatic version checking, and leaving Piano Trainer unchanged.
