@@ -2,6 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {buildFretboardModel} from '../js/practice-visuals.js';
+
+test('startup neck uses standard six-string tuning only before a score is loaded',()=>{
+  const startup=buildFretboardModel({noScore:true,leftHanded:true});
+  assert.equal(startup.supported,true);
+  assert.deepEqual(startup.openPitches,[64,59,55,50,45,40]);
+  assert.equal(startup.stringCount,6);assert.equal(startup.leftHanded,true);
+  assert.equal(startup.maxFret,24);assert.equal(startup.capo,0);
+  assert.deepEqual(startup.targets,[]);assert.deepEqual(startup.played,[]);
+  const bass={staves:[{tuning:[43,38,33,28],capo:2}]};
+  assert.deepEqual(buildFretboardModel({track:bass}).openPitches,[45,40,35,30]);
+  assert.equal(buildFretboardModel({}).supported,false,'missing track after loading remains unsupported');
+  assert.equal(buildFretboardModel({noScore:true,track:{staves:[{tuning:[]}]}}).supported,false);
+  assert.equal(buildFretboardModel({track:{staves:[{tuning:[64],isPercussion:true}]}}).supported,false);
+});
 import {fretboardGeometry,fretX,fretWireX,fretInlayYs} from '../js/fretboard-geometry.js';
 import {initFretboard,renderFretboard} from '../js/fretboard-ui.js';
 import {profiles,nativeAlphaTab} from './fretboard-fixtures.js';

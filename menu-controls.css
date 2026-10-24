@@ -377,7 +377,24 @@
 #practice-popup .brief-error-duration { grid-template-columns: minmax(0, 1fr) var(--menu-number-group); }
 #practice-popup .brief-error-duration[hidden] { display: none; }
 #practice-popup #brief-error-availability:empty { display: none; }
+/* Device setup follows one reading column; diagnostics retain their own layout. */
+#options-overlay .midi-grid { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+#options-overlay .settings-connection-status { margin: 2px 0; font-size: .85rem; font-weight: 600; overflow-wrap: anywhere; }
+#options-overlay .settings-connection-status[hidden] { display: none; }
+#options-overlay .midi-mode-section { gap: 6px; }
+#options-overlay .midi-mode-section > .field-group { max-width: none; width: auto; justify-self: stretch; display: grid; grid-template-columns: minmax(0, 1fr) 230px; align-items: center; gap: 4px 16px; }
+#options-overlay .midi-mode-section .field-label { grid-column: 1; grid-row: 1; }
+#options-overlay .midi-mode-section .field-help { grid-column: 1; grid-row: 2; }
+#options-overlay .midi-mode-section select { grid-column: 2; grid-row: 1 / 3; width: 100%; min-width: 0; }
+#options-overlay .midi-mode-section .help-text { margin: 0 0 6px; }
+#options-overlay .midi-mode-section .toggle-row { margin: 0; }
+#options-overlay .settings-device-help { border-top: 1px solid var(--section-rule); }
+#options-overlay .settings-device-help .field-help { margin: 6px 0 12px; }
+#options-overlay .settings-midi-diagnostics { display: grid; gap: 6px; margin-bottom: 16px; font-size: .82rem; overflow-wrap: anywhere; }
+#options-overlay summary:focus-visible { outline: 2px solid var(--menu-accent); outline-offset: 2px; border-radius: 4px; }
 @media (max-width: 620px) {
+  #options-overlay .midi-mode-section > .field-group { grid-template-columns: minmax(0, 1fr); }
+  #options-overlay .midi-mode-section select { grid-column: 1; grid-row: 3; }
   #practice-popup .practice-filter-select { grid-template-columns: minmax(0, 1fr); }
   #practice-popup .brief-error-duration { margin-left: 0; }
   #practice-popup .brief-error-duration > label { grid-column: 1 / -1; }

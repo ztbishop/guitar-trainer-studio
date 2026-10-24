@@ -1,5 +1,19 @@
 # Guitar Trainer Studio Architecture
 
+## Startup fretboard fallback — 2026-10-23
+
+buildFretboardModel accepts an explicit noScore display flag supplied by bootstrap from !AppState.score. Only when that flag is true and no track exists does it use a local standard six-string tuning; no state/track/expected events are fabricated. Loaded/unsupported tracks retain existing tuning validation and message behavior. Rendering, visibility/orientation preferences and grading owners are unchanged.
+
+## Settings status text — 2026-10-23
+
+The primary MIDI status now hides known routine confirmations only while an input is active; exceptional/unknown, waiting, no-input and access-error statuses remain visible. Diagnostics retain the full status. The main-view profile label is removed; persistence guidance stays in Device settings help. Hex mapping text reports the channel sequence without explaining automatically enforced dropdown bounds. Device controls/IDs, persistence and routing remain unchanged.
+
+## Settings composition and profile feedback — 2026-10-23
+
+index.html/menu-controls.css give Settings a single device/mode reading column with responsive channel/bend rows and native help/diagnostics disclosures. Existing control IDs remain; MIDI support and the duplicate status readout move into diagnostics, while the primary status/error line remains visible. renderMidiUi identifies the selected device profile and disables Settings mode/channel/base/order/bend edits without an active input, preventing changes that cannot be saved to a device. Existing handlers retain their owners and saveActiveMidiSettings calls.
+
+The per-device audit confirmed existing MidiDevicePreferences/router behavior: separate validated mode/channel/base/reverse/bend/latency profiles, remembered-input return even before score loading, no substitute device, and explicit None/manual selection priority. No router, persistence schema, score-loading, transport or grading changes. tests/run-midi-settings-browser.cjs exercises actual handlers with synthetic ports in an isolated browser, including late arrival and reload; physical acceptance remains separate.
+
 ## Practice menu composition — 2026-10-23
 
 index.html and menu-controls.css own the Practice menu order and responsive presentation: setup, Score feedback, collapsed MIDI tolerance, collapsed Realtime timing, clear-results action. Native details/summary provides keyboard/touch-accessible disclosure; existing control IDs, help associations, conditional Wait/duration controls and event handlers are retained. Long tolerance policies remain in inline help. Disclosure openness is transient DOM state and is not rewritten by trainer renders or saved as a preference.

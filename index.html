@@ -427,36 +427,26 @@
 
       <div class="popup-panel-grid">
         <div class="popup-card">
-          <div class="midi-panel-header">
-            <div>
-              <div class="status-label">MIDI input</div>
-              <div class="midi-panel-title">Device and channels</div>
-            </div>
-            <div id="midi-status-pill" class="status-pill">Waiting for MIDI…</div>
-          </div>
-
           <div class="midi-grid">
             <label class="field-group" for="midi-input-select">
               <span class="field-label">Input device</span>
-              <span class="field-help">Select the MIDI device you want Guitar Trainer Studio to listen to.</span>
               <select id="midi-input-select" disabled>
                 <option value="">Detecting MIDI...</option>
               </select>
             </label>
 
-            <p class="field-help">Settings save per device. Your last selected input reconnects automatically, including when plugged in after opening the app. Choose None to disable automatic selection.</p>
+            <p id="midi-status" class="settings-connection-status" role="status">MIDI idle</p>
 
-            <fieldset class="menu-radio-group"><legend>Input source</legend>
-              <label><input type="radio" name="midi-input-mode" value="single-channel" checked /><span>Single channel</span></label>
+            <fieldset class="menu-radio-group"><legend>Input mode</legend>
+              <label><input type="radio" name="midi-input-mode" value="single-channel" checked /><span>Poly / single channel</span></label>
               <label><input type="radio" name="midi-input-mode" value="hex-6ch" /><span>Hexaphonic (6 channels)</span></label>
             </fieldset>
           </div>
 
           <div id="midi-single-channel-section" class="midi-mode-section">
-            <div class="status-label">Single-channel settings</div>
             <label class="field-group field-group--compact" for="midi-single-channel-select">
               <span class="field-label">Listen to channel</span>
-              <span class="field-help">Choose a single MIDI channel, or leave it on Any.</span>
+              <span class="field-help">Any accepts notes on all channels.</span>
               <select id="midi-single-channel-select">
                 <option value="any">Any</option>
               </select>
@@ -464,10 +454,9 @@
           </div>
 
           <div id="midi-hex-channel-section" class="midi-mode-section is-hidden">
-            <div class="status-label">Hexaphonic settings</div>
             <label class="field-group field-group--compact" for="hex-channel-base-select">
               <span class="field-label">Base string channel</span>
-              <span class="field-help">Channel used for the lowest string. Higher strings map to consecutive channels.</span>
+              <span class="field-help">Channel for the lowest string.</span>
               <select id="hex-channel-base-select">
                 <option value="1">1</option>
                 <option value="2">2</option>
@@ -482,26 +471,23 @@
                 <option value="11">11</option>
               </select>
             </label>
-            <label class="toggle-row"><input id="hex-channel-reverse" type="checkbox" /><span>Reverse channel order — count downward from base</span></label>
+            <label class="toggle-row"><input id="hex-channel-reverse" type="checkbox" /><span>Reverse channel order</span></label>
             <p id="hex-channel-order-help" class="help-text">Six-string mapping: lowest string uses the base channel.</p>
-            <label class="field-group field-group--compact" for="wait-hex-bend-range"><span class="field-label">Hex pitch-bend range</span><select id="wait-hex-bend-range"><option value="0">Ignore bends</option><option value="2">±2 semitones</option><option value="12" selected>±12 semitones</option><option value="24">±24 semitones</option></select></label>
-            <p class="help-text">Match your MIDI device. Saved for Hex practice in all modes. Early bend corrections follow their own raw note; old bends do not transpose a different note or a restarted attempt. Later bends do not create attacks. Changing this setting clears practice results.</p>
+            <label class="field-group field-group--compact" for="wait-hex-bend-range"><span class="field-label">Pitch-bend range</span><select id="wait-hex-bend-range"><option value="0">Ignore bends</option><option value="2">±2 semitones</option><option value="12" selected>±12 semitones</option><option value="24">±24 semitones</option></select></label>
+            <p class="help-text">Match your device. Changing this clears practice results.</p>
           </div>
 
-          <div class="status-grid status-grid--two">
-            <div>
-              <div class="status-label">Support</div>
-              <div id="midi-support-status" class="status-value">Checking...</div>
-            </div>
-            <div>
-              <div class="status-label">Status</div>
-              <div id="midi-status" class="status-value">MIDI idle</div>
-            </div>
-          </div>
+          <details class="settings-device-help"><summary>Device settings help</summary>
+            <p class="field-help">Poly/Hex mode, MIDI channel, Hex base channel and order, pitch-bend range and latency save separately for each selected input in this browser. Select a device before changing its settings.</p>
+            <p class="field-help">The last selected input reconnects automatically, including if it appears before the first score loads. While it is unavailable, the app waits without selecting another input. Choosing another device or None replaces that preference; None cancels automatic selection. Use the same browser address and port to retain saved choices.</p>
+            <p class="field-help">If a device ID changes, automatic recovery requires a unique matching name and manufacturer. Identically named inputs may require manual selection.</p>
+            <p class="field-help">Hex channels run consecutively from the lowest string; Reverse counts downward. The sequence above shows the resulting mapping. Match the pitch-bend range to your device. Early bend corrections follow their own raw note; old bends do not transpose a different note or a restarted attempt. Later bends do not create attacks.</p>
+          </details>
         </div>
 
         <details class="popup-card menu-debug"><summary>MIDI &amp; practice diagnostics</summary>
           <div class="menu-content">
+            <div class="settings-midi-diagnostics"><span id="midi-support-status">Checking MIDI support...</span><span id="midi-status-pill" class="help-text">Waiting for MIDI…</span></div>
             <h3>Record MIDI and feedback</h3>
             <p class="muted">Start before a short passage. When unexpected feedback appears, pause practice, mark the screenshot, and stop. Copy or save the complete report when finished. Recording does not filter notes or change grading.</p>
             <div class="menu-action-row">

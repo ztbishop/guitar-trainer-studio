@@ -1,5 +1,24 @@
 # Guitar Trainer Studio: status and to-do
 
+### Startup fretboard — 2026-10-23
+
+- [x] Before loading a score, show a standard six-string EADGBE neck instead of the missing-tuning placeholder. Loaded tracks retain their own tuning/string count; invalid/percussion tracks retain existing unsupported handling. Saved visibility/orientation still win.
+- [x] 412 Node tests, changed-module syntax and whitespace checks pass. Isolated Live Server browser verifies startup, native imported 1/4/5/6/7/8/12-string tracks, saved hidden and left-handed choices without page errors.
+- [ ] Owner hard-refreshes and reviews startup appearance and transition to a usual score. Physical MIDI/appearance acceptance remains pending.
+
+### Settings text trim — 2026-10-23
+
+- [x] Remove the routine per-device saving line; hide connected listening/receiving/mode confirmations while preserving waiting, None and error statuses. Keep per-device saving guidance in help.
+- [x] Shorten Hex mapping to Channels, lowest → highest string and the channel sequence; remove the dropdown-range explanation.
+- [x] 411 Node tests, syntax and isolated Settings browser checks pass, including hidden routine text, exact mapping, visible waiting/None states and existing device persistence checks. Owner visual/physical MIDI acceptance remains pending; hard-refresh and review both modes.
+
+### Settings layout and per-device preference audit — 2026-10-23
+
+- [x] Compact Settings into device/status, vertical Poly/Hex mode choices, aligned mode-specific rows, visible Hex mapping, collapsed device help and collapsed diagnostics. Retain connection failures in the visible status line.
+- [x] Verify existing per-device mode/channel/base/order/bend/latency storage and preferred-device late arrival; retain the router and None/manual-selection policy. Disable Settings device controls without a selected input and identify the profile being edited.
+- [x] 411 Node regressions, bootstrap/browser-runner syntax and whitespace checks pass. New isolated Live Server browser runner uses synthetic devices to exercise actual controls, separate device settings/reload, remembered arrival before any score, manual/None priority, keyboard help and widths 1440/800/620/390 without page errors or horizontal overflow.
+- [ ] Owner hard-refreshes usual browser: select/configure Fishman and MIDI Guitar differently, switch back/forth and reload; start with the last device unavailable, connect before loading a score and confirm automatic selection/mapping. Review Settings spacing with a score; actual MIDI, reconnect/driver and listening acceptance remain pending.
+
 ### Practice menu tidy-up — 2026-10-23
 
 - [x] Keep vertical practice modes and conditional Wait controls; move all four Score feedback choices ahead of MIDI tuning. Collapse tolerance/timing sections, align dropdowns, shorten visible explanations and retain detailed inline help and warnings.

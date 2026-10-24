@@ -1,8 +1,8 @@
 # Practice fretboard
 
-Updated 2026-10-13. Supersedes Stage 6's original six-string-only display.
+Updated 2026-10-23. Supersedes Stage 6's original six-string-only display.
 
-More → Display → Show virtual fretboard uses the existing saved visibility/orientation preferences. The selected staff supplies string count, tuning, capo and sounding transposition, without an instrument-name gate. Missing/invalid tuning and percussion show an explanation instead of a default guitar neck.
+More → Display → Show virtual fretboard uses the existing saved visibility/orientation preferences. The selected staff supplies string count, tuning, capo and sounding transposition, without an instrument-name gate. Before a score loads, the panel shows a standard six-string EADGBE neck with zero capo and frets 0–24. Once loaded, the selected track replaces that startup neck. Missing/invalid tuning and percussion in a loaded score still show an explanation instead of a guessed guitar neck.
 
 First use defaults to Show virtual fretboard on and Left-handed off. Both choices persist in localStorage across sessions/score loads; saved preferences override defaults, including turning the fretboard off.
 

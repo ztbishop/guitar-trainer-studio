@@ -44,8 +44,10 @@ export function notationRectangles(marks,noteLookup,boundsLookup) {
   return rectangles;
 }
 
-export function buildFretboardModel({track,currentEvent,noteStates={},activeNotes=[],liveWrongNotes=[],inputMode='single-channel',leftHanded=false,lastFeedback=null}) {
-  const staff=track?.staves?.[currentEvent?.staffIndex??0];
+export function buildFretboardModel({track,currentEvent,noteStates={},activeNotes=[],liveWrongNotes=[],inputMode='single-channel',leftHanded=false,lastFeedback=null,noScore=false}) {
+  // Startup display only; never substitute guitar tuning for an unsupported loaded track.
+  const staff=track?.staves?.[currentEvent?.staffIndex??0] ??
+    (noScore && !track ? {tuning:[64,59,55,50,45,40],capo:0,transpositionPitch:0} : null);
   const tuning=staff?.tuning;
   if(staff?.isPercussion || !Array.isArray(tuning)||!tuning.length || !tuning.every(p=>Number.isInteger(p)&&p>=0&&p<=127))return {supported:false,message:'Select a tablature track with usable string tuning to show its fretboard.'};
   const stringCount=tuning.length;

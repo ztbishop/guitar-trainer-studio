@@ -336,6 +336,7 @@ function populateMidiChannelOptions(selectElement, { includeAny = false, min = 1
 }
 
 function renderMidiUi() {
+  const deviceAvailable=AppState.midi.supported && Boolean(AppState.midi.activeInputId);
   const supportEl = document.getElementById('midi-support-status');
   const statusEl = document.getElementById('midi-status');
   const statusPillEl = document.getElementById('midi-status-pill');
@@ -361,6 +362,8 @@ function renderMidiUi() {
   }
   if (statusEl) {
     statusEl.textContent = AppState.ui.midiStatus;
+    // Routine confirmations repeat the selected device/mode. Keep exceptions visible.
+    statusEl.hidden = deviceAvailable && /^(Listening: |Receiving from |Single-channel mode enabled$|Hex mode enabled \(channels map to strings\)$)/.test(AppState.ui.midiStatus || '');
   }
   if (statusPillEl) {
     statusPillEl.textContent = AppState.ui.midiStatus || 'Waiting for MIDI…';
@@ -374,7 +377,7 @@ function renderMidiUi() {
   }
   for(const mode of inputModes) {
     mode.checked = mode.value === AppState.inputMode;
-    mode.disabled = !AppState.midi.supported;
+    mode.disabled = !deviceAvailable;
   }
   if (singleSection) {
     singleSection.classList.toggle('is-hidden', AppState.inputMode !== 'single-channel');
@@ -385,20 +388,20 @@ function renderMidiUi() {
   if (singleChannelSelect) {
     populateMidiChannelOptions(singleChannelSelect, { includeAny: true, max: 16 });
     singleChannelSelect.value = String(AppState.midi.singleChannel ?? 'any');
-    singleChannelSelect.disabled = !AppState.midi.supported || AppState.inputMode !== 'single-channel';
+    singleChannelSelect.disabled = !deviceAvailable || AppState.inputMode !== 'single-channel';
   }
   if (baseSelect) {
     const reverse=AppState.midi.hexChannelReverse;
     populateMidiChannelOptions(baseSelect,{min:reverse?6:1,max:reverse?16:11});
     baseSelect.value = String(AppState.midi.hexChannelBase ?? 1);
-    baseSelect.disabled = !AppState.midi.supported || AppState.inputMode !== 'hex-6ch';
+    baseSelect.disabled = !deviceAvailable || AppState.inputMode !== 'hex-6ch';
   }
   const reverseControl=document.getElementById('hex-channel-reverse');
-  if(reverseControl){reverseControl.checked=AppState.midi.hexChannelReverse;reverseControl.disabled=!AppState.midi.supported || AppState.inputMode!=='hex-6ch';}
+  if(reverseControl){reverseControl.checked=AppState.midi.hexChannelReverse;reverseControl.disabled=!deviceAvailable || AppState.inputMode!=='hex-6ch';}
   const bendRange=document.getElementById('wait-hex-bend-range');
-  if(bendRange){bendRange.value=String(AppState.midi.pitchBendRange);bendRange.disabled=!AppState.midi.supported || AppState.inputMode!=='hex-6ch';}
+  if(bendRange){bendRange.value=String(AppState.midi.pitchBendRange);bendRange.disabled=!deviceAvailable || AppState.inputMode!=='hex-6ch';}
   const orderHelp=document.getElementById('hex-channel-order-help');
-  if(orderHelp){const base=AppState.midi.hexChannelBase;orderHelp.textContent=`Six-string mapping, lowest to highest: ${Array.from({length:6},(_,i)=>base+(AppState.midi.hexChannelReverse?-i:i)).join(', ')}. Base choices keep all six channels within 1–16.`;}
+  if(orderHelp){const base=AppState.midi.hexChannelBase;orderHelp.textContent=`Channels, lowest → highest string: ${Array.from({length:6},(_,i)=>base+(AppState.midi.hexChannelReverse?-i:i)).join(', ')}`;}
   if (inputSelect) {
     const waiting=AppState.midi.waitingInputName;
     const signature=JSON.stringify([AppState.midi.supported,AppState.midi.availableInputs,waiting]);
@@ -547,7 +550,7 @@ function renderTrainerUi() {
   setNotationFeedback(AppState.media.editing?[]:marks,{notation:AppState.ui.showNotationFeedback,tabCircles:AppState.ui.showTabCircles,tabFrets:AppState.ui.showTabMistakes});
   if(AppState.ui.showFretboard) {
     const track=AppState.tracks.find((item,index)=>getTrackId(item,index)===String(AppState.practiceTrackId));
-    renderFretboard(buildFretboardModel({track,currentEvent:trainer.currentEvent,noteStates:trainer.noteStates,
+    renderFretboard(buildFretboardModel({track,noScore:!AppState.score,currentEvent:trainer.currentEvent,noteStates:trainer.noteStates,
         activeNotes:[...AppState.midi.activeNotes.values()].map(n=>AppState.mode==='wait' && AppState.inputMode==='hex-6ch'?waitController.pitchState.interpret(n):n),liveWrongNotes:trainer.liveWrongNotes,inputMode:AppState.inputMode,leftHanded:AppState.ui.leftHanded,lastFeedback:trainer.lastFeedback}));
   }
   const playButton=document.getElementById('play-pause-button');
