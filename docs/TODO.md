@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+### MIDI requirement upfront and TriplePlay family name — 2026-10-24
+
+- [x] Use Fishman TriplePlay for the family in player-facing setup/comparison labels; retain specific Connect owner-use evidence in the appendix.
+- [x] Put the MIDI requirement at the start of README and Quick Help, reinforce external conversion in first-session/setup guidance and remove ambiguous wording about ordinary audio input. Keep score/playback access without MIDI clear.
+- [x] 459 Node regressions and whitespace checks pass; isolated desktop/phone Chrome verifies upfront MIDI requirement, family labels and layout. Details in DEV-NOTES.md; owner wording review remains separate.
+
 ### MIDI hardware/software comparison appendix — 2026-10-24
 
 - [x] Compare the two existing owner-used paths with MIDI Bass 3, MiGiC NX/Poly, SubSix, BOSS GK/GM-800, Sonuus G2M V3 and experimental REAPER ReaTune. Link primary sources, omit volatile prices, distinguish audio-only pickup/routing requirements and clearly mark untested setups.

@@ -2,7 +2,7 @@
 
 Practice guitar with sheet music, tablature, playback and feedback from your MIDI guitar. Slow a piece down, repeat a section, or let the app wait while you find the notes.
 
-Guitar Trainer Studio runs in a browser and uses alphaTab to display and play your scores. MIDI feedback needs a MIDI-capable guitar setup, such as Fishman Connect or a guitar-to-MIDI application, and a browser that supports Web MIDI. You can explore scores and playback without MIDI input.
+Guitar Trainer Studio runs in a browser and uses alphaTab to display and play your scores. **Guitar recognition, practice grading and Wait progression require a MIDI signal, not standard guitar audio.** The app does not listen to your microphone or audio interface and does not convert guitar audio to MIDI. Use a MIDI guitar system such as Fishman TriplePlay, or separate conversion software such as MIDI Guitar 3, then select its MIDI input in Settings in a browser that supports Web MIDI. You can explore scores and playback without MIDI input.
 
 [Repository](https://github.com/ztbishop/guitar-trainer-studio) · [Download ZIP](https://github.com/ztbishop/guitar-trainer-studio/archive/refs/heads/main.zip) · [Formatted guide](README.html)
 
@@ -55,7 +55,7 @@ Keep using it. Open this folder, start Live Server for `index.html`, and use its
 
 ## Your first practice session
 
-1. Connect your MIDI guitar interface and start any MIDI conversion software it needs.
+1. Connect your MIDI guitar system or start separate audio-to-MIDI conversion software. Make sure it sends MIDI to an input your browser can select; plugging a guitar into an audio interface alone is not enough.
 2. Open **Settings** and select the correct MIDI input. Match **Poly** or **Hex** to your device output:
    - **Poly / single channel:** notes share a MIDI channel; the app knows pitch but cannot reliably identify the played string.
    - **Hex / six channels:** each string sends on a different channel. Set the lowest-string base channel and channel order to match your device.
@@ -68,10 +68,10 @@ Both Poly and Hex currently grade **pitch**, not exact string/fret position. Pla
 
 ## Getting clean MIDI from a standard guitar
 
-A normal guitar audio cable does not send MIDI by itself. Two options for using a standard guitar are:
+A normal guitar audio cable does not send MIDI by itself. Guitar Trainer receives the resulting MIDI from external hardware or software; it does not process your guitar audio directly. Two options for using a standard guitar are:
 
-- **Fishman TriplePlay / TriplePlay Connect:** a separate hexaphonic pickup senses the six strings individually and converts the playing to MIDI. Check that the pickup fits your guitar and follow [Fishman's installation and setup guidance](https://fishman.com/tripleplay-support/). Use TriplePlay Utility to adjust each string's sensitivity toward its target meter range with normal playing strength; pickup height also affects tracking. Match the app's Poly/Hex selection, channel order and pitch-bend range to the device output. A hex pickup can also send a combined Poly stream.
-- **Jam Origin MIDI Guitar 3:** converts your guitar's ordinary audio signal, through an audio interface, into MIDI without a special pickup. Set the actual tuning and adjust interface input gain first; use the tracker's Input control only if the interface cannot supply enough level. Adjust the tracker's Gate while checking soft notes and chords. See [Jam Origin's tracker documentation](https://jam.live/modules/modules/). Route its MIDI output to an input your browser can select; your setup may need a virtual MIDI port. Use standard MIDI in the app's Poly mode for ordinary audio input. MPE channels do not establish physical string identity and should not be treated as Hex string channels.
+- **Fishman TriplePlay:** a separate hexaphonic pickup senses the six strings individually and converts the playing to MIDI. Check that the pickup fits your guitar and follow [Fishman's installation and setup guidance](https://fishman.com/tripleplay-support/). Use TriplePlay Utility to adjust each string's sensitivity toward its target meter range with normal playing strength; pickup height also affects tracking. Match the app's Poly/Hex selection, channel order and pitch-bend range to the device output. A hex pickup can also send a combined Poly stream.
+- **Jam Origin MIDI Guitar 3:** converts your guitar's ordinary audio signal, through an audio interface, into MIDI without a special pickup. Set the actual tuning and adjust interface input gain first; use the tracker's Input control only if the interface cannot supply enough level. Adjust the tracker's Gate while checking soft notes and chords. See [Jam Origin's tracker documentation](https://jam.live/modules/modules/). Route its MIDI output to an input your browser can select; your setup may need a virtual MIDI port. For MIDI generated from ordinary guitar audio, use standard MIDI output and the app's Poly mode. MPE channels do not establish physical string identity and should not be treated as Hex string channels.
 
 ### Start with a clean signal
 
@@ -246,7 +246,7 @@ On a narrow screen, scroll the chart sideways to see all columns.
 
 | Option | Instrument and signal | What else is needed / limitations | Experience with this app |
 | --- | --- | --- | --- |
-| [Fishman TriplePlay / Connect](https://fishman.com/tripleplay-support/) | Six-string guitar; dedicated pickup converts separate string signals to MIDI. | Compatible pickup fit and device setup. Poly or per-string Hex output must match the app; this is not a bass pickup recommendation. | Owner-used Connect setup; not every TriplePlay model/configuration tested. |
+| [Fishman TriplePlay](https://fishman.com/tripleplay-support/) | Six-string guitar; dedicated pickup converts separate string signals to MIDI. | Compatible pickup fit and device setup. Poly or per-string Hex output must match the app; this is not a bass pickup recommendation. | Owner-used Connect setup; not every TriplePlay model/configuration tested. |
 | [Jam Origin MIDI Guitar 3](https://jam.live/products/MG3/) | Guitar audio → polyphonic MIDI; software, no special pickup. | Audio interface plus MIDI routing to the browser. Use standard MIDI/Poly for ordinary guitar audio; MPE channels are not physical string channels. | Owner-used Poly setup; not every patch/version tested. |
 | [Jam Origin MIDI Bass 3](https://jam.live/products/MB3/) | Bass audio → MIDI/MPE; software optimized for bass. | Audio interface and MIDI routing. Check current note-range/polyphony limits; bass setup in this app remains unverified. | Not tested. |
 | [MiGiC NX / MiGiC Poly](https://migic.com/products/guitar-midi) | Guitar audio → MIDI; NX is monophonic, Poly advertises chord tracking. | Audio interface, compatible software host/setup and MIDI routing. Software alternatives to investigate; no claim that tracking equals MIDI Guitar 3 or that bass is supported. | Neither tested. |
