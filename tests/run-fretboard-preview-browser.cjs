@@ -46,6 +46,7 @@ const path=require('node:path');
       const box=await page.locator('#fretboard-options').boundingBox();assert(box.x>=0 && box.x+box.width<=width);
       if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.GTS_SCREENSHOT_DIR,`fretboard-previews-${width}.png`)});
       await page.keyboard.press('Escape');
+      if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.GTS_SCREENSHOT_DIR,`fretboard-preview-guides-${width}.png`)});
     }
     await page.reload();await page.locator('#fretboard-content svg').waitFor();await page.locator('#fretboard-settings').click();
     assert(await page.locator('#fretboard-alternates').isChecked(),'alternate preference restores after reload');

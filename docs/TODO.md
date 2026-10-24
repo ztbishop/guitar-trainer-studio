@@ -1,5 +1,10 @@
 # Guitar Trainer Studio: status and to-do
 
+### Alternate-guide contrast — 2026-10-24
+
+- [x] Brighten alternate labels and modestly strengthen dashed borders without enlarging markers or changing behavior. 447 Node regressions and isolated native preview browser checks pass; screenshots inspected.
+- [ ] Owner hard-refreshes and reviews Show alternate positions at normal and manually reduced fretboard heights. Appearance acceptance remains pending; this change has no MIDI path.
+
 ### Clear replayed collected-tone fretboard rings — 2026-10-24
 
 - [x] Associate existing ignored-collected-tone replays with already credited event/pitch IDs for display. Clear their held rings after advancing in Poly/Hex without extra credit/errors or tab/Wait changes.

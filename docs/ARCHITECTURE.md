@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Alternate-guide paint contrast — 2026-10-24
+
+style.css applies alternate opacity independently: pale-blue circle stroke uses 0.7 opacity/1.8px width, while 12px labels use brighter pale blue at 0.9 opacity. Group-wide opacity is removed so text can be clearer than the outline and the dark fill masks underlying strings. Dashed shape, marker radius, render order, view models and all feedback/grading ownership remain unchanged. The existing preview browser runner optionally saves unobstructed screenshots after closing the popup for visual review.
+
 ## Collected-tone replay display provenance — 2026-10-24
 
 `FretboardHeldNotes.remember` additionally consumes the evaluator's existing ignored-collected-tone outcome. Bootstrap supplies read-only expected events and the current session note-state snapshot; the helper resolves only that outcome's event and interpreted pitch to already accepted note IDs (correct/completed-with-errors). It links the new raw held object to those IDs without modifying outcomes, slots, scores, MIDI held state or source data. Repeated release/replays therefore retain display attribution across target advancement. Missing event/credit is not inferred; wrong/pending/filter/strum-tail outcomes are not promoted to acceptance. Original correct/onset-correction and paused-input handling remain unchanged. This is specific to replay outcomes the evaluator already forgives; Realtime error rules are untouched.

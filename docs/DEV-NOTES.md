@@ -1,5 +1,11 @@
 # Development notes
 
+## Alternate-guide contrast — 2026-10-24
+
+Owner approved clearer alternate-position styling. Replaced 55% group opacity with independent 70% pale-blue dashed stroke (1.8px, previously 1.5px) and 90% brighter label text. Radius, 12px text size, dark fill and render priority remain; no settings, MIDI, grading, transport or tab-feedback changes. README remains accurate with its existing dashed-guide description; no player workflow changed. Repository was clean before this pass.
+
+Validation: 447 Node tests and the existing native preview/alternate preference browser checks pass. Unobstructed desktop/phone screenshots inspected; dashed guides remain separate from blue current/gold future markers. Browser-runner syntax and whitespace checks pass. Owner contrast/readability acceptance remains pending after hard-refresh, especially at manually reduced heights. No commits, pushes or version changes.
+
 ## Clear replayed collected-tone fretboard rings — 2026-10-24
 
 Owner reports that correctly collected Wait chord tones leave purple rings after advancement if replayed before completing the chord. Supplied report confirms Poly/Wait: original C#3/A#3/E4 attacks are correct (sequences 4/124/423), new attacks for those pitches are ignored-collected-tone (1287/1300/1306), and A4 completes the chord/advances (1967). The display tracker remembered only original correct/onset-corrected attacks, so released/replayed held objects had no attribution. Extended remember with a read-only event/note-state context from bootstrap; an ignored-collected-tone replay links only to existing accepted IDs on its own event/interpreted pitch. No additional credit, errors, synthetic releases, tolerance or score feedback changes. Current chord feedback stays visible until advancement; replay identities then hide as accepted tails in both Poly/Hex.

@@ -2,6 +2,10 @@
 
 Updated 2026-10-23. Supersedes Stage 6's original six-string-only display.
 
+## Alternate-guide contrast — 2026-10-24
+
+Alternate guides retain their size, dashed outline and dark fill, with a slightly thicker pale-blue border at 70% opacity and brighter labels at 90%. They remain distinct from solid current targets, gold previews and stronger correctness feedback. This styling-only adjustment changes no settings or practice behavior.
+
 ## Replayed collected tones also clear after advancement — 2026-10-24
 
 If a player releases and replays an already collected Wait chord tone before supplying the remaining notes, the evaluator's existing ignored-collected-tone outcome supplies no extra credit or error. That replay is now associated with the existing accepted target pitch for fretboard display, so holding it into the next target no longer leaves purple rings. This applies to Poly and Hex, including repeated replays; current partial-chord feedback remains visible. An ignored outcome alone is insufficient: its exact event/pitch must already have accepted note states. Wrong, filtered, unknown and fresh paused input retain existing behavior. No grading, note-release, held-note tolerance or score/tab feedback change; alternate-guide styling is unchanged.
