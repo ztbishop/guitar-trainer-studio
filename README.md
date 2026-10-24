@@ -2,7 +2,7 @@
 
 Practice guitar with sheet music, tablature, playback and feedback from your MIDI guitar. Slow a piece down, repeat a section, or let the app wait while you find the notes.
 
-**Beta v0.0.3.** Guitar Trainer Studio runs in a browser and uses alphaTab to display and play your scores. MIDI feedback needs a MIDI-capable guitar setup, such as Fishman Connect or a guitar-to-MIDI application, and a browser that supports Web MIDI. You can explore scores and playback without MIDI input.
+Guitar Trainer Studio runs in a browser and uses alphaTab to display and play your scores. MIDI feedback needs a MIDI-capable guitar setup, such as Fishman Connect or a guitar-to-MIDI application, and a browser that supports Web MIDI. You can explore scores and playback without MIDI input.
 
 [Repository](https://github.com/ztbishop/guitar-trainer-studio) · [Download ZIP](https://github.com/ztbishop/guitar-trainer-studio/archive/refs/heads/main.zip) · [Formatted guide](README.html)
 
@@ -23,6 +23,8 @@ Practice guitar with sheet music, tablature, playback and feedback from your MID
 Open the published Guitar Trainer Studio website in a Web MIDI-capable browser. There is nothing to install for the browser app. Allow MIDI access when prompted, and select your input in Settings. On desktop, Chrome is a useful starting point; your guitar's driver or MIDI software may also need setup.
 
 ### Download for local and offline practice
+
+The included launchers use Node.js to serve the app on your computer. Node.js is needed for these launchers only; hosted use and an existing local web server such as Live Server do not require it. A local web server is needed because opening the HTML file directly is not supported.
 
 1. [Download the project ZIP from GitHub](https://github.com/ztbishop/guitar-trainer-studio/archive/refs/heads/main.zip) and extract the whole folder. Do not run it from inside the ZIP.
 2. Install [Node.js](https://nodejs.org/) version 22 or newer if needed. Do this while you have internet access. No npm installation is needed.
@@ -179,7 +181,7 @@ Practice mode, Wait chord settings, feedback switches, display choices and maste
 - **Port already in use?** Close the other Guitar Trainer launcher. Advanced users can set `GTS_PORT` to another port before starting; that address has its own browser library/preferences.
 - **Guide or app will not load from disk?** Use the website, launcher or Live Server instead of double-clicking an HTML file.
 
-This is beta software. Compatibility depends on score contents, browser and MIDI device behavior. Exact-string/fret grading and Follow mode are not implemented. Automated checks do not establish physical MIDI accuracy or every score/provider combination.
+This is beta software. Compatibility depends on score contents, browser and MIDI device behavior. Automated checks do not establish physical MIDI accuracy or every score/provider combination.
 
 ## For developers and contributors
 

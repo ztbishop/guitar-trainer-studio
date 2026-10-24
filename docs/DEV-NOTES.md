@@ -1,5 +1,9 @@
 # Development notes
 
+## Player guide wording — 2026-10-24
+
+Owner requested removing the app version from README to avoid drift and questioned Node.js and the deferred-feature sentence. Removed the app version and the exact-position/Follow nonimplementation sentence. The existing player-facing pitch-grading explanation remains. Clarified Node.js is the runtime for the included launchers only; hosted use and another local server do not need it. README.html consumes this same Markdown automatically. No runtime, server, MIDI or grading changes. Documentation diff/whitespace checked; no additional hardware acceptance or regression run needed for this wording-only change.
+
 ## Beginner guide, optional demos and local ZIP launchers — 2026-10-24
 
 Owner approved a beginner-friendly root README and formatted browser view, concise in-app help with a full-guide link, optional demos and one Launchers folder for Windows/Mac. The prior root README was tracked across many commits, not a duplicate of a docs README; it mixed history/agent instructions with user guidance and retained superseded Wait-only tolerance claims. Replaced it with current player guidance, preserving developer entry points through DEVELOPMENT.md, architecture, TODO, existing subsystem docs and standing AGENTS.md. Hosted use is described without inventing a deployment address. ZIP download points to the repository's existing main branch.

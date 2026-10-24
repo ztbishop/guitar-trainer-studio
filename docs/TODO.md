@@ -1,5 +1,9 @@
 # Guitar Trainer Studio: status and to-do
 
+### Player guide wording — 2026-10-24
+
+- [x] Keep the root README free of the app version number; clarify Node.js is required for the included launchers, not hosted use or an existing local server. Remove the deferred-feature list while retaining the practical pitch-grading explanation. Documentation only; no runtime changes.
+
 ### Beginner guide, optional demo scores and local launchers — 2026-10-24
 
 - [x] Rewrite root README as player guidance for hosted use, ZIP/offline launchers, MIDI setup, scores/library, modes, menu pointers, feedback, music sources and troubleshooting. Preserve useful technical guidance in docs/DEVELOPMENT.md and existing subsystem docs; remove stale/contradictory history from the player guide.
