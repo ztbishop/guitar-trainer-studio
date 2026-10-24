@@ -23,6 +23,7 @@
 - Preserve independent Staff, tab highlight, and tab fret-number controls. All four Score feedback choices, including Poly inference, default on and persist independently (owner decision 2026-10-13). Poly inference remains a conservative display estimate, never a detected physical position. Restore the saved Practice mode (Realtime on first use) and Wait chord settings (One at a time/200 ms on first use) across score loads and sessions.
 - Do not add deferred features or edit Piano Trainer as part of an unrelated stage.
 - Display preferences persist across sessions/score loads: zoom, auto-scroll, fullscreen-on-Play, visible tracks, fretboard visibility and orientation. First-use defaults are 100%, auto-scroll on, practice-only, fretboard on, left-handed off and fullscreen-on-Play off. Saved choices, including fretboard off, override defaults. Disabling orientation while fretboard is hidden must retain its choice; restoring fullscreen preference must not request fullscreen outside the existing Play gesture.
+- Virtual fretboard first-use defaults (owner decision 2026-10-24): Beat + Bar, note-name labels, alternate positions off and automatic panel sizing. Persist all fretboard display choices and manual sizing across score loads/sessions; retain hidden-panel choices and valid previously saved Beat/Next/Bar modes. Temporary targets, played markers and browsing/session state are not display preferences.
 
 ## Verification and handoff
 

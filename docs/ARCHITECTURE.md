@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## First-use fretboard view — 2026-10-24
+
+`display-preferences.js` now defaults/falls back to internal `bar` (Beat + Bar), matching app-state.js and the initial index.html selector. Existing validation still accepts saved `beat`, `next` and `bar` without rewriting valid choices. Note labels, alternates off, visible neck, right-handed orientation and automatic sizing already match the owner's defaults. `fretboard-controls.js` continues to save view/labels/alternates/orientation through `gts.displayPreferences`; Display owns visibility and workspace-panels.js separately persists size/automatic mode in `gts.workspacePanelSizes`. Score loading and hiding the panel do not reset preferences. No schema migration, new module, preview algorithm, session/grade/MIDI or alphaTab changes; earlier Beat first-use descriptions are historical.
+
 ## Cancel pending native audio startup and publishing workflow — 2026-10-24
 
 `alphatab-host.js` owns `installAlphaTabAudioStartupCompatibility`, called by the existing `installAlphaTabCompatibility` before constructing the API. The bundled classic-script alphaTab 1.8.4 AudioWorklet output creates a BufferSource synchronously but starts it only after async module loading; native Pause previously stopped an unstarted source and left that callback alive. The compatibility installer gates on `meta.version` plus the known native startup method signature, is idempotent per prototype, and leaves other/newer implementations and ScriptProcessor/media outputs unchanged. Bundled vendor bytes remain untouched.

@@ -118,6 +118,6 @@ test('all fretboard choices persist independently; invalid stored fields retain 
     assert.equal(restored.ui.leftHanded,true);assert.equal(restored.ui.showFretboard,false);
   }
   saved=JSON.stringify({ui:{fretboardView:'bad',fretboardLabels:'bad'}});
-  assert.equal(readDisplayPreferences(storage).ui.fretboardView,'beat');
+  assert.equal(readDisplayPreferences(storage).ui.fretboardView,'bar');
   assert.equal(readDisplayPreferences(storage).ui.fretboardLabels,'notes');
 });

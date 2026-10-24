@@ -2,6 +2,10 @@
 
 Updated 2026-10-23. Supersedes Stage 6's original six-string-only display.
 
+## First-use defaults and saved choices — 2026-10-24
+
+Owner selected visible fretboard, Beat + Bar, note-name labels, alternate positions off, left-handed off and automatic sizing. Only the view default changed from Beat. App-state, initial selector and display preference read/save fallbacks agree on internal `bar`; valid saved `beat`, `next` and `bar` modes still override defaults. Other settings/persistence already matched. `gts.displayPreferences` stores visibility/view/labels/alternates/orientation; `gts.workspacePanelSizes` separately stores manual sizing/automatic fit. Hiding/showing and score loading retain saved choices; temporary target/played/browsing data remains session state. No MIDI, grading, native alphaTab or preview algorithm change.
+
 ## Alternate-guide contrast — 2026-10-24
 
 Alternate guides retain their size, dashed outline and dark fill, with a slightly thicker pale-blue border at 70% opacity and brighter labels at 90%. They remain distinct from solid current targets, gold previews and stronger correctness feedback. This styling-only adjustment changes no settings or practice behavior.

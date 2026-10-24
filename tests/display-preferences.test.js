@@ -8,7 +8,7 @@ const storage = value => {
 };
 
 test('first-use Display defaults survive malformed or unavailable storage',()=>{
-  const expected={viewMode:'practice-only',ui:{zoomPercent:100,autoScroll:true,fullscreenOnPlay:false,chordDiagramPlacement:'score-default',showFretboard:true,leftHanded:false,fretboardView:'beat',fretboardLabels:'notes',showAlternatePositions:false}};
+  const expected={viewMode:'practice-only',ui:{zoomPercent:100,autoScroll:true,fullscreenOnPlay:false,chordDiagramPlacement:'score-default',showFretboard:true,leftHanded:false,fretboardView:'bar',fretboardLabels:'notes',showAlternatePositions:false}};
   for(const store of [storage(),storage('{}'),storage('{invalid'),{getItem(){throw Error('denied');}}])assert.deepEqual(readDisplayPreferences(store),expected);
   assert.doesNotThrow(()=>saveDisplayPreferences(expected,{setItem(){throw Error('quota');}}));
 });
@@ -18,7 +18,7 @@ test('Display choices round-trip without score/transport/results or feedback dat
   const state={viewMode:'all-tracks',ui:{zoomPercent:125,autoScroll:false,fullscreenOnPlay:true,chordDiagramPlacement:'top-of-score',showFretboard:false,leftHanded:true,inferPolyMistakes:false},practiceTrackId:'7',isPlaying:true,trainer:{results:'session'}};
   saveDisplayPreferences(state,store);
   const loaded=readDisplayPreferences(store);
-  assert.deepEqual(loaded,{viewMode:'all-tracks',ui:{zoomPercent:125,autoScroll:false,fullscreenOnPlay:true,chordDiagramPlacement:'top-of-score',showFretboard:false,leftHanded:true,fretboardView:'beat',fretboardLabels:'notes',showAlternatePositions:false}});
+  assert.deepEqual(loaded,{viewMode:'all-tracks',ui:{zoomPercent:125,autoScroll:false,fullscreenOnPlay:true,chordDiagramPlacement:'top-of-score',showFretboard:false,leftHanded:true,fretboardView:'bar',fretboardLabels:'notes',showAlternatePositions:false}});
   assert.deepEqual(JSON.parse(store.getItem(DISPLAY_PREFERENCES_KEY)),loaded);
   state.ui.showFretboard=true;state.ui.leftHanded=false;state.ui.fullscreenOnPlay=false;state.viewMode='practice-only';saveDisplayPreferences(state,store);
   assert.equal(readDisplayPreferences(store).ui.showFretboard,true);
@@ -30,7 +30,7 @@ test('Display choices round-trip without score/transport/results or feedback dat
 test('Display validation keeps valid booleans and falls back on invalid view/zoom fields',()=>{
   for(const zoomPercent of [null,'125',49,201]) {
     const loaded=readDisplayPreferences(storage(JSON.stringify({viewMode:'unknown',ui:{zoomPercent,autoScroll:false,fullscreenOnPlay:'true',showFretboard:true,leftHanded:1}})));
-    assert.deepEqual(loaded,{viewMode:'practice-only',ui:{zoomPercent:100,autoScroll:false,fullscreenOnPlay:false,chordDiagramPlacement:'score-default',showFretboard:true,leftHanded:false,fretboardView:'beat',fretboardLabels:'notes',showAlternatePositions:false}});
+    assert.deepEqual(loaded,{viewMode:'practice-only',ui:{zoomPercent:100,autoScroll:false,fullscreenOnPlay:false,chordDiagramPlacement:'score-default',showFretboard:true,leftHanded:false,fretboardView:'bar',fretboardLabels:'notes',showAlternatePositions:false}});
   }
   const invalid=readDisplayPreferences(storage(JSON.stringify({ui:{chordDiagramPlacement:'custom'}})));
   assert.equal(invalid.ui.chordDiagramPlacement,'score-default');

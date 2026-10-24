@@ -80,7 +80,7 @@ export const AppState = {
     showTabMistakes: true,
     inferPolyMistakes: true,
     leftHanded: false,
-    fretboardView: 'beat',
+    fretboardView: 'bar',
     fretboardLabels: 'notes',
     showAlternatePositions: false,
     loadedFileName: '',

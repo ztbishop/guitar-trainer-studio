@@ -161,6 +161,8 @@ Display controls zoom, auto-scroll, full screen on Play, chord diagrams, visible
 
 Use the **gear on the fretboard** for Beat / Beat + Next Beat / Beat + Bar views, note/fret/finger labels, left-handed orientation and help. Finger labels need explicit fingering in the score; the app does not invent it. Left-handed display does not reverse MIDI channel mapping.
 
+The fretboard starts visible with **Beat + Bar**, note-name labels, alternate positions off, left-handed display off and automatic panel sizing. Your saved choices take precedence and return across score loads and visits, including manual sizing and choices made while the fretboard is hidden.
+
 **Beat + Bar** shows the current measure. On its last beat it also previews the next beat in gold, then shows the full new measure when you enter it. Previews follow repeats and enabled loops; an upcoming rest has no fret markers.
 
 Optional **Show alternate positions** adds faint dashed blue guides for the current target's exact pitches elsewhere on the neck. It defaults off and saves your choice. The guides help you explore other positions; they are not detected fingering, octave substitutions or extra notes to play. Written targets and grading stay unchanged, and alternate positions never invent finger numbers.

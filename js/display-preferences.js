@@ -11,7 +11,7 @@ export function effectiveChordDiagramPlacement(state) {
 }
 
 export function readDisplayPreferences(storage) {
-  const defaults = {viewMode: 'practice-only', ui: {zoomPercent: 100, autoScroll: true, fullscreenOnPlay: false, chordDiagramPlacement: 'score-default', showFretboard: true, leftHanded: false, fretboardView:'beat', fretboardLabels:'notes',showAlternatePositions:false}};
+  const defaults = {viewMode: 'practice-only', ui: {zoomPercent: 100, autoScroll: true, fullscreenOnPlay: false, chordDiagramPlacement: 'score-default', showFretboard: true, leftHanded: false, fretboardView:'bar', fretboardLabels:'notes',showAlternatePositions:false}};
   try {
     storage ??= globalThis.window?.localStorage;
     const saved = JSON.parse(storage?.getItem(DISPLAY_PREFERENCES_KEY) ?? 'null');
@@ -34,7 +34,7 @@ export function saveDisplayPreferences(state, storage) {
     storage?.setItem(DISPLAY_PREFERENCES_KEY, JSON.stringify({
       viewMode: state.viewMode,
       ui: Object.fromEntries(['zoomPercent', 'chordDiagramPlacement', ...DISPLAY_BOOLEAN_KEYS].map(key => [key, key==='showAlternatePositions'?state.ui[key]===true:state.ui[key]]).concat([
-        ['fretboardView',FRETBOARD_VIEWS.includes(state.ui.fretboardView)?state.ui.fretboardView:'beat'],
+        ['fretboardView',FRETBOARD_VIEWS.includes(state.ui.fretboardView)?state.ui.fretboardView:'bar'],
         ['fretboardLabels',FRETBOARD_LABELS.includes(state.ui.fretboardLabels)?state.ui.fretboardLabels:'notes'],
       ])),
     }));

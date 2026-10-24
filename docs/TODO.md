@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+### Fretboard first-use defaults — 2026-10-24
+
+- [x] Default to Beat + Bar with note labels, alternates off, visible fretboard, left-handed off and automatic sizing. Only Beat → Beat + Bar required a runtime change; existing settings and localStorage persistence already match the approved choices.
+- [x] Preserve all valid saved views and independent fretboard preferences/sizing across reloads/score loads and hiding/showing. Update player guide and ownership/default documentation; verification in DEV-NOTES.md.
+- [ ] Owner hard-refreshes and checks the saved view stays selected; a fresh profile should show Beat + Bar. Normal browser appearance acceptance remains separate from automated checks.
+
 ### Current beta acceptance, audio startup and Git workflow — 2026-10-24
 
 - [x] Owner confirms normal real-guitar practice checks completed; broader TriplePlay/MIDI Guitar user coverage can follow through beta testing. This supersedes blanket claims that normal practice has never received physical acceptance, without claiming every historical edge case/platform/provider was tested.
