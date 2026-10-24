@@ -14,6 +14,7 @@ Guitar Trainer Studio runs in a browser and uses alphaTab to display and play yo
 - [Where to find music](#where-to-find-music)
 - [Practice modes and feedback](#practice-modes-and-feedback)
 - [Settings and other menus](#settings-and-other-menus)
+- [Updating your local copy](#updating-your-local-copy)
 - [Troubleshooting](#troubleshooting)
 
 ## Open the app or run it locally
@@ -183,6 +184,17 @@ Sync follows the score's playback order, including repeats, alternate endings an
 Settings selects the MIDI input and its mode/channel/bend configuration. Device settings save separately for each input. The last selected device can return automatically when reconnected; choosing None cancels that automatic selection.
 
 Practice mode, Wait chord settings, feedback switches, display choices and master volumes are remembered in this browser. Use a consistent website address and port to keep access to those saved choices. Practice results are temporary. Expand diagnostics only for troubleshooting or to record a MIDI report; recording does not change grading.
+
+## Updating your local copy
+
+Open **More → Help & Guide → Downloads & releases** to visit the [GitHub Releases page](https://github.com/ztbishop/guitar-trainer-studio/releases). Published releases provide named versions and download links. If no releases are listed yet, use the [current project ZIP](https://github.com/ztbishop/guitar-trainer-studio/archive/refs/heads/main.zip). That ZIP follows the latest work on the main branch and can include changes since a published release.
+
+Updates are manual; the app does not check for new versions or replace your files automatically.
+
+1. In **Scores**, choose **Backup Library** and keep the downloaded backup somewhere safe. It includes saved scores and sync profiles, but not your recordings or app preferences. Keep your original scores and recordings too.
+2. Stop your local launcher or Live Server, then download and extract the whole updated project into a separate folder. Keep your previous copy until the update works.
+3. Start the updated copy with your usual launcher or Live Server. Use the same browser profile, website address and port as before so your browser library and saved settings remain available. In particular, keep using either `localhost` or `127.0.0.1` consistently.
+4. Refresh the page; hard-refresh if old controls remain. Open a familiar score and check playback and MIDI input. If your library appears empty, check the address and browser profile first, then use **Import Library (Merge)** if needed.
 
 ## Troubleshooting
 

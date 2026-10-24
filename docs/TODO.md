@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Manual download guidance and menu scope — 2026-10-24
+
+- [x] Owner approved keeping Settings and Practice as-is, deferring LED integration and automatic version checking, and leaving Piano Trainer unchanged.
+- [x] Add Downloads & releases to More → Help & Guide; retain the main-branch ZIP fallback in the user-friendly root README and explain manual updates, library backup, retained old copy and consistent browser/address/port.
+- [x] Document static link/guide ownership and future single-source version policy; retain Beta 0.0.3. Automated verification is recorded in DEV-NOTES.md.
+- [ ] Owner hard-refreshes the normal Live Server browser, reviews Help/guide wording and opens the releases link. A real update, restored library and physical Fishman session remain owner acceptance checks.
+
 ### Paused loop scrolling and media repeat/jump verification — 2026-10-24
 
 - [x] Reveal the paused native cursor after enabled loop slider/measure changes, including rapid or unchanged-start range edits; share existing media viewport reveal and preserve Auto-scroll preference, native transport, grading and count-in.

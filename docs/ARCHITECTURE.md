@@ -1,5 +1,13 @@
 # Guitar Trainer Studio Architecture
 
+## Manual downloads and menu scope — 2026-10-24
+
+Owner approved retaining Settings for MIDI device configuration and Practice for session/feedback choices. LED hardware integration and automatic app version checking remain deferred. No Piano Trainer changes are included.
+
+`index.html` owns the static Downloads & releases anchor in More → Help & Guide. It opens the repository's `/releases` page in a separate tab with `rel="noopener"`; it does not query GitHub, compare versions, download automatically or touch session state. The general releases page remains usable before the first release and avoids assuming `/releases/latest` exists. `README.md` owns player-facing manual-update instructions and the existing main-branch ZIP fallback. `README.html` and `js/readme-guide.js` continue to render that same guide locally; no new module or guide build step is introduced.
+
+Keep `version.json` at the current 0.0.3 baseline for this change. If app version display/checking is separately approved later, use that file as the single app version source, updated for published versions rather than every push. Main-branch ZIPs can contain unpublished changes. Browser library/preferences remain tied to browser profile and origin; replacing app files does not migrate storage between hostnames or ports. Native alphaTab, MIDI routing, Wait progression and grading/feedback owners are unchanged. Actual checks and owner acceptance are recorded in DEV-NOTES.md.
+
 ## Paused loop reveal and repeat/jump media evidence — 2026-10-24
 
 `alphatab-host.js` now shares revealScoreCursor between explicit media seeks and applied practice-loop ranges. applyPracticeLoop still pauses native transport, applies native range/loop settings and seeks to the start; it additionally schedules one destination reveal, repeated on the matching playerPositionChanged acknowledgement. cursorRevealTick records that pending destination and cursorRevealGeneration cancels obsolete frame callbacks, disabled-loop choices, source return and score replacement. Two animation frames allow native cursor bounds to update. With Auto-scroll on, native scrollToCursor forces the reveal; with it off, the existing bounded score-viewport fallback reveals the rendered cursor without changing preferences or scrolling the outer page. No interval-based following, playback, grading or count-in changes; restoration suppresses reveals until ready. No new runtime modules.
