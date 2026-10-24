@@ -16,13 +16,14 @@ Verify the download without installing:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\alphatab\update-alphatab.ps1 -Version 1.8.4 -CheckOnly
 ```
 
-The script downloads one official versioned npm package, verifies its SHA-512 digest against registry metadata, checks its version and required files, and stages everything before replacing `assets/vendor/alphatab`. It installs the UMD browser library, matching core/worker/worklet modules, Bravura fonts and Sonivox soundfont. `vendor-manifest.json` records the version, package integrity and individual asset hashes. No CDN is used by the running app. An integrity/download/extraction failure leaves the installed bundle untouched; a failed installation move attempts to restore the previous directory.
+The script downloads one official versioned npm package, verifies its SHA-512 digest against registry metadata, checks its version and required files, and stages everything before replacing `assets/vendor/alphatab`. It installs the UMD browser library, matching core/worker/worklet modules, Bravura fonts and Sonivox soundfont, plus LICENSE, LICENSE.header, Bravura OFL/FAQ/font log and Sonivox LICENSE/README. Missing or empty notices fail verification just like missing runtime files. `vendor-manifest.json` records the version, package integrity and individual runtime/notice hashes. No CDN is used by the running app. An integrity/download/extraction failure leaves the installed bundle untouched; a failed installation move attempts to restore the previous directory.
 
 Previous assets are retained in `tools/alphatab/.backups`, excluded from Git. Temporary downloads are cleaned up. Backups can be large and are kept until you remove them after acceptance. To restore one, close playback, move the current `assets/vendor/alphatab` folder somewhere safe, then copy the chosen complete backup folder to `assets/vendor/alphatab`. Alternatively, use Git to restore a committed vendor checkpoint, taking care to preserve any wanted local changes.
 
 After an update:
 
 1. Review `git status` and the vendor diff. The script does not change application code, `version.json`, grading, scores or preferences, and does not commit, tag, push or deploy.
+   Review dependency licenses, integrated-library notices and matching source links in [LICENSING.md](../../docs/LICENSING.md). Update them if upstream changes; the updater does not evaluate legal compatibility. Never drop required notices to bypass a changed package layout.
 2. Run `node --test tests/*.test.js` using Node 22 or newer.
 3. Hard-refresh your normal Live Server browser. Check score rendering/feedback alignment, zoom, track changes, Play/Pause/Resume, count-in, loops, tempo/metronome and silent Wait. Check Realtime and Wait with Fishman locally.
 4. Record the update and verification in the project documentation, then commit and push when satisfied. Updating alphaTab does not automatically bump Guitar Trainer's version.

@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+### Licensing before public release — 2026-10-24
+
+- [x] Add AGPL-3.0-or-later terms for original application content, explicit MPL coverage for native-derived alphatab-host adaptations, third-party license inventory/source links and preserved vendor notices; retain CC0 demos.
+- [x] Expose License & Source in Help/README and serve license texts through the optional local launcher. Preserve alphaTab/MIDI/Wait/feedback behavior and existing Live Server workflow.
+- [x] Require alphaTab package license/font/sound notices on updates, hash them and reject missing notices before replacement; extend isolated updater and HTTP verification. Final evidence in DEV-NOTES.md.
+- [ ] Before public hosting, make matching application source accessible and review project artwork/contribution rights and any new bundled content. Sonivox terms/provenance are upstream-declared, not independent sample clearance.
+- [ ] Owner reviews Help/guide in the normal browser. Actual hosted source/license access and physical MIDI/browser acceptance remain separate. Keep 0.0.3 and all tags; next beta release/visibility/Pages activation still on hold.
+
 ### Owner experience for TriplePlay, MG3 and MiGiC Poly — 2026-10-24
 
 - [x] Replace TriplePlay per-model qualification with successful owner experience and occasional mistakes; describe MG3 usability/extras/raked chords and MiGiC Poly Wait usability with distracting feedback hidden and many extra/wrong attacks. Mark NX/other alternatives untested; add manufacturer demo links.

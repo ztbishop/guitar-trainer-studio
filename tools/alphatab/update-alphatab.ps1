@@ -19,8 +19,11 @@ $exitCode = 0
 $requiredFiles = @(
     'alphaTab.js', 'alphaTab.core.mjs', 'alphaTab.worker.mjs', 'alphaTab.worklet.mjs',
     'font/Bravura.eot', 'font/Bravura.otf', 'font/Bravura.svg',
-    'font/Bravura.woff', 'font/Bravura.woff2', 'soundfont/sonivox.sf2'
+    'font/Bravura.woff', 'font/Bravura.woff2', 'soundfont/sonivox.sf2',
+    'font/Bravura-OFL.txt', 'font/Bravura-OFL-FAQ.txt', 'font/Bravura-FONTLOG.txt',
+    'soundfont/LICENSE', 'soundfont/README.md'
 )
+$packageNotices = @('LICENSE', 'LICENSE.header')
 
 function Assert-ToolPath([string]$Path) {
     $resolved = [IO.Path]::GetFullPath($Path)
@@ -84,15 +87,18 @@ try {
     finally { $stream.Dispose(); $sha.Dispose() }
     if ($actualDigest -cne $expectedDigest) { throw 'Package integrity verification failed; installed files were not touched.' }
 
-    # Extract only the package metadata and the runtime assets this app needs.
-    $extractEntries = @('package/package.json') + @($requiredFiles | ForEach-Object { 'package/dist/' + $_ })
+    # Keep original notices alongside runtime files; fail closed if any are missing.
+    $extractEntries = @('package/package.json') + @($packageNotices | ForEach-Object { 'package/' + $_ }) + @($requiredFiles | ForEach-Object { 'package/dist/' + $_ })
     & $tarCommand.Source -xzf $archive -C $stageRoot -- @extractEntries
     if ($LASTEXITCODE -ne 0) { throw 'Package extraction failed or required assets are missing.' }
     $package = Get-Content -LiteralPath (Join-Path $stageRoot 'package\package.json') -Raw | ConvertFrom-Json
     if ($package.name -ne '@coderline/alphatab' -or $package.version -ne $Version) { throw 'Extracted package version does not match.' }
     $prepared = Join-Path $stageRoot 'package\dist'
+    foreach ($notice in $packageNotices) {
+        Copy-Item -LiteralPath (Join-Path (Join-Path $stageRoot 'package') $notice) -Destination (Join-Path $prepared $notice)
+    }
     $fileHashes = [ordered]@{}
-    foreach ($file in $requiredFiles) {
+    foreach ($file in ($requiredFiles + $packageNotices)) {
         $path = Join-Path $prepared $file
         if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-Item -LiteralPath $path).Length -eq 0) { throw "Missing or empty asset: $file" }
         $fileHashes[$file] = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -106,7 +112,7 @@ try {
         source = $packageUrl.AbsoluteUri; integrity = $integrity; files = $fileHashes
     }
     $record | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $prepared 'vendor-manifest.json') -Encoding UTF8
-    Write-Host 'Package integrity, version and all 10 runtime assets verified.'
+    Write-Host 'Package integrity, version, runtime assets and required license notices verified.'
     if ($CheckOnly) {
         Write-Host 'Check only: installed assets have not changed.'
     } else {

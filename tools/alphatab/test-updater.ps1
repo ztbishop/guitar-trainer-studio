@@ -12,7 +12,9 @@ $breakIntegrity = $false
 $failInstallMove = $false
 $files = @('alphaTab.js', 'alphaTab.core.mjs', 'alphaTab.worker.mjs', 'alphaTab.worklet.mjs',
     'font/Bravura.eot', 'font/Bravura.otf', 'font/Bravura.svg', 'font/Bravura.woff',
-    'font/Bravura.woff2', 'soundfont/sonivox.sf2')
+    'font/Bravura.woff2', 'soundfont/sonivox.sf2',
+    'font/Bravura-OFL.txt', 'font/Bravura-OFL-FAQ.txt', 'font/Bravura-FONTLOG.txt',
+    'soundfont/LICENSE', 'soundfont/README.md')
 
 function Assert([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw $Message }
@@ -35,16 +37,20 @@ function Move-Item {
     }
     Microsoft.PowerShell.Management\Move-Item -LiteralPath $LiteralPath -Destination $Destination
 }
-function Build-Package([switch]$MissingCore) {
+function Build-Package([switch]$MissingCore, [switch]$MissingLicense) {
     $packageRoot = Join-Path $fixtureRoot 'package'
     New-Item -ItemType Directory -Path (Join-Path $packageRoot 'dist') -Force | Out-Null
     @{name = '@coderline/alphatab'; version = $testVersion} | ConvertTo-Json | Set-Content (Join-Path $packageRoot 'package.json')
+    foreach ($notice in @('LICENSE', 'LICENSE.header')) {
+        Set-Content -LiteralPath (Join-Path $packageRoot $notice) -Value "Upstream $notice fixture"
+    }
     foreach ($file in $files) {
         $path = Join-Path (Join-Path $packageRoot 'dist') $file
         New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null
         Set-Content -LiteralPath $path -Value "/*! alphaTab v$testVersion (test fixture) */"
     }
     if ($MissingCore) { Remove-Item -LiteralPath (Join-Path $packageRoot 'dist\alphaTab.core.mjs') }
+    if ($MissingLicense) { Remove-Item -LiteralPath (Join-Path $packageRoot 'LICENSE') }
     & tar.exe -czf $fixtureArchive -C $fixtureRoot package
     Assert ($LASTEXITCODE -eq 0) 'Failed to build fixture archive'
     $sha = [Security.Cryptography.SHA512]::Create()
@@ -67,7 +73,11 @@ try {
     & $updater -Version $testVersion
     Assert ($LASTEXITCODE -eq 0) 'Install failed'
     $manifest = Get-Content (Join-Path $fixtureVendor 'vendor-manifest.json') -Raw | ConvertFrom-Json
-    Assert ($manifest.version -eq $testVersion -and @($manifest.files.PSObject.Properties).Count -eq 10) 'Incomplete manifest'
+    Assert ($manifest.version -eq $testVersion -and @($manifest.files.PSObject.Properties).Count -eq 17) 'Incomplete manifest'
+    foreach ($notice in @('LICENSE', 'LICENSE.header', 'font/Bravura-OFL.txt', 'soundfont/LICENSE')) {
+        Assert (Test-Path (Join-Path $fixtureVendor $notice)) "Missing installed notice: $notice"
+        Assert ($manifest.files.$notice -eq (Get-FileHash (Join-Path $fixtureVendor $notice) -Algorithm SHA256).Hash.ToLowerInvariant()) "Notice hash mismatch: $notice"
+    }
     $backups = @(Get-ChildItem (Join-Path $fixtureTool '.backups') -Directory)
     Assert ($backups.Count -eq 1 -and (Test-Path (Join-Path $backups[0].FullName 'old-marker.txt'))) 'Previous bundle was not preserved'
     $acceptedHash = (Get-FileHash (Join-Path $fixtureVendor 'vendor-manifest.json')).Hash
@@ -80,13 +90,17 @@ try {
     & $updater -Version $testVersion
     Assert ($LASTEXITCODE -eq 1) 'Missing core module was accepted'
     Assert ((Get-FileHash (Join-Path $fixtureVendor 'vendor-manifest.json')).Hash -eq $acceptedHash) 'Missing asset touched vendor'
+    Build-Package -MissingLicense
+    & $updater -Version $testVersion
+    Assert ($LASTEXITCODE -eq 1) 'Missing license was accepted'
+    Assert ((Get-FileHash (Join-Path $fixtureVendor 'vendor-manifest.json')).Hash -eq $acceptedHash) 'Missing license touched vendor'
     Build-Package
     $failInstallMove = $true
     & $updater -Version $testVersion
     Assert ($LASTEXITCODE -eq 1) 'Simulated failed installation reported success'
     Assert ((Get-FileHash (Join-Path $fixtureVendor 'vendor-manifest.json')).Hash -eq $acceptedHash) 'Failed move did not restore vendor'
     $failInstallMove = $false
-    Write-Host 'PASS: check-only, complete install/backup, integrity failure, missing asset, and installation rollback.'
+    Write-Host 'PASS: check-only, complete install/backup and notice hashes, integrity failure, missing asset/license, and installation rollback.'
 } finally {
     $resolved = [IO.Path]::GetFullPath($fixtureRoot)
     if (-not $resolved.StartsWith($toolRoot + '\.work\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid fixture cleanup path' }

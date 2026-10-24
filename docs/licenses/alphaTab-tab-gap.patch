@@ -1,0 +1,12 @@
+diff --git a/packages/alphatab/src/rendering/TabBarRenderer.ts b/packages/alphatab/src/rendering/TabBarRenderer.ts
+--- a/packages/alphatab/src/rendering/TabBarRenderer.ts
++++ b/packages/alphatab/src/rendering/TabBarRenderer.ts
+@@ -94,7 +94,7 @@
+                 const noteNumbers: TabNoteChordGlyph | null = notes.noteNumbers;
+                 if (noteNumbers) {
+                     for (const [str, noteNumber] of noteNumbers.notesPerString) {
+-                        if (!noteNumber.isEmpty) {
++                        if (!noteNumber.isEmpty && spaces[tuning.length - str]) {
+                             spaces[tuning.length - str].push(
+                                 new Float32Array([
+                                     this.beatGlyphsStart + bg.x + notes.x + noteNumbers!.x - padding,

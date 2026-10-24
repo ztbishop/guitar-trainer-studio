@@ -1,5 +1,13 @@
 # Guitar Trainer Studio Architecture
 
+## Application and dependency licensing — 2026-10-24
+
+Original application code/docs/artwork are AGPL-3.0-or-later as stated in root LICENSE plus docs/LICENSING.md, with explicit third-party exceptions. alphatab-host.js contains native-method compatibility adaptations and is marked MPL-2.0; the combined AGPL distribution uses MPL section 3.3 additional distribution without removing MPL rights. Vendor runtime bytes remain unchanged. Original demos retain CC0; imported user media/scores retain their rights.
+
+docs/LICENSING.md owns the scope, dependency inventory, exact upstream source links, distribution duties and maintenance instructions; docs/licenses holds Apache text and integrated MIT/BSD notices. README owns player-friendly license/source navigation, inherited by README.html through readme-guide.js. index.html Help exposes License & Source, copyright and warranty/redistribution notices. The launcher allowlists root LICENSE and serves extensionless license files/.txt as text so this path works offline as well as on Live Server; containment and private-path checks remain intact.
+
+The alphaTab updater now extracts and requires seven notice/provenance files alongside ten runtime assets before replacing the vendor directory; all seventeen receive manifest hashes. Its isolated fixture verifies complete notice installation/hashes and missing-license rejection without changing the real bundle. Dependency upgrades must also review the separate integrated-library notices and versioned source references; package verification alone is not a licensing review. No new runtime module, MIDI/Wait/feedback/native transport behavior, schema or build step. Beta stays 0.0.3; next tag/release and repository visibility/hosting remain on hold. Verification and limits are recorded in DEV-NOTES.md.
+
 ## Owner-tested MIDI comparison results — 2026-10-24
 
 README appendix experience now reflects owner confirmation: TriplePlay works successfully with occasional tracking mistakes and was more reliable than software in their tests; MG3 is usable with occasional extras and some chords benefit from a gentle rake; MiGiC Poly can support Wait with distracting visuals hidden but produces many extra attacks/wrong pitches. NX and remaining alternatives stay untested. Remove the per-model TriplePlay disclaimer at the owner's request; do not turn the personal comparison into a universal benchmark. Demo links are external manufacturer pages, not bundled downloads. Explicitly retain visibility-versus-grading/detection and One at a time-versus-Together distinctions. This supersedes earlier appendix status descriptions without introducing runtime/MIDI/grading modules or changes.

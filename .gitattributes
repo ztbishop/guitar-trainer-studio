@@ -1,2 +1,8 @@
 # Preserve LF for the Mac launcher's shebang after Windows checkouts.
 *.command text eol=lf
+# Retain verified upstream notice bytes/hashes, including original whitespace.
+assets/vendor/alphatab/LICENSE text eol=lf -whitespace
+assets/vendor/alphatab/LICENSE.header text eol=lf -whitespace
+assets/vendor/alphatab/font/*.txt text eol=lf -whitespace
+assets/vendor/alphatab/soundfont/LICENSE text eol=lf -whitespace
+assets/vendor/alphatab/soundfont/README.md text eol=lf -whitespace

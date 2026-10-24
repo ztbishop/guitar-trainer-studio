@@ -2,7 +2,11 @@
 
 The root README is the player guide, shared by GitHub and README.html. Implementation history belongs in DEV-NOTES.md and TODO.md; module contracts belong in ARCHITECTURE.md. Read AGENTS.md before editing. Beta version remains 0.0.3. The owner authorizes agents to commit and push completed, verified updates with descriptive messages; AGENTS.md defines the separate version/release workflow. The next version/tag/release is on hold pending the owner's documentation update; ordinary commits/pushes continue.
 
-## Running
+## Licensing maintenance
+
+Original application content is AGPL-3.0-or-later with the exceptions and source references in [LICENSING.md](LICENSING.md). alphatab-host.js retains MPL-2.0 because it includes native alphaTab compatibility adaptations. Keep root LICENSE, vendor licenses and docs/licenses in downloadable/hosted copies. Help links through README.html to the same README license section; local-web-server.cjs explicitly serves LICENSE and plain-text notices. No new runtime module or frontend build is involved. The updater now requires and hashes seven notice/provenance files as well as ten runtime assets; its fixture tests reject missing licenses before any replacement. Review LICENSING.md/source links and integrated-library notices on every dependency upgrade. Licensing approval does not lift the current release/visibility hold.
+
+## Running the app
 
 Keep the owner's usual VS Code Live Server/browser/Fishman workflow. There is no frontend build, npm install or required helper. For ZIP users, Launchers contains a Windows `.bat` and Mac `.command`, both calling `node local-web-server.cjs --open` from the project root. Node 22+ is required only for these launchers and development checks, not for hosted browser use.
 

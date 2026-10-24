@@ -60,7 +60,22 @@ const {createAppServer} = require('../local-web-server.cjs');
     await page.keyboard.press('Escape');
     await page.locator('#btn-more').click();
     await page.locator('[data-launch-panel="help-popup"]').click();
-    const link = page.locator('#help-popup a');
+    const licenseLink = page.locator('#help-popup a[href="README.html#license-and-source"]');
+    assert.equal(await licenseLink.getAttribute('target'),'_blank');
+    const [licenseGuide] = await Promise.all([context.waitForEvent('page'),licenseLink.click()]);
+    await licenseGuide.locator('#license-and-source').waitFor();
+    assert.match(await licenseGuide.locator('#license-and-source + p').textContent(), /AGPL/);
+    const licenseResponse = await licenseGuide.request.get(`${base}/LICENSE`);
+    assert.equal(licenseResponse.status(),200);
+    assert.match(await licenseResponse.text(),/GNU AFFERO GENERAL PUBLIC LICENSE/);
+    for (const width of [1440,390]) {
+      await licenseGuide.setViewportSize({width,height:850});
+      await licenseGuide.locator('#license-and-source').scrollIntoViewIfNeeded();
+      assert(await licenseGuide.evaluate(() => document.documentElement.scrollWidth <= innerWidth),`license guide overflow at ${width}`);
+      await licenseGuide.screenshot({path:path.join(process.env.TEMP || '.',`gts-license-${width}.png`)});
+    }
+    await licenseGuide.close();
+    const link = page.locator('#help-popup a[href="./README.html"]');
     assert.equal(await link.getAttribute('target'),'_blank');
     const [guide] = await Promise.all([context.waitForEvent('page'),link.click()]);
     guide.on('pageerror', error => errors.push(error.message));

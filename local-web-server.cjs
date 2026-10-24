@@ -6,10 +6,10 @@ const {spawn} = require('node:child_process');
 const readline = require('node:readline');
 
 const ROOT = __dirname;
-const ALLOWED = new Set(['index.html', 'README.html', 'README.md', 'style.css',
+const ALLOWED = new Set(['index.html', 'README.html', 'README.md', 'LICENSE', 'style.css',
   'menu-controls.css', 'media-sync.css', 'workspace-panels.css', 'guide.css',
   'site.webmanifest', 'version.json', 'assets', 'js', 'docs']);
-const TYPES = {'.html':'text/html; charset=utf-8', '.md':'text/plain; charset=utf-8',
+const TYPES = {'':'text/plain; charset=utf-8', '.txt':'text/plain; charset=utf-8', '.html':'text/html; charset=utf-8', '.md':'text/plain; charset=utf-8',
   '.js':'text/javascript; charset=utf-8', '.mjs':'text/javascript; charset=utf-8',
   '.css':'text/css; charset=utf-8', '.json':'application/json', '.webmanifest':'application/manifest+json',
   '.svg':'image/svg+xml', '.png':'image/png', '.jpg':'image/jpeg', '.ico':'image/x-icon',

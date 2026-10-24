@@ -17,6 +17,7 @@ Guitar Trainer Studio runs in a browser and uses alphaTab to display and play yo
 - [Settings and other menus](#settings-and-other-menus)
 - [Updating your local copy](#updating-your-local-copy)
 - [Troubleshooting](#troubleshooting)
+- [License and source](#license-and-source)
 - [Appendix: MIDI input options](#appendix-midi-input-options)
 
 ## Open the app or run it locally
@@ -262,6 +263,12 @@ Turning off feedback hides visual cues; it does not clean up incoming MIDI, chan
 Whichever route you choose, confirm that it delivers live MIDI Note On/Off events at the expected pitches to an input your browser can select. A virtual MIDI port may be needed for software output. Try single notes, repeated same-pitch attacks, releases and the softest notes you normally play before testing chords; compare the converter's output with the app's diagnostics. Use a trial where available rather than buying on an untested compatibility assumption.
 
 Bass entries are research pointers, not a claim of fully validated bass support. The app's configured Hex mapping is for six guitar strings; do not apply it to bass or MPE channels merely because several MIDI channels appear. Broader bass/position-mapping work remains separate from this comparison.
+
+## License and source
+
+Guitar Trainer Studio is free and open-source software under the **GNU Affero General Public License, version 3 or later (AGPL)**, with separately licensed components. You may use, modify and share it under the applicable licenses. It is provided **without warranty**. Copyright © 2026 ztbishop and contributors.
+
+Read the [full license](LICENSE), browse the [application source](https://github.com/ztbishop/guitar-trainer-studio), or see [third-party licenses and source information](docs/LICENSING.md). Shared modified versions have source-sharing requirements; commercial use is permitted. alphaTab, its integration adaptations, fonts, sounds and the guide renderer retain their respective licenses. The original demo exercises are CC0. Your own scores and recordings keep their existing rights.
 
 ## For developers and contributors
 

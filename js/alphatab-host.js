@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// Contains compatibility adaptations of alphaTab 1.8.4 native methods.
+// Copyright (c) 2026 Daniel Kuschny and Contributors; ztbishop and contributors.
+// This file is available under MPL 2.0; see assets/vendor/alphatab/LICENSE.
+// See docs/LICENSING.md for the AGPL larger-work distribution and source links.
 // alphatab-host.js
 // Owns: all alphaTab integration (loading, rendering, playback, events)
 // Do NOT: put trainer logic here
