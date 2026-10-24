@@ -1,82 +1,186 @@
 # Guitar Trainer Studio
 
-A browser-based guitar practice app using bundled alphaTab for native score rendering and playback, with WebMIDI input for Realtime and Wait practice.
+Practice guitar with sheet music, tablature, playback and feedback from your MIDI guitar. Slow a piece down, repeat a section, or let the app wait while you find the notes.
 
-Current baseline: **Beta v0.0.3**; `version.json` records `0.0.3`. This checkpoint includes the Tempo menu, metronome timing/Wait restart fixes, and saved metronome volume. The owner will create the `v0.0.3` Git tag after committing the version update. Earlier tags remain historical checkpoints; broader browser and physical MIDI acceptance remains pending.
+**Beta v0.0.3.** Guitar Trainer Studio runs in a browser and uses alphaTab to display and play your scores. MIDI feedback needs a MIDI-capable guitar setup, such as Fishman Connect or a guitar-to-MIDI application, and a browser that supports Web MIDI. You can explore scores and playback without MIDI input.
 
-Repository: [ztbishop/guitar-trainer-studio](https://github.com/ztbishop/guitar-trainer-studio).
+[Repository](https://github.com/ztbishop/guitar-trainer-studio) · [Download ZIP](https://github.com/ztbishop/guitar-trainer-studio/archive/refs/heads/main.zip) · [Formatted guide](README.html)
 
-## Run locally
+## Start here
 
-1. Open this project folder in VS Code.
-2. Start your existing Live Server for `index.html`.
-3. Open its localhost or 127.0.0.1 address in your normal WebMIDI-capable browser, for example `http://127.0.0.1:5500/index.html` (use Live Server's actual port).
-4. Connect the Fishman Connect, allow MIDI access, and select its input in MIDI settings. Choose Poly/single-channel or Hex mode and the appropriate channel settings for the actual device output.
-5. Load a Guitar Pro or MusicXML score, select one practice track, and choose Realtime or Wait practice.
+- [Open the app or run it locally](#open-the-app-or-run-it-locally)
+- [Your first practice session](#your-first-practice-session)
+- [Scores and your library](#scores-and-your-library)
+- [Where to find music](#where-to-find-music)
+- [Practice modes and feedback](#practice-modes-and-feedback)
+- [Settings and other menus](#settings-and-other-menus)
+- [Troubleshooting](#troubleshooting)
 
-No build step or npm dependency installation is required to run the app. Serve the folder rather than opening `index.html` as a local file so browser modules, workers, and assets can load. Hard-refresh the browser after updates if it retains old files.
+## Open the app or run it locally
 
-## MIDI tolerance across practice modes
+### Hosted website
 
-Practice → MIDI input tolerance applies in Realtime and both Wait chord modes. **Allow held notes in repeated chords** offers Off, One note (default), Two notes, and Three notes for Poly/Hex. Consecutive identical pitched chords still need at least one fresh required attack; other credited notes must remain held. One prevents inferred-note carryover through successive chords; Two/Three permit carryover up to their selected maximum. At least one required fresh attack is always necessary. Saved legacy Multiple choices become Two. Diagnostics distinguish held credit from verified reattacks. Single notes and X beats retain their attack rules.
+Open the published Guitar Trainer Studio website in a Web MIDI-capable browser. There is nothing to install for the browser app. Allow MIDI access when prompted, and select your input in Settings. On desktop, Chrome is a useful starting point; your guitar's driver or MIDI software may also need setup.
 
-Confirmed tracking-spike filtering requires Hex; written-fret-range and brief off-target filtering support Poly/Hex in all practice modes. Extra-string tolerance remains Hex-only. Saved defaults/choices remain independent. Physical Fishman acceptance of these extensions remains pending. This supersedes older Wait-only descriptions below.
+### Download for local and offline practice
 
-## Current capabilities
+1. [Download the project ZIP from GitHub](https://github.com/ztbishop/guitar-trainer-studio/archive/refs/heads/main.zip) and extract the whole folder. Do not run it from inside the ZIP.
+2. Install [Node.js](https://nodejs.org/) version 22 or newer if needed. Do this while you have internet access. No npm installation is needed.
+3. Open the extracted folder's **Launchers** folder:
+   - Windows: double-click **Guitar Trainer - Windows.bat**.
+   - Mac: open **Guitar Trainer - Mac.command**.
+4. The launcher starts a small server on your computer and opens `http://127.0.0.1:8081/` in your default browser. The address also appears in the launcher window. Press **C, then Enter** there to copy it and paste into your preferred Web MIDI browser. If automatic copying fails, select and copy the displayed address.
+5. Keep the launcher/terminal window open while practicing. Press Ctrl+C in it to stop the server when finished.
 
-The virtual fretboard now has local arrow/gear controls: saved Beat / Beat + Next Beat / Beat + Bar views and Note names / Fret numbers / Finger numbers / None labels. Defaults remain Beat and Note names; explicit score fingering is blank when absent. Current targets stay blue with existing green/red pitch feedback, upcoming positions use gold outlines and earlier bar positions are faint neutral. Arrows pause, clear the existing attempt and step within the enabled loop without automatically playing. See [Fretboard guide](docs/FRETBOARD.md) for behavior and validation limits.
+The app, score playback sounds, demo scores and this guide are bundled. You can practice offline with downloaded score files and local recordings. YouTube, linked online recordings and music download sites still need internet access. Guitar-to-MIDI software may have its own requirements.
 
-Opening an uncompressed MusicXML (.xml/.musicxml) can offer **Combine notation and tab** when two explicitly grouped Guitar parts closely match. Keep separate is the initial choice, and the app asks again every time, including library reopening. Combining uses the notation part's rhythms, visibility, ties and chord symbols with the tab's fingering; tied continuations retain their original fingering and do not require reattacks. The original XML must reconcile safely or the parts stay separate with an explanation. It retains one practice track and does not edit your original/library file. Older remembered merge choices are ignored. Compressed .mxl files retain normal import behavior without this pairing check. Display → Visible tracks → All tracks remains available independently of single-track grading.
-
-MIDI settings save per input in this browser: Poly/Hex mode, single channel, Hex base/reverse order, bend range and latency. Select an input in Settings before changing its saved mode or channels. Select and configure each device once. The last selected input returns automatically at startup or when plugged in later, including before the first score loads; if absent, the app waits without substituting loopback. First use defaults to None; explicitly choosing None cancels automatic selection but retains device profiles. Use the same localhost/127.0.0.1 address and port to retain browser preferences. If a browser device ID changes, automatic recovery requires a unique matching name/manufacturer; ambiguous devices need manual selection.
-
-To update bundled alphaTab assets, open `tools/alphatab` and run `update-alphatab.cmd`. See [Updater instructions](tools/alphatab/README.md) for version selection, download-only verification, backups and post-update checks. This is optional maintenance tooling; the app still runs from local assets without a build step. The owner reviews, commits and pushes updates.
-
-- Native alphaTab score/tab rendering, playback, track display, and selected/backing track routing.
-- All-X muted beats accept one fresh MIDI attack; mixed chords require only pitched notes. Written X-string input in mixed chords is always forgiven when six-string Hex identity is available; pitched notes remain required. Practice offers saved **Ignore extra chord strings (Hex)**: Off, Skipped strings only, or All unwritten strings. Optional tolerance requires at least two pitched strings; existing enabled choices migrate to All. Poly cannot identify individual X strings. Wait protects chord/X-strum handoff, including changing pitch messages, and replaying already-collected chord tones adds no penalty. Short notes remain valid. Muted strums that produce no MIDI cannot advance Wait.
-- Wait One at a time recognizes repeated Hex chords when all but one tone have fresh attacks and the remaining tone is still held from the preceding identical chord. A brief check allows late notes; diagnostics identify held-note support separately because that string's reattack is unverified. Released notes, new chords, Poly and Together still require fresh attacks.
-- Wait Hex applies observed onset pitch-bend corrections to their own raw base note, including exact repeats of that base. Old bends cannot transpose a different note or a restarted attempt. MIDI settings save the matching bend range (±12 semitones on first use, owner-confirmed; ±2/±24 or Ignore bends are also available). Bend corrections within 60 ms can update a wrong onset on its original target; genuine uncorrected wrong notes remain errors. Later bends create no new attacks. Raw diagnostics retain both the original note and its interpretation.
-- Practice → **Filter confirmed tracking spikes (Wait Hex)** saves independently and defaults on. A wrong pitch is removed only when velocity is 20 or lower, release is within 70 ms, distance from the written tone on that string is at least nine semitones, and a correct tone at least twice as strong follows on the same channel within 200 ms. It also reconciles a wrong onset released within 5 ms and replaced within 20 ms by the correct same-string pitch at equal/greater velocity. It also tolerates one immediate stronger retrigger of a soft, released, correctly completed single across the next target, unless that target requires the pitch. Raw MIDI and the correction reason remain in diagnostics. Short correct notes remain immediate; Poly and Realtime are unchanged by this confirmed-artifact filter.
-- Practice → **Ignore notes outside written fret range (Wait)** is a separate optional, saved safeguard, default off. It allows the current written fretted shape plus five frets on either side and open strings. Hex checks the reported string; Poly ignores a pitch only if no string fits. This estimates a written range, not actual hand position; it can hide real distant mistakes. Missing fingering leaves input unchanged. Realtime is unchanged.
-- Practice → **Ignore brief off-target notes** is optional Wait tolerance for Poly and Hex, off on first use. Correct notes count immediately; wrong MIDI notes released before the selected minimum duration are forgiven, including real brief mistakes. Default 30 ms; type 5–100 ms or use 5 ms arrows. Both enabled choice and duration save per MIDI input, even while disabled. Sustained errors stay attached to their original target. Final/loop results briefly wait for outstanding duration checks. Raw diagnostics retain all messages and separate filtering decisions.
-- Repeat-aware Realtime pitch/timing grading and silent Wait stepping as each target is solved. A repeated MIDI Note-On for the same channel/pitch is ignored while that note is held; a Note-Off is required before it can count as another attack.
-- Linked BPM/speed controls, native metronome volume and visual pulse, occurrence-aware section loops, MIDI latency adjustment, and Wait Collect notes/Together chord settings. Wait's metronome runs independently at the set BPM.
-- Piano-style Loop menu uses the shared touch-friendly sliders and horizontal arrows (one-measure steps). Enable Loop and Loop Count-in default off on page/score load and are not saved. Play/resume gets a one-bar count-in; Loop Count-in adds one at each repeat. Native score dragging selects whole measures and enables looping; sliders remain precise for repeat occurrences. Out-of-range written measures are shaded, and cursor seeks remain inside an enabled loop.
-- Pause/Resume retention, compact **Clear practice results** at the current position, completion summaries, and mistake history.
-- Piano-style toolbar sizing and responsive collapse/stacking. Practice owns visual feedback; Display owns track visibility/fretboard orientation; Audio provides separate saved synth and synced-media master volumes plus native track volume/mute alongside practice/backing switches. Audio also shifts alphaTab synthesized score playback by -12 to +12 semitones for the loaded score; notation, tab and MIDI grading targets are unchanged. Full score transposition remains deferred. Settings has collapsed MIDI/practice diagnostics. Browser library supports original score files, folders, search, bulk import, rename/move/delete and JSON backup/merge; see [Library and audio guide](docs/SCORE-LIBRARY.md).
-- Staff correctness feedback and actual wrong-pitch noteheads, compact red tab error highlights, green correct-fret highlights on the active target, incorrect fret numbers, and an optional left-handed-capable fretboard whose string count/tuning follow the selected tablature. Blue expected-note outlines are omitted; a narrow, faded light-blue cursor marks the active beat. Historical correct tab frets stay unmarked. See [Fretboard guide](docs/FRETBOARD.md).
-- Opt-in MIDI/feedback recording in Settings diagnostics, with screenshot markers, a bounded stopped preview, full reports generated on demand by Copy/Save, and Clear recording. If clipboard access fails, full selectable text appears temporarily until focus leaves the readout. Recording changes no grading and is cleared on refresh.
-- Configured Hex string-channel feedback; optional Poly fret estimates only for an unambiguous remaining written note. Estimates are display feedback, not detected string identity.
-- MIDI hotplug handling detaches the selected input on disconnect without an additional close call into the disconnected port, ignores stale callbacks and duplicate device notifications, and reconnects the same input ID when it returns. It does not silently switch to another device. Device/debug UI updates are grouped by browser frame; grading/capture remain synchronous. Connected device switches still close the former input. Full-browser USB-disconnect freeze acceptance remains a local hardware check; see [Disconnect investigation](docs/MIDI-DISCONNECT.md).
-
-Both MIDI modes currently use pitch grading. Hex supports ascending or descending channels from the lowest-string base, with valid base choices and a visible channel sequence. Display provides native zoom (50–200%), auto-scroll, fullscreen on Play, and chord diagram placement (Score Default, Above Chord, Top of Score or Off). These viewing preferences persist across sessions and score loads; fullscreen still activates only on Play. Practice exposes Realtime/Wait and Wait chord choices as radio buttons. Practice mode, Wait chord choice/window and all four Score feedback switches persist in localStorage. First use defaults to Realtime, One at a time/200 ms and all feedback checked; later sessions and score loads retain your choices. Track mix lasts for the loaded score; master/metronome volume and the score library persist. Library storage belongs to this browser/address/port; keep downloaded backups. Exact-string grading and broader preference persistence remain planned. Follow mode, harmony/exercise tools, LEDs and deeper instrument support remain deferred. Piano Trainer changes require a separate task.
-
-## Tests and local acceptance
-
-More → Media Sync supports local audio/video, direct media URLs, YouTube and GP embedded audio, with a compact editor and managed sync profiles. Main Play/Pause uses the selected Synth audio or Recording source; Tempo percentage controls both. With the editor closed, Realtime grades MIDI against aligned recording time and Wait keeps audio paused/muted while advancing video with solved targets. An open editor is ungraded preview in either mode: playing seeks continue, 50 ms buttons adjust points immediately, and capture pauses; dragging pauses during movement and resumes from the placed point only if previously playing. Practice loops/count-in are suspended until closing the editor, which pauses and restores practice choices. Start/End/beat labels distinguish final and intermediate anchors. Measure/beat selection preserves recording time and playback; waveform selection preserves the score target. Choose either first, then Add/Update sync point to save the fixed selected recording time. Waveform clicks or typed seconds select that time; Use playhead time only copies playback time into the selection. A dotted red recording marker stays fixed while the dark playhead moves. Red target and dark playhead indicators occupy separate strips; paused seeks reveal the native score cursor without changing Auto-scroll. Magnifier zoom, nudges and automatic local waveforms support fine tuning; clicking the waveform seeks both audio and score. Save stays directly in the editor. Audio-only sources do not need a separate player panel; visible video retains its panel. See [Media guide](docs/MEDIA-SYNC.md). Bundled alphaTab is 1.8.4, with a narrow runtime compatibility guard for its recursive worker getter and intact vendor assets. Latest checks: 224 Node tests, 96 desktop / 95 phone app checks, and 17 native/storage browser checks. Actual Fishman/provider acceptance remains local.
-
-With Node 22 or newer, run from the project root:
+On a Mac, the downloaded `.command` file may need permission to run. If necessary, open Terminal in the extracted project folder and run:
 
 ```sh
-node --test tests/*.test.js
+chmod +x "Launchers/Guitar Trainer - Mac.command"
 ```
 
-The current 2026-10-13 suite passes 201 automated tests (142 at the v0.0.2 checkpoint), including native multi-string GP imports, mirrored neck geometry and held-note feedback. The fretboard browser harness adds 56 scenarios at desktop/phone widths; native track switching covers 1/4/5/6/7/8/12 strings. Earlier coverage includes native looping/selection, count-in, MIDI, grading, Tempo, preferences, mixer and library behavior. Library/mixer checks include 12 real IndexedDB cases and Live Server MusicXML save/reopen, folders, rename/move/search, backup/merge, Audio and Display. Full listening, physical tablet and Fishman acceptance remain local; automated checks do not establish them.
+Then open the launcher again. You can also start the local server directly from that folder with `node local-web-server.cjs --open`. Mac security prompts may depend on how the ZIP was downloaded; only allow files you trust.
 
-Use your normal Live Server/browser setup to check Realtime Pause/Resume, Wait mistake retention and note releases, Together strums, per-string channel identity, repeats/loops/seeks, and overlay alignment through zoom/resize. Relevant stage notes provide detailed scenarios; the current specification below overrides their older instructions.
+The launcher serves only this computer. It is not a Wi-Fi/tablet server. It needs no VS Code or Live Server. Opening `index.html` directly as a disk file is not supported.
 
-## Project guidance and next tasks
+### Already using VS Code and Live Server?
 
-- [AGENTS.md](AGENTS.md): standing instructions for coding agents.
-- [TODO](docs/TODO.md): current requirements, status, priorities, and pending acceptance.
-- [Development notes](docs/DEV-NOTES.md): dated decisions and validation history.
-- [Architecture](docs/ARCHITECTURE.md): module boundaries and data flow.
-- `docs/STAGE-*.md`: historical implementation and acceptance details.
+Keep using it. Open this folder, start Live Server for `index.html`, and use its actual localhost/127.0.0.1 address and port in your usual browser. No build step is required. After an update, hard-refresh if the browser shows old controls.
 
-Start a separate chat in this local project for each major task, keeping related implementation and testing in that chat. New chats should read the files above and check Git status. Keep one coding chat actively editing the shared folder at a time. Earlier discussions live in the ChatGPT project **Guitar Trainer**; their availability must be checked, and full history is not assumed to carry into a new chat.
+## Your first practice session
 
-Suggested starting prompt:
+1. Connect your MIDI guitar interface and start any MIDI conversion software it needs.
+2. Open **Settings** and select the correct MIDI input. Match **Poly** or **Hex** to your device output:
+   - **Poly / single channel:** notes share a MIDI channel; the app knows pitch but cannot reliably identify the played string.
+   - **Hex / six channels:** each string sends on a different channel. Set the lowest-string base channel and channel order to match your device.
+3. Open **Scores**. Choose **Open File**, or expand **Try a demo score** and open **First notes**.
+4. Open **Practice**, select the guitar track you want to practice, and choose **Wait** to learn at your own pace or **Realtime** to practice timing.
+5. Press **Play**. There is a one-bar count-in. In Wait, play the expected note or chord to move forward. In Realtime, follow the score at the set tempo.
+6. Use **Pause** for a break; ordinary Pause/Resume preserves your results. **Reset** returns to the start. **Clear practice results** starts fresh at the current position.
 
-> Read AGENTS.md and the project documentation, check Git status, and continue with: [task description].
+Both Poly and Hex currently grade **pitch**, not exact string/fret position. Playing the right pitch at another guitar position can still count. Feedback about strings depends on your MIDI configuration; optional Poly fret estimates are guidance, not detected hand positions.
 
-Agents edit this folder directly, update relevant documentation, run appropriate checks, and provide a brief summary, local test instructions, and suggested commit description. The owner handles commits, tags, pushes, and deployment unless explicitly requested otherwise. After reviewing/testing an update, commit a checkpoint and push it to GitHub when ready; a commit saves local history and a push copies it to the remote repository.
+## Scores and your library
+
+Supported files are **Guitar Pro** (`.gp`, `.gp3`, `.gp4`, `.gp5`, `.gpx`) and **MusicXML** (`.xml`, `.musicxml`, `.mxl`). A PDF, image, ordinary text tab, MIDI file or webpage is not a supported score file.
+
+- **Open File** opens a score for this session. It does not save it automatically.
+- **Save to Library** keeps a browser copy of the open score.
+- **Add File(s)** saves one or more files to the library without opening them. Files go into the selected folder, or Unfiled when All Scores is selected.
+- Click a saved score to open it. Use its three-dot menu to rename, move or delete it. Use folders and search to organize your collection.
+- **Manage** lets you select multiple scores or folders. Deleting a folder also deletes its saved scores after confirmation. Original files on your computer are unaffected.
+- **Backup Library** downloads a JSON backup. **Import Library (Merge)** adds a Guitar Trainer backup without replacing your existing library. Piano Trainer backups use a different format and cannot be imported.
+
+**Keep backups outside your browser.** The library belongs to this browser profile and website address. The hosted site, local launcher, and Live Server can have separate libraries. Even `localhost` and `127.0.0.1`, or different ports, are separate. Clearing browser data can remove saved scores. Backups include saved sync profiles but exclude recordings, MIDI settings, display preferences and practice results.
+
+Some uncompressed MusicXML files contain separate, closely matching notation and tab guitar parts. When offered **Combine notation and tab**, you can combine them for practice or keep them separate. The original file is not changed. The app asks each time; compressed `.mxl` uses its normal import path.
+
+### Included demos
+
+Scores → **Try a demo score** offers three original, four-measure exercises in standard six-string tuning:
+
+- **First notes:** a slow single-note melody on the top three strings.
+- **Easy chords:** Em, Am and C, including repeated chords. Try Wait's One at a time before Together.
+- **Gentle picking:** individual notes through Em and Am shapes.
+
+Opening a demo replaces the current open score just like opening another file. It does not start playback or add anything to your library. Choose Save to Library if wanted. The demos are available offline and are offered under CC0; see [demo source and reuse details](assets/demos/README.md).
+
+## Where to find music
+
+You can use your own scores or download compatible files from music publishers and tab collections. A few starting points:
+
+- [Guitar Pro's official free tabs pack](https://www.guitar-pro.com/free-tabs) offers downloadable Guitar Pro examples.
+- [Michel Lelong's Music House](https://www.michel-lelong-music-house.com/en/free-tablatures/) offers guitar material in Guitar Pro and PDF formats. Choose the Guitar Pro file for this app.
+- If you already write or edit music, export **MusicXML** from your notation program, preferably retaining guitar tablature and tuning information.
+
+Check the actual download format before buying or downloading. An online player or PDF is not enough; save a supported file to your computer, then use Scores → Open File. Accounts, prices and download availability are set by the source. Follow each publisher's usage terms. These links are suggestions for finding files, not a promise that every arrangement has been tested with this app.
+
+Scores with clear guitar tracks and written tab are especially useful for the virtual fretboard. Check the arrangement's tuning, capo and difficulty against your guitar before practicing. You do not need Guitar Pro installed just to open a supported file here.
+
+## Practice modes and feedback
+
+### Realtime
+
+The score moves at the selected tempo. Play along to practice pitch and timing; missed notes and wrong attacks affect the result. Slow down in Tempo and work on a smaller Loop if needed.
+
+### Wait
+
+The app stays on each target until the required pitches are supplied. Score accompaniment stays paused. Choose a chord approach in Practice:
+
+- **One at a time:** collect the required notes without a time limit.
+- **Together:** play the required attacks within the selected chord window (200 ms on first use).
+
+Repeated notes normally need a fresh attack. The **Allow held notes in repeated chords** option can credit eligible still-held tones in consecutive identical chords, but at least one required note must receive a fresh attack. Off, One, Two and Three select the allowance; One is the initial choice.
+
+Written muted **X** beats need a fresh MIDI attack. If your muted strum produces no MIDI at all, Wait cannot detect it. In mixed chords, pitched notes remain required.
+
+### Reading the feedback
+
+- The light-blue score cursor shows the current beat.
+- Staff feedback uses green for correct notes and red for mistakes; wrong pitches can appear as red noteheads.
+- Tab shows green correct frets on the active target and red errors. Original written frets remain intact; incorrect fret numbers appear beside them where supported.
+- The fretboard uses blue targets, green correct notes and red mistakes. Optional upcoming-note views use gold outlines; earlier positions in the bar are faint.
+
+Practice has independent switches for Staff, tab highlights, incorrect fret numbers and Poly estimates. Hiding feedback does not change grading. Poly estimates are shown only when the remaining written note makes the estimate unambiguous.
+
+## Settings and other menus
+
+Some toolbar items move into **More** when the window is narrow.
+
+### Practice and MIDI input tolerance
+
+Practice selects one track and the practice mode. Expand MIDI tolerance only when you need it:
+
+- **Held notes** helps recognize repeated identical chords while allowing some tones to keep ringing.
+- **Ignore extra chord strings (Hex)** can forgive selected unwritten strings in chords. It does not supply missing required pitches.
+- **Filter confirmed tracking spikes (Hex)** filters specific MIDI sequences that indicate tracking artifacts.
+- **Ignore notes outside written fret range** uses the written shape as a guide, not your actual hand position.
+- **Ignore brief off-target notes** forgives wrong notes shorter than your chosen duration, including real brief mistakes.
+
+These options apply in Realtime and both Wait chord choices; string-based options need Hex input. Start with the defaults and change one option at a time. Some filters can hide genuine mistakes. Changing a tolerance option pauses practice and clears results. Realtime timing adjustment helps when your MIDI notes arrive late.
+
+### Tempo and Loop
+
+Tempo links BPM and playback percentage. Metronome volume and visual pulse help you keep time; Wait's metronome runs independently. Changing playback speed pauses practice and resets results.
+
+Loop selects the section to repeat. Native score dragging selects whole measures; sliders allow precise repeat-occurrence choices. Play/resume has a one-bar count-in; Loop Count-in adds one at each repeat. Loop enablement and Loop Count-in reset when a score loads; they are not saved preferences.
+
+### Display and the fretboard
+
+Display controls zoom, auto-scroll, full screen on Play, chord diagrams, visible tracks and fretboard visibility. Showing all tracks does not change which single track is graded.
+
+Use the **gear on the fretboard** for Beat / Beat + Next Beat / Beat + Bar views, note/fret/finger labels, left-handed orientation and help. Finger labels need explicit fingering in the score; the app does not invent it. Left-handed display does not reverse MIDI channel mapping.
+
+Fretboard arrows pause and browse targets while clearing the current attempt. Drag the divider to resize the panel; double-click it to restore automatic fit. Saved display choices return when you reopen the app.
+
+### Audio and recordings
+
+Audio has separate synth and synced-recording volumes, practice/backing playback switches, and track volume/mute controls. These control the app's sounds, not your guitar interface's own sounds. Track mix resets for each score; master volumes are remembered.
+
+Synth playback pitch shifts the synthesized sound only. It does not transpose the written score, tab, MIDI targets or recordings.
+
+**More → Media Sync** lets you align local audio/video, direct media URLs, YouTube or embedded score audio with your score. Use Synth audio or Recording as the playback source. While the sync editor is open, playback is an ungraded preview; close it to resume normal practice. In Wait, the recording stays paused/muted while solved targets can advance video. See the [media guide](docs/MEDIA-SYNC.md) for detailed alignment instructions. Local recordings can work offline; linked online sources need a connection.
+
+### Settings and saved choices
+
+Settings selects the MIDI input and its mode/channel/bend configuration. Device settings save separately for each input. The last selected device can return automatically when reconnected; choosing None cancels that automatic selection.
+
+Practice mode, Wait chord settings, feedback switches, display choices and master volumes are remembered in this browser. Use a consistent website address and port to keep access to those saved choices. Practice results are temporary. Expand diagnostics only for troubleshooting or to record a MIDI report; recording does not change grading.
+
+## Troubleshooting
+
+- **No MIDI input?** Use a Web MIDI-capable browser, allow MIDI access, check the device/software connection, then select the input in Settings. A normal guitar audio cable alone does not provide MIDI.
+- **Wrong strings or frets in Hex?** Check every string against the configured channel sequence. Left-handed orientation changes only the display. Pitch grading remains pitch-based.
+- **Wait will not move?** Check the selected practice track, tuning and required notes. Release and replay a repeated note; try One at a time for chords. Muted notes need an actual MIDI message.
+- **No sound?** Check Audio's synth/media volume, practice/backing switches, track mute and your computer output. Wait does not play score accompaniment. Start playback with the app's Play button.
+- **Saved scores disappeared?** Confirm the browser profile, hostname and port. Import your downloaded Guitar Trainer backup if needed.
+- **Launcher says Node.js is missing?** Install Node.js 22 or newer, then reopen the launcher. No npm commands are needed.
+- **Port already in use?** Close the other Guitar Trainer launcher. Advanced users can set `GTS_PORT` to another port before starting; that address has its own browser library/preferences.
+- **Guide or app will not load from disk?** Use the website, launcher or Live Server instead of double-clicking an HTML file.
+
+This is beta software. Compatibility depends on score contents, browser and MIDI device behavior. Exact-string/fret grading and Follow mode are not implemented. Automated checks do not establish physical MIDI accuracy or every score/provider combination.
+
+## For developers and contributors
+
+The app has no frontend build step. Keep native alphaTab rendering/playback and the existing MIDI/session boundaries. Start with [AGENTS.md](AGENTS.md), then [architecture](docs/ARCHITECTURE.md), [TODO](docs/TODO.md) and [development notes](docs/DEV-NOTES.md). [Development setup and checks](docs/DEVELOPMENT.md) covers the server, demos and guide. Detailed subsystem references include the [score library](docs/SCORE-LIBRARY.md), [fretboard](docs/FRETBOARD.md) and [media sync](docs/MEDIA-SYNC.md).

@@ -4,6 +4,8 @@ Implemented 2026-10-13. Keep using VS Code Live Server; no build or helper is re
 
 ## Scores
 
+- **Try a demo score** (2026-10-24) opens one of three bundled original CC0 exercises through the same native host path as Open File. This does not start playback or add it to the browser library; choose Save to Library explicitly. Files/sources/provenance are in assets/demos. There is no first-run library import. The adjacent guide link opens README.html in a separate tab. See DEVELOPMENT.md for optional Windows/Mac ZIP launchers; each website/launcher/Live Server origin still has its own library.
+
 - **Open File**, **Save to Library**, **Backup Library**, and **Import Library (Merge)** are grouped at the top of Scores. Open File loads Guitar Pro (`.gp`, `.gp3`, `.gp4`, `.gp5`, `.gpx`) or MusicXML (`.xml`, `.musicxml`, `.mxl`) through native alphaTab; opening does not automatically save it.
 - **Add File(s)** accepts multiple score files and saves them without opening them. New files go into the selected folder; with All Scores selected, they go to Unfiled. Native parsing happens when a saved score opens.
 - The folder pane filters the score list. **New Folder** creates a single-level folder. The folder three-dot menu renames or deletes it. Deletion warns how many saved scores inside will also be deleted, with Cancel focused by default. Confirming deletes the folder and its contents; Cancel or Escape preserves them. This matches Piano Trainer's behavior (2026-10-14). Search matches title or filename.

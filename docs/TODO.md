@@ -1,5 +1,15 @@
 # Guitar Trainer Studio: status and to-do
 
+### Beginner guide, optional demo scores and local launchers — 2026-10-24
+
+- [x] Rewrite root README as player guidance for hosted use, ZIP/offline launchers, MIDI setup, scores/library, modes, menu pointers, feedback, music sources and troubleshooting. Preserve useful technical guidance in docs/DEVELOPMENT.md and existing subsystem docs; remove stale/contradictory history from the player guide.
+- [x] Add README.html backed by the same Markdown and a local licensed renderer; keep a brief in-app quick start with a full-guide link opening a separate tab.
+- [x] Add three original CC0 GP demos with editable sources and optional native loading from Scores. No automatic library seeding/saving/playback; existing Save to Library remains explicit.
+- [x] Add one Launchers folder with Windows .bat and Mac .command files plus a dependency-free Node 22+ loopback static server. Retain Live Server, normal browser and native MIDI/practice behavior. Explain offline assets versus internet-dependent media and separate browser origins.
+- [x] 429 Node regressions pass, including real HTTP path/method/MIME checks, launcher port failure handling, injected clipboard success/failure and all three native demo import/SVG/practice timelines. Changed JavaScript syntax and whitespace checks pass. Isolated desktop/phone browser demo/guide/offline flows pass; evidence is recorded in DEV-NOTES.
+- [x] Launcher displays the local URL and offers C then Enter to copy for a browser of the user's choice; failed automatic copying retains manual-copy instructions. No LAN address is advertised.
+- [ ] Owner tests the extracted Windows ZIP launcher, guide/new-tab navigation, all three demos, explicit save/reopen, offline local playback and a familiar Fishman practice session. Test Mac launcher permissions/Terminal/browser on actual macOS. Hardware, listening, platform prompts and owner visual acceptance remain pending. No published URL has been supplied/verified; add it to the guide when available.
+
 ### Scale full neck into manually shortened frame — 2026-10-24
 
 - [x] Scale down the full fretboard to fit short frames, keeping all strings visible and circles round instead of vertical scrolling. Preserve horizontal scrolling, saved manual height and natural-size automatic reset.

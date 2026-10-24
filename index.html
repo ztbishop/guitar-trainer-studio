@@ -73,6 +73,17 @@
         <input id="library-import-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl" multiple hidden />
         <input id="library-backup-input" type="file" accept=".json,application/json" hidden />
         <p id="library-status" class="field-help" role="status" aria-live="polite">Opening score library…</p>
+        <details class="scores-demos">
+          <summary>Try a demo score</summary>
+          <p class="field-help">Short original exercises in standard tuning. Open one to explore, then choose Save to Library if wanted.</p>
+          <div class="scores-library-actions">
+            <button type="button" data-demo-score="melody">First notes</button>
+            <button type="button" data-demo-score="chords">Easy chords</button>
+            <button type="button" data-demo-score="picking">Gentle picking</button>
+          </div>
+          <p id="demo-score-status" class="field-help" role="status" aria-live="polite"></p>
+          <a href="./README.html#scores-and-your-library" target="_blank" rel="noopener">Loading scores and finding music</a>
+        </details>
 
         <div class="library-browser">
           <section class="library-pane library-folders-pane" aria-labelledby="library-folders-heading">
@@ -377,7 +388,18 @@
       </div>
     </section>
 
-    <section id="help-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content"><h2>Help &amp; Guide</h2><ol class="menu-help-list"><li>Open a Guitar Pro or MusicXML score from Scores.</li><li>Select your Fishman or other MIDI input in Settings. Choose Poly/single-channel or your configured six-channel Hex layout.</li><li>In Practice, choose a track and Realtime or Wait. Both currently grade pitch.</li><li>Use Tempo and Loop to work on a section. Play starts with a count-in; Pause preserves results.</li></ol><p>Visual feedback is in Practice; track visibility and the optional fretboard are in Display. Audio controls selected/backing-track playback.</p><p class="field-help">Poly fret estimates are optional guidance, not detected positions. Left-handed fretboard orientation does not reverse MIDI channel mapping.</p><a href="./README.md" target="_blank" rel="noopener">Project setup and current limitations</a></div></section>
+    <section id="help-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content">
+      <h2>Help &amp; Guide</h2>
+      <ol class="menu-help-list">
+        <li>In Scores, open your Guitar Pro or MusicXML file, or try a demo.</li>
+        <li>Select your MIDI input in Settings. Match Poly or Hex and its channels to your device.</li>
+        <li>In Practice, choose one guitar track. Try Wait to learn the notes, or Realtime to practice timing.</li>
+        <li>Press Play. Use Tempo to slow down and Loop to repeat a section. Pause preserves results.</li>
+      </ol>
+      <p>Practice controls score feedback. Display controls zoom, visible tracks and fretboard visibility. The fretboard gear holds its views, labels and left-handed option. Audio controls synthesized playback and recording volumes.</p>
+      <p class="field-help">Both MIDI modes grade pitch; Poly fret estimates are guidance, not detected positions. Left-handed display does not reverse MIDI channels. Back up your browser score library from Scores.</p>
+      <a href="./README.html" target="_blank" rel="noopener">Open full guide — setup, settings and finding music</a>
+    </div></section>
 
     <section id="media-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true"><div class="menu-content">
       <h2>Media &amp; Sync</h2>

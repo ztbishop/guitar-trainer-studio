@@ -1,0 +1,2 @@
+# Preserve LF for the Mac launcher's shebang after Windows checkouts.
+*.command text eol=lf

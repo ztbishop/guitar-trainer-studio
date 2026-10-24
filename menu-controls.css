@@ -276,6 +276,10 @@
 .practice-advanced { grid-column: 1 / -1; }
 .practice-advanced .field-group { margin: 0; }
 .scores-menu-content { padding: 14px 22px 22px; }
+.scores-demos { margin: 12px 0 16px; }
+.scores-demos .scores-library-actions { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.scores-demos > a { color: #245f88; }
+#demo-score-status:empty { display: none; }
 .scores-library-actions { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
 .scores-library-actions > button, .scores-library-actions .button-like { width: 100%; min-height: 48px; padding: 8px 10px; border-radius: 9px; box-shadow: none; text-align: center; box-sizing: border-box; }
 .scores-library-actions .file-picker { display: flex; min-width: 0; margin: 0; }

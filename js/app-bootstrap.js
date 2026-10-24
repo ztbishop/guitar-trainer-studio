@@ -32,6 +32,7 @@ import {
   updateActiveTargetsFromPlayback,
 } from './practice-engine.js';
 import { initScoreLibrary } from './score-library.js';
+import {initDemoScores} from './demo-scores.js';
 import { initToolbar } from './toolbar-ui.js';
 import { initTransportControls } from './transport-controls.js';
 import { initChordControls } from './chord-controls.js';
@@ -730,6 +731,7 @@ async function bootstrap() {
   loadMidiDebugPreference();
   const toolbar=initToolbar();
   scoreLibrary=initScoreLibrary(loadScoreFile);
+  initDemoScores(loadScoreFile);
   audioControls=initAudioControls((kind,value)=>{if(kind==='master')applyMasterVolume();else if(kind==='media')mediaControls?.setVolume(value);else applyTrackMixer();});
   pitchControls=initPitchControls(applyPlaybackPitchOffset);
   mediaControls=initMediaControls({beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTime,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setMediaEditing,revealMediaScoreTarget,setSpeed:setPlaybackSpeed},
