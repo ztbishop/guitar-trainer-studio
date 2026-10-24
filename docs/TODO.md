@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+### Fretboard previews, labels and paused browsing — 2026-10-23
+
+- [x] Add saved Beat (default) / Beat + Next Beat / Beat + Bar views. Blue current, gold future outlines, faint neutral past; current feedback wins over deduplicated context and historical errors do not color context.
+- [x] Add saved Note names (default) / Fret numbers / Finger numbers / None. Use explicit native fingering only, blank when absent; preserve pitch-based Poly/Hex grading and independent score feedback.
+- [x] Add local arrow/gear controls, synchronized orientation and help. Arrows pause/cancel count-in, clear existing attempt/held state, seek within the enabled loop and remain paused. Disable during sync editing; retain existing pre-Play/startup behavior and compact panel geometry.
+- [x] Add automated context, native fingering round-trip, persistence and isolated Live Server controls/navigation checks; see DEV-NOTES for final evidence and limits.
+- [ ] Owner hard-refreshes usual Live Server browser: review all views/labels, missing/present fingering, left-handed/hidden persistence, and arrow stepping from playing/paused Realtime/Wait. Compare alternate-position Poly green, partial chords, wrong-note rings/release, repeats/loop edges and synced recording pause/seek. Physical Fishman/MIDI Guitar, listening, representative user files and appearance acceptance remain pending.
+
 ### Pre-Play fretboard target preview — 2026-10-23
 
 - [x] Preview the next written attack in blue before Play when no session target exists; follow track/loop selection and retain paused current targets. Do not start grading, transport or create a session target.

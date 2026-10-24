@@ -67,6 +67,7 @@ export function buildPlaybackTimeline(tickCache, { tempo = 120, ticksPerQuarter 
           string: note.string > 0 && beat.voice.bar.staff.tuning.length >= note.string
             ? beat.voice.bar.staff.tuning.length + 1 - note.string : null,
           fret: Number.isFinite(note.fret) ? note.fret : null,
+          leftHandFinger: Number.isInteger(note.leftHandFinger) ? note.leftHandFinger : -2,
           isDead: Boolean(note.isDead),
           attack: !note.isTieDestination,
           tieOriginId: note.tieOrigin ? String(note.tieOrigin.id) : null,

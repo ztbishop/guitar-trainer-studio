@@ -52,7 +52,7 @@ export function fretboardDisplayEvent({trainer,events=[],tick=0,editing=false}) 
   return events.find(event=>event.startTick>=tick-1) ?? null;
 }
 
-export function buildFretboardModel({track,currentEvent,noteStates={},activeNotes=[],liveWrongNotes=[],inputMode='single-channel',leftHanded=false,lastFeedback=null,noScore=false}) {
+export function buildFretboardModel({track,currentEvent,contextEvents=[],labelMode='notes',noteStates={},activeNotes=[],liveWrongNotes=[],inputMode='single-channel',leftHanded=false,lastFeedback=null,noScore=false}) {
   // Startup display only; never substitute guitar tuning for an unsupported loaded track.
   const staff=track?.staves?.[currentEvent?.staffIndex??0] ??
     (noScore && !track ? {tuning:[64,59,55,50,45,40],capo:0,transpositionPitch:0} : null);
@@ -62,8 +62,21 @@ export function buildFretboardModel({track,currentEvent,noteStates={},activeNote
   const stringMapped=inputMode==='hex-6ch' && stringCount===6;
   const openPitches=tuning.map(pitch=>pitch+(staff.capo||0)-(staff.transpositionPitch||0));
   const targets=(currentEvent?.notes||[]).filter(n=>!n.isDead&&Number.isInteger(n.string)&&n.string>=1&&n.string<=stringCount&&Number.isInteger(n.fret)&&n.fret>=0&&n.fret<=36)
-    .map(note=>({string:note.string,fret:note.fret,midi:note.midi,state:noteStates[note.id]||'expected'}));
-  const maxFret=Math.max(24,...targets.map(n=>n.fret));
+    .map(note=>({string:note.string,fret:note.fret,midi:note.midi,finger:note.leftHandFinger,state:noteStates[note.id]||'expected'}))
+    .filter((marker,index,all)=>all.findIndex(other=>other.string===marker.string && other.fret===marker.fret)===index);
+  const occupied=new Set(targets.map(note=>`${note.string}:${note.fret}`));
+  const context=[];
+  // Future wins over past at a shared position; current targets win over both.
+  for(const event of [...contextEvents].sort((a,b)=>(a.previewState==='future'?-1:1)-(b.previewState==='future'?-1:1))) {
+    if(event.staffIndex!==currentEvent?.staffIndex)continue;
+    for(const note of event.notes) {
+      const key=`${note.string}:${note.fret}`;
+      if(note.isDead || !Number.isInteger(note.string) || note.string<1 || note.string>stringCount ||
+        !Number.isInteger(note.fret) || note.fret<0 || note.fret>36 || occupied.has(key))continue;
+      occupied.add(key);context.push({string:note.string,fret:note.fret,midi:note.midi,finger:note.leftHandFinger,state:event.previewState});
+    }
+  }
+  const maxFret=Math.max(24,...targets.map(n=>n.fret),...context.map(n=>n.fret));
   const played=[];const seen=new Set();
   for(const note of activeNotes) {
     for(let string=1;string<=stringCount;string++) {
@@ -78,7 +91,7 @@ export function buildFretboardModel({track,currentEvent,noteStates={},activeNote
     }
   }
   const missingPositions=currentEvent?.isPercussive ? ' Muted strum: any fresh attack; no required fret.' : targets.length<(currentEvent?.notes.length||0) ? ' Some target notes have no supported tab position; see Practice feedback.' : '';
-  return {supported:true,stringCount,stringMapped,openPitches,targets,played,maxFret,leftHanded,capo:staff.capo||0,
+  return {supported:true,stringCount,stringMapped,openPitches,targets,context,labelMode,played,maxFret,leftHanded,capo:staff.capo||0,
     message:(stringMapped?'Played positions use configured MIDI string channels; exact-position grading remains off.':inputMode==='hex-6ch'?`Six-channel input does not map this ${stringCount}-string tablature. Played markers show possible pitch positions, not detected strings.`:'Played markers show possible positions; single-channel MIDI does not identify the string.')+missingPositions,
     unmappedPitches:[...new Set(activeNotes.filter(n=>!played.some(p=>p.midi===n.midi)).map(n=>n.midi))]};
 }

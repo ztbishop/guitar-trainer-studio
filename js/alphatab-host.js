@@ -1240,6 +1240,19 @@ export function pause() {
   return true;
 }
 
+// Explicit paused browsing, shared by fretboard arrows. Never starts playback.
+export function seekPausedTick(tick) {
+  if(!alphaTabApi || !AppState.playerReady || AppState.media.editing || !Number.isFinite(tick))return false;
+  cancelCountIn();alphaTabApi.pause();
+  pauseSeekPending=false;
+  AppState.isPlaying=false;
+  alphaTabApi.tickPosition=tick;
+  AppState.tickPosition=tick;
+  updatePlayPauseLabel();
+  setStatus('Paused');
+  return true;
+}
+
 export function stop() {
   if (!alphaTabApi) return false;
   pauseSeekPending = false;

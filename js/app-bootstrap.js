@@ -11,6 +11,9 @@ import { WaitController } from './wait-controller.js';
 
 import { formatStringHint, midiToNoteName } from './note-utils.js';
 import { initFretboard, renderFretboard } from './fretboard-ui.js';
+import {initFretboardControls} from './fretboard-controls.js';
+import {fretboardBeats,fretboardStepTick,fretboardContext} from './fretboard-context.js';
+import {seekPausedTick} from './alphatab-host.js';
 import { buildNotationMarks, buildFretboardModel, buildWrongPitchMarks, fretboardDisplayEvent } from './practice-visuals.js';
 import { buildWrongFretMarks, buildTabErrorTargets } from './tab-feedback.js';
 import { buildPolyMistakeMarks, buildPolyWrongFretMarks } from './poly-feedback.js';
@@ -66,6 +69,25 @@ const waitController = new WaitController({
 });
 
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
+let fretboardControls=null,fretboardBrowseTick=null;
+
+function fretboardBeatList() {
+  return fretboardBeats(AppState.playbackTimeline,AppState.practiceTrackId,AppState.practiceLoop.enabled?AppState.practiceLoop.range:null);
+}
+
+function stepFretboard(direction) {
+  if(!AppState.playerReady || AppState.media.editing)return;
+  const trainer=AppState.mode==='wait'?AppState.waitTrainer:AppState.trainer;
+  const browsing=fretboardBrowseTick!==null && Math.abs(fretboardBrowseTick-AppState.tickPosition)<=3 && !AppState.isPlaying;
+  const origin=browsing?fretboardBrowseTick:trainer?.currentEvent?.startTick??AppState.tickPosition;
+  const tick=fretboardStepTick(fretboardBeatList(),origin,direction);
+  if(tick===null)return;
+  // Reuse the existing new-attempt lifecycle; no grading rules change.
+  waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
+  configureWaitSession();resetRealtimeSession('fretboard-step');
+  if(seekPausedTick(tick))fretboardBrowseTick=tick;
+  renderTrainerUi();
+}
 
 function configureWaitSession() {
   waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,extraStringTolerance:AppState.extraStringTolerance,heldNoteTolerance:AppState.heldNoteTolerance,filterHexSpikes:AppState.filterHexSpikes,filterScoreRange:AppState.filterScoreRange,ignoreBriefErrors:AppState.midi.ignoreBriefErrors,minErrorMs:AppState.midi.minErrorMs,rangeStaves:AppState.tracks.find((track,index)=>String(track.index??index)===String(AppState.practiceTrackId))?.staves??[],pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
@@ -120,6 +142,7 @@ function formatPitchList(pitches) {
 }
 
 function syncTrainerFoundation() {
+  fretboardBrowseTick=null;
   buildExpectedEventsFromPracticeTrack({
     tracks: AppState.tracks,
     practiceTrackId: AppState.practiceTrackId,
@@ -550,8 +573,14 @@ function renderTrainerUi() {
   setNotationFeedback(AppState.media.editing?[]:marks,{notation:AppState.ui.showNotationFeedback,tabCircles:AppState.ui.showTabCircles,tabFrets:AppState.ui.showTabMistakes});
   if(AppState.ui.showFretboard) {
     const track=AppState.tracks.find((item,index)=>getTrackId(item,index)===String(AppState.practiceTrackId));
-    const fretboardEvent=fretboardDisplayEvent({trainer,events:AppState.expectedEvents,tick:AppState.tickPosition,editing:AppState.media.editing});
-    renderFretboard(buildFretboardModel({track,noScore:!AppState.score,currentEvent:fretboardEvent,noteStates:trainer.currentEvent?trainer.noteStates:{},
+    const beats=fretboardBeatList();
+    const browsing=fretboardBrowseTick!==null && Math.abs(fretboardBrowseTick-AppState.tickPosition)<=3 && !AppState.isPlaying;
+    const browseBeats=browsing?beats.filter(event=>Math.abs(event.startTick-fretboardBrowseTick)<=1):[];
+    const browseEvent=browseBeats.length?{...browseBeats[0],notes:browseBeats.flatMap(event=>event.notes)}:null;
+    const fretboardEvent=AppState.media.editing?null:browseEvent??fretboardDisplayEvent({trainer,events:AppState.expectedEvents,tick:AppState.tickPosition,editing:AppState.media.editing});
+    const origin=browsing?fretboardBrowseTick:fretboardEvent?.startTick??AppState.tickPosition;
+    fretboardControls?.sync({previous:AppState.playerReady && !AppState.media.editing && fretboardStepTick(beats,origin,-1)!==null,next:AppState.playerReady && !AppState.media.editing && fretboardStepTick(beats,origin,1)!==null});
+    renderFretboard(buildFretboardModel({track,noScore:!AppState.score,currentEvent:fretboardEvent,contextEvents:fretboardContext(beats,fretboardEvent,AppState.ui.fretboardView),labelMode:AppState.ui.fretboardLabels,noteStates:!browsing && trainer.currentEvent?trainer.noteStates:{},
         activeNotes:[...AppState.midi.activeNotes.values()].map(n=>AppState.mode==='wait' && AppState.inputMode==='hex-6ch'?waitController.pitchState.interpret(n):n),liveWrongNotes:trainer.liveWrongNotes,inputMode:AppState.inputMode,leftHanded:AppState.ui.leftHanded,lastFeedback:trainer.lastFeedback}));
   }
   const playButton=document.getElementById('play-pause-button');
@@ -707,6 +736,8 @@ async function bootstrap() {
     {closeMenu:toolbar.closeAllPopups,beforeEdit(){if(waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);pauseWaitTransport();clearActiveMidiNotes();},afterEdit(){clearActiveMidiNotes();configureWaitSession();resetRealtimeSession('sync-editor-closed');renderTrainerUi();},beforeListen(){if(AppState.mode==='wait' && waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);pauseWaitTransport();clearActiveMidiNotes();},afterPractice(){clearActiveMidiNotes();if(AppState.mode==='realtime' && !AppState.media.editing)handlePlaybackState();renderTrainerUi();}});
   initFretboard(document.getElementById('fretboard-content'),document.getElementById('fretboard-help-status'));
   const displayControls=wireScoreStageUi();
+  fretboardControls=initFretboardControls(()=>renderTrainerUi(),stepFretboard);
+  document.getElementById('play-pause-button').addEventListener('click',()=>{fretboardBrowseTick=null;renderTrainerUi();});
   initWorkspacePanels();
   document.getElementById('fretboard-close').addEventListener('click',()=>{const toggle=document.getElementById('show-fretboard');toggle.checked=false;toggle.dispatchEvent(new Event('change'));document.getElementById('btn-more').focus();});
   wireFilePicker();

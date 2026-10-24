@@ -80,6 +80,8 @@ export const AppState = {
     showTabMistakes: true,
     inferPolyMistakes: true,
     leftHanded: false,
+    fretboardView: 'beat',
+    fretboardLabels: 'notes',
     loadedFileName: '',
     playerStatus: 'Waiting for score',
     midiStatus: 'MIDI idle',

@@ -635,6 +635,18 @@
       <section id="fretboard-container" class="panel fretboard-panel hidden" aria-hidden="true" aria-label="Practice fretboard">
         <div class="panel-resizer" data-resize-panel="fretboard-container" role="separator" tabindex="0" aria-orientation="horizontal" aria-label="Resize virtual fretboard" title="Drag to resize; use Up/Down arrows; double-click to reset"></div>
         <button id="fretboard-close" class="panel-close" type="button" aria-label="Hide virtual fretboard" title="Hide virtual fretboard">×</button>
+        <div id="fretboard-tools" class="fretboard-tools">
+          <button id="fretboard-previous" type="button" aria-label="Previous beat" title="Pause and move to previous beat" disabled>←</button>
+          <button id="fretboard-next" type="button" aria-label="Next beat" title="Pause and move to next beat" disabled>→</button>
+          <button id="fretboard-settings" type="button" aria-label="Fretboard settings" aria-expanded="false" aria-controls="fretboard-options">⚙</button>
+          <div id="fretboard-options" popover="manual" hidden>
+            <label>Show <select id="fretboard-view"><option value="beat">Beat</option><option value="next">Beat + Next Beat</option><option value="bar">Beat + Bar</option></select></label>
+            <label>Labels <select id="fretboard-labels"><option value="notes">Note names</option><option value="frets">Fret numbers</option><option value="fingers">Finger numbers</option><option value="none">None</option></select></label>
+            <label><input id="fretboard-left" type="checkbox"> Left-handed</label>
+            <button id="fretboard-help" type="button" aria-expanded="false" aria-controls="fretboard-local-help">Help</button>
+            <p id="fretboard-local-help" hidden>Blue: current target. Gold outline: upcoming. Faint outline: earlier in this bar. Green: required pitch accepted, including alternate positions. Red: existing error feedback. Rings: held input; Poly shows possible positions. Finger labels use score data only (T = thumb); missing fingers stay blank. Arrows pause and start a fresh attempt at the chosen beat.</p>
+          </div>
+        </div>
         <div id="fretboard-content" class="panel-content"></div>
       </section>
     </main>

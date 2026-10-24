@@ -2,6 +2,20 @@
 
 Updated 2026-10-23. Supersedes Stage 6's original six-string-only display.
 
+## Preview modes and local controls — 2026-10-23
+
+The neck's ← / → / gear controls provide paused beat browsing and a local settings popup. Show defaults to **Beat**; alternatives are **Beat + Next Beat** and **Beat + Bar**. Labels default to **Note names**, with **Fret numbers**, **Finger numbers**, and **None** alternatives. These choices save independently in `gts.displayPreferences` alongside existing visibility and orientation. First-use visibility on/orientation off and all existing saved choices remain authoritative across score loads/reloads. Popup openness and cursor browsing are transient, not saved.
+
+Current written targets remain solid blue, or existing green/red correctness colors. Upcoming positions use dark-filled gold outlines/labels; earlier positions in Bar use faint neutral outlines. Earlier context never retains correctness colors. Shared context positions are deduplicated, with current over future over past. Labels remain visible during correctness feedback; small ✓ / ! accents supplement color. Held-input rings retain their existing pitch/string rules and disappear on release. A still-held wrong input can remain red after advancing; this is live input, not retained historical target feedback. Poly green means the required pitch was accepted, including playing another neck position; it does not establish the physical string/fret. Score feedback switches remain independent.
+
+Finger numbers come only from explicit score `leftHandFinger` data: 1–4 or T for thumb. Missing/unknown fingering leaves a blank circle, without fallback or inferred fingers. Native fingering is carried through playback normalization without changing note IDs, pitch matching or required attacks. Both Poly and Hex still grade pitch.
+
+Preview uses the selected track's native playback events, including rests/tied continuations and all voices. Next means the next written onset/subdivision, not a fixed quarter-note interval; a rest has no positions. Bar context stays within the current playback measure occurrence, not another repeat of the same written measure. Context respects the enabled loop and current staff tuning; different-staff context is omitted rather than drawn using a mismatched tuning. Existing pre-Play preview still starts with the next required attack; explicit arrow browsing can select a rest or tied continuation without making it a required attack.
+
+Arrows pause transport, cancel count-in, clear held MIDI and existing attempt results through the normal session reset/configure paths, then seek natively. They never resume automatically. Press Play to start practice from that position; the normal count-in still applies. Arrows include written rests/subdivisions, respect loop endpoints, and disable without a ready player or during sync editing. Score clicks/loop changes supersede a stale browsing position. Gear orientation remains synchronized with Display's existing left-handed choice. Help explains colors, pitch acceptance and finger availability. The popup uses the browser popover top layer so the compact resizable neck does not clip its options.
+
+Verification details and physical acceptance are recorded in the latest DEV-NOTES/TODO entries. The older sections below describe earlier checkpoints; their claim that label selectors are only follow-ups is superseded here.
+
 More → Display → Show virtual fretboard uses the existing saved visibility/orientation preferences. The selected staff supplies string count, tuning, capo and sounding transposition, without an instrument-name gate. Before a score loads, the panel shows a standard six-string EADGBE neck with zero capo and frets 0–24. Once loaded, the selected track replaces that startup neck. Missing/invalid tuning and percussion in a loaded score still show an explanation instead of a guessed guitar neck.
 
 First use defaults to Show virtual fretboard on and Left-handed off. Both choices persist in localStorage across sessions/score loads; saved preferences override defaults, including turning the fretboard off.
