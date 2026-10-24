@@ -12,7 +12,6 @@ export function initDisplayControls(onChange) {
   const chordDiagrams=document.getElementById('chord-diagram-placement');
   const chordDiagramHelp=document.getElementById('chord-diagram-help');
   const fretboard=document.getElementById('show-fretboard');
-  const leftHanded=document.getElementById('left-handed-fretboard');
   function sync() {
     slider.value=number.value=String(AppState.ui.zoomPercent);
     down.disabled=AppState.ui.zoomPercent<=50;up.disabled=AppState.ui.zoomPercent>=200;
@@ -23,7 +22,6 @@ export function initDisplayControls(onChange) {
       ? 'No chord diagrams in this score. Your saved preference applies to scores with diagrams.'
       : 'Choose where Guitar Pro chord diagrams appear. Above Chord places each diagram in the score at its chord position.';
     if(fretboard)fretboard.checked=AppState.ui.showFretboard;
-    if(leftHanded){leftHanded.checked=AppState.ui.leftHanded;leftHanded.disabled=!AppState.ui.showFretboard;}
   }
   function zoom(value) {
     if(String(value).trim()!=='' && Number.isFinite(Number(value))) {

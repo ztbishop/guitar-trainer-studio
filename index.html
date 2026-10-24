@@ -373,14 +373,6 @@
           </fieldset>
           <div class="popup-card-title">Virtual fretboard</div>
           <label class="toggle-row" for="show-fretboard"><input id="show-fretboard" type="checkbox" /><span>Show virtual fretboard</span></label>
-          <label class="toggle-row display-fretboard-orientation" for="left-handed-fretboard"><input id="left-handed-fretboard" type="checkbox" disabled /><span>Left-handed fretboard</span></label>
-          <details class="display-fretboard-help"><summary>Fretboard help</summary>
-            <p class="field-help">Blue: expected note. Green ✓: accepted note. Red × / !: missed note or completed with errors. Separate rings show held played pitches: green for accepted, red for wrong, purple when no current result applies. Rings disappear on release.</p>
-            <p class="field-help">The selected tablature supplies string count, tuning and capo. Fret numbers are relative to the capo; position inlays follow physical frets. Open notes appear outside the nut. String thickness is a visual pitch cue.</p>
-            <p class="field-help">Poly/pitch-only input shows possible positions, not detected strings. Configured six-channel input maps displayed strings only on six-string tracks; other string counts show possible positions. Both modes still grade pitch.</p>
-            <p class="field-help">Scroll the neck horizontally for higher frets. Left-handed display mirrors the neck without reversing MIDI channel mapping. Targets needing frets above 24 extend the display through fret 36; unsupported positions remain in score feedback.</p>
-            <p id="fretboard-help-status" class="field-help">Select a tablature track with usable string tuning to show its fretboard.</p>
-          </details>
         </div>
       </div>
     </section>
@@ -633,7 +625,7 @@
       </section>
 
       <section id="fretboard-container" class="panel fretboard-panel hidden" aria-hidden="true" aria-label="Practice fretboard">
-        <div class="panel-resizer" data-resize-panel="fretboard-container" role="separator" tabindex="0" aria-orientation="horizontal" aria-label="Resize virtual fretboard" title="Drag to resize; use Up/Down arrows; double-click to reset"></div>
+        <div class="panel-resizer" data-resize-panel="fretboard-container" role="separator" tabindex="0" aria-orientation="horizontal" aria-label="Resize virtual fretboard" title="Drag or use Up/Down to save a height; double-click or Home to fit the neck"></div>
         <button id="fretboard-close" class="panel-close" type="button" aria-label="Hide virtual fretboard" title="Hide virtual fretboard">×</button>
         <div id="fretboard-tools" class="fretboard-tools">
           <button id="fretboard-previous" type="button" aria-label="Previous beat" title="Pause and move to previous beat" disabled>←</button>
@@ -644,7 +636,13 @@
             <label>Labels <select id="fretboard-labels"><option value="notes">Note names</option><option value="frets">Fret numbers</option><option value="fingers">Finger numbers</option><option value="none">None</option></select></label>
             <label><input id="fretboard-left" type="checkbox"> Left-handed</label>
             <button id="fretboard-help" type="button" aria-expanded="false" aria-controls="fretboard-local-help">Help</button>
-            <p id="fretboard-local-help" hidden>Blue: current target. Gold outline: upcoming. Faint outline: earlier in this bar. Green: required pitch accepted, including alternate positions. Red: existing error feedback. Rings: held input; Poly shows possible positions. Finger labels use score data only (T = thumb); missing fingers stay blank. Arrows pause and start a fresh attempt at the chosen beat.</p>
+            <div id="fretboard-local-help" hidden>
+              <p>Blue: current target. Gold outline: upcoming. Faint outline: earlier in this bar. Green: required pitch accepted, including alternate positions. Red: existing error feedback. Finger labels use score data only (T = thumb); missing fingers stay blank. Arrows pause and start a fresh attempt at the chosen beat.</p>
+              <p>Separate rings show held pitches: green for accepted, red for wrong, purple without a current result. Rings disappear on release. Poly shows possible positions, not detected strings. Configured six-channel input maps strings only on six-string tracks; both modes still grade pitch.</p>
+              <p>The selected tablature supplies string count, tuning and capo. Fret numbers are relative to the capo; inlays follow physical frets. Open notes sit outside the nut. String thickness is a pitch cue. Left-handed orientation mirrors the neck without changing MIDI channel mapping.</p>
+              <p>Scroll horizontally for higher frets. Targets above 24 extend the display through fret 36; unsupported positions remain in score feedback.</p>
+              <p id="fretboard-help-status" class="field-help">Select a tablature track with usable string tuning to show its fretboard.</p>
+            </div>
           </div>
         </div>
         <div id="fretboard-content" class="panel-content"></div>

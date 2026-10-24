@@ -206,8 +206,9 @@ document.getElementById('ui-run').addEventListener('click',async()=>{
     get('show-fretboard').checked=true;get('show-fretboard').dispatchEvent(new view.Event('change'));
     get('media-reset-layout').click();
     for(const id of ['media-editor','fretboard-container']) {
+      const beforeHeight=get(id).getBoundingClientRect().height;
       const handle=get(id).querySelector('[data-resize-panel]');handle.dispatchEvent(new view.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
-      check(JSON.parse(localStorage.getItem('gts.workspacePanelSizes'))[id]<({'media-editor':400,'fretboard-container':190}[id]),`${id} keyboard resizing persists`);
+      check(JSON.parse(localStorage.getItem('gts.workspacePanelSizes'))[id]<beforeHeight,`${id} keyboard resizing persists`);
     }
     for(const id of ['scores-panel','practice-popup','tempo-popup','looper-popup','audio-popup','display-popup','media-popup','help-popup','options-overlay']) {
       const launcher=doc.querySelector(`[data-launch-panel="${id}"]`) || get({'scores-panel':'btn-scores','practice-popup':'btn-practice','tempo-popup':'btn-tempo','looper-popup':'btn-looper','options-overlay':'btn-options'}[id]);

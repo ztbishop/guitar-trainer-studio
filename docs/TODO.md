@@ -1,5 +1,30 @@
 # Guitar Trainer Studio: status and to-do
 
+### Scale full neck into manually shortened frame — 2026-10-24
+
+- [x] Scale down the full fretboard to fit short frames, keeping all strings visible and circles round instead of vertical scrolling. Preserve horizontal scrolling, saved manual height and natural-size automatic reset.
+- [x] 423 Node regressions plus isolated browser saved-height/scale/visible-string/round-marker/automatic-reset checks pass; existing geometry and app/media browser checks also pass. See DEV-NOTES.
+- [ ] Owner hard-refreshes, drags shorter/taller, reviews text/all six strings, reloads and double-clicks to restore normal automatic size. Physical guitar and appearance acceptance remain pending.
+
+### Snug automatic frame and saved manual resizing — 2026-10-24
+
+- [x] Trim outer fretboard padding; fit automatically on first use and reserve horizontal-scrollbar space only when needed. Keep marker/text/string sizes unchanged.
+- [x] Restore dragging/Up/Down below the neck's content height with saved manual choice and optional vertical scrolling. Double-click/Home/global reset restore saved automatic mode. Preserve legacy numeric sizes as manual choices.
+- [x] 422 Node tests and isolated browser drag/keyboard/reload/reset/default-fit checks pass, plus existing desktop/phone app regressions. See DEV-NOTES for evidence.
+- [ ] Owner hard-refreshes, reviews padding, drags shorter/taller and reloads; double-clicks divider to restore automatic fit. Appearance and physical MIDI acceptance remain pending.
+
+### Fit the fretboard frame to its neck — 2026-10-23
+
+- [x] Use a dynamic frame minimum based on neck height, frame chrome and horizontal-scrollbar allowance. Retain larger saved sizes and preserve small stored preferences without applying them below the fit minimum. Remove conflicting 32vh cap; retain horizontal scrolling and outer workspace/score sizing.
+- [x] Node floor/persistence tests and isolated browser no-vertical-overflow checks across native string-count profiles and responsive widths; see DEV-NOTES for final results.
+- [ ] Owner hard-refreshes, toggles fretboard visibility and reviews six-string/extended necks, narrow/short windows and manual resizing. Appearance and physical MIDI acceptance remain pending.
+
+### Remove duplicate Display fretboard controls — 2026-10-23
+
+- [x] Keep Show virtual fretboard in Display; move orientation/help access exclusively to the neck popup. Preserve saved orientation/defaults, hidden-neck retention, full help guidance and live status.
+- [x] 420 Node regressions and syntax checks pass; isolated browser checks cover popup orientation persistence/reload, hide/show retention and help/status without the old Display control, plus existing fretboard/app regressions. See development notes for final evidence.
+- [ ] Owner hard-refreshes and reviews Display and popup Help/orientation. Appearance and physical guitar acceptance remain pending.
+
 ### Fretboard readability and capo cue — 2026-10-23
 
 - [x] Enlarge target/context circles and labels; increase string spacing. Keep vertical size steady during horizontal resizing and scroll below readable fret-cell limits.

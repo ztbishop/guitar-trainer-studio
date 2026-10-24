@@ -7,10 +7,12 @@
 .panel-close { flex:none; width:32px; min-width:32px; height:32px; min-height:32px; padding:0; font-size:22px; line-height:1; border-radius:8px; }
 .media-editor > .panel-close,.fretboard-panel > .panel-close { position:absolute; top:14px; right:8px; z-index:2; }
 .fretboard-panel .panel-content { padding-right:34px; }
+#fretboard-container { max-height:none; }
+.fretboard-panel { padding-top:12px; padding-bottom:4px; }
 .panel-resizer { position:absolute; top:0; left:0; right:0; height:12px; cursor:row-resize; touch-action:none; }
 .panel-resizer::after { content:""; position:absolute; top:4px; height:4px; left:35%; right:35%; border-radius:8px; background:#94a3b8; }
 .panel-resizer:focus-visible { outline:2px solid #2563eb; outline-offset:-2px; }
-.fretboard-panel .fretboard-scroll { height:100%; overflow:auto; }
+.fretboard-panel .fretboard-scroll { height:100%; overflow-x:auto; overflow-y:hidden; }
 .fretboard-panel .fretboard-scroll svg { min-width:0; max-width:none; }
 .media-player-heading #media-pip { margin-left:auto; }
 .media-picture { min-height:60px; }

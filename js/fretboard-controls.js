@@ -23,7 +23,9 @@ export function initFretboardControls(onChange,onStep) {
     get(id).addEventListener('change',event=>{if(values.includes(event.target.value)){AppState.ui[key]=event.target.value;saveDisplayPreferences(AppState);onChange();}});
   }
   get('fretboard-left').addEventListener('change',event=>{
-    const existing=get('left-handed-fretboard');existing.checked=event.target.checked;existing.dispatchEvent(new Event('change'));
+    AppState.ui.leftHanded=event.target.checked;
+    saveDisplayPreferences(AppState);
+    onChange();
   });
   get('fretboard-help').addEventListener('click',()=>{
     get('fretboard-local-help').hidden=!get('fretboard-local-help').hidden;
@@ -36,6 +38,7 @@ export function initFretboardControls(onChange,onStep) {
     get('fretboard-view').value=AppState.ui.fretboardView;
     get('fretboard-labels').value=AppState.ui.fretboardLabels;
     get('fretboard-left').checked=AppState.ui.leftHanded;
+    get('fretboard-left').disabled=!AppState.ui.showFretboard;
     get('fretboard-previous').disabled=!previous;
     get('fretboard-next').disabled=!next;
     if(!AppState.ui.showFretboard)close();

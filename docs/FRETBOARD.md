@@ -2,6 +2,24 @@
 
 Updated 2026-10-23. Supersedes Stage 6's original six-string-only display.
 
+## Short frames scale the full neck — 2026-10-24
+
+Manually shortening the frame now scales the full fretboard down to show every string instead of adding a vertical scrollbar. Circles stay round; labels, capo and spacing scale together. Horizontal geometry reflows to use the available width, with horizontal scrolling retained where needed. Automatic fit remains at the normal readable size; enlarging a manual frame never enlarges markers beyond that size. Existing saved manual heights/mode and double-click/Home automatic reset are unchanged. Very short choices intentionally produce smaller text; reset to automatic to restore the standard size. This supersedes earlier descriptions of vertical scrolling for manual height choices below.
+
+## Snug default with saved manual height — 2026-10-24
+
+The divider can again make the frame shorter than the full neck. First use automatically fits the rendered neck; outer padding is trimmed by 8px, and horizontal-scrollbar space is reserved only when needed. Six strings normally fit about 188px at a wide window or 206px with horizontal scrolling, without changing circles, text or string spacing.
+
+Dragging or using Up/Down on the divider saves a manual height, with a 144px minimum for the local controls. A deliberately short frame can scroll vertically. Legacy numeric saved heights remain manual choices; automatic fitting no longer forces them larger. Double-click the divider or press Home while it is focused to return to automatic fit; Reset panel sizes also restores automatic mode. Both modes survive reloads, hiding/showing and score loads. In automatic mode the frame adapts to string count/width; in manual mode the saved size remains subject to existing viewport fitting. This supersedes the preceding hard content-minimum decision documented below.
+
+## Frame fits the selected neck — 2026-10-23
+
+When visible, the frame now has a content-based minimum height: rendered neck plus panel padding/borders and room for a horizontal scrollbar (about 214px for six strings, 358px for twelve). Small saved heights remain stored but no longer squeeze the neck into a vertical scrolling area. Larger saved heights still apply; changing tracks recalculates the floor. Manual resizing cannot shrink below the current content floor. Horizontal scrolling remains available on narrow windows. The old 32vh cap is removed; on short screens the surrounding workspace can scroll while preserving score space. The existing 400px panel ceiling remains for unusually tall unsupported-by-fixture string counts. This supersedes older guidance about routine vertical scrolling for the supported 1/4/5/6/7/8/12-string profiles.
+
+## Single location for orientation/help — 2026-10-23
+
+Display retains **Show virtual fretboard**. Left-handed orientation and fretboard help now live only in the neck's gear popup. The existing `leftHanded` display preference, default off, still persists across reloads/score loads and survives hiding the neck; no storage migration or key change. Popup Help retains the explanatory guidance plus live selected-track/tuning/support status. Earlier references below to orientation/help in Display are superseded by this location change.
+
 ## Readability and capo cue — 2026-10-23
 
 Targets/context now use 20px circles and 12px text; held rings are 24px, with 24px string spacing. The neck keeps a fixed vertical geometry for its string count as the window changes. Only horizontal fret geometry reflows; circles remain round and labels do not shrink. The tapered spacing reserves at least 24px per cell, with minimum overall width `160 + 26 × maxFret` (784px at 24 frets; 1096px at 36). Below that width, scroll horizontally. This supersedes the earlier 1200px minimum/uniform SVG scaling behavior. Larger string counts can still need vertical scrolling in the existing resizable panel.

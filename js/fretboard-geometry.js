@@ -32,3 +32,13 @@ export function fretNumberVisible(fret,maxFret,width,targetFrets=[]) {
   return width>=160+42*maxFret || fret===0 || fret===maxFret ||
     targetFrets.includes(fret) || [3,5,7,9,0].includes(fret%12);
 }
+
+// Fit every string in the available height. Horizontal geometry can reflow,
+// but the SVG uses one scale for circles/text/strings so nothing is distorted.
+export function fretboardFit(width,height,availableWidth,availableHeight,scrollbarHeight=18) {
+  if(!(availableHeight>0))return {scale:1,width};
+  const noScroll=Math.min(1,availableHeight/height,availableWidth/width);
+  const withScroll=Math.min(1,Math.max(1,availableHeight-scrollbarHeight)/height);
+  const scale=withScroll>noScroll && width*withScroll>availableWidth+1?withScroll:noScroll;
+  return {scale,width:Math.max(width,Math.floor(availableWidth/scale))};
+}

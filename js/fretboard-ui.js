@@ -1,8 +1,8 @@
 // Consumes display data; never decides correctness.
 import {midiToNoteName} from './note-utils.js';
 import {fretboardLabel} from './fretboard-context.js';
-import {fretX,fretWireX,fretboardGeometry,fretInlayYs,fretNumberVisible} from './fretboard-geometry.js';
-let container=null,helpStatus=null,lastSignature='',lastLeftHanded=null,lastModel=null,resizeObserver=null,lastAvailableWidth=0;
+import {fretX,fretWireX,fretboardGeometry,fretInlayYs,fretNumberVisible,fretboardFit} from './fretboard-geometry.js';
+let container=null,helpStatus=null,lastSignature='',lastLeftHanded=null,lastModel=null,resizeObserver=null,lastAvailableWidth=0,lastRenderedWidth=0;
 const ns='http://www.w3.org/2000/svg';
 function shape(tag,attrs,text) {
   const el=document.createElementNS(ns,tag);
@@ -10,7 +10,7 @@ function shape(tag,attrs,text) {
   if(text!==undefined)el.textContent=text;return el;
 }
 export function initFretboard(el,statusEl=null) {
-  resizeObserver?.disconnect();container=el;helpStatus=statusEl;lastSignature='';lastLeftHanded=null;lastModel=null;lastAvailableWidth=0;
+  resizeObserver?.disconnect();container=el;helpStatus=statusEl;lastSignature='';lastLeftHanded=null;lastModel=null;lastAvailableWidth=0;lastRenderedWidth=0;
   if(container && typeof ResizeObserver==='function') {
     resizeObserver=new ResizeObserver(()=>{if(lastModel && container.clientWidth>0)renderFretboard(lastModel);});
     resizeObserver.observe(container);
@@ -21,7 +21,8 @@ export function renderFretboard(model) {
   lastModel=model;
   const padding=typeof getComputedStyle==='function'?getComputedStyle(container):null;
   const availableWidth=(container.clientWidth-(parseFloat(padding?.paddingLeft)||0)-(parseFloat(padding?.paddingRight)||0)) || 1200;
-  const signature=JSON.stringify([model,availableWidth]);if(signature===lastSignature)return;lastSignature=signature;
+  const availableHeight=(container.clientHeight-(parseFloat(padding?.paddingTop)||0)-(parseFloat(padding?.paddingBottom)||0)) || 0;
+  const signature=JSON.stringify([model,availableWidth,availableHeight]);if(signature===lastSignature)return;lastSignature=signature;
   const previousViewport=container.querySelector?.('.fretboard-scroll');
   const previousScroll=previousViewport?.scrollLeft ?? 0;
   const previousRight=Math.max(0,(previousViewport?.scrollWidth??0)-lastAvailableWidth-previousScroll);
@@ -34,11 +35,14 @@ export function renderFretboard(model) {
   if(helpStatus)helpStatus.textContent=(model.supported?`${model.stringCount} ${model.stringCount===1?'string':'strings'} · Frets relative to capo ${model.capo}. `:'')+model.message+
     (model.unmappedPitches?.length?` Outside displayed positions: ${model.unmappedPitches.map(midiToNoteName).join(', ')}.`:'');
   if(!model.supported){const hint=document.createElement('p');hint.className='field-help';hint.textContent=model.message;container.appendChild(hint);return;}
-  const geometry=fretboardGeometry(model.maxFret,model.stringCount,availableWidth);
+  const natural=fretboardGeometry(model.maxFret,model.stringCount,availableWidth);
+  const fit=fretboardFit(natural.width,natural.height,availableWidth,container.closest?.('.fretboard-panel')?availableHeight:0);
+  const geometry=fretboardGeometry(model.maxFret,model.stringCount,fit.width);
   const {width,height,firstY,stringGap,top,bottom}=geometry;
   const scroll=document.createElement('div');scroll.className='fretboard-scroll';
   scroll.setAttribute('tabindex','0');scroll.setAttribute('aria-label','Scrollable practice fretboard');
-  const svg=shape('svg',{viewBox:`0 0 ${width} ${height}`,width,height,style:`width:${width}px;height:${height}px`,role:'img','aria-label':`${model.stringCount}-string fretboard, frets 0 to ${model.maxFret} relative to capo ${model.capo}, ${model.leftHanded?'left':'right'}-handed. Blue current targets, gold upcoming, faint past, green accepted pitch, red missed or wrong, rings for played positions. Labels: ${model.labelMode??'notes'}.`});
+  const renderedWidth=width*fit.scale,renderedHeight=height*fit.scale;
+  const svg=shape('svg',{viewBox:`0 0 ${width} ${height}`,width:renderedWidth,height:renderedHeight,'data-natural-width':natural.width,'data-natural-height':natural.height,'data-scale':fit.scale,style:`width:${renderedWidth}px;height:${renderedHeight}px`,role:'img','aria-label':`${model.stringCount}-string fretboard, frets 0 to ${model.maxFret} relative to capo ${model.capo}, ${model.leftHanded?'left':'right'}-handed. Blue current targets, gold upcoming, faint past, green accepted pitch, red missed or wrong, rings for played positions. Labels: ${model.labelMode??'notes'}.`});
   const wireX=fret=>fretWireX(fret,model.maxFret,model.leftHanded,width);
   const noteX=fret=>fretX(fret,model.maxFret,model.leftHanded,width);
   const nut=wireX(0),end=wireX(model.maxFret);
@@ -47,7 +51,7 @@ export function renderFretboard(model) {
     const x=noteX(fret);
     const wire=wireX(fret);
     svg.appendChild(shape('line',{x1:wire,y1:top,x2:wire,y2:bottom,class:fret===0?'fretboard-nut':'fretboard-fret','data-fret':fret}));
-    if(fretNumberVisible(fret,model.maxFret,width,model.targets.map(note=>note.fret)))
+    if(fretNumberVisible(fret,model.maxFret,renderedWidth,model.targets.map(note=>note.fret)))
       svg.appendChild(shape('text',{x,y:14,'text-anchor':'middle',class:'fretboard-label','data-fret-label':fret},String(fret)));
     const physicalFret=fret+model.capo;
     if(fret>0 && [3,5,7,9,0].includes(physicalFret%12)) {
@@ -83,5 +87,6 @@ export function renderFretboard(model) {
     svg.appendChild(group);
   }
   scroll.appendChild(svg);container.appendChild(scroll);
-  scroll.scrollLeft=orientationChanged?(model.leftHanded?width:0):resized && model.leftHanded?Math.max(0,width-availableWidth-previousRight):previousScroll;
+  scroll.scrollLeft=orientationChanged?(model.leftHanded?renderedWidth:0):(resized || lastRenderedWidth!==renderedWidth) && model.leftHanded?Math.max(0,renderedWidth-availableWidth-previousRight):previousScroll;
+  lastRenderedWidth=renderedWidth;
 }

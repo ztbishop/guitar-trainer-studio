@@ -26,11 +26,9 @@ test('zoom inputs share state, clamp limits and restore invalid values; scroll, 
     assert.equal(AppState.ui.chordDiagramPlacement,'above-chord');assert.equal(diagrams.value,'above-chord');assert.equal(changes,before+1);
     AppState.ui.leftHanded=true;AppState.ui.showFretboard=false;
     controls.sync();
-    assert.equal(get('left-handed-fretboard').disabled,true);
-    assert.equal(get('left-handed-fretboard').checked,true);
+    assert.equal(AppState.ui.leftHanded,true,'Display sync must preserve the popup orientation setting');
     AppState.ui.showFretboard=true;controls.sync();
-    assert.equal(get('left-handed-fretboard').disabled,false);
-    assert.equal(get('left-handed-fretboard').checked,true);
+    assert.equal(AppState.ui.leftHanded,true);
   } finally {globalThis.document=previous;Object.assign(AppState.ui,ui);}
 });
 

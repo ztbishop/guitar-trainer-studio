@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fretboardGeometry,fretWireX,fretX,fretNumberVisible} from '../js/fretboard-geometry.js';
+import {fretboardGeometry,fretWireX,fretX,fretNumberVisible,fretboardFit} from '../js/fretboard-geometry.js';
 
 test('horizontal compression retains height, readable cells and mirrored round-marker positions',()=>{
   for(const maxFret of [24,36])for(const count of [1,4,6,7,12]) {
@@ -16,6 +16,19 @@ test('horizontal compression retains height, readable cells and mirrored round-m
         assert(x>a && x<b);assert(Math.abs(x+fretX(fret,maxFret,true,geometry.width)-geometry.width)<1e-8);
       }
     }
+  }
+});
+
+test('short frames scale the full neck proportionally and reserve horizontal-scroll space when needed',()=>{
+  for(const availableWidth of [284,740,1200])for(const availableHeight of [80,110,170,188,350]) {
+    const natural=fretboardGeometry(24,6,availableWidth);
+    const fit=fretboardFit(natural.width,natural.height,availableWidth,availableHeight);
+    const geometry=fretboardGeometry(24,6,fit.width);
+    const renderedWidth=geometry.width*fit.scale,height=geometry.height*fit.scale;
+    assert(fit.scale>0 && fit.scale<=1);
+    assert(height+(renderedWidth>availableWidth+1?18:0)<=availableHeight+0.01);
+    assert(Math.abs(renderedWidth/geometry.width-height/geometry.height)<1e-10,'one scale preserves circular markers');
+    if(availableHeight>=188)assert.equal(fit.scale,1,'ample height retains normal readable size');
   }
 });
 

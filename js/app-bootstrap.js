@@ -159,13 +159,13 @@ function wireScoreStageUi() {
   const scoreStage = document.querySelector('.score-stage.viewer-panel');
   const fretboardContainer = document.getElementById('fretboard-container');
   const fullscreenTarget = document.documentElement;
-  for(const [id,key] of [['show-fretboard','showFretboard'],['left-handed-fretboard','leftHanded'],['show-notation-feedback','showNotationFeedback'],['show-tab-circles','showTabCircles'],['show-tab-mistakes','showTabMistakes'],['infer-poly-mistakes','inferPolyMistakes']]) {
+  for(const [id,key] of [['show-fretboard','showFretboard'],['show-notation-feedback','showNotationFeedback'],['show-tab-circles','showTabCircles'],['show-tab-mistakes','showTabMistakes'],['infer-poly-mistakes','inferPolyMistakes']]) {
     const control=document.getElementById(id);
     if(control)control.checked=Boolean(AppState.ui[key]);
     control?.addEventListener('change',()=>{
       AppState.ui[key]=control.checked;
       if(FEEDBACK_PREFERENCE_KEYS.includes(key))savePracticePreferences(AppState);
-      if(key==='showFretboard' || key==='leftHanded') {saveDisplayPreferences(AppState);displayControls.sync();}
+      if(key==='showFretboard') {saveDisplayPreferences(AppState);displayControls.sync();}
       if(fretboardContainer) {
         fretboardContainer.classList.toggle('hidden',!AppState.ui.showFretboard);
         fretboardContainer.setAttribute('aria-hidden',String(!AppState.ui.showFretboard));

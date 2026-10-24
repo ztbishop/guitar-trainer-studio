@@ -208,9 +208,6 @@
 #display-popup .popup-card { gap: 6px; }
 #display-popup .popup-card + .popup-card { padding-top: 12px; }
 #display-popup .menu-row { margin: 8px 0; }
-#display-popup .display-fretboard-orientation { margin-left: 24px; width: calc(100% - 24px); }
-#display-popup .display-fretboard-orientation:has(input:disabled) { opacity: .55; }
-#display-popup .display-fretboard-help .field-help { margin: 4px 0; }
 #more-popup { width: min(520px, calc(100vw - 32px)); }
 #more-popup .panel-header--more { padding-bottom: 12px; }
 #more-popup .more-popup-grid { padding: 0 var(--menu-padding) var(--menu-padding); gap: 10px; }
