@@ -8,7 +8,7 @@ export function initLoopControls(onLoopChange=()=>{}) {
   const start=get('practice-loop-start'),end=get('practice-loop-end');
   const notice=get('loop-enabled-notice');
   let noticeTimer=null;
-  const ready=()=>Boolean(AppState.playerReady && AppState.playbackTimeline?.measures.length);
+  const ready=()=>Boolean(AppState.playerReady && !AppState.media.editing && !AppState.media.returning && AppState.playbackTimeline?.measures.length);
   let lastTimeline;
   function hideNotice() {
     if(noticeTimer!==null)clearTimeout(noticeTimer);
@@ -97,7 +97,7 @@ export function initLoopControls(onLoopChange=()=>{}) {
     if(countIn){countIn.disabled=!available || !loop.enabled;countIn.checked=Boolean(loop.countIn);}
     get('loop-count-in-label')?.classList?.toggle('menu-unavailable',!available || !loop.enabled);
     const repeated=timeline?.measures.some(measure=>measure.occurrence>1);
-    get('loop-controls-status').textContent=!available ? 'Load a score to choose a section.' : repeated
+    get('loop-controls-status').textContent=AppState.media.editing ? 'Loops are paused while editing sync. Choose Finish editing in Media Sync to restore your loop.' : AppState.media.returning ? 'Restoring the player…' : !available ? 'Load a score to choose a section.' : repeated
       ? `${measureOccurrenceLabel(timeline.measures[loop.startIndex])} through ${measureOccurrenceLabel(timeline.measures[loop.endIndex])}. Numbers follow playback order, including repeats.` : '';
   }
   return {sync,selectByDrag};

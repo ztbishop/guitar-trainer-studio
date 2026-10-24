@@ -595,9 +595,10 @@ function renderTrainerUi() {
   const playButton=document.getElementById('play-pause-button');
   if(playButton) {
     const running=AppState.countInActive || (AppState.mode==='wait' && !AppState.media.editing ? trainer.active && trainer.phase!=='paused' : AppState.isPlaying);
-    playButton.textContent=running?'⏸ Pause':'▶ Play';
-    playButton.setAttribute('aria-label',running?'Pause practice':'Start or resume practice');
-    playButton.title=running?'Pause practice':'Start or resume practice';
+    playButton.textContent=AppState.media.editing?(running?'⏸ Pause preview':'▶ Preview'):(running?'⏸ Pause':'▶ Play');
+    const action=AppState.media.editing?(running?'Pause sync preview':'Preview sync · Grading and loops paused; choose Finish editing to practice'):(running?'Pause practice':'Start or resume practice');
+    playButton.setAttribute('aria-label',action);
+    playButton.title=action;
   }
   const scoreValue = document.getElementById('toolbar-score-value');
   if (scoreValue) {

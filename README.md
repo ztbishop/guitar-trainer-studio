@@ -172,7 +172,9 @@ Audio has separate synth and synced-recording volumes, practice/backing playback
 
 Synth playback pitch shifts the synthesized sound only. It does not transpose the written score, tab, MIDI targets or recordings.
 
-**More → Media Sync** lets you align local audio/video, direct media URLs, YouTube or embedded score audio with your score. Use Synth audio or Recording as the playback source. While the sync editor is open, playback is an ungraded preview; close it to resume normal practice. In Wait, the recording stays paused/muted while solved targets can advance video. See the [media guide](docs/MEDIA-SYNC.md) for detailed alignment instructions. Local recordings can work offline; linked online sources need a connection.
+**More → Media Sync** lets you align local audio/video, direct media URLs, YouTube or embedded score audio with your score. Use Synth audio or Recording as the playback source. While the sync editor is open, the main button says **Preview**: grading, score feedback, fretboard targets and loops are paused. Switching to Synth audio keeps the editor open. Choose **Finish editing / Return to practice** (or the editor's ×), then **Play**, to practice with your selected source and restored loop. Alignment stays available; save the profile to keep unsaved changes after reloading. In Wait, the recording stays paused/muted while solved targets can advance video.
+
+Video starts **Left of score** on first use. Change it in Media Sync → Load / options → Video placement; your saved choice is remembered, and a saved sync profile can restore its own placement. Narrow screens stack the panels. See the [media guide](docs/MEDIA-SYNC.md) for detailed alignment instructions. Local recordings can work offline; linked online sources need a connection.
 
 ### Settings and saved choices
 

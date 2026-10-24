@@ -8,7 +8,7 @@ import {initLoopControls} from '../js/loop-controls.js';
 
 test('drag activation notifies once, enabled range changes stay silent, and loop indicators clear when disabled',()=>{
   const previous={document:globalThis.document,setTimeout:globalThis.setTimeout,clearTimeout:globalThis.clearTimeout};
-  const saved={playbackTimeline:AppState.playbackTimeline,playerReady:AppState.playerReady,practiceLoop:AppState.practiceLoop};
+  const saved={playbackTimeline:AppState.playbackTimeline,playerReady:AppState.playerReady,practiceLoop:AppState.practiceLoop,media:AppState.media};
   const elements=new Map(),pending=new Map();let nextId=0;
   const get=id=>{
     if(!elements.has(id)) {
@@ -38,6 +38,18 @@ test('drag activation notifies once, enabled range changes stay silent, and loop
     get('practice-loop-enabled').checked=false;get('practice-loop-enabled').handlers.change();
     controls.selectByDrag({startIndex:0,endIndex:1});assert.equal(notice.textContent,'Loop enabled: measures 1–2');
     controls.selectByDrag({startIndex:1,endIndex:1});assert.equal(notice.textContent,'');assert.equal(pending.size,0,'new active range does not leave a stale activation notice');
+    const retained=structuredClone(AppState.practiceLoop);
+    for(const media of [{editing:true,returning:false},{editing:false,returning:true}]) {
+      AppState.media=media;controls.sync();
+      for(const id of ['practice-loop-enabled','loop-count-in','practice-loop-start','practice-loop-end','loop-start-slider','loop-end-slider','loop-start-up','loop-end-down'])assert.equal(get(id).disabled,true,id);
+      assert.match(get('loop-controls-status').textContent,media.editing?/Finish editing/:/Restoring/);
+      controls.selectByDrag({startIndex:0,endIndex:3});
+      get('practice-loop-enabled').checked=false;get('practice-loop-enabled').handlers.change();
+      get('practice-loop-start').value='4';get('practice-loop-start').handlers.change();
+      assert.deepEqual(AppState.practiceLoop,retained,'suspended controls cannot alter the saved loop');
+    }
+    AppState.media={editing:false,returning:false};controls.sync();
+    assert.equal(get('practice-loop-enabled').disabled,false);assert.deepEqual(AppState.practiceLoop,retained);
     AppState.playerReady=false;AppState.playbackTimeline=null;AppState.practiceLoop={enabled:false,startIndex:0,endIndex:0,range:null};controls.sync();
     assert.ok(!get('more-loop-shortcut').classList.contains('is-loop-enabled'));assert.ok(!get('btn-more').classList.contains('has-enabled-loop'));
   } finally {Object.assign(globalThis,previous);Object.assign(AppState,saved);}

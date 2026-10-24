@@ -114,7 +114,7 @@ export function validateProfile(data) {
     throw new Error('Invalid sync profile metadata.');
   if(!Array.isArray(data.points) || data.points.length<2)throw new Error('A sync profile needs at least a start and end point.');
   return {id:data.id,scoreHash:data.scoreHash,scoreName:String(data.scoreName || 'Score').slice(0,240),name:data.name.trim().slice(0,240),source:validateSource(data.source),
-    durationMs:data.durationMs,points:validatePoints(data.points),layout:MEDIA_LAYOUTS.includes(data.layout)?data.layout:'above'};
+    durationMs:data.durationMs,points:validatePoints(data.points),layout:MEDIA_LAYOUTS.includes(data.layout)?data.layout:'left'};
 }
 export function parseProfileExport(data) {
   if(data?.format!==MEDIA_PROFILE_FORMAT || data.version!==1 || !Array.isArray(data.profiles) || data.profiles.length>5000)

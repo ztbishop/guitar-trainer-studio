@@ -25,12 +25,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   let generation=0,scoreBytes=null,busy=false,pendingDelete=null,playhead=null,dirty=false;
   let zoom=1,waveformBusy=false,waveformGeneration=0,dragging=false,lastTimelineInteraction=0,buffering=false;
   let seekGeneration=0;
-  let layout='above',share=35,showPlayer=true,showEditor=false;
+  let layout='left',share=35,showPlayer=true,showEditor=false;
   try {const saved=JSON.parse(localStorage.getItem('gts.mediaLayout') || '{}');if(MEDIA_LAYOUTS.includes(saved.layout))layout=saved.layout;if(saved.share>=20 && saved.share<=65)share=saved.share;if(typeof saved.showPlayer==='boolean')showPlayer=saved.showPlayer;if(typeof saved.showEditor==='boolean')showEditor=saved.showEditor;}catch{}
   const message=text=>{get('status').textContent=text;get('action-status').textContent=text;};
   function persistLayout() {try{localStorage.setItem('gts.mediaLayout',JSON.stringify({layout,share,showPlayer,showEditor}));}catch{}}
   function renderLayout() {
-    if(Boolean(AppState.media.editing)!==showEditor){if(showEditor)beforeEdit();host.setMediaEditing(showEditor);if(!showEditor)afterEdit();}
+    if(Boolean(AppState.media.editing)!==showEditor){if(showEditor)beforeEdit();host.setMediaEditing(showEditor);if(!showEditor)afterEdit();else message('Editing sync · Preview only. Choose Finish editing to restore grading and loops.');}
     const workspace=get('workspace'),visible=Boolean(player && showPlayer && !get('player-panel').classList.contains('audio-only'));
     workspace.classList.toggle('has-media',visible);workspace.dataset.layout=layout;workspace.style.setProperty('--media-share',share+'%');
     get('player-panel').hidden=get('divider').hidden=!visible;get('divider').setAttribute('aria-valuenow',String(share));
@@ -42,6 +42,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     renderPoints();
   }
   function sync() {
+    get('finish-editing').disabled=busy || AppState.media.returning;
     const silent=AppState.media.preview && AppState.mode==='wait' && !AppState.media.editing;
     get('audio').muted=get('video').muted=silent;
     if(silent && player?.masterVolume)player.masterVolume=0;
@@ -67,7 +68,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('float-status').hidden=!floatingReason || source?.kind!=='youtube';get('float-status').textContent=floatingReason;
     get('float-help').textContent=floatingReason || 'Float video opens a separate browser window while synchronization continues.';
     document.body.classList.toggle('media-preview',AppState.media.preview);
-    get('listening-notice').textContent=AppState.media.editing?'Editing sync · Scoring paused. Main Play/Pause previews either practice mode.':'Use main Play/Pause and Tempo. Wait mode keeps playback silent.';
+    get('listening-notice').textContent=AppState.media.editing?'Preview only · Grading and loops paused. Choose Finish editing to practice.':'Use main Play/Pause and Tempo. Wait mode keeps playback silent.';
   }
   function sourceControls() {
     const kind=get('source-kind').value;
@@ -370,7 +371,13 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   get('unload').addEventListener('click',action(async()=>{await returnToPractice();generation++;disposal();points=[];profileId='';pendingProfile=null;renderPoints();renderLayout();sync();message('Recording unloaded. Saved profiles are kept.');}));
   get('pip').addEventListener('click',action(()=>document.pictureInPictureElement?document.exitPictureInPicture():get('video').requestPictureInPicture()));
   get('close-player').addEventListener('click',()=>{showPlayer=false;renderLayout();persistLayout();document.getElementById('play-pause-button').focus();});
-  get('close-editor').addEventListener('click',()=>{showEditor=false;renderLayout();persistLayout();(showPlayer && player?get('edit-sync'):document.getElementById('btn-more')).focus();});
+  function finishEditing() {
+    showEditor=false;renderLayout();persistLayout();
+    message('Editing finished. Press Play to practice with the selected audio source. Save profile to keep unsaved alignment changes.');
+    document.getElementById('play-pause-button').focus();
+  }
+  get('close-editor').addEventListener('click',finishEditing);
+  get('finish-editing').addEventListener('click',finishEditing);
   get('edit-sync').addEventListener('click',()=>{showEditor=!showEditor;renderLayout();persistLayout();if(showEditor)get('close-editor').focus();});
   document.querySelectorAll('[data-open-media-editor]').forEach(button=>button.addEventListener('click',event=>{event.stopPropagation();if(showEditor){showEditor=false;renderLayout();persistLayout();closeMenu();}else openEditor();}));
   get('reset-layout').addEventListener('click',()=>{share=35;renderLayout();persistLayout();document.dispatchEvent(new Event('reset-panel-sizes'));});

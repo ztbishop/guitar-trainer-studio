@@ -6,6 +6,8 @@ Implemented 2026-10-13 with bundled alphaTab 1.8.4; playback and editor workflow
 
 ## Sources and playback
 
+Main Play reads **Preview** while editing. **Finish editing / Return to practice** and the editor's × both close the editor and pause preview using the existing host restoration path. The selected Synth audio/Recording source and current alignment are retained. Press Play to start practice. Source buttons choose audio only; selecting Synth audio does not end editing. Loop inputs are disabled during editing and player restoration, with a reason in the Loop menu; saved loop choices remain intact. Save profile explicitly to retain unsaved alignment across reloads.
+
 - **Local audio / video:** choose a browser-playable recording. Video displays in the optional Video panel. Audio uses the editor waveform/timeline and does not open a separate player panel. Files stay on disk and are not uploaded or copied into the repository/library.
 - **Audio / video URL:** use a direct playable media URL. A lesson webpage/share link usually is not a media file. Access, codecs, seeking and expiring links depend on the host/browser.
 - **YouTube:** paste a video link or ID and click Load link. The online iframe API loads only on this action. Embedding/sign-in and available speeds depend on the video; unsupported speeds report an error.
@@ -25,7 +27,7 @@ Editor and fretboard now have top-edge dividers: drag, or focus and use Up/Down.
 
 The expanded editor's first-use/reset preferred height is now 400 px. Existing saved heights remain intact; if the old editor feels cramped, drag its divider or reset sizes. Smaller viewports fit the panel and retain its internal scrolling.
 
-In **Video & editor layout**, choose Above, Below, Left or Right of score. Left/Right place the recording beside the native score. Drag the divider, or focus it and use arrow keys, to resize. Narrow screens stack automatically while retaining the wider-screen choice. Placement, divider proportion and player/editor visibility persist in localStorage.
+In **Video & editor layout**, choose Above, Below, Left or Right of score. First use defaults to Left; valid saved preferences and profile placements take precedence. Missing/invalid profile placement also falls back to Left. Left/Right place the recording beside the native score. Drag the divider, or focus it and use arrow keys, to resize. Narrow screens stack automatically while retaining the wider-screen choice. Placement, divider proportion and player/editor visibility persist in localStorage.
 
 **Float video** uses browser picture-in-picture for local video or direct video URLs where supported. It is disabled for audio and YouTube's iframe, with contextual help. YouTube may offer floating playback through the browser's own controls. Our app does not control floating videos from unrelated TrueFire/other-site tabs.
 

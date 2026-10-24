@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Clarify sync preview and restore practice controls — 2026-10-24
+
+- [x] Add explicit Finish editing / Return to practice action; identify Preview on main transport and explain suspended feedback/targets/loops. Keep source choice separate and preserve alignment, matching and Wait progression.
+- [x] Disable Loop inputs/intents during sync editing and source restoration without changing saved choices. Default video placement to Left; retain valid saved preferences/profiles.
+- [x] 449 Node regressions pass; isolated Chrome verifies repeated source/editor transitions, cursor/range/shading, staff/tab/fretboard synthetic MIDI grading, silent Recording Wait, saved placement and desktop/phone layout. Syntax/whitespace pass; final details in DEV-NOTES.
+- [ ] Owner tests real video/Fishman after source switches; see the acceptance checklist in DEV-NOTES. User confirmed fretboard targets return when closing the editor; no separate Realtime grading failure established.
+
 ### Tolerance defaults and setup guidance — 2026-10-24
 
 - [x] First-use Two held notes and Skipped strings only (Hex); preserve saved choices, legacy disabled tolerance and all matching/progression rules. Keep tracking spikes on, range/brief filtering off, brief duration 30 ms and all four feedback switches on.

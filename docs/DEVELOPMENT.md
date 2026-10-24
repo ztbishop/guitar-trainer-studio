@@ -24,6 +24,8 @@ git diff --check
 
 ## Guide
 
+For sync preview/practice transitions, run `node tests/run-sync-practice-browser.cjs` with the same GTS_PLAYWRIGHT_MODULE/GTS_BROWSER_CHANNEL options below. It starts/closes a temporary local server and isolated Chrome profile, loads a bundled demo and in-memory WAV, and injects synthetic MIDI. It checks restored native loop/cursor/shading, staff/tab/fretboard feedback under both sources, Recording Wait gating, placement persistence and phone width. Optional GTS_SCREENSHOT_DIR captures desktop/phone screenshots outside the repository. Native audio startup is awaited before Pause; see DEV-NOTES for the upstream fast-Pause limitation and separate physical/video acceptance checklist.
+
 For tolerance-default/guidance changes, `node tests/run-tolerance-defaults-browser.cjs` starts/closes its own temporary local server and verifies fresh and saved preference profiles plus desktop/phone Practice/Help layout. It uses the same GTS_PLAYWRIGHT_MODULE/GTS_BROWSER_CHANNEL options as the other browser runners, without physical MIDI or the owner's browser storage.
 
 The launcher prints its local URL and, in an interactive terminal, accepts C followed by Enter to copy it using Windows clip.exe or macOS pbcopy. Success is confirmed; missing/failed clipboard tools leave the displayed address available for manual copying. It never changes browser/MIDI settings. Clipboard tests inject a fake process so automated runs do not overwrite the owner's clipboard. Real terminal/clipboard acceptance remains a Windows/Mac local check.

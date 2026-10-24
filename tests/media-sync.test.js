@@ -10,6 +10,11 @@ const timeline={endTick:11520,durationMs:6000,ticksPerQuarter:960,tempoMap:[{tic
 const source={kind:'local',label:'Lesson',fileName:'lesson.mp4',size:300,lastModified:12};
 const profile=()=>({id:'profile',scoreHash:'a'.repeat(64),scoreName:'Song',name:'Performance',source,durationMs:10000,points:tempoAlignedPoints(timeline,10000),layout:'right'});
 
+test('missing profile placement defaults left while valid saved placements remain authoritative',()=>{
+  for(const layout of ['above','below','left','right'])assert.equal(validateProfile({...profile(),layout}).layout,layout);
+  for(const layout of [undefined,null,'invalid'])assert.equal(validateProfile({...profile(),layout}).layout,'left');
+});
+
 test('native 1.8.4 worker info compatibility fixes only the recursive getter and is idempotent',()=>{
   assert.ok(installAlphaTabCompatibility(native));
   const worker=Object.create(native.synth.AlphaSynthWebWorkerApi.prototype),info={currentTick:42};worker._loadedMidiInfo=info;

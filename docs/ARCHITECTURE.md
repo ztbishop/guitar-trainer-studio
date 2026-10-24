@@ -1,5 +1,13 @@
 # Guitar Trainer Studio Architecture
 
+## Explicit sync preview exit and Left video default — 2026-10-24
+
+`media-controls.js` adds Finish editing / Return to practice, sharing the editor close handler with ×. It hides/persists the editor, calls the existing host.setMediaEditing(false) through renderLayout, and focuses main Play without starting playback or changing the selected source. Existing bootstrap afterEdit callbacks prepare fresh sessions; the host retains native pause/range/count-in restoration. Current unsaved alignment is retained, not implicitly saved. Main transport text/accessible labels in app-bootstrap.js distinguish Preview from Play; editor help states that targets, grading and loops are suspended even with Synth audio selected.
+
+`loop-controls.js` gates both inputs and injected intents during media.editing or media.returning. It explains suspension/restoration while preserving the saved enabled range/count-in and existing native host ownership. No MIDI, matching, feedback projection or Wait progression changes. `media-controls.js` first-use layout and media-sync.js invalid/missing profile layout fallback are Left; valid existing preferences and profile layouts still win. No storage schema changes or new runtime modules.
+
+`tests/run-sync-practice-browser.cjs` starts/closes its own loopback server and isolated Chrome profile; uses bundled native demo import, in-memory WAV and synthetic MIDI to check source/editor transitions, native range/shading/cursor, staff/tab/fretboard grading, Wait gating and placement persistence. See DEV-NOTES for actual results and pending physical/video acceptance. Existing media restoration is asynchronous: playerReady and the saved seek acknowledgement must complete before normal input is used; no new transport path is introduced.
+
 ## MIDI tolerance first-use defaults and setup guidance — 2026-10-24
 
 `practice-preferences.js` now defaults heldNoteTolerance to two and extraStringTolerance to internal (Skipped strings only). `app-state.js`, initial HTML selections, save-validation fallbacks and the display-only practice-menu summary agree. Existing validated stored choices always win, including One/Off. Legacy allowMutedStringNoise booleans now explicitly map true→all and false→off, so a previously disabled choice is not replaced by the new first-use default. Missing/invalid fields use the new defaults; no migration rewrites valid preferences or session/grading algorithms.
