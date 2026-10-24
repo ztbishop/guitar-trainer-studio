@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+### Owner experience for TriplePlay, MG3 and MiGiC Poly — 2026-10-24
+
+- [x] Replace TriplePlay per-model qualification with successful owner experience and occasional mistakes; describe MG3 usability/extras/raked chords and MiGiC Poly Wait usability with distracting feedback hidden and many extra/wrong attacks. Mark NX/other alternatives untested; add manufacturer demo links.
+- [x] Keep the personal-test scope, visual-only hiding and Together-window limitations explicit; no matching, feedback/default or MIDI changes.
+- [x] 459 Node regressions, whitespace and isolated desktop/phone appendix checks pass, including updated experience and both demo links; details in DEV-NOTES.md. Owner wording review remains separate.
+
 ### MIDI requirement upfront and TriplePlay family name — 2026-10-24
 
 - [x] Use Fishman TriplePlay for the family in player-facing setup/comparison labels; retain specific Connect owner-use evidence in the appendix.

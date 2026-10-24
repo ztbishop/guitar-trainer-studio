@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Owner-tested MIDI comparison results — 2026-10-24
+
+README appendix experience now reflects owner confirmation: TriplePlay works successfully with occasional tracking mistakes and was more reliable than software in their tests; MG3 is usable with occasional extras and some chords benefit from a gentle rake; MiGiC Poly can support Wait with distracting visuals hidden but produces many extra attacks/wrong pitches. NX and remaining alternatives stay untested. Remove the per-model TriplePlay disclaimer at the owner's request; do not turn the personal comparison into a universal benchmark. Demo links are external manufacturer pages, not bundled downloads. Explicitly retain visibility-versus-grading/detection and One at a time-versus-Together distinctions. This supersedes earlier appendix status descriptions without introducing runtime/MIDI/grading modules or changes.
+
 ## Explicit MIDI input requirement and TriplePlay naming — 2026-10-24
 
 README opening/setup text and the first paragraph of index.html Quick Help explicitly state that recognition/grading/Wait require incoming MIDI, with audio-to-MIDI conversion performed externally. The app has no microphone/audio-interface recognition path; recording playback/sync is distinct from performance input. Scores/playback remain available without MIDI. Player-facing option labels use the Fishman TriplePlay family name; the appendix retains Connect-specific owner-use evidence rather than implying all variants were tested. This is content only: no runtime modules, input routing, recording/media, alphaTab, grading or default changes.
