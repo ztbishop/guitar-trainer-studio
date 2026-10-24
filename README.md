@@ -217,7 +217,7 @@ Practice mode, Wait chord settings, feedback switches, display choices and maste
 
 ## Updating your local copy
 
-Open **More → Help & Guide → Downloads & releases** to visit the [GitHub Releases page](https://github.com/ztbishop/guitar-trainer-studio/releases). Published releases provide named versions and download links. If no releases are listed yet, use the [current project ZIP](https://github.com/ztbishop/guitar-trainer-studio/archive/refs/heads/main.zip). That ZIP follows the latest work on the main branch and can include changes since a published release.
+Open **More → Help & Guide → Downloads & releases** to visit the [GitHub Releases page](https://github.com/ztbishop/guitar-trainer-studio/releases). Choose a named release and download **Source code (zip)** for a complete copy, including its licenses, guide, demos and launchers. Beta releases are marked **Pre-release**. The [current project ZIP](https://github.com/ztbishop/guitar-trainer-studio/archive/refs/heads/main.zip) follows the latest work on the main branch and can include changes since a published release.
 
 Updates are manual; the app does not check for new versions or replace your files automatically.
 
@@ -271,5 +271,7 @@ Guitar Trainer Studio is free and open-source software under the **GNU Affero Ge
 Read the [full license](LICENSE), browse the [application source](https://github.com/ztbishop/guitar-trainer-studio), or see [third-party licenses and source information](docs/LICENSING.md). Shared modified versions have source-sharing requirements; commercial use is permitted. alphaTab, its integration adaptations, fonts, sounds and the guide renderer retain their respective licenses. The original demo exercises are CC0. Your own scores and recordings keep their existing rights.
 
 ## For developers and contributors
+
+For the owner: [GitHub license verification, release publishing and Pages setup](docs/PUBLISHING.md).
 
 The app has no frontend build step. Keep native alphaTab rendering/playback and the existing MIDI/session boundaries. Start with [AGENTS.md](AGENTS.md), then [architecture](docs/ARCHITECTURE.md), [TODO](docs/TODO.md) and [development notes](docs/DEV-NOTES.md). [Development setup and checks](docs/DEVELOPMENT.md) covers the server, demos and guide. Detailed subsystem references include the [score library](docs/SCORE-LIBRARY.md), [fretboard](docs/FRETBOARD.md) and [media sync](docs/MEDIA-SYNC.md).

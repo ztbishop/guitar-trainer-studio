@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Beta v0.0.4 release and Pages guidance — 2026-10-24
+
+- [x] Owner explicitly lifts the documentation/licensing hold and requests Beta v0.0.4; verify the tag is unused, align version.json/current instructions and save release notes.
+- [x] Document root LICENSE detection and third-party exceptions, owner-controlled public visibility and main/root Pages setup. Add .nojekyll; preserve Live Server and all runtime behavior. README remains player-facing.
+- [ ] Complete release checks, commit/push, annotated tag and GitHub prerelease publication; record actual result in handoff/DEV-NOTES.
+- [ ] Owner makes the repository public when ready, verifies source/license/release access while signed out and enables Pages. Verify hosted assets, demos/playback, Help license/source links, library import and actual Fishman Wait/Realtime. Hosted/physical/Mac acceptance is separate from automated checks.
+
 ### Licensing before public release — 2026-10-24
 
 - [x] Add AGPL-3.0-or-later terms for original application content, explicit MPL coverage for native-derived alphatab-host adaptations, third-party license inventory/source links and preserved vendor notices; retain CC0 demos.

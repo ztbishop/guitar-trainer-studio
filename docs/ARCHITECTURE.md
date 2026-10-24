@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Beta v0.0.4 and static hosting preparation — 2026-10-24
+
+The owner explicitly authorized Beta v0.0.4 after licensing, superseding the earlier release hold. version.json remains the single version metadata source; AGENTS/current development guidance record the new baseline. docs/releases/v0.0.4.md is the saved release body, and docs/PUBLISHING.md owns GitHub license verification, visibility/Pages instructions and release maintenance. README explains player-facing release ZIP selection without embedding a version number. Root .nojekyll makes branch-root Pages publish the committed static tree; it does not introduce a build, deployment workflow or runtime module. Native alphaTab, MIDI matching, Wait progression and feedback behavior are unchanged. Tag/release publication does not change repository visibility or enable hosting. A main-based Pages site tracks later pushes independently of fixed release tags. Verification, publication and pending hosted/Fishman acceptance are distinct in DEV-NOTES.md.
+
 ## Application and dependency licensing — 2026-10-24
 
 Original application code/docs/artwork are AGPL-3.0-or-later as stated in root LICENSE plus docs/LICENSING.md, with explicit third-party exceptions. alphatab-host.js contains native-method compatibility adaptations and is marked MPL-2.0; the combined AGPL distribution uses MPL section 3.3 additional distribution without removing MPL rights. Vendor runtime bytes remain unchanged. Original demos retain CC0; imported user media/scores retain their rights.
