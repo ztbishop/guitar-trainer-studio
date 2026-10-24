@@ -71,8 +71,30 @@ const path=require('node:path');
       await page.waitForFunction(count=>document.querySelectorAll('#fretboard-content .fretboard-string').length===count,count);
     }
     await page.evaluate(()=>{const control=document.querySelector('#practice-track-select');control.value='3';control.dispatchEvent(new Event('change'));});
+    assert.equal(await page.locator('.fretboard-capo text').textContent(),'Capo 2');
+    let neckHeight=null;
     for(const width of [1440,800,390]) {
       await page.setViewportSize({width,height:900});
+      await page.waitForFunction(async()=>{
+        const {fretboardGeometry}=await import('./js/fretboard-geometry.js');
+        const svg=document.querySelector('#fretboard-content svg'),content=document.querySelector('#fretboard-content');
+        const maxFret=Math.max(...[...svg.querySelectorAll('.fretboard-fret')].map(el=>Number(el.dataset.fret)));
+        const padding=getComputedStyle(content),available=content.clientWidth-parseFloat(padding.paddingLeft)-parseFloat(padding.paddingRight);
+        return svg.getBoundingClientRect().width===fretboardGeometry(maxFret,6,available).width &&
+          Number(svg.getAttribute('width'))===svg.getBoundingClientRect().width;
+      });
+      const dimensions=await page.evaluate(()=>{
+        const svg=document.querySelector('#fretboard-content svg'),circle=svg.querySelector('.fretboard-marker-target circle');
+        const box=circle.getBoundingClientRect();
+        return {height:svg.getBoundingClientRect().height,markerWidth:box.width,markerHeight:box.height,
+          font:getComputedStyle(svg.querySelector('.fretboard-marker-target text')).fontSize,
+          labels:[...svg.querySelectorAll('[data-fret-label]')].map(el=>Number(el.dataset.fretLabel))};
+      });
+      neckHeight??=dimensions.height;assert.equal(dimensions.height,neckHeight);
+      assert(await page.evaluate(()=>{const svg=document.querySelector('#fretboard-content svg'),scroll=svg.parentElement,nut=svg.querySelector('.fretboard-nut').getBoundingClientRect(),box=scroll.getBoundingClientRect();return nut.x>box.x && nut.x<box.right;}),'left-handed nut stays in view when a full neck becomes scrollable');
+      assert.equal(dimensions.markerWidth,20);assert.equal(dimensions.markerHeight,20);assert.equal(dimensions.font,'12px');
+      assert(dimensions.labels.includes(0));
+      if(width<=800)assert(!dimensions.labels.includes(1),'sparse labels omit 1');
       await page.locator('#fretboard-settings').click();
       assert(await page.locator('#fretboard-options').isVisible());
       const box=await page.locator('#fretboard-options').boundingBox();assert(box.x>=0 && box.x+box.width<=width,'popup fits viewport');
@@ -82,6 +104,7 @@ const path=require('node:path');
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no page overflow');
       if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.GTS_SCREENSHOT_DIR,`fretboard-${width}.png`)});
       await page.keyboard.press('Escape');
+      if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.GTS_SCREENSHOT_DIR,`fretboard-neck-${width}.png`)});
     }
     await page.goto(`${base}/tests/fretboard-browser.html`);
     for(const width of [1440,390]) {

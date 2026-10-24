@@ -2,6 +2,14 @@
 
 Updated 2026-10-23. Supersedes Stage 6's original six-string-only display.
 
+## Readability and capo cue — 2026-10-23
+
+Targets/context now use 20px circles and 12px text; held rings are 24px, with 24px string spacing. The neck keeps a fixed vertical geometry for its string count as the window changes. Only horizontal fret geometry reflows; circles remain round and labels do not shrink. The tapered spacing reserves at least 24px per cell, with minimum overall width `160 + 26 × maxFret` (784px at 24 frets; 1096px at 36). Below that width, scroll horizontally. This supersedes the earlier 1200px minimum/uniform SVG scaling behavior. Larger string counts can still need vertical scrolling in the existing resizable panel.
+
+At widths below `160 + 42 × maxFret`, show capo-relative fret numbers 0, 3, 5, 7, 9, 12, 15, 17, 19, 21, 24 (and matching landmarks above 24), plus the final displayed fret and any current target frets. Fret 1 is omitted in this sparse view unless currently targeted; comfortable widths retain every fret label. No additional saved option is introduced. Resizing preserves horizontal browsing; mirrored necks preserve distance from the right edge so their nut/capo side stays visible when a full-width neck becomes scrollable.
+
+An explicit **Capo N** badge appears above the string labels only when capo > 0, mirrored with orientation. This visual cue uses the existing selected staff capo; it does not change the existing capo-relative fret labels, sounding pitch calculation or physical-fret inlays. The neck is custom UI: alphaTab supplies the score metadata. Help, feedback colors, saved choices, navigation, grading and release behavior remain as before. No fading animation is added.
+
 ## Preview modes and local controls — 2026-10-23
 
 The neck's ← / → / gear controls provide paused beat browsing and a local settings popup. Show defaults to **Beat**; alternatives are **Beat + Next Beat** and **Beat + Bar**. Labels default to **Note names**, with **Fret numbers**, **Finger numbers**, and **None** alternatives. These choices save independently in `gts.displayPreferences` alongside existing visibility and orientation. First-use visibility on/orientation off and all existing saved choices remain authoritative across score loads/reloads. Popup openness and cursor browsing are transient, not saved.

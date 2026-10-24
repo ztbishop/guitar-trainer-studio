@@ -1,5 +1,15 @@
 # Guitar Trainer Studio Architecture
 
+## Fretboard readability and resize projection — 2026-10-23
+
+`fretboard-geometry.js` accepts an optional available width in geometry/fret-wire/note-center helpers. Width is clamped to `160 + 26 × maxFret`; each cell reserves 24px and distributes remaining space with the exponential taper. Vertical geometry depends only on string count (24px spacing), not viewport. Pure `fretNumberVisible` selects all labels at comfortable widths or 0/landmarks/final/current targets when compressed. These are display coordinates, never score or MIDI fret transforms.
+
+`fretboard-ui.js` uses explicit equal SVG pixel/viewBox dimensions so markers/text stay round and readable. A single ResizeObserver watches the container; its callback redraws the last model only when the model/available-width signature changes. Initialization disconnects the former observer, avoiding duplicate ownership. Feedback redraws retain scroll; width changes in left-handed mode preserve right-edge distance using the previous viewport width. Hidden/zero-width containers use fallback geometry until observed at a usable width. The renderer adds a mirrored nonzero-capo badge from existing model metadata. No app state, persistence, native alphaTab, normalization or session behavior changes.
+
+Available width excludes container padding reserved for the close control. `workspace-panels.css` no longer forces SVG height to panel height or overrides phone minimum width to 1200px; geometry owns SVG dimensions while the existing panel/scroll container owns clipping and resizing. Browser checks compare rendered dimensions to SVG attributes as well as measuring markers, so SVG letterboxing cannot mask a conflicting stylesheet rule.
+
+`tests/fretboard-readability.test.js` covers invariant height, minimum cell widths, round-marker coordinate geometry, mirroring and sparse-label exceptions. The existing isolated browser runner additionally measures actual 20px round circles/12px text and unchanged SVG height at 1440/800/390 widths, checks sparse labels/capo and runs existing geometry/app UI regressions.
+
 ## Fretboard previews, labels and paused browsing — 2026-10-23
 
 - `fretboard-context.js` is a pure display/timeline adapter: filters selected-track native events by enabled playback range; selects next-onset or same-playback-measure context; finds adjacent distinct onset ticks across voices; formats explicit fret/finger/blank label choices. It never changes sessions, scoring, MIDI or native state. Written `nextBeat` links alone are not used for repeat navigation.

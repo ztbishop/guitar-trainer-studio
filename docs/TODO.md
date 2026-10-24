@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Fretboard readability and capo cue — 2026-10-23
+
+- [x] Enlarge target/context circles and labels; increase string spacing. Keep vertical size steady during horizontal resizing and scroll below readable fret-cell limits.
+- [x] Use 0/landmarks/current-target/final fret labels when compressed; omit 1 unless targeted. Retain all fret labels at comfortable widths. Show explicit nonzero Capo N badge and preserve existing capo arithmetic/inlays.
+- [x] Pure resize/label tests plus isolated browser dimensions, capo, controls, mirrored tracks and existing regressions; see DEV-NOTES for final evidence. Keep Help, saved choices and feedback/Wait/MIDI rules unchanged.
+- [ ] Owner hard-refreshes usual Live Server browser; review marker/text size, window resizing, right/left-handed scrolling, targeted fret 1, high frets and actual capo files. Physical Fishman/MIDI Guitar, appearance and listening acceptance remain pending.
+
 ### Fretboard previews, labels and paused browsing — 2026-10-23
 
 - [x] Add saved Beat (default) / Beat + Next Beat / Beat + Bar views. Blue current, gold future outlines, faint neutral past; current feedback wins over deduplicated context and historical errors do not color context.

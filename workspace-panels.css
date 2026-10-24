@@ -11,7 +11,7 @@
 .panel-resizer::after { content:""; position:absolute; top:4px; height:4px; left:35%; right:35%; border-radius:8px; background:#94a3b8; }
 .panel-resizer:focus-visible { outline:2px solid #2563eb; outline-offset:-2px; }
 .fretboard-panel .fretboard-scroll { height:100%; overflow:auto; }
-.fretboard-panel .fretboard-scroll svg { height:100%; width:100%; min-width:0 !important; }
+.fretboard-panel .fretboard-scroll svg { min-width:0; max-width:none; }
 .media-player-heading #media-pip { margin-left:auto; }
 .media-picture { min-height:60px; }
 .media-player-panel.audio-only .media-picture { display:none; }
@@ -23,6 +23,5 @@
   .panel-close { width:40px; min-width:40px; height:40px; min-height:40px; }
   .media-editor .panel-content > .media-actions { padding-right:44px; }
   .fretboard-panel .panel-content { padding-right:42px; }
-  .fretboard-panel .fretboard-scroll svg { min-width:1200px !important; }
   .media-profile-row { flex-wrap:wrap; }
 }
