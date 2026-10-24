@@ -352,12 +352,21 @@
 }
 
 /* Keep each input tolerance setting and its explanation together. */
-#practice-popup .practice-input-filters { grid-column: 1 / -1; min-width: 0; display: grid; gap: 0; margin-top: 8px; }
+#practice-popup .practice-input-filters { min-width: 0; margin: 0; }
+#practice-popup .practice-tuning { border-top: 1px solid var(--section-rule); }
+#practice-popup .practice-tuning > summary { font-size: 1rem; }
+#practice-popup .practice-setting-summary { display: block; margin: 4px 0 0 18px; color: var(--muted); font-size: .78rem; line-height: 1.4; font-weight: 400; }
+#practice-popup summary:focus-visible { outline: 2px solid var(--menu-accent); outline-offset: 2px; border-radius: 4px; }
+#practice-popup .practice-score-feedback .feedback-group--tabs { border: 0; }
+#practice-popup .practice-filter-select { display: grid; grid-template-columns: minmax(0, 1fr) 230px; align-items: center; gap: 6px 16px; }
+#practice-popup .practice-filter-select > label { min-width: 0; font-size: .85rem; font-weight: 600; }
+#practice-popup .practice-filter-select > select { width: 100%; min-width: 0; }
+#practice-popup .practice-filter-select > .field-help { grid-column: 1 / -1; margin-left: 0; }
 #practice-popup .practice-filter-intro { margin: 4px 0 10px; }
 #practice-popup .practice-filter-option { min-width: 0; padding: 8px 0 12px; border-bottom: 1px solid rgba(125,139,156,.2); }
 #practice-popup .practice-filter-option .toggle-row { box-sizing: border-box; align-items: center; gap: 10px; }
 #practice-popup .practice-filter-option .toggle-row > span { min-width: 0; font-weight: 600; }
-#practice-popup .practice-filter-option small { display: inline-block; margin-left: 6px; color: var(--muted); font-size: .75rem; font-weight: 400; }
+#practice-popup .practice-filter-option small { display: inline-block; margin-left: 6px; padding: 1px 6px; border: 1px solid var(--menu-input-border); border-radius: 4px; color: var(--muted); font-size: .72rem; font-weight: 400; white-space: nowrap; }
 #practice-popup .practice-filter-option .field-help { margin: 0 0 0 32px; }
 #practice-popup .practice-filter-option input { flex: 0 0 auto; }
 #practice-popup .practice-filter-option .toggle-row:has(input:disabled) { opacity: .55; cursor: default; }
@@ -365,5 +374,11 @@
 #practice-popup .practice-filter-details .field-help { margin: 8px 0; }
 
 #practice-popup .brief-error-duration { margin: 10px 0 0 32px; gap: 12px; }
+#practice-popup .brief-error-duration { grid-template-columns: minmax(0, 1fr) var(--menu-number-group); }
 #practice-popup .brief-error-duration[hidden] { display: none; }
 #practice-popup #brief-error-availability:empty { display: none; }
+@media (max-width: 620px) {
+  #practice-popup .practice-filter-select { grid-template-columns: minmax(0, 1fr); }
+  #practice-popup .brief-error-duration { margin-left: 0; }
+  #practice-popup .brief-error-duration > label { grid-column: 1 / -1; }
+}

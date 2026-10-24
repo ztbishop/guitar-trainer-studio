@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Practice menu tidy-up — 2026-10-23
+
+- [x] Keep vertical practice modes and conditional Wait controls; move all four Score feedback choices ahead of MIDI tuning. Collapse tolerance/timing sections, align dropdowns, shorten visible explanations and retain detailed inline help and warnings.
+- [x] Add a display-only held-note/filter summary that excludes unavailable Hex filters. Preserve control IDs, saved choices, defaults and all grading/transport behavior.
+- [x] 411 Node tests, changed-module syntax and whitespace checks pass. Isolated Live Server Chrome checks cover keyboard disclosure, summary updates, reload persistence, independent feedback choices, Wait settings, duration controls and widths 1440/800/620/390; no page errors or horizontal menu overflow.
+- [ ] Owner hard-refreshes the normal Live Server browser and reviews spacing with a loaded score in Realtime/Wait; check Hex/Poly device availability, saved feedback/tolerance choices and familiar Fishman/MIDI Guitar practice behavior. Physical MIDI and owner visual acceptance remain pending.
+
 ### Explicit held-note limits — 2026-10-21
 
 - [x] Replace unlimited Multiple with Two notes / Three notes, retain Off / One note default, enforce caps in every practice/input configuration and migrate saved Multiple to Two.

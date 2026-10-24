@@ -1,4 +1,5 @@
 import {initBriefErrorControls} from './brief-error-controls.js';
+import {syncPracticeMenuSummary} from './practice-menu.js';
 import {initMidiCaptureControls,captureFeedbackView} from './midi-capture.js';
 // app-bootstrap.js
 // Owns: startup wiring and module initialization order
@@ -512,6 +513,7 @@ function renderTrainerUi() {
   const rangeFilter=document.getElementById('filter-score-range');
   if(rangeFilter){rangeFilter.checked=AppState.filterScoreRange;rangeFilter.disabled=AppState.media.editing;}
   if(spikeFilter){spikeFilter.checked=AppState.filterHexSpikes;spikeFilter.disabled=AppState.inputMode!=='hex-6ch' || AppState.media.editing;}
+  syncPracticeMenuSummary(AppState);
   const latencyInput = document.getElementById('midi-latency-ms');
   if (latencyInput) {
     latencyInput.disabled = AppState.mode === 'wait';

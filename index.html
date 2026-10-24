@@ -152,65 +152,9 @@
           <details class="practice-advanced"><summary>Chord timing help</summary><p class="field-help">One at a time collects correct notes without a time limit. Together requires attacks within its chord window. Held-note tolerance can supply eligible lingering tones in either mode; at least one required fresh attack is always needed. Pause freezes the window; expired chords can be retried. Changing chord settings pauses practice and clears results.</p></details>
           </div>
 
-          <section class="practice-input-filters" aria-labelledby="practice-filters-title">
-            <div class="popup-card-title" id="practice-filters-title">MIDI input tolerance</div>
-            <p class="field-help practice-filter-intro">Changing an option pauses practice and clears its results.</p>
-            <div class="practice-filter-option">
-              <label for="held-note-tolerance">Allow held notes in repeated chords <small>Hex or Poly</small></label>
-              <select id="held-note-tolerance" aria-describedby="held-note-help">
-                <option value="off">Off — fresh attacks required</option>
-                <option value="one" selected>One note</option>
-                <option value="two">Two notes</option>
-                <option value="three">Three notes</option>
-              </select>
-              <p id="held-note-help" class="field-help">For repeated identical chords in all practice modes. Choose the maximum held notes allowed per repeated chord: One (default), Two or Three. Two/Three allow continued carryover. At least one required note must still receive a fresh attack. Released notes cannot count.</p>
-            </div>
-            <div class="practice-filter-option">
-              <label for="extra-string-tolerance">Ignore extra chord strings <small>Hex</small></label>
-              <select id="extra-string-tolerance" aria-describedby="muted-noise-help">
-                <option value="off">Off</option>
-                <option value="internal">Skipped strings only</option>
-                <option value="all">All unwritten strings</option>
-              </select>
-              <p id="muted-noise-help" class="field-help">For chords with at least two pitched strings. Skipped strings lie between written pitched strings; All also forgives outside strings. Ignored input cannot satisfy required pitches. Other enabled filters still apply.</p>
-              <p class="field-help">Written X notes need no tolerance setting. An all-X beat requires one fresh MIDI attack at any pitch from any string. In mixed chords, pitched notes are required; identified Hex X-string input is forgiven. Poly cannot identify individual X strings.</p>
-            </div>
-            <div class="practice-filter-option">
-              <label class="toggle-row" for="filter-hex-spikes"><input id="filter-hex-spikes" type="checkbox" checked aria-describedby="spike-filter-help" /><span>Filter confirmed tracking spikes <small>Hex</small></span></label>
-              <p id="spike-filter-help" class="field-help">Filter brief false starts and immediate stronger retriggers of a soft note on the same string.</p>
-            </div>
-            <div class="practice-filter-option">
-              <label class="toggle-row" for="filter-score-range"><input id="filter-score-range" type="checkbox" aria-describedby="range-filter-help" /><span>Ignore notes outside written fret range <small>Hex or Poly</small></span></label>
-              <p id="range-filter-help" class="field-help">Ignore pitches outside the written shape plus 5 frets on either side. Open strings remain allowed. Off by default; can hide real mistakes.</p>
-            </div>
-            <div class="practice-filter-option">
-              <label class="toggle-row" for="ignore-brief-errors"><input id="ignore-brief-errors" type="checkbox" aria-describedby="brief-error-help" /><span>Ignore brief off-target notes <small>Hex or Poly</small></span></label>
-              <p id="brief-error-help" class="field-help">Correct notes count immediately. Brief wrong notes may be forgiven. Saved separately for each MIDI input; off on first use.</p>
-              <div id="brief-error-duration-row" class="menu-row brief-error-duration" hidden>
-                <label for="minimum-error-ms">Minimum error duration (ms)</label>
-                <div class="menu-number"><input id="minimum-error-ms" type="number" min="5" max="100" step="5" value="30" aria-describedby="brief-error-help" />
-                  <div class="menu-steppers"><button id="minimum-error-down" type="button" aria-label="Decrease minimum error duration by 5 milliseconds">▾</button><button id="minimum-error-up" type="button" aria-label="Increase minimum error duration by 5 milliseconds">▴</button></div>
-                </div>
-              </div>
-              <p id="brief-error-availability" class="field-help"></p>
-            </div>
-            <details class="practice-filter-details"><summary>How these filters differ</summary>
-              <p class="field-help"><strong>Tracking spikes:</strong> checks the MIDI sequence, not hand position. It also ignores one stronger retrigger of a completed soft single note (velocity 20 or less), within 60 ms of its onset and 20 ms of its release, on the same string and pitch across the next target. If the next target needs that pitch, it still counts normally. A soft, distant spike must be released within 70 ms and followed within 200 ms by the correct same-string tone at twice its velocity. Alternatively, a wrong onset must be released within 5 ms and replaced within 20 ms by the correct same-string tone at equal or greater velocity. Short correct notes count immediately.</p>
-              <p class="field-help"><strong>Written range:</strong> checks score positions without waiting for a confirming note. Hex checks the reported string; Poly ignores a pitch only if no string fits. It estimates the written range, not your physical hand position. Missing fingering leaves input unchanged.</p>
-              <p class="field-help"><strong>Brief off-target notes:</strong> forgive wrong pitches released before the chosen duration (5–100 ms). At or above the threshold, count the penalty against its original target. Correct pitches still count immediately, including very short notes. This can hide real brief mistakes; it does not prove a note was a ghost. Default 30 ms, adjustable in 5 ms steps or by typing. The enabled choice and duration save per MIDI input.</p>
-              <p class="field-help">These tolerances apply in Realtime and both Wait chord modes. String-based rules and the spike filter require Hex input. An all-X beat needs one fresh MIDI attack; in mixed chords, X notes are optional.</p>
-            </details>
-          </section>
-          <details class="practice-advanced"><summary>MIDI timing adjustment</summary><label class="field-group" for="midi-latency-ms">
-            <span class="field-label">MIDI input latency (ms)</span>
-            <span class="field-help">Realtime only: increase if your MIDI guitar reports notes late. Changing this resets Realtime results.</span>
-            <input id="midi-latency-ms" type="number" min="0" max="1000" step="5" value="0" />
-          </label></details>
-
-
         </div>
 
-        <div class="popup-card">
+        <div class="popup-card practice-score-feedback">
           <div class="popup-card-title">Score feedback</div>
           <div class="feedback-group">
             <label class="toggle-row" for="show-notation-feedback"><input id="show-notation-feedback" type="checkbox" checked /><span>Staff feedback</span></label>
@@ -223,6 +167,62 @@
           </div>
           <details class="menu-future"><summary>Feedback colors and positions</summary><p id="tab-feedback-status" class="help-text" role="status"></p><p class="help-text">Poly fret estimates are optional guidance for one unambiguous remaining written note, not detected physical positions. Enable Incorrect fret numbers to display them.</p><p class="practice-visual-legend">Staff: green marks correct notes; red marks mistakes. Tabs: green marks correct frets on the active target; red marks errors. Historical correct frets stay unmarked. The blue cursor marks the current beat. Fretboard markers use blue for targets, green for correct notes, and red for mistakes. Pitch grading accepts correct notes on any string. Notation shows actual wrong pitches with explicit accidentals. Tab preserves original frets; detected Hex wrong frets appear beside their strings.</p></details>
         </div>
+        <details class="practice-input-filters practice-tuning">
+          <summary><span id="practice-filters-title">MIDI input tolerance</span><span id="practice-tolerance-summary" class="practice-setting-summary"></span></summary>
+          <p class="field-help practice-filter-intro">Changing an option pauses practice and clears its results.</p>
+          <div class="practice-filter-option practice-filter-select">
+            <label for="held-note-tolerance">Allow held notes in repeated chords</label>
+            <select id="held-note-tolerance" aria-describedby="held-note-help">
+              <option value="off">Off — fresh attacks required</option>
+              <option value="one" selected>One note</option>
+              <option value="two">Two notes</option>
+              <option value="three">Three notes</option>
+            </select>
+            <p id="held-note-help" class="field-help">Repeated identical chords still need at least one fresh required attack.</p>
+          </div>
+          <div class="practice-filter-option practice-filter-select">
+            <label for="extra-string-tolerance">Ignore extra chord strings <small>Hex only</small></label>
+            <select id="extra-string-tolerance" aria-describedby="muted-noise-help">
+              <option value="off">Off</option>
+              <option value="internal">Skipped strings only</option>
+              <option value="all">All unwritten strings</option>
+            </select>
+            <p id="muted-noise-help" class="field-help">Forgives extra strings in chords with two or more pitched strings.</p>
+          </div>
+          <div class="practice-filter-option">
+            <label class="toggle-row" for="filter-hex-spikes"><input id="filter-hex-spikes" type="checkbox" checked aria-describedby="spike-filter-help" /><span>Filter confirmed tracking spikes <small>Hex only</small></span></label>
+            <p id="spike-filter-help" class="field-help">Filters confirmed false starts and soft-note retriggers on the same string.</p>
+          </div>
+          <div class="practice-filter-option">
+            <label class="toggle-row" for="filter-score-range"><input id="filter-score-range" type="checkbox" aria-describedby="range-filter-help" /><span>Ignore notes outside written fret range</span></label>
+            <p id="range-filter-help" class="field-help">Written shape ±5 frets, plus open strings. Can hide real mistakes.</p>
+          </div>
+          <div class="practice-filter-option">
+            <label class="toggle-row" for="ignore-brief-errors"><input id="ignore-brief-errors" type="checkbox" aria-describedby="brief-error-help" /><span>Ignore brief off-target notes</span></label>
+            <p id="brief-error-help" class="field-help">Forgives wrong notes shorter than the duration below, including real brief mistakes.</p>
+            <div id="brief-error-duration-row" class="menu-row brief-error-duration" hidden>
+              <label for="minimum-error-ms">Minimum error duration (ms)</label>
+              <div class="menu-number"><input id="minimum-error-ms" type="number" min="5" max="100" step="5" value="30" aria-describedby="brief-error-help" />
+                <div class="menu-steppers"><button id="minimum-error-down" type="button" aria-label="Decrease minimum error duration by 5 milliseconds">▾</button><button id="minimum-error-up" type="button" aria-label="Increase minimum error duration by 5 milliseconds">▴</button></div>
+              </div>
+            </div>
+            <p id="brief-error-availability" class="field-help"></p>
+          </div>
+          <details class="practice-filter-details"><summary>How these settings work</summary>
+            <p class="field-help"><strong>Held notes:</strong> For repeated identical chords in all practice modes. Choose the maximum held notes allowed per repeated chord: One (default), Two or Three. Two/Three allow continued carryover. At least one required note must still receive a fresh attack. Released notes cannot count.</p>
+            <p class="field-help"><strong>Extra strings:</strong> For chords with at least two pitched strings. Skipped strings lie between written pitched strings; All also forgives outside strings. Ignored input cannot satisfy required pitches. Other enabled filters still apply.</p>
+            <p class="field-help">Written X notes need no tolerance setting. An all-X beat requires one fresh MIDI attack at any pitch from any string. In mixed chords, pitched notes are required; identified Hex X-string input is forgiven. Poly cannot identify individual X strings.</p>
+            <p class="field-help"><strong>Tracking spikes:</strong> checks the MIDI sequence, not hand position. It also ignores one stronger retrigger of a completed soft single note (velocity 20 or less), within 60 ms of its onset and 20 ms of its release, on the same string and pitch across the next target. If the next target needs that pitch, it still counts normally. A soft, distant spike must be released within 70 ms and followed within 200 ms by the correct same-string tone at twice its velocity. Alternatively, a wrong onset must be released within 5 ms and replaced within 20 ms by the correct same-string tone at equal or greater velocity. Short correct notes count immediately.</p>
+            <p class="field-help"><strong>Written range:</strong> checks score positions without waiting for a confirming note. Hex checks the reported string; Poly ignores a pitch only if no string fits. It estimates the written range, not your physical hand position. Missing fingering leaves input unchanged.</p>
+            <p class="field-help"><strong>Brief off-target notes:</strong> forgive wrong pitches released before the chosen duration (5–100 ms). At or above the threshold, count the penalty against its original target. Correct pitches still count immediately, including very short notes. This can hide real brief mistakes; it does not prove a note was a ghost. Default 30 ms, adjustable in 5 ms steps or by typing. The enabled choice and duration save per MIDI input.</p>
+            <p class="field-help">These tolerances apply in Realtime and both Wait chord modes. String-based rules and the spike filter require Hex input. An all-X beat needs one fresh MIDI attack; in mixed chords, X notes are optional.</p>
+          </details>
+        </details>
+        <details class="practice-advanced practice-tuning"><summary>MIDI timing adjustment <span class="practice-setting-summary">Realtime only</span></summary><label class="field-group" for="midi-latency-ms">
+          <span class="field-label">MIDI input latency (ms)</span>
+          <span class="field-help">Realtime only: increase if your MIDI guitar reports notes late. Changing this resets Realtime results.</span>
+          <input id="midi-latency-ms" type="number" min="0" max="1000" step="5" value="0" />
+        </label></details>
         <div class="menu-action-row"><button id="new-attempt-here" type="button" disabled aria-describedby="new-attempt-help">Clear practice results</button><span id="new-attempt-help" class="field-help">Keeps your current position. Play/Pause preserves results; Reset returns to the start.</span></div>
       </div>
     </section>

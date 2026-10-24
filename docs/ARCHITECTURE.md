@@ -1,5 +1,11 @@
 # Guitar Trainer Studio Architecture
 
+## Practice menu composition — 2026-10-23
+
+index.html and menu-controls.css own the Practice menu order and responsive presentation: setup, Score feedback, collapsed MIDI tolerance, collapsed Realtime timing, clear-results action. Native details/summary provides keyboard/touch-accessible disclosure; existing control IDs, help associations, conditional Wait/duration controls and event handlers are retained. Long tolerance policies remain in inline help. Disclosure openness is transient DOM state and is not rewritten by trainer renders or saved as a preference.
+
+js/practice-menu.js owns only the compact tolerance summary. Bootstrap refreshes it from AppState during renderTrainerUi; it counts available optional filters (Hex extra-string/spike choices only with Hex, brief errors only with a selected input) and reports held-note allowance separately. It never writes application state, storage, MIDI or session results and never calls alphaTab. Existing owners retain preference persistence, eligibility, pause/reset and grading behavior. Automated and pending physical acceptance evidence is in DEV-NOTES.md.
+
 ## Explicit held-note limits — 2026-10-21
 
 Owner requested bounded One / Two / Three choices because unlimited Multiple is too forgiving with MIDI Guitar. Dropdown retains Off and first-use One. Shared recognition enforces a maximum of 1/2/3 pending held-note slots per repeated chord, with at least one fresh required attack in every case. Two and Three retain the prior refreshed-tone/corrective-strum evidence and continued carryover rules. One, same-chord checks, releases, timing windows and X behavior remain unchanged. Saved legacy multiple migrates to two; valid explicit choices persist independently of other preferences. No unlimited runtime option remains.
