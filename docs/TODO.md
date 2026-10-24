@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+### Clarify misleading tracking feedback and optional simpler visuals — 2026-10-24
+
+- [x] Explain in README/Quick Help that correct playing can appear wrong/unrecognized after tracking errors; identify independent tab highlights/fret numbers/Poly estimates controls for less distracting feedback.
+- [x] State explicitly that visibility changes do not alter grading, Wait progression or detection; retain setup/tolerance troubleshooting. No runtime/default changes.
+- [x] 459 Node regressions and whitespace checks pass; isolated desktop/phone Chrome checks verify guidance rendering and overflow. Details in DEV-NOTES.md; owner wording/appearance review remains separate.
+
 ### Standard-guitar MIDI setup and tracking expectations — 2026-10-24
 
 - [x] Add README options for TriplePlay/Connect and MIDI Guitar 3, source-linked pickup sensitivity/interface gain/tracker gate advice, clean input and realistic extra/missing-note expectations without attributing every mistake to conversion.

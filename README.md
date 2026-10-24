@@ -151,6 +151,8 @@ Accepted notes still ringing from an earlier target stop drawing extra fretboard
 
 Practice has independent switches for Staff, tab highlights, incorrect fret numbers and Poly estimates; all four start on. Hiding feedback does not change grading. Poly estimates are shown only when the remaining written note makes the estimate unambiguous. These are estimated positions, not detected fingering; turn off Poly estimates or incorrect fret numbers if you prefer simpler feedback. Fret numbers can be particularly useful when the virtual fretboard is hidden.
 
+Tracking errors can make a correctly played note appear wrong or remain unrecognized. If the visual feedback becomes distracting, use **Practice → Score feedback** to turn off **Tab feedback highlights**, **Incorrect fret numbers** or **Estimate incorrect frets (Poly)** independently. This hides those visual cues without changing grading or Wait progression. Check your MIDI setup and **Practice → MIDI input tolerance** if recognition problems persist; hiding feedback does not fix detection or supply missing notes.
+
 ## Settings and other menus
 
 Some toolbar items move into **More** when the window is narrow.
