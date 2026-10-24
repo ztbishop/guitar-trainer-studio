@@ -1,6 +1,6 @@
 // Browser viewing preferences; excludes score identities, results and transport state.
 export const DISPLAY_PREFERENCES_KEY = 'gts.displayPreferences';
-export const DISPLAY_BOOLEAN_KEYS = ['autoScroll', 'fullscreenOnPlay', 'showFretboard', 'leftHanded'];
+export const DISPLAY_BOOLEAN_KEYS = ['autoScroll', 'fullscreenOnPlay', 'showFretboard', 'leftHanded', 'showAlternatePositions'];
 export const CHORD_DIAGRAM_PLACEMENTS = ['score-default', 'above-chord', 'top-of-score', 'off'];
 export const FRETBOARD_VIEWS = ['beat','next','bar'];
 export const FRETBOARD_LABELS = ['notes','frets','fingers','none'];
@@ -11,7 +11,7 @@ export function effectiveChordDiagramPlacement(state) {
 }
 
 export function readDisplayPreferences(storage) {
-  const defaults = {viewMode: 'practice-only', ui: {zoomPercent: 100, autoScroll: true, fullscreenOnPlay: false, chordDiagramPlacement: 'score-default', showFretboard: true, leftHanded: false, fretboardView:'beat', fretboardLabels:'notes'}};
+  const defaults = {viewMode: 'practice-only', ui: {zoomPercent: 100, autoScroll: true, fullscreenOnPlay: false, chordDiagramPlacement: 'score-default', showFretboard: true, leftHanded: false, fretboardView:'beat', fretboardLabels:'notes',showAlternatePositions:false}};
   try {
     storage ??= globalThis.window?.localStorage;
     const saved = JSON.parse(storage?.getItem(DISPLAY_PREFERENCES_KEY) ?? 'null');
@@ -33,7 +33,7 @@ export function saveDisplayPreferences(state, storage) {
     storage ??= globalThis.window?.localStorage;
     storage?.setItem(DISPLAY_PREFERENCES_KEY, JSON.stringify({
       viewMode: state.viewMode,
-      ui: Object.fromEntries(['zoomPercent', 'chordDiagramPlacement', ...DISPLAY_BOOLEAN_KEYS].map(key => [key, state.ui[key]]).concat([
+      ui: Object.fromEntries(['zoomPercent', 'chordDiagramPlacement', ...DISPLAY_BOOLEAN_KEYS].map(key => [key, key==='showAlternatePositions'?state.ui[key]===true:state.ui[key]]).concat([
         ['fretboardView',FRETBOARD_VIEWS.includes(state.ui.fretboardView)?state.ui.fretboardView:'beat'],
         ['fretboardLabels',FRETBOARD_LABELS.includes(state.ui.fretboardLabels)?state.ui.fretboardLabels:'notes'],
       ])),

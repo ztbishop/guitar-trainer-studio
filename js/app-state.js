@@ -82,6 +82,7 @@ export const AppState = {
     leftHanded: false,
     fretboardView: 'beat',
     fretboardLabels: 'notes',
+    showAlternatePositions: false,
     loadedFileName: '',
     playerStatus: 'Waiting for score',
     midiStatus: 'MIDI idle',

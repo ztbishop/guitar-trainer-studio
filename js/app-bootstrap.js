@@ -12,6 +12,7 @@ import { WaitController } from './wait-controller.js';
 import { formatStringHint, midiToNoteName } from './note-utils.js';
 import { initFretboard, renderFretboard } from './fretboard-ui.js';
 import {initFretboardControls} from './fretboard-controls.js';
+import {FretboardHeldNotes} from './fretboard-held-notes.js';
 import {fretboardBeats,fretboardStepTick,fretboardContext} from './fretboard-context.js';
 import {seekPausedTick} from './alphatab-host.js';
 import { buildNotationMarks, buildFretboardModel, buildWrongPitchMarks, fretboardDisplayEvent } from './practice-visuals.js';
@@ -71,6 +72,7 @@ const waitController = new WaitController({
 
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
 let fretboardControls=null,fretboardBrowseTick=null;
+const fretboardHeldNotes=new FretboardHeldNotes();
 
 function fretboardBeatList() {
   return fretboardBeats(AppState.playbackTimeline,AppState.practiceTrackId,AppState.practiceLoop.enabled?AppState.practiceLoop.range:null);
@@ -523,6 +525,23 @@ function renderMidiUi() {
   }
 }
 
+function renderPracticeFretboard(trainer) {
+  if(!AppState.ui.showFretboard)return;
+  const track=AppState.tracks.find((item,index)=>getTrackId(item,index)===String(AppState.practiceTrackId));
+  const beats=fretboardBeatList();
+  const browsing=fretboardBrowseTick!==null && Math.abs(fretboardBrowseTick-AppState.tickPosition)<=3 && !AppState.isPlaying;
+  const browseBeats=browsing?beats.filter(event=>Math.abs(event.startTick-fretboardBrowseTick)<=1):[];
+  const browseEvent=browseBeats.length?{...browseBeats[0],notes:browseBeats.flatMap(event=>event.notes)}:null;
+  const fretboardEvent=AppState.media.editing?null:browseEvent??fretboardDisplayEvent({trainer,events:AppState.expectedEvents,tick:AppState.tickPosition,editing:AppState.media.editing});
+  const origin=browsing?fretboardBrowseTick:fretboardEvent?.startTick??AppState.tickPosition;
+  fretboardControls?.sync({previous:AppState.playerReady && !AppState.media.editing && fretboardStepTick(beats,origin,-1)!==null,next:AppState.playerReady && !AppState.media.editing && fretboardStepTick(beats,origin,1)!==null});
+  renderFretboard(buildFretboardModel({track,noScore:!AppState.score,currentEvent:fretboardEvent,contextEvents:fretboardContext(beats,fretboardEvent,AppState.ui.fretboardView,{loop:AppState.practiceLoop.enabled}),labelMode:AppState.ui.fretboardLabels,showAlternatePositions:AppState.ui.showAlternatePositions,noteStates:!browsing && trainer.currentEvent?trainer.noteStates:{},
+    activeNotes:fretboardHeldNotes.visible([...AppState.midi.activeNotes.values()],trainer).map(n=>{
+      const projected=AppState.mode==='wait' && AppState.inputMode==='hex-6ch'?waitController.pitchState.interpret(n):n;
+      return fretboardHeldNotes.isUngraded(n)?{...projected,fretboardUngraded:true}:projected;
+    }),liveWrongNotes:trainer.liveWrongNotes,inputMode:AppState.inputMode,leftHanded:AppState.ui.leftHanded,lastFeedback:trainer.lastFeedback}));
+}
+
 function renderTrainerUi() {
   for(const id of ['practice-popup','tempo-popup','looper-popup']) {
     const panel=document.getElementById(id);if(panel)panel.inert=Boolean(AppState.media.returning);
@@ -572,18 +591,7 @@ function renderTrainerUi() {
   }
   captureFeedbackView(marks,trainer);
   setNotationFeedback(AppState.media.editing?[]:marks,{notation:AppState.ui.showNotationFeedback,tabCircles:AppState.ui.showTabCircles,tabFrets:AppState.ui.showTabMistakes});
-  if(AppState.ui.showFretboard) {
-    const track=AppState.tracks.find((item,index)=>getTrackId(item,index)===String(AppState.practiceTrackId));
-    const beats=fretboardBeatList();
-    const browsing=fretboardBrowseTick!==null && Math.abs(fretboardBrowseTick-AppState.tickPosition)<=3 && !AppState.isPlaying;
-    const browseBeats=browsing?beats.filter(event=>Math.abs(event.startTick-fretboardBrowseTick)<=1):[];
-    const browseEvent=browseBeats.length?{...browseBeats[0],notes:browseBeats.flatMap(event=>event.notes)}:null;
-    const fretboardEvent=AppState.media.editing?null:browseEvent??fretboardDisplayEvent({trainer,events:AppState.expectedEvents,tick:AppState.tickPosition,editing:AppState.media.editing});
-    const origin=browsing?fretboardBrowseTick:fretboardEvent?.startTick??AppState.tickPosition;
-    fretboardControls?.sync({previous:AppState.playerReady && !AppState.media.editing && fretboardStepTick(beats,origin,-1)!==null,next:AppState.playerReady && !AppState.media.editing && fretboardStepTick(beats,origin,1)!==null});
-    renderFretboard(buildFretboardModel({track,noScore:!AppState.score,currentEvent:fretboardEvent,contextEvents:fretboardContext(beats,fretboardEvent,AppState.ui.fretboardView),labelMode:AppState.ui.fretboardLabels,noteStates:!browsing && trainer.currentEvent?trainer.noteStates:{},
-        activeNotes:[...AppState.midi.activeNotes.values()].map(n=>AppState.mode==='wait' && AppState.inputMode==='hex-6ch'?waitController.pitchState.interpret(n):n),liveWrongNotes:trainer.liveWrongNotes,inputMode:AppState.inputMode,leftHanded:AppState.ui.leftHanded,lastFeedback:trainer.lastFeedback}));
-  }
+  renderPracticeFretboard(trainer);
   const playButton=document.getElementById('play-pause-button');
   if(playButton) {
     const running=AppState.countInActive || (AppState.mode==='wait' && !AppState.media.editing ? trainer.active && trainer.phase!=='paused' : AppState.isPlaying);
@@ -802,10 +810,14 @@ async function bootstrap() {
       else {
         outcome=handleMidiEvent(event);
       }
+      const heldDisplayChanged=fretboardHeldNotes.remember(event,outcome,AppState.midi.activeNotes,{
+        events:AppState.expectedEvents,noteStates:(AppState.mode==='wait'?AppState.waitTrainer:AppState.trainer)?.noteStates,
+      });
       scheduleMidiUi();
       // Continuous bend/controller traffic does not need a full score/UI repaint.
       if((event.type==='note-on' || event.type==='note-off' || outcome) &&
           (AppState.mode!=='wait' || revision===waitUiRevision))renderTrainerUi();
+      else if(heldDisplayChanged && AppState.mode==='wait')renderPracticeFretboard(AppState.waitTrainer);
       return outcome;
     },
     onStateChange: (_,reason) => {

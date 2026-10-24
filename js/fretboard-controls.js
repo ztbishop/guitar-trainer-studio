@@ -27,6 +27,9 @@ export function initFretboardControls(onChange,onStep) {
     saveDisplayPreferences(AppState);
     onChange();
   });
+  get('fretboard-alternates').addEventListener('change',event=>{
+    AppState.ui.showAlternatePositions=event.target.checked;saveDisplayPreferences(AppState);onChange();
+  });
   get('fretboard-help').addEventListener('click',()=>{
     get('fretboard-local-help').hidden=!get('fretboard-local-help').hidden;
     get('fretboard-help').setAttribute('aria-expanded',String(!get('fretboard-local-help').hidden));
@@ -38,6 +41,7 @@ export function initFretboardControls(onChange,onStep) {
     get('fretboard-view').value=AppState.ui.fretboardView;
     get('fretboard-labels').value=AppState.ui.fretboardLabels;
     get('fretboard-left').checked=AppState.ui.leftHanded;
+    get('fretboard-alternates').checked=AppState.ui.showAlternatePositions;
     get('fretboard-left').disabled=!AppState.ui.showFretboard;
     get('fretboard-previous').disabled=!previous;
     get('fretboard-next').disabled=!next;

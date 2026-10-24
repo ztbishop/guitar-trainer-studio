@@ -657,8 +657,10 @@
             <label>Show <select id="fretboard-view"><option value="beat">Beat</option><option value="next">Beat + Next Beat</option><option value="bar">Beat + Bar</option></select></label>
             <label>Labels <select id="fretboard-labels"><option value="notes">Note names</option><option value="frets">Fret numbers</option><option value="fingers">Finger numbers</option><option value="none">None</option></select></label>
             <label><input id="fretboard-left" type="checkbox"> Left-handed</label>
+            <label><input id="fretboard-alternates" type="checkbox"> Show alternate positions</label>
             <button id="fretboard-help" type="button" aria-expanded="false" aria-controls="fretboard-local-help">Help</button>
             <div id="fretboard-local-help" hidden>
+              <p>Beat + Bar previews the next beat when the current measure runs out of future beats, including loop returns. Show alternate positions adds faint dashed blue guides for the current target's exact pitches elsewhere on the neck. These are possible positions, not detected fingering or octave substitutions; alternate finger labels stay blank.</p>
               <p>Blue: current target. Gold outline: upcoming. Faint outline: earlier in this bar. Green: required pitch accepted, including alternate positions. Red: existing error feedback. Finger labels use score data only (T = thumb); missing fingers stay blank. Arrows pause and start a fresh attempt at the chosen beat.</p>
               <p>Separate rings show held pitches: green for accepted, red for wrong, purple without a current result. Rings disappear on release. Poly shows possible positions, not detected strings. Configured six-channel input maps strings only on six-string tracks; both modes still grade pitch.</p>
               <p>The selected tablature supplies string count, tuning and capo. Fret numbers are relative to the capo; inlays follow physical frets. Open notes sit outside the nut. String thickness is a pitch cue. Left-handed orientation mirrors the neck without changing MIDI channel mapping.</p>

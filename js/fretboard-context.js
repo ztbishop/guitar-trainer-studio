@@ -11,16 +11,19 @@ export function fretboardStepTick(beats,tick,direction) {
     : ticks.find(value=>value>tick+2)??null;
 }
 
-export function fretboardContext(beats,currentEvent,mode='beat') {
+export function fretboardContext(beats,currentEvent,mode='beat',{loop=false}={}) {
   if(!currentEvent || mode==='beat')return [];
   const tick=currentEvent.startTick;
+  const next=beats.find(event=>event.startTick>tick+1)??(loop?beats[0]:null);
+  const nextEvents=next && next.startTick!==tick?beats.filter(event=>event.startTick===next.startTick).map(event=>({...event,previewState:'future'})):[];
   if(mode==='next') {
-    const next=beats.find(event=>event.startTick>tick+1);
-    return next?beats.filter(event=>event.startTick===next.startTick).map(event=>({...event,previewState:'future'})):[];
+    return nextEvents;
   }
   if(mode!=='bar')return [];
-  return beats.filter(event=>event.playbackMeasureIndex===currentEvent.playbackMeasureIndex && event.startTick!==tick)
+  const context=beats.filter(event=>event.playbackMeasureIndex===currentEvent.playbackMeasureIndex && event.startTick!==tick)
     .map(event=>({...event,previewState:event.startTick<tick?'past':'future'}));
+  if(!context.some(event=>event.previewState==='future'))context.push(...nextEvents);
+  return context;
 }
 
 export function fretboardLabel(marker,mode='notes') {

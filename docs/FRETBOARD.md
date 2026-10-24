@@ -2,6 +2,22 @@
 
 Updated 2026-10-23. Supersedes Stage 6's original six-string-only display.
 
+## Replayed collected tones also clear after advancement — 2026-10-24
+
+If a player releases and replays an already collected Wait chord tone before supplying the remaining notes, the evaluator's existing ignored-collected-tone outcome supplies no extra credit or error. That replay is now associated with the existing accepted target pitch for fretboard display, so holding it into the next target no longer leaves purple rings. This applies to Poly and Hex, including repeated replays; current partial-chord feedback remains visible. An ignored outcome alone is insufficient: its exact event/pitch must already have accepted note states. Wrong, filtered, unknown and fresh paused input retain existing behavior. No grading, note-release, held-note tolerance or score/tab feedback change; alternate-guide styling is unchanged.
+
+## Continuous bar preview and optional alternate positions — 2026-10-24
+
+Beat + Bar retains the current measure's faint past and gold future positions. On its final written onset, when no later onset remains in that playback measure, it also previews exactly the next onset in gold. Entering that measure replaces the context with its full contents. Previews follow native repeat occurrences and enabled loop returns; Beat + Next Beat also previews the loop's first onset at its endpoint. Rests remain empty rather than skipping to a later attack. A nonlooping song end adds no preview. Simultaneous voices at the next tick are one preview beat; current written targets still win at overlapping positions.
+
+Gear → **Show alternate positions** is independent, saved in display preferences and off on first use. It draws faint dashed blue guides for the current written target's exact sounding pitches elsewhere within the displayed fret range, using selected tuning/capo/transposition. It does not show octave equivalents, infer physical fingering or grade input. Written positions (including bar/next-beat context) take priority at shared coordinates; live held/wrong rings render above guides. Alternatives remain faint regardless of correctness. Note-name/fret labels apply normally; finger labels are blank on alternatives because different positions have no explicit supplied fingering. It applies equally to Poly and Hex, independently of score feedback and Poly mistake inference. README now describes these features and accepted-tail/paused-ring behavior for players.
+
+## Accepted held tails stay out of the next target — 2026-10-24
+
+In Poly and Hex, a held attack already accepted on an earlier target no longer draws its leftover played-position rings after the target advances. This hides clutter without releasing the input, creating a wrong note or changing held-note tolerance. Current-target green feedback and genuinely wrong held rings retain their existing behavior: Poly shows possible wrong-pitch positions; configured Hex uses its string mapping. If the current target explicitly earns held-note credit, its accepted feedback remains visible. Accepted pitches from chords completed with errors are still accepted tails; the session's errors and score feedback remain intact.
+
+Pausing keeps previously accepted tails hidden, while fresh ungraded notes played during pause remain visible in neutral purple. Release/replay is a new attack and does not inherit the old hidden status, even for identical pitch/channel. Fresh ungraded rings do not borrow stale green/red last-feedback colors. They never add grading credit or errors. Staff/tab feedback, results, MIDI held state and Wait progression remain independent and unchanged. Earlier descriptions of all held positions staying visible until release are superseded for these known accepted tails only.
+
 ## Short frames scale the full neck — 2026-10-24
 
 Manually shortening the frame now scales the full fretboard down to show every string instead of adding a vertical scrollbar. Circles stay round; labels, capo and spacing scale together. Horizontal geometry reflows to use the available width, with horizontal scrolling retained where needed. Automatic fit remains at the normal readable size; enlarging a manual frame never enlarges markers beyond that size. Existing saved manual heights/mode and double-click/Home automatic reset are unchanged. Very short choices intentionally produce smaller text; reset to automatic to restore the standard size. This supersedes earlier descriptions of vertical scrolling for manual height choices below.

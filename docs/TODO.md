@@ -1,5 +1,25 @@
 # Guitar Trainer Studio: status and to-do
 
+### Clear replayed collected-tone fretboard rings — 2026-10-24
+
+- [x] Associate existing ignored-collected-tone replays with already credited event/pitch IDs for display. Clear their held rings after advancing in Poly/Hex without extra credit/errors or tab/Wait changes.
+- [x] 447 Node regressions pass, including Collect/Together × Poly/Hex replay matrices, strict attribution negatives and the supplied four-tone capture pattern. Synthetic browser MIDI replay/pause/wrong-ring checks pass; see DEV-NOTES.
+- [ ] Owner hard-refreshes and repeats partial-chord tones before completion, holds them into the next target and confirms no leftover purple/red rings or changed results. Physical input/appearance acceptance pending. Alternate-guide contrast was assessed but not changed in this fix.
+
+### Measure preview continuity and alternate-position guides — 2026-10-24
+
+- [x] At the last onset in Beat + Bar, preview one next playback onset in gold; restore full new-bar context on entry. Follow repeats and enabled loops, including loop return in Beat + Next Beat; retain rests and song-end behavior.
+- [x] Add one saved Show alternate positions checkbox, default off. Draw faint dashed blue exact-pitch guides for current targets only, with written/live feedback priority and no inferred alternate fingers or octave acceptance.
+- [x] Update root README player guidance and fretboard/architecture notes. 441 Node tests and isolated native preview/alternate-control, MIDI feedback, desktop/phone layout/media regressions pass; see DEV-NOTES.
+- [ ] Owner hard-refreshes and reviews measure transitions, repeated endings/loop edges, rests, alternate guides on/off, labels/capo/orientation and saved preference. Physical Fishman/MIDI Guitar, listening and appearance acceptance remain pending.
+
+### Hide accepted held-note tails on the fretboard — 2026-10-24
+
+- [x] Hide rings from known accepted prior-target attacks in Poly/Hex without changing held MIDI, grading, errors, tab feedback or Wait progression. Retain current accepted feedback and genuine wrong-position rings.
+- [x] Preserve fresh/unclassified input, including neutral paused exploration and release/replay of the same pitch; do not borrow earlier hidden status or stale green/red colors. Keep active held credit visible.
+- [x] 438 Node regressions pass, plus isolated synthetic-MIDI checks in Wait/Realtime × Poly/Hex and existing desktop/phone fretboard/media regressions. See DEV-NOTES for evidence and limits.
+- [ ] Owner hard-refreshes and checks familiar Poly/Hex guitar phrases: ring accepted chords across target changes, sustain genuine wrong notes, pause/explore/release/replay and repeated-chord tolerance. Appearance, real Fishman/MIDI Guitar and listening acceptance remain pending.
+
 ### Player guide wording — 2026-10-24
 
 - [x] Keep the root README free of the app version number; clarify Node.js is required for the included launchers, not hosted use or an existing local server. Remove the deferred-feature list while retaining the practical pitch-grading explanation. Documentation only; no runtime changes.

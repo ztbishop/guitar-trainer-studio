@@ -124,6 +124,8 @@ Written muted **X** beats need a fresh MIDI attack. If your muted strum produces
 - Tab shows green correct frets on the active target and red errors. Original written frets remain intact; incorrect fret numbers appear beside them where supported.
 - The fretboard uses blue targets, green correct notes and red mistakes. Optional upcoming-note views use gold outlines; earlier positions in the bar are faint.
 
+Accepted notes still ringing from an earlier target stop drawing extra fretboard rings after you advance, including tones replayed while completing a Wait chord; they do not become mistakes. Genuine wrong-note rings remain visible, and fresh notes played while paused appear in neutral purple.
+
 Practice has independent switches for Staff, tab highlights, incorrect fret numbers and Poly estimates. Hiding feedback does not change grading. Poly estimates are shown only when the remaining written note makes the estimate unambiguous.
 
 ## Settings and other menus
@@ -153,6 +155,10 @@ Loop selects the section to repeat. Native score dragging selects whole measures
 Display controls zoom, auto-scroll, full screen on Play, chord diagrams, visible tracks and fretboard visibility. Showing all tracks does not change which single track is graded.
 
 Use the **gear on the fretboard** for Beat / Beat + Next Beat / Beat + Bar views, note/fret/finger labels, left-handed orientation and help. Finger labels need explicit fingering in the score; the app does not invent it. Left-handed display does not reverse MIDI channel mapping.
+
+**Beat + Bar** shows the current measure. On its last beat it also previews the next beat in gold, then shows the full new measure when you enter it. Previews follow repeats and enabled loops; an upcoming rest has no fret markers.
+
+Optional **Show alternate positions** adds faint dashed blue guides for the current target's exact pitches elsewhere on the neck. It defaults off and saves your choice. The guides help you explore other positions; they are not detected fingering, octave substitutions or extra notes to play. Written targets and grading stay unchanged, and alternate positions never invent finger numbers.
 
 Fretboard arrows pause and browse targets while clearing the current attempt. Drag the divider to resize the panel; double-click it to restore automatic fit. Saved display choices return when you reopen the app.
 

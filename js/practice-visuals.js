@@ -52,7 +52,7 @@ export function fretboardDisplayEvent({trainer,events=[],tick=0,editing=false}) 
   return events.find(event=>event.startTick>=tick-1) ?? null;
 }
 
-export function buildFretboardModel({track,currentEvent,contextEvents=[],labelMode='notes',noteStates={},activeNotes=[],liveWrongNotes=[],inputMode='single-channel',leftHanded=false,lastFeedback=null,noScore=false}) {
+export function buildFretboardModel({track,currentEvent,contextEvents=[],labelMode='notes',showAlternatePositions=false,noteStates={},activeNotes=[],liveWrongNotes=[],inputMode='single-channel',leftHanded=false,lastFeedback=null,noScore=false}) {
   // Startup display only; never substitute guitar tuning for an unsupported loaded track.
   const staff=track?.staves?.[currentEvent?.staffIndex??0] ??
     (noScore && !track ? {tuning:[64,59,55,50,45,40],capo:0,transpositionPitch:0} : null);
@@ -77,6 +77,12 @@ export function buildFretboardModel({track,currentEvent,contextEvents=[],labelMo
     }
   }
   const maxFret=Math.max(24,...targets.map(n=>n.fret),...context.map(n=>n.fret));
+  const alternatives=[];
+  if(showAlternatePositions)for(const midi of new Set(targets.map(note=>note.midi)))for(let string=1;string<=stringCount;string++) {
+    const fret=midi-openPitches[string-1],key=`${string}:${fret}`;
+    if(!Number.isInteger(fret) || fret<0 || fret>maxFret || occupied.has(key))continue;
+    occupied.add(key);alternatives.push({string,fret,midi,state:'alternative'});
+  }
   const played=[];const seen=new Set();
   for(const note of activeNotes) {
     for(let string=1;string<=stringCount;string++) {
@@ -85,13 +91,13 @@ export function buildFretboardModel({track,currentEvent,contextEvents=[],labelMo
       if(!Number.isInteger(fret)||fret<0||fret>maxFret)continue;
       const key=`${string}:${fret}`;if(seen.has(key))continue;seen.add(key);
       const wrongHeld=liveWrongNotes.some(wrong=>wrong.midi===note.midi && (wrong.channel==null || note.channel==null || wrong.channel===note.channel));
-      const state=wrongHeld?'wrong':lastFeedback?.midi===note.midi && ['correct','wrong'].includes(lastFeedback.type) ? lastFeedback.type :
+      const state=wrongHeld?'wrong':note.fretboardUngraded?'played':lastFeedback?.midi===note.midi && ['correct','wrong'].includes(lastFeedback.type) ? lastFeedback.type :
         targets.some(target=>target.midi===note.midi && target.state==='correct')?'correct':'played';
       played.push({string,fret,midi:note.midi,state});
     }
   }
   const missingPositions=currentEvent?.isPercussive ? ' Muted strum: any fresh attack; no required fret.' : targets.length<(currentEvent?.notes.length||0) ? ' Some target notes have no supported tab position; see Practice feedback.' : '';
-  return {supported:true,stringCount,stringMapped,openPitches,targets,context,labelMode,played,maxFret,leftHanded,capo:staff.capo||0,
+  return {supported:true,stringCount,stringMapped,openPitches,targets,context,alternatives,labelMode,played,maxFret,leftHanded,capo:staff.capo||0,
     message:(stringMapped?'Played positions use configured MIDI string channels; exact-position grading remains off.':inputMode==='hex-6ch'?`Six-channel input does not map this ${stringCount}-string tablature. Played markers show possible pitch positions, not detected strings.`:'Played markers show possible positions; single-channel MIDI does not identify the string.')+missingPositions,
     unmappedPitches:[...new Set(activeNotes.filter(n=>!played.some(p=>p.midi===n.midi)).map(n=>n.midi))]};
 }

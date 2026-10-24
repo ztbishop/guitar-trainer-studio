@@ -42,7 +42,7 @@ export function renderFretboard(model) {
   const scroll=document.createElement('div');scroll.className='fretboard-scroll';
   scroll.setAttribute('tabindex','0');scroll.setAttribute('aria-label','Scrollable practice fretboard');
   const renderedWidth=width*fit.scale,renderedHeight=height*fit.scale;
-  const svg=shape('svg',{viewBox:`0 0 ${width} ${height}`,width:renderedWidth,height:renderedHeight,'data-natural-width':natural.width,'data-natural-height':natural.height,'data-scale':fit.scale,style:`width:${renderedWidth}px;height:${renderedHeight}px`,role:'img','aria-label':`${model.stringCount}-string fretboard, frets 0 to ${model.maxFret} relative to capo ${model.capo}, ${model.leftHanded?'left':'right'}-handed. Blue current targets, gold upcoming, faint past, green accepted pitch, red missed or wrong, rings for played positions. Labels: ${model.labelMode??'notes'}.`});
+  const svg=shape('svg',{viewBox:`0 0 ${width} ${height}`,width:renderedWidth,height:renderedHeight,'data-natural-width':natural.width,'data-natural-height':natural.height,'data-scale':fit.scale,style:`width:${renderedWidth}px;height:${renderedHeight}px`,role:'img','aria-label':`${model.stringCount}-string fretboard, frets 0 to ${model.maxFret} relative to capo ${model.capo}, ${model.leftHanded?'left':'right'}-handed. Blue current targets, gold upcoming, faint past, green accepted pitch, red missed or wrong, rings for played positions.${model.alternatives?.length?' Faint dashed blue guides show alternate positions for the current pitches, not detected fingering.':''} Labels: ${model.labelMode??'notes'}.`});
   const wireX=fret=>fretWireX(fret,model.maxFret,model.leftHanded,width);
   const noteX=fret=>fretX(fret,model.maxFret,model.leftHanded,width);
   const nut=wireX(0),end=wireX(model.maxFret);
@@ -73,7 +73,7 @@ export function renderFretboard(model) {
     svg.appendChild(shape('line',{x1:model.leftHanded?60:70,y1:y,x2:model.leftHanded?width-70:width-60,y2:y,class:'fretboard-string','stroke-width':thickness,'data-string':string}));
     svg.appendChild(shape('text',{x:model.leftHanded?width-30:30,y:y+4,'text-anchor':'middle',class:'fretboard-label'},`${string} ${midiToNoteName(model.openPitches[string-1])}`));
   }
-  for(const [kind,markers] of [['context',model.context??[]],['target',model.targets],['played',model.played]])for(const marker of markers) {
+  for(const [kind,markers] of [['alternative',model.alternatives??[]],['context',model.context??[]],['target',model.targets],['played',model.played]])for(const marker of markers) {
     const x=noteX(marker.fret),y=firstY+(marker.string-1)*stringGap;
     const group=shape('g',{'data-state':marker.state,'data-string':marker.string,'data-fret':marker.fret,class:`fretboard-marker fretboard-marker-${kind}`});
     group.appendChild(shape('title',{},`${kind}: ${midiToNoteName(marker.midi)}, string ${marker.string}, fret ${marker.fret}, ${marker.state}`));
