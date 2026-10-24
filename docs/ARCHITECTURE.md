@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## External MIDI setup guidance — 2026-10-24
+
+README.md owns player-facing hardware/software options, clean-input setup, tracking limitations and deliberate slower-rake advice; README.html renders the same source. index.html Help provides a brief reminder and a local guide anchor. Manufacturer links distinguish TriplePlay pickup fit/per-string sensitivity from MIDI Guitar 3 interface gain, tracker Input/Gate and actual tuning; they are examples, not automatic device configuration or a universal preset. Ordinary audio/MPE input is not treated as verified Hex string identity. Wait One at a time versus Together-window and Realtime timing advice reflects existing behavior, not new matching rules. Diagnostics and tolerance controls keep their existing owners. No runtime module, MIDI routing, grading, feedback, preferences, alphaTab or transport change.
+
 ## First-use fretboard view — 2026-10-24
 
 `display-preferences.js` now defaults/falls back to internal `bar` (Beat + Bar), matching app-state.js and the initial index.html selector. Existing validation still accepts saved `beat`, `next` and `bar` without rewriting valid choices. Note labels, alternates off, visible neck, right-handed orientation and automatic sizing already match the owner's defaults. `fretboard-controls.js` continues to save view/labels/alternates/orientation through `gts.displayPreferences`; Display owns visibility and workspace-panels.js separately persists size/automatic mode in `gts.workspacePanelSizes`. Score loading and hiding the panel do not reset preferences. No schema migration, new module, preview algorithm, session/grade/MIDI or alphaTab changes; earlier Beat first-use descriptions are historical.

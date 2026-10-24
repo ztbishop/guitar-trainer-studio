@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Standard-guitar MIDI setup and tracking expectations — 2026-10-24
+
+- [x] Add README options for TriplePlay/Connect and MIDI Guitar 3, source-linked pickup sensitivity/interface gain/tracker gate advice, clean input and realistic extra/missing-note expectations without attributing every mistake to conversion.
+- [x] Explain slower raking as an experiment, particularly for ordinary polyphonic audio input; retain One at a time collection, Together chord-window and Realtime timing requirements. Add concise Help reminder/link; no runtime or grading changes.
+- [x] 459 Node regressions and whitespace checks pass; isolated Chrome verifies desktop/phone Help scrolling/link and guide rendering/anchor navigation. Screenshots reviewed; details in DEV-NOTES.md.
+- [ ] Owner reviews the wording in the normal browser and tries setup suggestions with the actual guitar/interface. Real-device effectiveness is not established by documentation/browser checks.
+
 ### Fretboard first-use defaults — 2026-10-24
 
 - [x] Default to Beat + Bar with note labels, alternates off, visible fretboard, left-handed off and automatic sizing. Only Beat → Beat + Bar required a runtime change; existing settings and localStorage persistence already match the approved choices.

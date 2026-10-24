@@ -10,6 +10,7 @@ Guitar Trainer Studio runs in a browser and uses alphaTab to display and play yo
 
 - [Open the app or run it locally](#open-the-app-or-run-it-locally)
 - [Your first practice session](#your-first-practice-session)
+- [Getting clean MIDI from a standard guitar](#getting-clean-midi-from-a-standard-guitar)
 - [Scores and your library](#scores-and-your-library)
 - [Where to find music](#where-to-find-music)
 - [Practice modes and feedback](#practice-modes-and-feedback)
@@ -63,6 +64,27 @@ Keep using it. Open this folder, start Live Server for `index.html`, and use its
 6. Use **Pause** for a break; ordinary Pause/Resume preserves your results. You can also pause during count-in or while playback is starting. **Reset** returns to the start. **Clear practice results** starts fresh at the current position.
 
 Both Poly and Hex currently grade **pitch**, not exact string/fret position. Playing the right pitch at another guitar position can still count. Feedback about strings depends on your MIDI configuration; optional Poly fret estimates are guidance, not detected hand positions.
+
+## Getting clean MIDI from a standard guitar
+
+A normal guitar audio cable does not send MIDI by itself. Two options for using a standard guitar are:
+
+- **Fishman TriplePlay / TriplePlay Connect:** a separate hexaphonic pickup senses the six strings individually and converts the playing to MIDI. Check that the pickup fits your guitar and follow [Fishman's installation and setup guidance](https://fishman.com/tripleplay-support/). Use TriplePlay Utility to adjust each string's sensitivity toward its target meter range with normal playing strength; pickup height also affects tracking. Match the app's Poly/Hex selection, channel order and pitch-bend range to the device output. A hex pickup can also send a combined Poly stream.
+- **Jam Origin MIDI Guitar 3:** converts your guitar's ordinary audio signal, through an audio interface, into MIDI without a special pickup. Set the actual tuning and adjust interface input gain first; use the tracker's Input control only if the interface cannot supply enough level. Adjust the tracker's Gate while checking soft notes and chords. See [Jam Origin's tracker documentation](https://jam.live/modules/modules/). Route its MIDI output to an input your browser can select; your setup may need a virtual MIDI port. Use standard MIDI in the app's Poly mode for ordinary audio input. MPE channels do not establish physical string identity and should not be treated as Hex string channels.
+
+### Start with a clean signal
+
+Tune the guitar and test single notes before dense chords. Feed the converter a clean, direct signal, with enough input level for your quiet notes but no clipping on strong attacks. Keep distortion, delay and reverb after the tracking stage, rather than feeding them into it. Mute unused strings and reduce handling noise where possible. These are setup suggestions to try, not universal settings for every pickup or interface.
+
+For software tracking, use the input/tracking gate where available, rather than just a gate on the final synth or amp sound. A low threshold can admit unwanted notes; a high threshold can lose quiet notes, chord tones or sustain. Change one setting at a time and compare both gentle and firm playing. The app's Audio volume controls do not adjust the signal going into your converter.
+
+### Expect occasional tracking errors
+
+Pitch-to-MIDI conversion is not perfect. It can produce extra, wrong, delayed, lingering or missing notes, especially when separating a complex chord from one combined audio signal. A hexaphonic pickup separates the strings before tracking, but does not guarantee error-free input. Guitar Trainer grades the MIDI it receives; it cannot always tell a conversion artifact from a playing mistake, or a missed detection from a note you did not play. Unexpected feedback is a reason to inspect setup and input, not proof that either the player or converter is at fault. Jam Origin also describes these [pitch-tracking limitations](https://jam.live/products/MG3/).
+
+If a complex chord is not registering reliably, **try raking the strings a little more slowly and evenly**, especially with polyphonic audio-to-MIDI tracking without a hex pickup. This may help separate the attacks; it is an experiment, not a guaranteed fix. Start with **Wait → One at a time**, which collects the required pitches without a time limit. With **Together**, every required attack must still fit within the selected chord window; widen it deliberately if needed. In Realtime, lower the tempo while practicing rather than stretching a chord across later beats. “Poly” in Settings describes MIDI channel handling; it is not a guarantee about tracking quality.
+
+After checking the converter, review **Practice → MIDI input tolerance** below. These options can make practice more comfortable but do not recover required notes that never arrive. For persistent problems, use **Settings → MIDI & practice diagnostics** to inspect or record the incoming events alongside the feedback.
 
 ## Scores and your library
 
