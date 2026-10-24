@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+### Pre-Play fretboard target preview — 2026-10-23
+
+- [x] Preview the next written attack in blue before Play when no session target exists; follow track/loop selection and retain paused current targets. Do not start grading, transport or create a session target.
+- [x] 413 Node tests, syntax and whitespace checks pass. Isolated native-fixture browser checks cover Wait/Realtime load previews, all seven track changes, idle sessions, enabled-loop preview and Wait pause retention.
+- [ ] Owner hard-refreshes, loads a usual score and reviews blue targets before Play, track/loop starts, pause/resume and physical MIDI. Hardware/visual acceptance remains pending.
+
 ### Startup fretboard — 2026-10-23
 
 - [x] Before loading a score, show a standard six-string EADGBE neck instead of the missing-tuning placeholder. Loaded tracks retain their own tuning/string count; invalid/percussion tracks retain existing unsupported handling. Saved visibility/orientation still win.

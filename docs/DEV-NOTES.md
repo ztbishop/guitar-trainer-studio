@@ -1,5 +1,11 @@
 # Development notes
 
+## Pre-Play fretboard target preview — 2026-10-23
+
+Owner approved blue expected-note preview before Play. Wait's idle controller intentionally has no currentEvent; the fretboard previously consumed that null and remained unlit until Play. A pure fretboardDisplayEvent helper now keeps the existing session target when present, otherwise selects the first range-filtered expected attack at/after the current tick (existing one-tick tolerance), only before a session starts. Bootstrap passes this event only to the fretboard builder, using empty note states for the idle preview so it stays blue. Session state, active grading targets, score feedback, MIDI acceptance, transport and timing remain unchanged. No idle fallback during sync editing or after a started/completed session without a current target. Paused current targets retain normal correctness colors; X-only targets still have no invented fret positions.
+
+Validation: 413 Node tests pass, including preview selection across rests/range boundaries, empty/end cases, pause priority, editing/completion gates and no input mutation. Both changed application modules pass syntax checks; whitespace check passes. Isolated Live Server native GP fixture checks verify Wait and Realtime first-target geometry before Play, seven selected-track previews, unstarted/nonplaying sessions, enabled-loop preview and Wait paused target retention. Loop checks allow existing one-tick native seek rounding. Actual owner score appearance, physical MIDI and listening remain pending. No native renderer, transport, grading, preference, version, commit or push changes.
+
 ## Startup fretboard — 2026-10-23
 
 Owner requested a standard six-string neck before selecting music. Bootstrap passes noScore from the absence of AppState.score into the pure fretboard model builder. Only no-score/no-track display uses standard tuning [64,59,55,50,45,40], zero capo/transposition and the existing 24-fret layout. This does not create a track or grading targets. Loaded track/staff tuning, count, capo and transposition retain priority; invalid/percussion tracks do not receive a guessed guitar. Saved hidden and left-handed choices remain authoritative. Existing uncommitted Settings changes were preserved.

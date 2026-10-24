@@ -11,7 +11,7 @@ import { WaitController } from './wait-controller.js';
 
 import { formatStringHint, midiToNoteName } from './note-utils.js';
 import { initFretboard, renderFretboard } from './fretboard-ui.js';
-import { buildNotationMarks, buildFretboardModel, buildWrongPitchMarks } from './practice-visuals.js';
+import { buildNotationMarks, buildFretboardModel, buildWrongPitchMarks, fretboardDisplayEvent } from './practice-visuals.js';
 import { buildWrongFretMarks, buildTabErrorTargets } from './tab-feedback.js';
 import { buildPolyMistakeMarks, buildPolyWrongFretMarks } from './poly-feedback.js';
 import { setNotationFeedback } from './alphatab-host.js';
@@ -550,7 +550,8 @@ function renderTrainerUi() {
   setNotationFeedback(AppState.media.editing?[]:marks,{notation:AppState.ui.showNotationFeedback,tabCircles:AppState.ui.showTabCircles,tabFrets:AppState.ui.showTabMistakes});
   if(AppState.ui.showFretboard) {
     const track=AppState.tracks.find((item,index)=>getTrackId(item,index)===String(AppState.practiceTrackId));
-    renderFretboard(buildFretboardModel({track,noScore:!AppState.score,currentEvent:trainer.currentEvent,noteStates:trainer.noteStates,
+    const fretboardEvent=fretboardDisplayEvent({trainer,events:AppState.expectedEvents,tick:AppState.tickPosition,editing:AppState.media.editing});
+    renderFretboard(buildFretboardModel({track,noScore:!AppState.score,currentEvent:fretboardEvent,noteStates:trainer.currentEvent?trainer.noteStates:{},
         activeNotes:[...AppState.midi.activeNotes.values()].map(n=>AppState.mode==='wait' && AppState.inputMode==='hex-6ch'?waitController.pitchState.interpret(n):n),liveWrongNotes:trainer.liveWrongNotes,inputMode:AppState.inputMode,leftHanded:AppState.ui.leftHanded,lastFeedback:trainer.lastFeedback}));
   }
   const playButton=document.getElementById('play-pause-button');

@@ -10,6 +10,8 @@ Narrowing fret spacing, nut, single/double inlays and pitch-based string thickne
 
 The compact panel shows only the neck and its functional labels. Its title, legend, explanations and current track/range status are in Display → Fretboard help. Reduced padding and string spacing let six/seven-string necks fit without vertical scrolling at 1280 × 720 (about 170/190px tall). Double inlays on six strings sit between strings 2–3 and 4–5; other counts use symmetric available gaps. One/two-string necks use a single center.
 
+Before Play, the next written practice target previews in blue as soon as score events are ready, including after changing track or loop range. This is display-only and starts no grading or playback. Pause retains the current session target.
+
 Targets are blue, accepted targets green ✓, and missed/error targets red × / !. Separate held-note rings are green for accepted pitches, red for wrong attacks, purple without current correctness attribution. Targets and rings can coexist. Release removes rings. This consumes existing session results/live wrong notes without changing grading or transport.
 
 Poly/pitch-only input shows every possible position within the displayed range, not detected strings. Configured six-channel hints restrict positions only on six-string tablature. Other string counts explicitly explain the mismatch and fall back to possible pitch positions. This does not expand Fishman hardware mapping or enable exact-position grading. The neck shows frets 0–24 and extends through 36 for current targets. Unsupported target positions are explained; other score feedback remains available.

@@ -44,6 +44,14 @@ export function notationRectangles(marks,noteLookup,boundsLookup) {
   return rectangles;
 }
 
+// An idle preview never becomes a session target or starts MIDI grading.
+export function fretboardDisplayEvent({trainer,events=[],tick=0,editing=false}) {
+  if(editing)return null;
+  if(trainer.currentEvent)return trainer.currentEvent;
+  if(trainer.sessionStarted || trainer.sessionCompleted)return null;
+  return events.find(event=>event.startTick>=tick-1) ?? null;
+}
+
 export function buildFretboardModel({track,currentEvent,noteStates={},activeNotes=[],liveWrongNotes=[],inputMode='single-channel',leftHanded=false,lastFeedback=null,noScore=false}) {
   // Startup display only; never substitute guitar tuning for an unsupported loaded track.
   const staff=track?.staves?.[currentEvent?.staffIndex??0] ??

@@ -1,7 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {buildFretboardModel} from '../js/practice-visuals.js';
+import {buildFretboardModel,fretboardDisplayEvent} from '../js/practice-visuals.js';
+
+test('idle fretboard previews next attack without changing session state; paused targets win',()=>{
+  const events=[{id:'first',startTick:480,notes:[]},{id:'next',startTick:960,notes:[]}];
+  const trainer={currentEvent:null,sessionStarted:false,sessionCompleted:false};
+  const before=JSON.stringify({events,trainer});
+  assert.equal(fretboardDisplayEvent({trainer,events,tick:0}),events[0]);
+  assert.equal(fretboardDisplayEvent({trainer,events,tick:700}),events[1]);
+  assert.equal(fretboardDisplayEvent({trainer,events:events.slice(1),tick:0}),events[1],'loop-filtered events supply preview');
+  assert.equal(fretboardDisplayEvent({trainer,events:[],tick:0}),null);
+  assert.equal(fretboardDisplayEvent({trainer,events,tick:1200}),null);
+  assert.equal(fretboardDisplayEvent({trainer:{...trainer,currentEvent:events[0],sessionStarted:true},events,tick:960}),events[0],'paused current target remains');
+  assert.equal(fretboardDisplayEvent({trainer:{...trainer,sessionCompleted:true},events}),null);
+  assert.equal(fretboardDisplayEvent({trainer:{...trainer,sessionStarted:true},events}),null);
+  assert.equal(fretboardDisplayEvent({trainer:{...trainer,currentEvent:events[0]},events,editing:true}),null);
+  assert.equal(JSON.stringify({events,trainer}),before);
+});
 
 test('startup neck uses standard six-string tuning only before a score is loaded',()=>{
   const startup=buildFretboardModel({noScore:true,leftHanded:true});

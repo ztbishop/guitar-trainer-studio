@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Idle fretboard target preview — 2026-10-23
+
+practice-visuals.js exports fretboardDisplayEvent, a pure display selector. Bootstrap uses it only for the fretboard: prefer trainer.currentEvent; before a session starts, fall back to the first expected attack at/after tickPosition. Expected events already honor the practice range. Idle previews use empty correctness states. Editing blocks the preview, and started/completed sessions with no target do not acquire a fallback. No session/grading targets or transport state are written; score overlays continue to consume the actual trainer target.
+
 ## Startup fretboard fallback — 2026-10-23
 
 buildFretboardModel accepts an explicit noScore display flag supplied by bootstrap from !AppState.score. Only when that flag is true and no track exists does it use a local standard six-string tuning; no state/track/expected events are fabricated. Loaded/unsupported tracks retain existing tuning validation and message behavior. Rendering, visibility/orientation preferences and grading owners are unchanged.
