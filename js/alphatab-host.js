@@ -17,7 +17,7 @@ import {chooseNotationTabPair,cancelNotationTabChoice} from './musicxml-pairing-
 import {rebuildPairedMusicXml} from './musicxml-repair.js';
 
 let mediaSnapshot=null,mediaHandler=null,mediaPoints=[],mediaRestoreTick=null;
-let mediaRevealTick=null,mediaRevealGeneration=0;
+let cursorRevealTick=null,cursorRevealGeneration=0;
 let editingCountIn=null;
 export function revealMediaScoreTarget(point) {
   if(!AppState.media.editing || !notationContainer)return false;
@@ -45,11 +45,11 @@ export function setMediaEditing(enabled) {
   hostCallbacks.onMediaChanged?.();
 }
 
-function revealMediaCursor() {
-  const token=++mediaRevealGeneration;
+function revealScoreCursor() {
+  const token=++cursorRevealGeneration;
   // Native cursor bounds update after the seek notification reaches the UI.
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    if(token!==mediaRevealGeneration || !AppState.media.preview || AppState.media.returning)return;
+    if(token!==cursorRevealGeneration || !AppState.score || AppState.media.returning)return;
     if(AppState.ui.autoScroll){alphaTabApi.scrollToCursor();return;}
     // ScrollMode.Off has no native scroll handler. Reveal only inside the score
     // viewport, without toggling the preference or scrolling the whole page.
@@ -114,7 +114,7 @@ export function applyMediaSyncPoints(points,{preservePlayback=false}={}) {
 }
 export function endMediaPlayback() {
   if(!AppState.media.preview || AppState.media.returning)return;
-  mediaRevealTick=null;mediaRevealGeneration++;alphaTabApi.pause();mediaHandler?.pause();
+  cursorRevealTick=null;cursorRevealGeneration++;alphaTabApi.pause();mediaHandler?.pause();
   AppState.media.returning=true;AppState.playerReady=false;
   AppState.score.applyFlatSyncPoints(mediaSnapshot.points);
   alphaTabApi.settings.player.playerMode=window.alphaTab.PlayerMode.EnabledSynthesizer;
@@ -146,14 +146,14 @@ export function seekMediaTime(timeMs) {
   if(!resume)alphaTabApi.pause();
   const time=Math.max(0,Math.min(mediaHandler.backingTrackDuration,timeMs));
   AppState.media.clock={timeMs:time,at:performance.now(),playing:resume};
-  mediaRevealTick=tickAtMediaTime(mediaPoints,AppState.playbackTimeline,time);
-  if(AppState.media.editing)mediaRevealTick=Math.min(mediaRevealTick,Math.max(0,AppState.playbackTimeline.endTick-4));
-  alphaTabApi.tickPosition=mediaRevealTick;
+  cursorRevealTick=tickAtMediaTime(mediaPoints,AppState.playbackTimeline,time);
+  if(AppState.media.editing)cursorRevealTick=Math.min(cursorRevealTick,Math.max(0,AppState.playbackTimeline.endTick-4));
+  alphaTabApi.tickPosition=cursorRevealTick;
   // The native tick setter also seeks the provider. The requested recording
   // time takes precedence, including intros/outros beyond mapped endpoints.
   mediaHandler.seekTo(time);
   // Also reveal on a repeated seek to the same beat, which may emit no event.
-  revealMediaCursor();
+  revealScoreCursor();
   if(resume){applyMasterVolume();alphaTabApi.play();}
   return true;
 }
@@ -867,7 +867,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     const currentTime = event?.currentTime ?? 0;
     AppState.timePositionMs = currentTime;
     AppState.tickPosition = event?.currentTick ?? 0;
-    if(mediaRevealTick!==null && Math.abs(AppState.tickPosition-mediaRevealTick)<=3){mediaRevealTick=null;revealMediaCursor();}
+    if(cursorRevealTick!==null && Math.abs(AppState.tickPosition-cursorRevealTick)<=3){cursorRevealTick=null;revealScoreCursor();}
     AppState.playbackSpeed = alphaTabApi.playbackSpeed || 1;
     setPlaybackPosition(currentTime);
     hostCallbacks.onPlayerPositionChanged?.({
@@ -910,6 +910,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 }
 
 export async function loadScoreFile(file) {
+  cursorRevealTick=null;cursorRevealGeneration++;
   if (!alphaTabApi) throw new Error('alphaTab is not ready yet. Fix the alphaTab asset path first.');
   if (!file) return false;
   if(AppState.media.preview) {
@@ -1224,7 +1225,14 @@ export function applyPracticeLoop(range) {
   cancelCountIn();alphaTabApi.pause();
   alphaTabApi.isLooping=Boolean(range && !AppState.practiceLoop.countIn);
   alphaTabApi.playbackRange=range;
-  if(range)alphaTabApi.tickPosition=range.startTick;
+  cursorRevealTick=null;cursorRevealGeneration++;
+  if(range) {
+    if(!AppState.media.returning)cursorRevealTick=range.startTick;
+    alphaTabApi.tickPosition=range.startTick;
+    // Explicit range choices reveal the paused destination, too. Repeat the
+    // reveal on the seek acknowledgement because native cursor layout is async.
+    if(!AppState.media.returning)revealScoreCursor();
+  }
   drawLoopShading();
   return true;
 }

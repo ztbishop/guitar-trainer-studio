@@ -24,6 +24,8 @@ git diff --check
 
 ## Guide
 
+`node tests/run-loop-media-repeats-browser.cjs` checks long-score paused loop scrolling (Synth/Recording × playback Auto-scroll on/off) and actual media-clock traversal through repeats, alternate endings, D.C. al Coda, D.S. al Coda and D.C. al Fine. It owns a temporary loopback server, isolated Chrome profile and in-memory WAV; synthetic native fixtures/expected orders live in tests/media-repeat-fixtures.js and are shared with Node mapping tests. It does not use the owner's browser, library, recordings or MIDI hardware. Use the same GTS_PLAYWRIGHT_MODULE/GTS_BROWSER_CHANNEL options below.
+
 For sync preview/practice transitions, run `node tests/run-sync-practice-browser.cjs` with the same GTS_PLAYWRIGHT_MODULE/GTS_BROWSER_CHANNEL options below. It starts/closes a temporary local server and isolated Chrome profile, loads a bundled demo and in-memory WAV, and injects synthetic MIDI. It checks restored native loop/cursor/shading, staff/tab/fretboard feedback under both sources, Recording Wait gating, placement persistence and phone width. Optional GTS_SCREENSHOT_DIR captures desktop/phone screenshots outside the repository. Native audio startup is awaited before Pause; see DEV-NOTES for the upstream fast-Pause limitation and separate physical/video acceptance checklist.
 
 For tolerance-default/guidance changes, `node tests/run-tolerance-defaults-browser.cjs` starts/closes its own temporary local server and verifies fresh and saved preference profiles plus desktop/phone Practice/Help layout. It uses the same GTS_PLAYWRIGHT_MODULE/GTS_BROWSER_CHANNEL options as the other browser runners, without physical MIDI or the owner's browser storage.

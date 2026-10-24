@@ -157,7 +157,7 @@ test('secondary More panels close on switching, backdrop and Escape', () => {
   document.keydown({key:'Escape'}); assert.equal(elements.get('display-popup').attrs['aria-hidden'],'true');
   launches[0].click(); elements.get('toolbar-backdrop').click(); assert.equal(elements.get('audio-popup').attrs['aria-hidden'],'true');
 });
-test('host settings use bundled alphaTab serializer; loading, transport and playback callbacks stay wired', async () => {
+test('host settings use bundled alphaTab serializer; loading, transport and playback callbacks stay wired', async t => {
   const {elements}=dom();
   const context=vm.createContext({console, process});
   vm.runInContext(readFileSync(new URL('../assets/vendor/alphatab/alphaTab.js',import.meta.url),'utf8'),context);
@@ -378,12 +378,23 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   assert.equal(setPlaybackSpeed(0.5),true);assert.equal(api.playbackSpeed,0.5);assert.equal(AppState.playbackSpeed,0.5);
   assert.equal(setPlaybackSpeed(0),false);assert.equal(api.playbackSpeed,0.5);
   const loopRange={startTick:3840,endTick:7680};
+  const priorRaf=globalThis.requestAnimationFrame,frames=[];
+  globalThis.requestAnimationFrame=callback=>frames.push(callback);
+  t.after(()=>{if(priorRaf)globalThis.requestAnimationFrame=priorRaf;else delete globalThis.requestAnimationFrame;});
+  let reveals=0;api.scrollToCursor=()=>reveals++;
+  AppState.ui.autoScroll=true;
   assert.equal(applyPracticeLoop(loopRange),true);assert.equal(api.tickPosition,3840);assert.equal(api.isLooping,true);
+  assert.equal(reveals,0,'reveal waits for native cursor layout');
+  frames.shift()();assert.equal(reveals,0);frames.shift()();assert.equal(reveals,1);
+  assert.equal(AppState.isPlaying,false,'revealing the cursor does not play');
   AppState.practiceLoop={enabled:true,startIndex:1,endIndex:1,range:loopRange};
   acquireWaitTransport();holdWaitAtTick(5000);assert.equal(api.isLooping,false);
   releaseWaitTransport();assert.equal(api.playbackRange,loopRange);assert.equal(api.isLooping,true);
   AppState.isPlaying=false;api.tickPosition=8000;assert.equal(play(),true);assert.equal(api.tickPosition,3840);
   assert.equal(applyPracticeLoop({startTick:0,endTick:999999}),false);assert.equal(api.playbackRange,loopRange);
   assert.equal(applyPracticeLoop(null),true);assert.equal(api.playbackRange,null);assert.equal(api.isLooping,false);
+  applyPracticeLoop(loopRange);
   await loadScoreFile({name:'new.gp'});assert.equal(AppState.practiceLoop.enabled,false);assert.equal(AppState.practiceLoop.range,null);
+  while(frames.length)frames.shift()();
+  assert.equal(reveals,1,'score replacement cancels an obsolete queued reveal');
 });

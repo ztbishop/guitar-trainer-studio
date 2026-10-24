@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Paused loop scrolling and media repeat/jump verification — 2026-10-24
+
+- [x] Reveal the paused native cursor after enabled loop slider/measure changes, including rapid or unchanged-start range edits; share existing media viewport reveal and preserve Auto-scroll preference, native transport, grading and count-in.
+- [x] Verify separate recording-time occurrences through ordinary repeats, alternate endings, D.C. al Coda, D.S. al Coda and D.C. al Fine with synthetic native fixtures; no custom repeat interpreter or matching changes.
+- [x] 454 Node regressions pass; final isolated browser and syntax/whitespace evidence in DEV-NOTES.
+- [ ] Owner hard-refreshes normal browser and selects distant loop ranges without Play, with Auto-scroll on/off and either source. Listen to a familiar recording with matching repeat/jump form and review alignment at returns/Coda/Fine. Physical Fishman/provider/appearance acceptance remains pending.
+
 ### Clarify sync preview and restore practice controls — 2026-10-24
 
 - [x] Add explicit Finish editing / Return to practice action; identify Preview on main transport and explain suspended feedback/targets/loops. Keep source choice separate and preserve alignment, matching and Wait progression.
