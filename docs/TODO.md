@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Tolerance defaults and setup guidance — 2026-10-24
+
+- [x] First-use Two held notes and Skipped strings only (Hex); preserve saved choices, legacy disabled tolerance and all matching/progression rules. Keep tracking spikes on, range/brief filtering off, brief duration 30 ms and all four feedback switches on.
+- [x] Explain tolerance during setup in README, add a brief Help reminder and expanded-section introduction, retain clean disclosure/summary without an importance badge. Clarify Poly estimated positions and optional simpler feedback. Document the owner's full preferred setup as optional, not universal defaults.
+- [x] 448 Node regressions pass, including saved-choice/legacy-off preservation. Browser, syntax and final evidence are recorded in DEV-NOTES.
+- [ ] Owner hard-refreshes normal browser, checks saved settings remain unchanged and reviews Practice/Help wording. A fresh/private profile should show Two/Skipped; actual Fishman/MIDI Guitar tracking, listening and comfort remain owner acceptance checks. No automatic application of the owner's optional range-on/brief-on/60 ms preferences.
+
 ### Alternate-guide contrast — 2026-10-24
 
 - [x] Brighten alternate labels and modestly strengthen dashed borders without enlarging markers or changing behavior. 447 Node regressions and isolated native preview browser checks pass; screenshots inspected.

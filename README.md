@@ -113,7 +113,7 @@ The app stays on each target until the required pitches are supplied. Score acco
 - **One at a time:** collect the required notes without a time limit.
 - **Together:** play the required attacks within the selected chord window (200 ms on first use).
 
-Repeated notes normally need a fresh attack. The **Allow held notes in repeated chords** option can credit eligible still-held tones in consecutive identical chords, but at least one required note must receive a fresh attack. Off, One, Two and Three select the allowance; One is the initial choice.
+Repeated notes normally need a fresh attack. The **Allow held notes in repeated chords** option can credit eligible still-held tones in consecutive identical chords, but at least one required note must receive a fresh attack. Off, One, Two and Three select the allowance; Two is the initial choice.
 
 Written muted **X** beats need a fresh MIDI attack. If your muted strum produces no MIDI at all, Wait cannot detect it. In mixed chords, pitched notes remain required.
 
@@ -126,7 +126,7 @@ Written muted **X** beats need a fresh MIDI attack. If your muted strum produces
 
 Accepted notes still ringing from an earlier target stop drawing extra fretboard rings after you advance, including tones replayed while completing a Wait chord; they do not become mistakes. Genuine wrong-note rings remain visible, and fresh notes played while paused appear in neutral purple.
 
-Practice has independent switches for Staff, tab highlights, incorrect fret numbers and Poly estimates. Hiding feedback does not change grading. Poly estimates are shown only when the remaining written note makes the estimate unambiguous.
+Practice has independent switches for Staff, tab highlights, incorrect fret numbers and Poly estimates; all four start on. Hiding feedback does not change grading. Poly estimates are shown only when the remaining written note makes the estimate unambiguous. These are estimated positions, not detected fingering; turn off Poly estimates or incorrect fret numbers if you prefer simpler feedback. Fret numbers can be particularly useful when the virtual fretboard is hidden.
 
 ## Settings and other menus
 
@@ -134,7 +134,7 @@ Some toolbar items move into **More** when the window is narrow.
 
 ### Practice and MIDI input tolerance
 
-Practice selects one track and the practice mode. Expand MIDI tolerance only when you need it:
+Practice selects one track and the practice mode. **Check MIDI input tolerance during setup**, especially if tracking causes unexpected errors or repeated chords stall. MIDI guitars and conversion software can report extra or lingering notes; these settings help balance comfortable practice against how strictly mistakes are counted. They do not replace correct device/channel setup.
 
 - **Held notes** helps recognize repeated identical chords while allowing some tones to keep ringing.
 - **Ignore extra chord strings (Hex)** can forgive selected unwritten strings in chords. It does not supply missing required pitches.
@@ -142,7 +142,11 @@ Practice selects one track and the practice mode. Expand MIDI tolerance only whe
 - **Ignore notes outside written fret range** uses the written shape as a guide, not your actual hand position.
 - **Ignore brief off-target notes** forgives wrong notes shorter than your chosen duration, including real brief mistakes.
 
-These options apply in Realtime and both Wait chord choices; string-based options need Hex input. Start with the defaults and change one option at a time. Some filters can hide genuine mistakes. Changing a tolerance option pauses practice and clears results. Realtime timing adjustment helps when your MIDI notes arrive late.
+These options apply in Realtime and both Wait chord choices; string-based options need Hex input. First use allows **Two held notes**, selects **Skipped strings only** for Hex extra-string tolerance, and enables **confirmed tracking-spike filtering**. Written-fret-range filtering and brief-note filtering start off; the brief-note duration starts at 30 ms when enabled. All four score-feedback switches start on. Saved choices take precedence over these defaults.
+
+Change one option at a time and compare both comfortable playing and deliberate mistakes. More tolerance can also hide genuine mistakes. Two held notes verifies fewer reattacks than One, skipped-string tolerance forgives some real extra-string mistakes, and written-range filtering can omit distant wrong pitches. Brief-note filtering at 60 ms, for example, also forgives real wrong notes shorter than 60 ms. Correct required notes still count immediately.
+
+The maintainer's current preferred setup is Two held notes, Skipped strings only, tracking-spike filtering on, written-range filtering on, and brief off-target filtering on at 60 ms. This is an optional starting point for tracking-prone setups, not a requirement or the app defaults. Brief filtering and duration save separately for each MIDI input; the other tolerance choices save as general practice preferences in this browser. Changing a tolerance option pauses practice and clears results. Realtime timing adjustment helps when your MIDI notes arrive late.
 
 ### Tempo and Loop
 

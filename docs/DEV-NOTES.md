@@ -1,5 +1,15 @@
 # Development notes
 
+## Tolerance defaults and clearer setup guidance — 2026-10-24
+
+Owner approved first-use Two held notes and Skipped strings only for Hex after discussing preferred tolerance/feedback settings. Updated application initial state, preference read/save fallbacks, initial HTML and invalid-state menu summary consistently. Valid saved choices remain authoritative; legacy allowMutedStringNoise:false explicitly preserves Off (true still maps to All). Session evaluators, eligibility, MIDI normalization, Wait progression, feedback rules and native transport are unchanged. All four feedback choices remain on; spikes stay on and range/brief filters stay off with 30 ms per-device duration.
+
+README now treats tolerance as a useful setup check, explains the new defaults and trade-offs and records the owner's Two/Skipped/spikes-on/range-on/brief-on-at-60 ms setup as optional. General/per-device persistence is explained. Help adds one reminder; the expanded tolerance intro points to tracking errors/stalled repeats without a badge or extra closed-menu clutter. Poly helper text says estimated positions, not detected fingering, and suggests switching off for simpler feedback. Documentation reflects current behavior without advertising deferred features.
+
+Validation: 448 Node regressions pass, including earlier saved One/Off, independent feedback/filter preservation, partial/invalid preference defaults and legacy disabled tolerance. Existing all-mode recognition and migration matrices pass with the new UI-default expectations; no algorithm modifications. Isolated browser/syntax/whitespace results follow in the handoff. Physical Fishman/MIDI Guitar and owner appearance/listening acceptance remain pending; saved personal choices are not overwritten.
+
+Final checks: changed modules and browser runner pass node --check; git diff --check passes. The isolated Chrome runner verifies fresh Two/Skipped controls, all four feedback choices on, unchanged spike/range/brief defaults and 30 ms duration; a returning profile retains saved One/Off and disabled feedback across reload. Practice/Help guidance fits at 1440px/390px without horizontal overflow or page errors. No actual MIDI/clipboard/browser-profile changes or physical hardware acceptance claimed.
+
 ## Alternate-guide contrast — 2026-10-24
 
 Owner approved clearer alternate-position styling. Replaced 55% group opacity with independent 70% pale-blue dashed stroke (1.8px, previously 1.5px) and 90% brighter label text. Radius, 12px text size, dark fill and render priority remain; no settings, MIDI, grading, transport or tab-feedback changes. README remains accurate with its existing dashed-guide description; no player workflow changed. Repository was clean before this pass.

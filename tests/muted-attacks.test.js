@@ -100,12 +100,12 @@ test('short legitimate notes are not rejected or delayed in either mode',()=>{
   assert.equal(r.noteOn(note(60,0,3),0).type,'correct');r.noteOff(note(60,10,3));assert.equal(r.noteOn(note(60,70,3),70).type,'correct');
 });
 
-test('Hex tolerance preference persists independently and invalid values remain Strict',()=>{
+test('Hex tolerance preference persists independently and invalid values use the first-use default',()=>{
   let value=null;const store={getItem:()=>value,setItem:(key,v)=>value=v};
-  assert.equal(readPracticePreferences(store).extraStringTolerance,'off');
+  assert.equal(readPracticePreferences(store).extraStringTolerance,'internal');
   savePracticePreferences({mode:'wait',ui:{},waitChord:{mode:'collect',windowMs:200},extraStringTolerance:'all'},store);
   assert.equal(readPracticePreferences(store).extraStringTolerance,'all');
-  value=JSON.stringify({extraStringTolerance:'true'});assert.equal(readPracticePreferences(store).extraStringTolerance,'off');
+  value=JSON.stringify({extraStringTolerance:'true'});assert.equal(readPracticePreferences(store).extraStringTolerance,'internal');
 });
 
 for(const hex of [false,true])test(`Wait keeps changing and repeated X pitches out of the following chord (${hex?'Hex':'Poly'})`,()=>{

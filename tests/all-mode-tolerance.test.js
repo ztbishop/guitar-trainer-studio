@@ -70,10 +70,10 @@ test('Realtime onset bend correction removes its original wrong mark and retains
  assert.equal(s.records[0].slots[1].hit.scoreMs,0);
 });
 
-test('held preference defaults to One, saves all choices and rejects invalid values',()=>{
- assert.equal(readPracticePreferences({getItem:()=>null}).heldNoteTolerance,'one');
+test('held preference defaults to Two, saves all choices and rejects invalid values',()=>{
+ assert.equal(readPracticePreferences({getItem:()=>null}).heldNoteTolerance,'two');
  for(const scope of ['off','one','two','three']){let value;const storage={getItem:()=>value,setItem:(k,v)=>value=v};savePracticePreferences({mode:'wait',ui:{},waitChord:{mode:'collect',windowMs:200},heldNoteTolerance:scope},storage);assert.equal(readPracticePreferences(storage).heldNoteTolerance,scope);}
- assert.equal(readPracticePreferences({getItem:()=>JSON.stringify({heldNoteTolerance:7})}).heldNoteTolerance,'one');
+ assert.equal(readPracticePreferences({getItem:()=>JSON.stringify({heldNoteTolerance:7})}).heldNoteTolerance,'two');
 });
 
 
@@ -162,5 +162,5 @@ test('saved unlimited Multiple migrates to Two without overriding explicit choic
  const load=value=>readPracticePreferences({getItem:()=>JSON.stringify(value)}).heldNoteTolerance;
  assert.equal(load({heldNoteTolerance:'multiple'}),'two');
  for(const choice of ['off','one','two','three'])assert.equal(load({heldNoteTolerance:choice}),choice);
- assert.equal(load({heldNoteTolerance:'four'}),'one');
+ assert.equal(load({heldNoteTolerance:'four'}),'two');
 });

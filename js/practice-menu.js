@@ -2,7 +2,7 @@
 export function syncPracticeMenuSummary(state, doc = globalThis.document) {
   const summary = doc.getElementById('practice-tolerance-summary');
   if (!summary) return;
-  const held = {off: 'Off', one: 'One', two: 'Two', three: 'Three'}[state.heldNoteTolerance] || 'One';
+  const held = {off: 'Off', one: 'One', two: 'Two', three: 'Three'}[state.heldNoteTolerance] || 'Two';
   const hex = state.inputMode === 'hex-6ch';
   const count = Number(hex && state.extraStringTolerance !== 'off')
     + Number(hex && state.filterHexSpikes === true)

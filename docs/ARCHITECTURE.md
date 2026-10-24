@@ -1,5 +1,11 @@
 # Guitar Trainer Studio Architecture
 
+## MIDI tolerance first-use defaults and setup guidance — 2026-10-24
+
+`practice-preferences.js` now defaults heldNoteTolerance to two and extraStringTolerance to internal (Skipped strings only). `app-state.js`, initial HTML selections, save-validation fallbacks and the display-only practice-menu summary agree. Existing validated stored choices always win, including One/Off. Legacy allowMutedStringNoise booleans now explicitly map true→all and false→off, so a previously disabled choice is not replaced by the new first-use default. Missing/invalid fields use the new defaults; no migration rewrites valid preferences or session/grading algorithms.
+
+Tracking spikes stay on; written-range and per-device brief-note filtering stay off, with unchanged 30 ms duration. All four independent feedback preferences stay on at first use. README records setup advice, first-use defaults, risks and the owner's optional more-tolerant setup; Help and the expanded tolerance section add a brief pointer without a badge. Poly helper text distinguishes estimated positions from detected fingering. Existing eligibility, pause/reset, persistence ownership, native transport and MIDI matching remain unchanged. `run-tolerance-defaults-browser.cjs` covers fresh/returning UI and reload/phone layouts in isolated profiles.
+
 ## Alternate-guide paint contrast — 2026-10-24
 
 style.css applies alternate opacity independently: pale-blue circle stroke uses 0.7 opacity/1.8px width, while 12px labels use brighter pale blue at 0.9 opacity. Group-wide opacity is removed so text can be clearer than the outline and the dark fill masks underlying strings. Dashed shape, marker radius, render order, view models and all feedback/grading ownership remain unchanged. The existing preview browser runner optionally saves unobstructed screenshots after closing the popup for visual review.

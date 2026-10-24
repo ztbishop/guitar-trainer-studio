@@ -24,6 +24,8 @@ git diff --check
 
 ## Guide
 
+For tolerance-default/guidance changes, `node tests/run-tolerance-defaults-browser.cjs` starts/closes its own temporary local server and verifies fresh and saved preference profiles plus desktop/phone Practice/Help layout. It uses the same GTS_PLAYWRIGHT_MODULE/GTS_BROWSER_CHANNEL options as the other browser runners, without physical MIDI or the owner's browser storage.
+
 The launcher prints its local URL and, in an interactive terminal, accepts C followed by Enter to copy it using Windows clip.exe or macOS pbcopy. Success is confirmed; missing/failed clipboard tools leave the displayed address available for manual copying. It never changes browser/MIDI settings. Clipboard tests inject a fake process so automated runs do not overwrite the owner's clipboard. Real terminal/clipboard acceptance remains a Windows/Mac local check.
 
 README.html fetches README.md and uses locally pinned Marked 15.0.12; js/readme-guide.js owns rendering, GitHub-style anchors for this guide's plain headings, initial hash navigation and a readable fetch-failure fallback. guide.css is standalone and never affects app layout. The input is trusted repository documentation, never an uploaded/user-selected Markdown file. No CDN/network is needed at runtime. Keep the vendor license/provenance in assets/vendor/marked when updating. Verify README links/anchors and the page at desktop/phone widths when changing content. A new published app URL should be added only when supplied/verified; the current guide describes hosted use without inventing an address.
