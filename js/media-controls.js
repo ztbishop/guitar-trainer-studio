@@ -4,6 +4,7 @@ import {LibraryStore,fingerprint} from './library-store.js';
 import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport,pointTick} from './media-sync.js';
 import {htmlMediaPlayer,youtubeMediaPlayer,waveformPeaks} from './media-player.js';
 import {timelineGuides,boundedAnchorTime,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel} from './media-timeline.js';
+import {soundslicePoints} from './lesson-import-data.js';
 
 const svg=(tag,attrs={},text)=>{const node=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,String(value));if(text!==undefined)node.textContent=text;return node;};
 const clock=ms=>{const seconds=Math.max(0,ms/1000);return `${Math.floor(seconds/60)}:${(seconds%60).toFixed(1).padStart(4,'0')}`;};
@@ -472,16 +473,40 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       host.updateMediaPosition(Math.min(time,duration-0.1),player.playing && !buffering);
     }
   },50);
-  async function timelineReady() {
-    if(!AppState.currentScoreFile || !AppState.playbackTimeline || scoreBytes===AppState.currentScoreFile.bytes)return;
+  let timelineReadyPromise=Promise.resolve();
+  function timelineReady() {
+    if(!AppState.currentScoreFile || !AppState.playbackTimeline)return Promise.resolve();
+    if(scoreBytes===AppState.currentScoreFile.bytes)return timelineReadyPromise;
     scoreBytes=AppState.currentScoreFile.bytes;const current=scoreBytes,token=generation;
-    const hash=await fingerprint(current);if(current!==scoreBytes || token!==generation)return;scoreHash=hash;
-    const select=get('measure');select.replaceChildren();
-    AppState.playbackTimeline.measures.forEach((measure,index)=>select.append(new Option(`Measure ${measure.measureNumber}${measure.occurrence>1?` (repeat ${measure.occurrence})`:''}`,String(index))));
-    await refreshProfiles();message('Score ready. Choose a recording or a saved profile.');sync();
+    timelineReadyPromise=(async()=>{
+      const hash=await fingerprint(current);if(current!==scoreBytes || token!==generation)return;scoreHash=hash;
+      const select=get('measure');select.replaceChildren();
+      AppState.playbackTimeline.measures.forEach((measure,index)=>select.append(new Option(`Measure ${measure.measureNumber}${measure.occurrence>1?` (repeat ${measure.occurrence})`:''}`,String(index))));
+      await refreshProfiles();if(current!==scoreBytes || token!==generation)return;
+      message('Score ready. Choose a recording or a saved profile.');sync();
+    })();return timelineReadyPromise;
   }
   renderLayout();sourceControls();sync();refreshProfiles().catch(error=>message(error.message));
   return {sync,timelineReady,async returnToPractice(){await returnToPractice();},
+    async importLesson(recording,syncPoints) {
+      const score=AppState.currentScoreFile,initialGeneration=generation;
+      await timelineReady();
+      if(score!==AppState.currentScoreFile || initialGeneration!==generation)throw new Error('Lesson import was superseded by a score/source change.');
+      const expectedTimeline=AppState.playbackTimeline;
+      // Check score structure before loading a recording or applying any imported anchors.
+      const imported=syncPoints?soundslicePoints(syncPoints,expectedTimeline):null;
+      const loadGeneration=generation+1;
+      await loadRecording({kind:'url',url:mediaUrl(recording.url),label:recording.label});
+      if(generation!==loadGeneration || score!==AppState.currentScoreFile || expectedTimeline!==AppState.playbackTimeline || !player)throw new Error('Lesson import was superseded by a score/source change.');
+      if(imported) {
+        const checked=validatePoints(imported,expectedTimeline,player.backingTrackDuration);
+        profileId='';points=checked;dirty=true;undo=[];redo=[];selected=-1;
+        get('profile-name').value=recording.label;renderPoints();sync();
+      }
+      openEditor();await selectRecording();
+      if(generation!==loadGeneration || score!==AppState.currentScoreFile)throw new Error('Lesson import was superseded by a score/source change.');
+      message(imported?'Imported alignment is ready to review. Save profile to keep it.':'Recording loaded. Align it manually, then Save profile.');
+    },
     setVolume(percent){
       if(!Number.isFinite(percent) || percent<0 || percent>100)return false;
       AppState.audio.mediaPercent=percent;

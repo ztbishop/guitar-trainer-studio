@@ -115,9 +115,9 @@ Scores → **Try a demo score** offers three original, four-measure exercises in
 
 Opening a demo replaces the current open score just like opening another file. It does not start playback or add anything to your library. Choose Save to Library if wanted. The demos are available offline and are offered under CC0; see [demo source and reuse details](assets/demos/README.md).
 
-### Preview: scan a lesson in Chrome
+### Import a lesson from Chrome
 
-The optional **Lesson Bridge** extension can look for Guitar Pro/MusicXML files, recordings and timing links on an open lesson page. This early preview lists what it finds; it does not yet send a lesson into Guitar Trainer. You install it locally in desktop Chrome using **Load unpacked**. See [setup and testing instructions](docs/LESSON-BRIDGE.md). Keep using Open File and Media Sync for practice while automatic import is being investigated.
+The optional **Lesson Bridge** extension can find Guitar Pro/MusicXML files, recordings and timing links on an open lesson page. Install it locally in desktop Chrome using **Load unpacked**, scan the lesson, then select its score and optional video/timing. Enter the exact address of your already open Guitar Trainer tab and click **Send selected lesson**. Review the import in Guitar Trainer before replacing the score. Saving the score and sync profile is optional; playback does not start automatically. See [setup and testing instructions](docs/LESSON-BRIDGE.md). This early integration still needs testing with your signed-in lesson; links can expire and some video formats need a different recording choice.
 
 ## Where to find music
 

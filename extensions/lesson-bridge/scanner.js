@@ -36,11 +36,13 @@ export async function scanPage() {
   };
   inspect(document);
   const isTrueFire = location.hostname === 'truefire.com' || location.hostname.endsWith('.truefire.com');
+  const lessonId=location.pathname.match(/\/v(\d+)/)?.[1];
   if (isTrueFire) {
     // Prefer an actually observed manifest. Otherwise use IDs exposed in a player URL.
     let manifest = raw.find(item => {
       const u = new URL(item.url);
-      return u.origin === location.origin && u.pathname === '/api/eq/nexus/courses/soundslice_manifest';
+      return u.origin === location.origin && u.pathname === '/api/eq/nexus/courses/soundslice_manifest' &&
+        (!lessonId || u.searchParams.get('sid')===lessonId) && /^\d+$/.test(u.searchParams.get('cid') || '');
     })?.url;
     if (!manifest) {
       for (const item of raw.filter(item => item.origin === 'iframe')) {
@@ -48,7 +50,7 @@ export async function scanPage() {
         if (u.origin !== location.origin || !/soundslice/i.test(u.pathname)) continue;
         const cid = q.get('cid') || q.get('courseid') || q.get('course_id');
         const sid = q.get('sid') || q.get('videoid') || q.get('video_id') || location.pathname.match(/\/v(\d+)/)?.[1];
-        if (/^\d+$/.test(cid || '') && /^\d+$/.test(sid || '')) {
+        if (/^\d+$/.test(cid || '') && /^\d+$/.test(sid || '') && (!lessonId || sid===lessonId)) {
           manifest = `${location.origin}/api/eq/nexus/courses/soundslice_manifest?cid=${cid}&sid=${sid}`; break;
         }
       }
@@ -72,6 +74,11 @@ export async function scanPage() {
       } catch { notices.push('The TrueFire manifest could not be read as JSON. Sign in, load the player and scan again.'); }
     } else notices.push('No readable TrueFire manifest URL or player IDs were found. Load the lesson player and scan again.');
   }
-  return {title:document.title.slice(0,240), page:location.origin + location.pathname, raw,
+  const filtered=raw.filter(item=>{
+    const url=new URL(item.url),match=url.pathname.match(/\/soundslice\/slices\/\d+\/(\d+)_sync\.json$/);
+    if(isTrueFire && lessonId && url.origin===location.origin && url.pathname==='/api/eq/nexus/courses/soundslice_manifest' && url.searchParams.get('sid')!==lessonId)return false;
+    return !(isTrueFire && lessonId && match && match[1]!==lessonId);
+  });
+  return {title:document.title.slice(0,240), page:location.origin + location.pathname, raw:filtered,
     notices:[...new Set(notices)], frames:documents.length};
 }

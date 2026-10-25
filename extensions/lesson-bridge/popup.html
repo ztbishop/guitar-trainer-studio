@@ -6,7 +6,17 @@
   <p>Find scores, recordings and timing on the open page.</p>
   <button id="scan">Scan this page</button>
   <p id="status" role="status">Open a lesson in this Chrome profile, then scan.</p>
-  <p class="hint">Discovery preview · Nothing is sent to Guitar Trainer. Results clear when this popup closes.</p>
+  <p class="hint">Scan, review and send a lesson. Scan results clear when this popup closes.</p>
+  <section id="transfer" hidden>
+    <h2>Send to Guitar Trainer</h2>
+    <label>Score<select id="score"></select></label>
+    <label>Recording (optional)<select id="recording"></select></label>
+    <label>Timing (optional)<select id="timing"></select></label>
+    <label>Your open Guitar Trainer address<input id="app-address" type="url" placeholder="http://127.0.0.1:5500/index.html"></label>
+    <p class="hint">Use the exact address of your running app. Keep this popup open until sent. The app will ask you to review before replacing its score. Saving to the library is optional.</p>
+    <button id="send">Send selected lesson</button>
+    <p id="send-status" role="status"></p>
+  </section>
   <ul id="notices"></ul>
   <div id="results"></div>
   <p class="hint">Only exposed links, page declarations and already loaded resource names are checked. Start the lesson player and rescan if needed. Some embedded players cannot be inspected.</p>

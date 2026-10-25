@@ -1,13 +1,22 @@
 # Guitar Trainer Studio: status and to-do
 
+### Lesson Bridge selected import — 2026-10-24
+
+- [x] Owner confirms discovery/resource selection for All About Me — Playalong (course 961/lesson 32684). Prior non-Soundslice overview findings are discarded.
+- [x] Filter metronome/soundfont and empty-ID timing candidates; recognize encoded manifest MP4 routes and prefer them; match observed TrueFire manifest/timing to the current lesson ID.
+- [x] Add explicit score/recording/timing selection and Send to an exact existing app tab; remember app address only. Fetch score bytes with size limits and optional site grants; keep saving optional.
+- [x] Add app-side payload review, independent validation, native expanded-order timing conversion, complete endpoint/duration checks and stale score/source cancellation through existing loaders. Reject unsupported hidden-playhead semantics; open the existing sync editor without autoplay.
+- [x] 468 Node tests plus isolated extension-popup, real-app import and existing synthetic MIDI/media-practice browser checks pass. See DEV-NOTES.md for precise evidence; authenticated end-to-end and physical checks remain separate.
+- [ ] Owner reloads extension/app and tests GP5 + MP4 + timing transfer for lesson 32684, alignment across the performance, optional library/profile saving, score-only/manual timing, expired links and Fishman Wait/Realtime. No store release or internal-notation conversion is included.
+
 ### Lesson Bridge local discovery prototype — 2026-10-24
 
 - [x] Recover the October 13 TrueFire/Soundslice investigation and document its actual evidence without signed access URLs.
 - [x] Add an optional unpacked desktop Chrome extension for explicit page scans, score/media/timing candidate review, guarded TrueFire manifest discovery and optional timing-array inspection. No app import or grading/runtime changes.
 - [x] Document installation, module boundaries, generic-page limits and the distinction between provided score files, paid Soundslice export access and unimplemented internal-notation conversion. See LESSON-BRIDGE.md.
 - [x] All 462 Node tests and isolated synthetic Chrome scanner/popup checks pass; syntax/whitespace checks pass. Chrome permission APIs are mocked in that runner; see DEV-NOTES.md for evidence and limits.
-- [ ] Owner installs in normal Chrome and checks authenticated TrueFire resources, actual iframe/manifest IDs, permission decline/grant and timing preview. Automated evidence is recorded separately in DEV-NOTES.md.
-- [ ] After discovery acceptance, scope a validated extension-to-app transfer for score bytes, selected recording and repeat-aware timing; optional library/profile saving. Generic scanning is best-effort discovery, not universal import. Store publication, notation reconstruction/PDF conversion, jamtrack/PDF UI and unrelated deferred features remain outside this prototype.
+- [x] Owner installed in normal Chrome and confirmed the score/video/timing candidates for lesson 32684. Full import/permission/provider acceptance is tracked above.
+- [x] Following discovery acceptance, implement selected transfer through existing score/media loaders (above). Generic scanning remains best-effort; store publication, notation reconstruction/PDF conversion, jamtrack/PDF UI and unrelated deferred features remain outside this update.
 
 ### Beta v0.0.4 release and Pages guidance — 2026-10-24
 

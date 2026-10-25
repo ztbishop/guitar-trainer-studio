@@ -30,6 +30,17 @@ test('Soundslice timing preview handles real discovery points, inner-bar positio
 test('discovery stays bounded and extension has no persistent observer, receiver or mandatory site grant',()=>{
   assert.equal(discoverResources(Array.from({length:400},(_,i)=>({url:`https://example.com/${i}.gp5`})),'https://example.com').length,150);
   const manifest=JSON.parse(readFileSync(new URL('../extensions/lesson-bridge/manifest.json',import.meta.url),'utf8'));
-  assert.deepEqual(manifest.permissions,['activeTab','scripting']);
+  assert.deepEqual(manifest.permissions,['activeTab','scripting','storage']);
   assert(!manifest.background && !manifest.content_scripts && !manifest.externally_connectable && !manifest.host_permissions);
+});
+
+test('discovery finds manifest MP4 redirects and filters Soundslice assets and malformed timing',()=>{
+  const encoded=Buffer.from('jazz-guitar-fakebook-rhythm/fvjgfr-004_hi.mp4').toString('base64');
+  const result=discoverResources([
+    {url:`https://truefire.com/api/site/courses/redirect/${encoded}?courseid=961`,label:'mediaurl',origin:'TrueFire manifest'},
+    {url:'https://truefire.com/inc/soundsliceappshell/09292026/media/soundfonts/metronome.sf-test.mp3'},
+    {url:'https://cdn.example/soundslice/slices//_sync.json'},
+    {url:'https://cdn.example/bad%file.gp5'},
+  ],'https://truefire.com');
+  assert.equal(result.length,2);assert.equal(result[0].fileName,'fvjgfr-004_hi.mp4');assert.equal(result[0].kind,'Recording');
 });

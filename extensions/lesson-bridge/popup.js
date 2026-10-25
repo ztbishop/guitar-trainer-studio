@@ -1,8 +1,57 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import {scanPage} from './scanner.js';
-import {discoverResources, displayUrl, displayLabel, readSyncPoints} from './discovery.js';
+import {discoverResources, displayUrl, displayLabel, readSyncPoints, redirectDestination} from './discovery.js';
+import {appAddress,appPath,fetchBytes,base64Bytes,deliverLesson} from './transfer.js';
 const get = id => document.getElementById(id);
 function element(tag, text) { const node=document.createElement(tag); node.textContent=text; return node; }
+let scanned=null,candidates=[];
+get('recording').addEventListener('change',()=>{get('timing').disabled=get('recording').value==='';});
+chrome.storage.local.get('appAddress').then(saved=>{get('app-address').value=saved.appAddress || 'http://127.0.0.1:5500/index.html';}).catch(()=>{});
+function choices(id,kind,optional=false) {
+  const select=get(id);select.replaceChildren();
+  if(optional)select.append(new Option('None',''));
+  candidates.forEach((candidate,index)=>{
+    if(candidate.kind!==kind || (id==='recording' && /Download.*mp3/i.test(candidate.label)))return;
+    select.append(new Option(`${candidate.fileName || candidate.detail} · ${candidate.origin}`,String(index)));
+  });
+  if(optional) {
+    const preferred=candidates.findIndex(c=>c.kind===kind && (kind==='Timing' || /\.mp4$/i.test(c.fileName)));
+    if(preferred>=0)select.value=String(preferred);
+  }
+}
+get('send').addEventListener('click',async()=>{
+  get('send').disabled=get('scan').disabled=true;get('send-status').textContent='Preparing selected lesson…';
+  try {
+    const target=appAddress(get('app-address').value.trim()),score=candidates[Number(get('score').value)];
+    const recording=get('recording').value===''?null:candidates[Number(get('recording').value)];
+    const timing=recording && get('timing').value!==''?candidates[Number(get('timing').value)]:null;
+    if(!score || score.kind!=='Score')throw new Error('Select a supported score first.');
+    if(!/\.(gp[3-5]?|gpx|xml|musicxml|mxl)$/i.test(score.fileName))throw new Error('This score link has no verified supported filename. Choose a Guitar Pro or MusicXML download.');
+    const urls=[target.href,score.url,redirectDestination(score.url),timing?.url].filter(Boolean);
+    const origins=[...new Set(urls.map(value=>`${new URL(value).origin}/*`))];
+    // Call immediately in this click gesture, before fetching anything.
+    if(!await chrome.permissions.request({origins}))throw new Error('Site access was declined. Nothing was sent.');
+    const tabs=await chrome.tabs.query({url:`${target.origin}/*`});
+    const matches=tabs.filter(tab=>{try{const url=new URL(tab.url);return url.origin===target.origin && appPath(url)===appPath(target);}catch{return false;}});
+    if(matches.length!==1)throw new Error(matches.length?'More than one matching app tab is open. Keep one open and try again.':'Open Guitar Trainer at the address above, then try again.');
+    await chrome.storage.local.set({appAddress:target.href});
+    const bytes=await fetchBytes(score.url,12*1024*1024);
+    let syncPoints=null;
+    if(timing) {
+      const text=new TextDecoder().decode(await fetchBytes(timing.url,1000000));
+      let data;try{data=JSON.parse(text);}catch{throw new Error('The selected timing response is not JSON. Rescan and choose another timing source.');}
+      syncPoints=readSyncPoints(data).map(p=>[p.bar,p.seconds,p.position,p.hide]);
+    }
+    const payload={format:'gts-lesson',version:1,title:scanned.title,lessonUrl:scanned.page,
+      score:{fileName:score.fileName || `lesson.${score.detail.toLowerCase()}`,base64:base64Bytes(bytes)},
+      recording:recording?{url:recording.url,label:scanned.title}:null,syncPoints};
+    const [{result}]=await chrome.scripting.executeScript({target:{tabId:matches[0].id},func:deliverLesson,args:[payload]});
+    if(!result?.ok)throw new Error(result?.message || 'The app could not receive this lesson.');
+    get('send-status').textContent='Sent. Review the import in Guitar Trainer.';
+    await chrome.tabs.update(matches[0].id,{active:true});
+  } catch(error) {get('send-status').textContent=error.name==='TypeError' || error.name==='TimeoutError'?'A resource could not be retrieved. Sign in, rescan and check the app address.':error.message;}
+  finally {get('send').disabled=get('scan').disabled=false;}
+});
 
 async function inspectTiming(candidate, button, article) {
   button.disabled=true;
@@ -30,12 +79,16 @@ async function inspectTiming(candidate, button, article) {
 
 get('scan').addEventListener('click',async()=>{
   get('scan').disabled=true; get('results').replaceChildren(); get('notices').replaceChildren();
+  get('transfer').hidden=true;scanned=null;candidates=[];get('send-status').textContent='';
   get('status').textContent='Scanning the open page…';
   try {
     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
     if (!tab?.id || !/^https?:\/\//.test(tab.url || '')) throw new Error('Open a normal HTTP or HTTPS lesson page first. Chrome internal pages cannot be scanned.');
     const [{result}]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:scanPage});
-    const candidates=discoverResources(result.raw,result.page);
+    scanned=result;candidates=discoverResources(result.raw,result.page);
+    choices('score','Score');choices('recording','Recording',true);choices('timing','Timing',true);
+    get('timing').disabled=get('recording').value==='';
+    get('transfer').hidden=!candidates.some(c=>c.kind==='Score');
     get('status').textContent=`${result.title || 'Page'}: ${candidates.length} candidate${candidates.length===1?'':'s'} found.`;
     for (const notice of result.notices) get('notices').append(element('li',notice));
     if (!candidates.length) get('results').append(element('p','No supported resources were exposed. Start the player, reveal download links and scan again.'));

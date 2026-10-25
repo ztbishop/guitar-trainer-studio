@@ -46,6 +46,7 @@ import {initPitchControls} from './pitch-controls.js';
 import {readPracticePreferences,savePracticePreferences,FEEDBACK_PREFERENCE_KEYS} from './practice-preferences.js';
 import {readDisplayPreferences,saveDisplayPreferences} from './display-preferences.js';
 import {initMediaControls} from './media-controls.js';
+import {initLessonImport} from './lesson-import.js';
 import {initWorkspacePanels} from './workspace-panels.js';
 import {readPitchRange,savePitchRange,validPitchRange} from './midi-pitch.js';
 import {frameTask} from './frame-task.js';
@@ -758,6 +759,7 @@ async function bootstrap() {
   wireMidiControls();
   initMidiCaptureControls(()=>renderTrainerUi());
 
+  const lessonImport=initLessonImport({loadFile:loadScoreFile,mediaControls,state:AppState});
   try {
     await initAlphaTab(document.getElementById('alphatab-container'), {
       onScoreLoaded: () => {
@@ -789,7 +791,7 @@ async function bootstrap() {
         renderTrainerUi();
       },
       onPlayerReady: () => {audioControls?.sync();pitchControls?.sync({enabled:true,value:AppState.pitchOffsetSemitones});renderTrainerUi();},
-      onScoreLoading: () => {mediaControls?.scoreLoading();scoreLibrary?.sync();audioControls?.sync();pitchControls?.sync({enabled:false,value:AppState.pitchOffsetSemitones});},
+      onScoreLoading: () => {lessonImport.scoreLoading();mediaControls?.scoreLoading();scoreLibrary?.sync();audioControls?.sync();pitchControls?.sync({enabled:false,value:AppState.pitchOffsetSemitones});},
       onScoreLoadError: () => scoreLibrary?.sync(),
       onMetronomeTick: () => transportControls?.pulse(),
       onMetronomeError: () => renderTrainerUi(),

@@ -12,11 +12,14 @@ export function classifyResource(raw, base) {
   if (!url) return null;
   let path = new URL(url).pathname;
   // TrueFire download labels can say GPX while the redirect actually names GP5.
-  const encoded = path.match(/\/api\/eq\/redirect\/([^/]+)$/)?.[1];
+  if (/\/soundsliceappshell\/.*\/soundfonts\//i.test(path)) return null;
+  const encoded = path.match(/\/api\/(?:eq|site\/courses)\/redirect\/([^/]+)(?:\/\d+)?$/)?.[1];
   if (encoded) {
     try {
-      const target = webUrl(atob(decodeURIComponent(encoded).replace(/-/g, '+').replace(/_/g, '/')));
+      const decoded = atob(decodeURIComponent(encoded).replace(/-/g, '+').replace(/_/g, '/'));
+      const target = webUrl(decoded);
       if (target) path = new URL(target).pathname;
+      else if (!decoded.includes('://')) path = decoded.split('?')[0];
     } catch { /* Keep the original link; never execute or fetch the decoded string. */ }
   }
   const hint = String(raw.label || '').slice(0, 180);
@@ -28,6 +31,7 @@ export function classifyResource(raw, base) {
   } else if (/\.(mp4|webm|mov|m4v|mp3|m4a|wav|ogg|aac|flac)$/i.test(path)) {
     kind = 'Recording'; detail = 'Media candidate; may be a jamtrack';
   } else if (/sync[^/]*\.json$/i.test(path) || (/\.json$/i.test(path) && /syncpoint|sync_point|sync.*url/i.test(hint))) {
+    if (/\/slices\/\/_sync\.json$/i.test(path)) return null;
     kind = 'Timing'; detail = 'Timing JSON candidate';
   } else if (/soundslice_manifest/i.test(path)) {
     kind = 'Manifest'; detail = 'TrueFire player resource list';
@@ -36,7 +40,14 @@ export function classifyResource(raw, base) {
   } else if (/^(video|audio|source)$/.test(raw.origin || '') || (raw.origin === 'TrueFire manifest' && /video|audio|mp4|hls|stream/i.test(hint))) {
     kind = 'Recording'; detail = 'Player source; file format unverified';
   } else return null;
-  return {url, kind, detail, label:hint, origin:String(raw.origin || 'page').slice(0, 80)};
+  let fileName=path.split('/').pop() || '';try{fileName=decodeURIComponent(fileName);}catch{/* Keep literal malformed escapes. */}
+  return {url, kind, detail, fileName:fileName.slice(0,240), label:hint, origin:String(raw.origin || 'page').slice(0, 80)};
+}
+
+export function redirectDestination(value) {
+  const encoded = new URL(value).pathname.match(/\/api\/eq\/redirect\/([^/]+)(?:\/\d+)?$/)?.[1];
+  try { return encoded ? webUrl(atob(decodeURIComponent(encoded).replace(/-/g,'+').replace(/_/g,'/'))) : null; }
+  catch { return null; }
 }
 
 export function discoverResources(raw, base) {
