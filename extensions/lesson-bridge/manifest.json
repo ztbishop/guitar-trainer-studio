@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Lesson Bridge for Guitar Trainer Studio",
+  "version": "0.1.0",
+  "description": "Scan an open lesson for score, recording and timing candidates. Discovery preview only.",
+  "permissions": ["activeTab", "scripting"],
+  "optional_host_permissions": ["https://*/*"],
+  "action": {
+    "default_title": "Scan a lesson with Lesson Bridge",
+    "default_popup": "popup.html"
+  }
+}

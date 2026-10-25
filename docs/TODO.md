@@ -1,5 +1,14 @@
 # Guitar Trainer Studio: status and to-do
 
+### Lesson Bridge local discovery prototype — 2026-10-24
+
+- [x] Recover the October 13 TrueFire/Soundslice investigation and document its actual evidence without signed access URLs.
+- [x] Add an optional unpacked desktop Chrome extension for explicit page scans, score/media/timing candidate review, guarded TrueFire manifest discovery and optional timing-array inspection. No app import or grading/runtime changes.
+- [x] Document installation, module boundaries, generic-page limits and the distinction between provided score files, paid Soundslice export access and unimplemented internal-notation conversion. See LESSON-BRIDGE.md.
+- [x] All 462 Node tests and isolated synthetic Chrome scanner/popup checks pass; syntax/whitespace checks pass. Chrome permission APIs are mocked in that runner; see DEV-NOTES.md for evidence and limits.
+- [ ] Owner installs in normal Chrome and checks authenticated TrueFire resources, actual iframe/manifest IDs, permission decline/grant and timing preview. Automated evidence is recorded separately in DEV-NOTES.md.
+- [ ] After discovery acceptance, scope a validated extension-to-app transfer for score bytes, selected recording and repeat-aware timing; optional library/profile saving. Generic scanning is best-effort discovery, not universal import. Store publication, notation reconstruction/PDF conversion, jamtrack/PDF UI and unrelated deferred features remain outside this prototype.
+
 ### Beta v0.0.4 release and Pages guidance — 2026-10-24
 
 - [x] Owner explicitly lifts the documentation/licensing hold and requests Beta v0.0.4; verify the tag is unused, align version.json/current instructions and save release notes.

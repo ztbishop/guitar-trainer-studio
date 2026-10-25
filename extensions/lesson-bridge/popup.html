@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lesson Bridge</title><link rel="stylesheet" href="popup.css"></head>
+<body>
+  <h1>Lesson Bridge</h1>
+  <p>Find scores, recordings and timing on the open page.</p>
+  <button id="scan">Scan this page</button>
+  <p id="status" role="status">Open a lesson in this Chrome profile, then scan.</p>
+  <p class="hint">Discovery preview · Nothing is sent to Guitar Trainer. Results clear when this popup closes.</p>
+  <ul id="notices"></ul>
+  <div id="results"></div>
+  <p class="hint">Only exposed links, page declarations and already loaded resource names are checked. Start the lesson player and rescan if needed. Some embedded players cannot be inspected.</p>
+  <p><a href="https://github.com/ztbishop/guitar-trainer-studio/blob/main/docs/LESSON-BRIDGE.md" target="_blank" rel="noopener noreferrer">Setup and limitations</a></p>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
