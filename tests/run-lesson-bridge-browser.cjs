@@ -27,6 +27,8 @@ const path=require('node:path');
       if(url.hostname==='other.test')return route.fulfill({contentType:'text/html',body:'<a href="https://cdn.test/hidden.gp5">Cross-origin hidden score</a>'});
       if(url.hostname==='cdn.test' && url.pathname==='/lesson_sync.json')
         return route.fulfill({headers:{'Access-Control-Allow-Origin':'https://bridge.test','Access-Control-Allow-Credentials':'true'},json:[[0,10.410579],[63,147.833399],[64,149.9865480000009]]});
+      if(url.hostname==='cdn.test' && url.pathname==='/many_sync.json')
+        return route.fulfill({headers:{'Access-Control-Allow-Origin':'https://bridge.test'},json:Array.from({length:20},(_,i)=>[i,i+1])});
       return route.fulfill({contentType:'text/html',body:`<!doctype html><title>Test lesson</title>
         <a href="/score.gp5?auth_token=secret">Download GPX</a>
         <a href="/score.gp5?auth_token=secret">Duplicate</a><a href="/chart.pdf">PDF</a>
@@ -49,6 +51,8 @@ const path=require('node:path');
     const popup=await context.newPage();
     await popup.addInitScript(({result})=>{
       window.fixture=result;window.grant=false;window.permissionRequests=[];window.delivered=null;
+      window.copyBlocked=false;window.copiedJson=null;
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{if(window.copyBlocked)throw new Error('blocked');window.copiedJson=text;}}});
       window.chrome={
         storage:{local:{get:async()=>({appAddress:'https://trainer.test/'}),set:async()=>{}}},
         tabs:{query:async options=>options.url?[{id:2,url:'https://trainer.test/'}]:[{id:1,url:'https://truefire.com/lesson/v32682'}],update:async()=>{}},
@@ -60,6 +64,16 @@ const path=require('node:path');
     await popup.locator('#scan').click();await popup.locator('#status').filter({hasText:'candidates found'}).waitFor();
     const body=await popup.locator('body').innerText();assert(!body.includes('auth_token=secret'));
     assert(body.includes('Score · GP5'));assert(!body.includes('PDF'));
+    assert.equal(await popup.getByRole('button',{name:'Copy link',exact:true}).count(),await popup.locator('article').count());
+    const scoreCard=popup.locator('article').filter({hasText:'Score · GP5'});
+    await scoreCard.getByRole('button',{name:'Copy link',exact:true}).click();
+    assert.equal(await popup.evaluate(()=>window.copiedJson),'https://truefire.com/score.gp5?auth_token=secret','asset copying preserves full access parameters');
+    await popup.evaluate(()=>{window.copyBlocked=true;});
+    await scoreCard.getByRole('button',{name:'Copy link',exact:true}).click();
+    await scoreCard.getByText('Copy was blocked.',{exact:false}).waitFor();
+    assert.equal(await scoreCard.locator('.asset-link-copy').inputValue(),'https://truefire.com/score.gp5?auth_token=secret');
+    assert.equal(await scoreCard.locator('.asset-link-copy').evaluate(el=>el.selectionEnd-el.selectionStart===el.value.length),true);
+    await popup.evaluate(()=>{window.copyBlocked=false;});
     const timing=popup.locator('article').filter({hasText:'lesson_sync.json'});
     await timing.getByRole('button',{name:'Inspect timing'}).click();
     await timing.locator('pre').filter({hasText:'declined'}).waitFor();
@@ -69,6 +83,13 @@ const path=require('node:path');
     await timing.locator('pre').filter({hasText:'3 valid timing points'}).waitFor();
     assert.deepEqual(await popup.evaluate(()=>window.permissionRequests.at(-1)),{origins:['https://cdn.test/*']});
     assert((await timing.locator('pre').innerText()).includes('149.987'));
+    await timing.getByRole('button',{name:'Copy sync points'}).click();
+    assert.equal(JSON.parse(await popup.evaluate(()=>window.copiedJson)).length,3);
+    await popup.evaluate(()=>{window.copyBlocked=true;});
+    await timing.getByRole('button',{name:'Copy sync points'}).click();
+    await timing.getByText('Copy was blocked.',{exact:false}).waitFor();
+    assert.equal(await timing.locator('textarea').evaluate(el=>el.selectionEnd-el.selectionStart===el.value.length),true);
+    await popup.evaluate(()=>{window.copyBlocked=false;});
     await popup.locator('#timing').selectOption({label:'lesson_sync.json · TrueFire manifest'});
     await popup.locator('#send').click();
     await popup.locator('#send-status').filter({hasText:'Sent.'}).waitFor();
@@ -76,6 +97,14 @@ const path=require('node:path');
     assert.equal(delivered.score.fileName,'score.gp5');assert.equal(atob(delivered.score.base64),'fixture score bytes');
     assert.equal(delivered.syncPoints.length,3);assert.equal(delivered.recording.url,'https://cdn.test/clip.mp4');
     if(process.env.GTS_BRIDGE_SCREENSHOT) await popup.screenshot({path:process.env.GTS_BRIDGE_SCREENSHOT,fullPage:true});
+    await popup.evaluate(()=>{window.fixture={title:'Timing-only page',page:'https://test.example/',raw:[{url:'https://cdn.test/many_sync.json'}],notices:[]};});
+    await popup.locator('#scan').click();await popup.locator('#status').filter({hasText:'1 candidate found'}).waitFor();
+    assert.equal(await popup.locator('#transfer').isVisible(),false);
+    await popup.getByRole('button',{name:'Inspect timing'}).click();
+    await popup.locator('pre').filter({hasText:'20 valid timing points'}).waitFor();
+    await popup.getByRole('button',{name:'Copy sync points'}).click();
+    assert.equal(JSON.parse(await popup.evaluate(()=>window.copiedJson)).length,20,'copy includes every point, not only the 12-point preview');
+    if(process.env.GTS_TIMING_COPY_SCREENSHOT)await popup.locator('.timing-copy').screenshot({path:process.env.GTS_TIMING_COPY_SCREENSHOT});
     await popup.evaluate(()=>{window.fixture={title:'<img src=x onerror=alert(1)>',page:'https://test.example/',raw:[{url:'https://cdn.test/evil.gp5',label:'<script>alert(1)</script>'}],notices:[]};});
     await popup.locator('#scan').click();await popup.locator('#status').filter({hasText:'1 candidate found'}).waitFor();
     assert.equal(await popup.locator('article script, #status img').count(),0,'page-controlled labels rendered as text');

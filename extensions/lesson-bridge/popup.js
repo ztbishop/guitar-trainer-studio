@@ -55,6 +55,7 @@ get('send').addEventListener('click',async()=>{
 
 async function inspectTiming(candidate, button, article) {
   button.disabled=true;
+  article.querySelector('.timing-copy')?.remove();
   const output=article.querySelector('pre') || article.appendChild(element('pre',''));
   try {
     const url=new URL(candidate.url);
@@ -72,6 +73,15 @@ async function inspectTiming(candidate, button, article) {
     output.textContent=`${points.length} valid timing points. Playback bars start at 0; within-bar positions use 0–480.\n`+
       points.slice(0,12).map(p=>`Bar ${p.bar} · ${p.seconds.toFixed(3)} s · position ${p.position}${p.hide?' · playhead hidden':''}`).join('\n')+
       (points.length>12?'\n…preview limited to 12 points.':'')+'\nNot yet matched to a Guitar Pro score or imported.';
+    const controls=element('div','');controls.className='timing-copy';
+    const label=element('label','Complete sync points (JSON)'),field=element('textarea','');
+    field.readOnly=true;field.rows=4;field.value=JSON.stringify(points.map(p=>[p.bar,p.seconds,p.position,p.hide]));label.append(field);
+    const copy=element('button','Copy sync points'),copied=element('p','');copied.setAttribute('role','status');
+    copy.addEventListener('click',async()=>{
+      try{await navigator.clipboard.writeText(field.value);copied.textContent='Copied. In Guitar Trainer, load the score and recording, then open Media Sync → Paste sync points.';}
+      catch{field.focus();field.select();copied.textContent='Copy was blocked. The full JSON is selected; press Ctrl+C (Command+C on Mac).';}
+    });
+    controls.append(label,copy,copied);article.append(controls);
   } catch (error) {
     output.textContent=error.name==='TypeError' || error.name==='TimeoutError' ? 'Timing could not be retrieved. The host may require sign-in, redirect elsewhere or block access.' : error.message;
   } finally { button.disabled=false; }
@@ -97,6 +107,16 @@ get('scan').addEventListener('click',async()=>{
       article.append(element('h2',`${candidate.kind} · ${candidate.detail}`));
       if (candidate.label) article.append(element('p',displayLabel(candidate.label)));
       article.append(element('code',displayUrl(candidate.url)),element('p',`Found in: ${candidate.origin}`));
+      const copyLink=element('button','Copy link'),linkStatus=element('p','');linkStatus.setAttribute('role','status');
+      copyLink.addEventListener('click',async()=>{
+        try{await navigator.clipboard.writeText(candidate.url);linkStatus.textContent='Full asset link copied.';}
+        catch{
+          let field=article.querySelector('.asset-link-copy');
+          if(!field){field=element('textarea','');field.className='asset-link-copy';field.readOnly=true;field.rows=3;field.setAttribute('aria-label','Full asset link');field.value=candidate.url;copyLink.after(field);}
+          field.focus();field.select();linkStatus.textContent='Copy was blocked. The full link is selected; press Ctrl+C (Command+C on Mac).';
+        }
+      });
+      article.append(copyLink,linkStatus);
       if (candidate.kind==='Timing') {
         const button=element('button','Inspect timing');
         button.addEventListener('click',()=>inspectTiming(candidate,button,article)); article.append(button);

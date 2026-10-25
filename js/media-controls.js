@@ -55,6 +55,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('waveform').disabled=!localFile || busy || waveformBusy;get('undo').disabled=!undo.length || busy;get('redo').disabled=!redo.length || busy;
     get('remove-point').disabled=selected<0 || !ready;
     get('apply-time').disabled=get('add-point').disabled=!ready;
+    get('apply-pasted-sync').disabled=!ready;
     get('add-point').textContent=targetIndex()>=0?'Update sync point':'Add sync point';
     for(const key of ['nudge-left','nudge-right'])get(key).disabled=selected<0 || !ready;
     get('dirty').textContent=dirty?'Unsaved changes':profileId?'Saved profile':'Not saved';
@@ -78,6 +79,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   function disposal() {
     player?.destroy();player=null;source=null;localFile=null;peaks=[];
     get('point-time').value='0.000';seekGeneration++;
+    get('sync-json').value='';get('paste-status').textContent='';get('paste-sync').open=false;
     waveformGeneration++;waveformBusy=false;get('waveform-status').textContent='';
     if(blobUrl)URL.revokeObjectURL(blobUrl);blobUrl=null;
     get('youtube').replaceChildren();get('youtube').hidden=true;get('video').hidden=false;
@@ -386,6 +388,17 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   get('seek').addEventListener('input',action(()=>seekRecording(Number(get('seek').value)*1000)));
   get('point-time').addEventListener('input',()=>{renderSelectedTime();renderTarget();});
   get('add-point').addEventListener('click',action(addPoint));
+  get('apply-pasted-sync').addEventListener('click',()=>{
+    try {
+      if(!player || busy || AppState.media.returning || !AppState.playbackTimeline)throw new Error('Load a score and recording before applying sync points.');
+      const text=get('sync-json').value.trim();
+      if(text.length>1000000)throw new Error('Use at most 1 MB of sync-point JSON.');
+      let data;try{data=JSON.parse(text);}catch{throw new Error('Paste a complete Soundslice sync-point JSON array.');}
+      const next=soundslicePoints(data,AppState.playbackTimeline,player.backingTrackDuration),changed=JSON.stringify(next)!==JSON.stringify(points);
+      edit(next);
+      get('paste-status').textContent=changed?'Sync points applied. Review alignment; Undo restores the previous points. Save profile to keep changes.':'These sync points are already applied.';
+    } catch(error) {get('paste-status').textContent=error.message;}
+  });
   get('apply-time').addEventListener('click',()=>{if(player){selectTime(player.currentTime);message('Playhead time selected. Add or update the sync point to apply it.');}});
   for(const key of ['measure','beat'])get(key).addEventListener('change',()=>{
     try{if(!player)return;const index=targetIndex();if(index>=0)selectPoint(index,{preserveTime:true});else chooseGuide(Number(get('measure').value),Number(get('beat').value));}catch(error){selected=-1;sync();message(error.message);}

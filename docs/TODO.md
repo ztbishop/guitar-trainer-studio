@@ -1,5 +1,14 @@
 # Guitar Trainer Studio: status and to-do
 
+### Manual timing copy/paste — 2026-10-24
+
+- [x] Allow complete timing-array JSON copy after Inspect timing, including timing-only scans without a score; selectable full-text fallback when clipboard writing is blocked. Preview truncation never truncates copied data.
+- [x] User-requested Copy link on every resource candidate, retaining complete original access parameters and using a selected full-link fallback if clipboard writing is blocked. Redacted default display remains.
+- [x] Add Media Sync → Paste sync points with current score/recording validation, complete endpoint/duration checks and existing edit/Undo/Redo/Save-profile behavior. Reject invalid input without changing alignment; do not reload or replace score/recording.
+- [x] Automated extension popup and real-app checks cover timing-only copy, all 20 points beyond the preview limit, clipboard failure fallback, invalid/mismatched/out-of-duration preservation, accepted alignment, Undo/Redo and resource identity retention. See DEV-NOTES.md for final checks.
+- [x] All 468 Node tests, extension copy/transfer and real-app import/paste browser checks, existing MIDI/media restoration, syntax/whitespace and copy/paste visual review pass. Actual OS clipboard and owner lesson acceptance remain separate.
+- [ ] Owner reloads the extension and hard-refreshes the app; copy real lesson timing, load the matching score/video, paste/apply, compare alignment and optionally save/reopen. Cross-origin frame discovery and automatic selective component updates remain separate follow-ups.
+
 ### Practice-ready Lesson Bridge completion — 2026-10-24
 
 - [x] Owner confirms the automatic TrueFire lesson import worked; screenshots show the review/success dialogs and still-open sync editor. This confirms the tested signed-in transfer, not every-measure alignment or hardware acceptance.

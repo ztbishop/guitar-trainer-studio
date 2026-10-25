@@ -107,3 +107,4 @@ body.media-preview .toolbar-score-value { color:#2563eb; }
   .media-actions button,.media-actions select,.media-sync-fields button,.media-point-list button { min-height:44px; }
   .media-editor { max-height:36vh; }
 }
+#media-sync-json { display:block; box-sizing:border-box; width:100%; max-width:100%; resize:vertical; margin-top:6px; font:12px/1.4 monospace; }

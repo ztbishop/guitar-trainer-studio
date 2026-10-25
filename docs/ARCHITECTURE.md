@@ -1,5 +1,11 @@
 # Guitar Trainer Studio Architecture
 
+## Manual sync-point copy/paste — 2026-10-24
+
+`extensions/lesson-bridge/popup.js` adds complete normalized Soundslice-array JSON and a user-triggered Copy sync points button after successful inspection; it remains available when no score candidate exists. Every resource card also offers Copy link for the original full URL including access parameters, independently of the redacted display. Standard clipboard write falls back to selecting readonly full text; no new extension permission, storage or protocol field. popup.css owns the copy field layout. Scanner/frame access is unchanged.
+
+`index.html` adds a closed Paste sync points disclosure in the existing editor; media-sync.css owns its textarea. `media-controls.js` parses at most 1 MB of pasted text and uses `lesson-import-data.soundslicePoints` with the loaded timeline and recording duration before calling its existing edit operation. Invalid input never reaches edit/native calls; accepted points use ordinary undo/redo, unsaved state and host alignment/session-reset notifications without changing resource identities or grading rules. Existing recording disposal clears temporary pasted text/status. Detailed usage is in MEDIA-SYNC.md and LESSON-BRIDGE.md; no new runtime module, native API, MIDI/Wait rule, extension version or app version change.
+
 ## Practice-ready Lesson Bridge completion — 2026-10-24
 
 `media-controls.importLesson` now invokes its existing `finishEditing` operation after successful recording selection with validated imported timing, returning `{readyToPractice:true}`. Missing timing deliberately leaves manual alignment open and returns false. `finishEditing` is exposed through the injected media-controls interface so the receiver also closes any retained editor after score-only import. All native pause/source/range/count-in restoration and practice reset callbacks stay in the existing host/editor-exit path; mode and imported unsaved points are retained, with no autoplay or save.

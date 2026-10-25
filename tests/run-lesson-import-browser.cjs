@@ -21,6 +21,7 @@ function wav() {
     await context.route('https://recording.test/**',route=>{mediaRequests++;return route.fulfill({contentType:'audio/wav',body:wav(),headers:{'Access-Control-Allow-Origin':'*'}});});
     const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
     await page.goto(base);await page.locator('#lesson-import-dialog').waitFor({state:'attached'});
+    assert.equal(await page.locator('#media-apply-pasted-sync').isDisabled(),true);
     await page.waitForFunction(async()=>{window.lessonState=(await import('./js/app-state.js')).AppState;return !!document.querySelector('#fretboard-content svg');});
     const scorePath=path.join(__dirname,'../assets/demos/first-notes.gp');
     const payload={format:'gts-lesson',version:1,title:'Synthetic lesson',lessonUrl:'https://truefire.com/lesson/v32684',
@@ -71,6 +72,24 @@ function wav() {
     await page.locator('#lesson-import-notice').filter({hasText:'Add alignment'}).waitFor({timeout:35000});
     assert.equal(await page.locator('#lesson-import-dialog').isVisible(),false);
     assert.equal(await page.evaluate(()=>lessonState.media.editing),true);
+    await page.locator('#media-paste-sync summary').click();
+    const previous=await page.evaluate(()=>JSON.stringify(lessonState.media.points));
+    for(const value of ['not JSON','[[0,1],[96,11]]','[[0,1],[4,13]]']) {
+      await page.locator('#media-sync-json').fill(value);await page.locator('#media-apply-pasted-sync').click();
+      assert.equal(await page.evaluate(()=>JSON.stringify(lessonState.media.points)),previous,'invalid pasted data preserves the current alignment');
+      assert((await page.locator('#media-paste-status').innerText()).length>0);
+    }
+    const recordingUrl=await page.locator('#media-audio').getAttribute('src');
+    await page.locator('#media-sync-json').fill('[[0,2],[3,9],[4,11]]');await page.locator('#media-apply-pasted-sync').click();
+    await page.locator('#media-paste-status').filter({hasText:'Sync points applied'}).waitFor();
+    assert.deepEqual(await page.evaluate(()=>lessonState.media.points.map(p=>p.millisecondOffset)),[2000,9000,11000]);
+    assert.equal(await page.locator('#media-audio').getAttribute('src'),recordingUrl);
+    assert.equal(await page.evaluate(()=>lessonState.currentScoreFile.fileName),'imported-lesson.gp');
+    await page.locator('#media-undo').click();assert.equal(await page.evaluate(()=>JSON.stringify(lessonState.media.points)),previous);
+    await page.locator('#media-redo').click();
+    assert.deepEqual(await page.evaluate(()=>lessonState.media.points.map(p=>p.millisecondOffset)),[2000,9000,11000]);
+    assert.equal(await page.locator('#media-dirty').textContent(),'Unsaved changes');
+    if(process.env.GTS_PASTE_SCREENSHOT)await page.locator('#media-paste-sync').screenshot({path:process.env.GTS_PASTE_SCREENSHOT});
     await page.locator('#media-finish-editing').click();
     // Automatic completion must retain Wait mode and leave the recording silent.
     await page.evaluate(()=>{const input=document.querySelector('input[name="practice-mode"][value="wait"]');input.checked=true;input.dispatchEvent(new Event('change'));});
