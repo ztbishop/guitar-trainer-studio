@@ -39,20 +39,22 @@ function wav() {
     await page.getByRole('button',{name:'Cancel',exact:true}).click();
     assert.equal(await page.evaluate(()=>lessonState.currentScoreFile),null);
     await offer(payload);await page.getByRole('button',{name:'Import lesson',exact:true}).click();
-    await page.locator('#lesson-import-dialog [role=status]').filter({hasText:'Lesson loaded.'}).waitFor({timeout:35000});
+    await page.locator('#lesson-import-notice').filter({hasText:'Lesson ready.'}).waitFor({timeout:35000});
+    assert.equal(await page.locator('#lesson-import-dialog').isVisible(),false,'successful review closes itself');
     const actual=await page.evaluate(async()=>{
       const {LibraryStore}=await import('./js/library-store.js');const store=new LibraryStore();
       return {file:lessonState.currentScoreFile.fileName,playing:lessonState.isPlaying,editing:lessonState.media.editing,
         points:lessonState.media.points,measures:lessonState.playbackTimeline.measures.length,scores:(await store.list()).scores.length,profiles:(await store.listProfiles()).length};
     });
-    assert.equal(actual.file,'imported-lesson.gp');assert.equal(actual.playing,false);assert.equal(actual.editing,true);
+    assert.equal(actual.file,'imported-lesson.gp');assert.equal(actual.playing,false);assert.equal(actual.editing,false);
     assert.equal(actual.measures,4);assert.equal(actual.scores,0);assert.equal(actual.profiles,0);
     assert.deepEqual(actual.points.map(p=>p.millisecondOffset),[1000,8000,11000]);
     assert.equal(actual.points.at(-1).barPosition,1);
     if(process.env.GTS_IMPORT_SCREENSHOT)await page.screenshot({path:process.env.GTS_IMPORT_SCREENSHOT,fullPage:true});
-    await page.getByRole('button',{name:'Close',exact:true}).click();
-    assert.equal(await page.locator('#media-dirty').innerText(),'Unsaved changes');
-    await page.locator('#media-finish-editing').click();await page.waitForFunction(()=>!lessonState.media.editing && lessonState.playerReady);
+    assert.equal(await page.locator('#media-dirty').textContent(),'Unsaved changes');
+    assert.equal(await page.locator('#media-editor').isVisible(),false,'import automatically finishes editing');
+    assert.equal(await page.locator('#play-pause-button').textContent(),'▶ Play');
+    assert.equal(await page.locator('#play-pause-button').evaluate(el=>el===document.activeElement),true);
     // Mismatched timing fails before a recording request and keeps the opened score usable.
     const requestsBefore=mediaRequests;
     await offer({...payload,syncPoints:[[0,1],[96,11]]});await page.getByRole('button',{name:'Import lesson',exact:true}).click();
@@ -61,9 +63,23 @@ function wav() {
     await page.getByRole('button',{name:'Close',exact:true}).click();
     // Score-only path deliberately omits media/timing and never starts playback.
     await offer({...payload,recording:null,syncPoints:null});await page.getByRole('button',{name:'Import lesson',exact:true}).click();
-    await page.locator('#lesson-import-dialog [role=status]').filter({hasText:'Score loaded.'}).waitFor({timeout:35000});
+    await page.locator('#lesson-import-notice').filter({hasText:'Lesson ready.'}).waitFor({timeout:35000});
     assert.equal(await page.evaluate(()=>lessonState.isPlaying),false);
-    await page.getByRole('button',{name:'Close',exact:true}).click();
+    assert.equal(await page.locator('#lesson-import-dialog').isVisible(),false);
+    // A recording with no real timing still requires manual alignment.
+    await offer({...payload,syncPoints:null});await page.getByRole('button',{name:'Import lesson',exact:true}).click();
+    await page.locator('#lesson-import-notice').filter({hasText:'Add alignment'}).waitFor({timeout:35000});
+    assert.equal(await page.locator('#lesson-import-dialog').isVisible(),false);
+    assert.equal(await page.evaluate(()=>lessonState.media.editing),true);
+    await page.locator('#media-finish-editing').click();
+    // Automatic completion must retain Wait mode and leave the recording silent.
+    await page.evaluate(()=>{const input=document.querySelector('input[name="practice-mode"][value="wait"]');input.checked=true;input.dispatchEvent(new Event('change'));});
+    await offer(payload);await page.getByRole('button',{name:'Import lesson',exact:true}).click();
+    await page.locator('#lesson-import-notice').filter({hasText:'Lesson ready.'}).waitFor({timeout:35000});
+    assert.equal(await page.evaluate(()=>lessonState.mode),'wait');
+    assert.equal(await page.evaluate(()=>lessonState.media.editing),false);
+    assert.equal(await page.evaluate(()=>lessonState.isPlaying),false);
+    assert.equal(await page.locator('#media-audio').evaluate(el=>el.muted && el.paused),true);
     // A later file selection cancels a pending media load; its anchors cannot leak.
     let started;
     const requested=new Promise(resolve=>{started=resolve;});
@@ -78,6 +94,6 @@ function wav() {
     await page.locator('#lesson-import-dialog [role=status]').filter({hasText:'did not finish'}).waitFor();
     assert.equal(await page.evaluate(()=>lessonState.media.preview),false,'obsolete recording cannot attach to replacement score');
     assert.deepEqual(errors,[]);
-    console.log('Lesson import browser checks passed: real native score/media/timing import; origin/schema/review gates, optional save, no autoplay, mismatch recovery and score-only loading. Extension Chrome APIs and authenticated provider access remain separate owner acceptance.');
+    console.log('Lesson import browser checks passed: automatic practice-ready completion and closing in Realtime/Wait, silent Wait, manual alignment without timing, native score/media/timing import, review gates, optional save, no autoplay, mismatch recovery and stale-load cancellation. Authenticated provider/hardware acceptance remains separate.');
   } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});

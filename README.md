@@ -117,7 +117,7 @@ Opening a demo replaces the current open score just like opening another file. I
 
 ### Import a lesson from Chrome
 
-The optional **Lesson Bridge** extension can find Guitar Pro/MusicXML files, recordings and timing links on an open lesson page. Install it locally in desktop Chrome using **Load unpacked**, scan the lesson, then select its score and optional video/timing. Enter the exact address of your already open Guitar Trainer tab and click **Send selected lesson**. Review the import in Guitar Trainer before replacing the score. Saving the score and sync profile is optional; playback does not start automatically. See [setup and testing instructions](docs/LESSON-BRIDGE.md). This early integration still needs testing with your signed-in lesson; links can expire and some video formats need a different recording choice.
+The optional **Lesson Bridge** extension can find Guitar Pro/MusicXML files, recordings and timing links on an open lesson page. Install it locally in desktop Chrome using **Load unpacked**, scan the lesson, then select its score and optional video/timing. Enter the exact address of your already open Guitar Trainer tab and click **Send selected lesson**. Review the import in Guitar Trainer before replacing the score. With valid timing, the import closes its dialog and sync editor automatically, ready for you to press Play. A recording without timing stays in Media Sync for manual alignment. Saving the score and sync profile is optional; playback does not start automatically. See [setup and testing instructions](docs/LESSON-BRIDGE.md). TrueFire import has been confirmed by the owner; links can still expire and some video formats need a different recording choice.
 
 ## Where to find music
 

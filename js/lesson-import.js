@@ -12,6 +12,10 @@ export function initLessonImport({loadFile,mediaControls,state}) {
   const accept=document.createElement('button');accept.textContent='Import lesson';accept.type='button';
   const actions=document.createElement('div');actions.className='lesson-import-actions';actions.append(cancel,accept);
   dialog.append(heading,description,note,status,actions);document.body.append(dialog);
+  const notice=document.createElement('p');notice.id='lesson-import-notice';notice.className='lesson-import-notice';notice.setAttribute('role','status');notice.hidden=true;document.body.append(notice);
+  let noticeTimer;
+  const hideNotice=()=>{clearTimeout(noticeTimer);notice.hidden=true;};
+  const notify=text=>{hideNotice();notice.textContent=text;notice.hidden=false;noticeTimer=setTimeout(hideNotice,6000);};
   const clear=()=>{pending=null;generation++;dialog.close();};
   cancel.addEventListener('click',()=>{if(!busy)clear();});
   dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();else clear();});
@@ -29,20 +33,25 @@ export function initLessonImport({loadFile,mediaControls,state}) {
   }
   accept.addEventListener('click',async()=>{
     if(busy || !pending)return;
-    const lesson=pending,token=++generation;busy=true;accept.disabled=cancel.disabled=true;status.textContent='Opening score…';
+    const lesson=pending,token=++generation;let success=false;
+    busy=true;accept.disabled=cancel.disabled=true;status.textContent='Opening score…';
     try {
       ownLoad=true;let accepted;
       try{accepted=await loadFile(new File([lesson.score.bytes],lesson.score.fileName));}finally{ownLoad=false;}
       if(!accepted)throw new Error('The score could not be opened, or its loading was superseded.');
       await waitForScore(lesson,token);current(token);
+      let readyToPractice=true;
       if(lesson.recording) {
         status.textContent='Score opened. Loading recording and alignment…';
-        await mediaControls.importLesson(lesson.recording,lesson.syncPoints);current(token);
-      }
-      status.textContent=lesson.recording?'Lesson loaded. Review Media Sync, then Finish editing to practice. Save the score and sync profile separately if wanted.':'Score loaded. Save to Library if you want to keep it.';
-      heading.textContent='Lesson ready';
+        ({readyToPractice}=await mediaControls.importLesson(lesson.recording,lesson.syncPoints));current(token);
+      } else mediaControls.finishEditing();
+      notify(readyToPractice?'Lesson ready. Press Play to practice. Saving is optional.':'Recording loaded. Add alignment in Media Sync, then Finish editing to practice.');
+      success=true;
     } catch(error) {heading.textContent='Import needs attention';status.textContent=error.message+' The import did not finish; any successfully opened score remains available.';}
-    finally {pending=null;busy=false;note.hidden=true;accept.hidden=true;cancel.disabled=false;cancel.textContent='Close';cancel.focus();}
+    finally {
+      pending=null;busy=false;note.hidden=true;accept.hidden=true;cancel.disabled=false;cancel.textContent='Close';
+      if(success){dialog.close();document.getElementById('play-pause-button')?.focus();}else cancel.focus();
+    }
   });
   window.addEventListener('message',event=>{
     if(event.source!==window || event.origin!==location.origin || event.data?.type!=='gts-lesson-offer' || typeof event.data.id!=='string' || event.data.id.length>100)return;
@@ -50,11 +59,12 @@ export function initLessonImport({loadFile,mediaControls,state}) {
     if(busy || dialog.open){reply(false,'An import review is already open. Finish or close it first.');return;}
     try {
       pending=validateLesson(event.data.payload);
+      hideNotice();
       heading.textContent='Import lesson from Lesson Bridge?';note.hidden=false;
       description.textContent=`${pending.title} · ${pending.score.fileName} · from ${new URL(pending.lessonUrl).origin} · ${pending.recording?'recording from '+new URL(pending.recording.url).origin:'score only'} · ${pending.syncPoints?pending.syncPoints.length+' timing points':'manual/no alignment'}`;
       status.textContent='';cancel.textContent='Cancel';accept.hidden=false;accept.disabled=false;
       dialog.showModal();cancel.focus();reply(true,'Review the lesson in Guitar Trainer.');
     } catch {pending=null;reply(false,'The lesson payload is invalid or unsupported. Rescan and select a supported score.');}
   });
-  return {scoreLoading(){if(!ownLoad){generation++;pending=null;if(dialog.open && !busy)dialog.close();}}};
+  return {scoreLoading(){hideNotice();if(!ownLoad){generation++;pending=null;if(dialog.open && !busy)dialog.close();}}};
 }

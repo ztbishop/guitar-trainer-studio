@@ -487,7 +487,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     })();return timelineReadyPromise;
   }
   renderLayout();sourceControls();sync();refreshProfiles().catch(error=>message(error.message));
-  return {sync,timelineReady,async returnToPractice(){await returnToPractice();},
+  return {sync,timelineReady,finishEditing,async returnToPractice(){await returnToPractice();},
     async importLesson(recording,syncPoints) {
       const score=AppState.currentScoreFile,initialGeneration=generation;
       await timelineReady();
@@ -505,7 +505,9 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       }
       openEditor();await selectRecording();
       if(generation!==loadGeneration || score!==AppState.currentScoreFile)throw new Error('Lesson import was superseded by a score/source change.');
-      message(imported?'Imported alignment is ready to review. Save profile to keep it.':'Recording loaded. Align it manually, then Save profile.');
+      if(imported)finishEditing();
+      message(imported?'Lesson ready. Press Play to practice. Save profile to keep the imported alignment.':'Recording loaded. Align it manually, then Save profile.');
+      return {readyToPractice:Boolean(imported)};
     },
     setVolume(percent){
       if(!Number.isFinite(percent) || percent<0 || percent>100)return false;

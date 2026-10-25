@@ -1,5 +1,15 @@
 # Guitar Trainer Studio: status and to-do
 
+### Practice-ready Lesson Bridge completion — 2026-10-24
+
+- [x] Owner confirms the automatic TrueFire lesson import worked; screenshots show the review/success dialogs and still-open sync editor. This confirms the tested signed-in transfer, not every-measure alignment or hardware acceptance.
+- [x] Timed imports automatically use existing Finish editing, retain recording/unsaved anchors and return to practice without autoplay. Score-only imports also finish editing. Close successful review automatically and replace the success dialog with a brief nonblocking notice; retain error details and one initial replacement review.
+- [x] Keep the manual alignment editor open for recordings without timing. Document current partial-import, Dropbox-preview and embedded-frame limits; no expansion of the transfer protocol in this update.
+- [x] All 468 Node tests, updated real-app import and existing MIDI/media-practice browser checks, syntax/whitespace and visual review pass. Actual revised normal-browser/Fishman acceptance remains separate.
+- [ ] Follow-up: explicit Keep current/Replace choices for recording-only/timing-only or other selected component updates. Validate compatibility and invalidate unrelated timing when score/recording changes; avoid silently clearing unspecified components.
+- [ ] Follow-up: inspect a representative Teachable/embedded-player lesson and consider explicit additional-host/frame scanning. Video-only players may have no musical synchronization points; no universal extraction promise.
+- [ ] Owner checks revised automatic completion, imported alignment across the performance, optional saving and actual Fishman Realtime/Wait. Automated evidence is in DEV-NOTES.md.
+
 ### Lesson Bridge selected import — 2026-10-24
 
 - [x] Owner confirms discovery/resource selection for All About Me — Playalong (course 961/lesson 32684). Prior non-Soundslice overview findings are discarded.

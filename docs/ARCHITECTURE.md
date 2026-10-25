@@ -1,5 +1,11 @@
 # Guitar Trainer Studio Architecture
 
+## Practice-ready Lesson Bridge completion — 2026-10-24
+
+`media-controls.importLesson` now invokes its existing `finishEditing` operation after successful recording selection with validated imported timing, returning `{readyToPractice:true}`. Missing timing deliberately leaves manual alignment open and returns false. `finishEditing` is exposed through the injected media-controls interface so the receiver also closes any retained editor after score-only import. All native pause/source/range/count-in restoration and practice reset callbacks stay in the existing host/editor-exit path; mode and imported unsaved points are retained, with no autoplay or save.
+
+`lesson-import.js` retains the initial replacement review, automatically closes it on successful import and focuses Play. Its six-second noninteractive status notice (owned by lesson-import.css) replaces the second success dialog. Errors keep the visible dialog; new offers/score loads clear obsolete notices. No protocol, extension permissions/version, alphaTab, MIDI matching, Wait or feedback changes. Selective recording/timing-only updates and permissioned cross-origin frame scanning remain unimplemented; current limits and proposed continuation are in LESSON-BRIDGE.md. Earlier editor-on-success descriptions below are historical.
+
 ## Lesson Bridge selected lesson transfer — 2026-10-24
 
 The optional extension 0.2.0 now selects/downloads a provided score plus optional recording/timing and delivers a version-1 JSON-safe payload to the exact app URL/tab entered by the user. `transfer.js` owns bounded session-aware fetch/base64 and isolated-world one-shot postMessage/ack; `popup.js` owns gesture-scoped host grants, selection and app-address-only local storage. `discovery.js` classifies encoded MP4 routes, suppresses Soundslice metronome assets/empty-ID timing, and scanner manifest/timing matching respects the current TrueFire lesson ID.
