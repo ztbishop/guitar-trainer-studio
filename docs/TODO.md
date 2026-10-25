@@ -2,6 +2,8 @@
 
 ### Lesson Bridge destination preference — 2026-10-24
 
+- [x] Clarify in the popup description, README and setup guide that custom destination URLs should include `/index.html` at the end. Wording only; preserve target validation/matching/persistence.
+
 - [x] Default first use to `https://ztbishop.github.io/guitar-trainer-studio/index.html`; preserve valid saved overrides and save valid edits before Send through existing extension local storage.
 - [x] Isolated popup browser checks verify the hosted default, immediate custom localhost persistence without sending and restoration after reopening/reload, alongside existing scan/copy/transfer checks. Syntax/whitespace checks pass; actual normal-Chrome preference acceptance remains local.
 

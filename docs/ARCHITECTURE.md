@@ -2,6 +2,8 @@
 
 ## Lesson Bridge target address default/persistence — 2026-10-24
 
+Popup/README/setup guidance explicitly recommends `/index.html` at the end of custom destinations. This is wording only; existing directory/index.html tab-path equivalence and validation remain unchanged.
+
 `extensions/lesson-bridge/popup.js` initializes the target to the owner's hosted `/index.html` URL and restores only addresses accepted by the existing appAddress validator. Valid input edits persist immediately through existing chrome.storage.local; a flag prevents delayed restoration overwriting in-progress edits. Existing valid saved local/hosted choices take precedence; invalid values/read failures leave the hosted fallback. popup.html matches the new placeholder/help. This is extension-only configuration, with no new module/permission/version, app runtime, native/MIDI/Wait/feedback or browser-origin storage migration.
 
 ## Manual sync-point copy/paste — 2026-10-24
