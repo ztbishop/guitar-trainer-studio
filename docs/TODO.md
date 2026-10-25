@@ -1,5 +1,10 @@
 # Guitar Trainer Studio: status and to-do
 
+### Extension naming — 2026-10-24
+
+- [x] Use Guitar Trainer Lesson Bridge in Chrome's extension name, toolbar tooltip and popup title; show Guitar Trainer above Lesson Bridge in the popup. Update current naming/setup documentation.
+- [ ] Owner reloads the extension and confirms its updated name/heading in normal Chrome; no app or MIDI behavior change.
+
 ### Lesson Bridge top Send and icon — 2026-10-24
 
 - [x] Add Send selected lesson beside Scan, retaining the lower button and sharing the same handler/selections and scan/send disabled state.

@@ -1,5 +1,11 @@
 # Development notes
 
+## Guitar Trainer Lesson Bridge naming — 2026-10-24
+
+Started from clean main f620285. Owner approved making the app association explicit. Chrome manifest name/action tooltip and popup document title now say Guitar Trainer Lesson Bridge; popup h1 shows Guitar Trainer with a smaller Lesson Bridge line beneath, styled in popup.css. Current README/setup naming, architecture and TODO updated. Folder, extension identity/storage, protocol, permissions, versions and trainer/MIDI/Wait/feedback behavior remain unchanged; no new module or migration.
+
+Verification: existing five extension Node checks and the isolated popup browser runner pass, including scan/copy/preferences/top/lower Send/error behavior. Popup screenshot visually reviewed; diff whitespace checks pass. This display-only change did not require new tests or repeating native/MIDI checks. Chrome APIs are mocked; owner should reload the unpacked extension to confirm its installed name, tooltip and popup heading in normal Chrome.
+
 ## Lesson Bridge top Send and app icon — 2026-10-24
 
 Started from clean main eddaa53; owner approved the proposed shortcut and existing-icon reuse. Added a second Send selected lesson button beside Scan with a wrapping action row, preserving the lower button. Both bind directly to one sendLesson handler so Chrome permission requests still originate from the actual click gesture. Shared disabled state prevents concurrent scan/send; the top shortcut starts disabled and stays disabled after a failed rescan. Existing selectors, payload, review and lower send-status output remain. Packaged byte-identical app icon PNGs at 16/32/48/192 pixels under the extension's own icons directory and declared extension/action icons in its manifest, keeping unpacked installation self-contained. No new module, artwork, permissions, app/native/MIDI/Wait/feedback behavior or version change.

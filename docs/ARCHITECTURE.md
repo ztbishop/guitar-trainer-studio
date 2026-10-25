@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Extension naming — 2026-10-24
+
+The Chrome manifest name/action tooltip and popup document title now use Guitar Trainer Lesson Bridge. popup.html presents one h1 with Guitar Trainer above a smaller Lesson Bridge span; popup.css owns that subtitle styling. This is a display-name update only: extension folder, storage keys, transfer protocol, permissions, versions and trainer behavior remain unchanged. No new module is introduced; existing Lesson Bridge shorthand in historical notes remains valid.
+
 ## Lesson Bridge shortcut and app icon — 2026-10-24
 
 popup.html adds a second Send button in the top action row; popup.css owns its wrapping layout. popup.js binds both buttons directly to the same sendLesson handler, preserving the permission request's click gesture and existing selection/review protocol. disableSend keeps both disabled during scan/send; the top shortcut starts disabled and becomes available only after a successful scan, avoiding stale sends after scan failure. Both retain the existing lower send-status output. manifest.json declares extension/action icons from packaged copies of the existing app PNGs at 16/32/48/192 pixels under extensions/lesson-bridge/icons; action uses 16/32/48. Copies keep Load unpacked self-contained; no new artwork, module, permissions, runtime/native/MIDI behavior or version change.

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Lesson Bridge for Guitar Trainer Studio",
+  "name": "Guitar Trainer Lesson Bridge",
   "version": "0.2.0",
   "description": "Find lesson scores, recordings and timing, then send a selected lesson to Guitar Trainer Studio.",
   "icons": {
@@ -17,7 +17,7 @@
       "32": "icons/icon-32x32.png",
       "48": "icons/icon-48x48.png"
     },
-    "default_title": "Scan a lesson with Lesson Bridge",
+    "default_title": "Guitar Trainer Lesson Bridge",
     "default_popup": "popup.html"
   }
 }

@@ -1,13 +1,13 @@
-# Lesson Bridge: local Chrome lesson import
+# Guitar Trainer Lesson Bridge: local Chrome lesson import
 
-Lesson Bridge for Guitar Trainer Studio is an optional, locally installed desktop Chrome extension. It scans the page you choose for score, recording and timing candidates, then can send your selection into an already open Guitar Trainer tab. The app asks you to review before replacing its score. Nothing saves or starts playing automatically. Guitar Trainer still works without the extension.
+Guitar Trainer Lesson Bridge is an optional, locally installed desktop Chrome extension. Its popup shows Guitar Trainer above Lesson Bridge. It scans the page you choose for score, recording and timing candidates, then can send your selection into an already open Guitar Trainer tab. The app asks you to review the selected changes before applying them. Nothing saves or starts playing automatically. Guitar Trainer still works without the extension.
 
 ## Install for testing
 
 1. Use your normal desktop Chrome profile, where you sign into TrueFire.
 2. Open `chrome://extensions` and enable **Developer mode**.
 3. Click **Load unpacked** and select the `extensions/lesson-bridge` folder inside this repository. Select that folder, not the repository root.
-4. Pin **Lesson Bridge for Guitar Trainer Studio** from Chrome's extensions menu.
+4. Pin **Guitar Trainer Lesson Bridge** from Chrome's extensions menu.
 5. Open a lesson you can access. Let its player load and reveal its download links. Click the extension, then **Scan this page**.
 6. Review candidates. For a timing JSON candidate, **Inspect timing** asks for access to that HTTPS host and tries to display a validated Soundslice timing preview.
 7. Keep Guitar Trainer open in the same Chrome profile. In the extension, select the score and optional recording/timing. First use defaults to `https://ztbishop.github.io/guitar-trainer-studio/index.html`; an existing valid saved address takes precedence. To use another copy, enter its **exact address** from the address bar (including the actual Live Server/launcher port and any project subfolder). Use HTTPS for hosted copies or HTTP localhost/127.0.0.1 locally. Valid edits save immediately in the extension's `chrome.storage.local`, without needing a successful Send; lesson resources are not saved. Invalid/unreadable saved values fall back to the hosted default.
