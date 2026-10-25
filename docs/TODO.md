@@ -1,5 +1,10 @@
 # Guitar Trainer Studio: status and to-do
 
+### Lesson Bridge destination preference — 2026-10-24
+
+- [x] Default first use to `https://ztbishop.github.io/guitar-trainer-studio/index.html`; preserve valid saved overrides and save valid edits before Send through existing extension local storage.
+- [x] Isolated popup browser checks verify the hosted default, immediate custom localhost persistence without sending and restoration after reopening/reload, alongside existing scan/copy/transfer checks. Syntax/whitespace checks pass; actual normal-Chrome preference acceptance remains local.
+
 ### Manual timing copy/paste — 2026-10-24
 
 - [x] Allow complete timing-array JSON copy after Inspect timing, including timing-only scans without a score; selectable full-text fallback when clipboard writing is blocked. Preview truncation never truncates copied data.

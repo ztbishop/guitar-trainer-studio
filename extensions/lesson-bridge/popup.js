@@ -6,7 +6,18 @@ const get = id => document.getElementById(id);
 function element(tag, text) { const node=document.createElement(tag); node.textContent=text; return node; }
 let scanned=null,candidates=[];
 get('recording').addEventListener('change',()=>{get('timing').disabled=get('recording').value==='';});
-chrome.storage.local.get('appAddress').then(saved=>{get('app-address').value=saved.appAddress || 'http://127.0.0.1:5500/index.html';}).catch(()=>{});
+const defaultAppAddress='https://ztbishop.github.io/guitar-trainer-studio/index.html';
+get('app-address').value=defaultAppAddress;
+let addressEdited=false;
+chrome.storage.local.get('appAddress').then(saved=>{
+  if(addressEdited)return;
+  try{get('app-address').value=appAddress(saved.appAddress || defaultAppAddress).href;}catch{get('app-address').value=defaultAppAddress;}
+}).catch(()=>{});
+get('app-address').addEventListener('input',()=>{
+  addressEdited=true;let value;
+  try{value=appAddress(get('app-address').value.trim()).href;}catch{return;}
+  chrome.storage.local.set({appAddress:value}).catch(()=>{get('send-status').textContent='The address could not be saved. You can still enter it for this session.';});
+});
 function choices(id,kind,optional=false) {
   const select=get(id);select.replaceChildren();
   if(optional)select.append(new Option('None',''));

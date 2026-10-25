@@ -54,14 +54,21 @@ const path=require('node:path');
       window.copyBlocked=false;window.copiedJson=null;
       Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{if(window.copyBlocked)throw new Error('blocked');window.copiedJson=text;}}});
       window.chrome={
-        storage:{local:{get:async()=>({appAddress:'https://trainer.test/'}),set:async()=>{}}},
+        storage:{local:{get:async()=>JSON.parse(sessionStorage.getItem('mockPreferences') || '{}'),set:async value=>{sessionStorage.setItem('mockPreferences',JSON.stringify(value));}}},
         tabs:{query:async options=>options.url?[{id:2,url:'https://trainer.test/'}]:[{id:1,url:'https://truefire.com/lesson/v32682'}],update:async()=>{}},
         scripting:{executeScript:async options=>{if(options.args){window.delivered=options.args[0];return [{result:{ok:true}}];}return [{result:window.fixture}];}},
         permissions:{request:async data=>{window.permissionRequests.push(data);return window.grant;}}
       };
     },{result});
     await popup.goto('https://bridge.test/popup.html');
+    await popup.waitForFunction(()=>document.getElementById('app-address').value==='https://ztbishop.github.io/guitar-trainer-studio/index.html');
+    await popup.locator('#scan').click();await popup.locator('#transfer').waitFor();
+    await popup.locator('#app-address').fill('http://localhost:5501/index.html');
+    await popup.waitForFunction(()=>JSON.parse(sessionStorage.getItem('mockPreferences') || '{}').appAddress==='http://localhost:5501/index.html');
+    await popup.reload();
+    await popup.waitForFunction(()=>document.getElementById('app-address').value==='http://localhost:5501/index.html');
     await popup.locator('#scan').click();await popup.locator('#status').filter({hasText:'candidates found'}).waitFor();
+    await popup.locator('#app-address').fill('https://trainer.test/');
     const body=await popup.locator('body').innerText();assert(!body.includes('auth_token=secret'));
     assert(body.includes('Score · GP5'));assert(!body.includes('PDF'));
     assert.equal(await popup.getByRole('button',{name:'Copy link',exact:true}).count(),await popup.locator('article').count());

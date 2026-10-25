@@ -1,5 +1,11 @@
 # Development notes
 
+## Hosted Lesson Bridge destination default — 2026-10-24
+
+Started from clean main at 13d0b47. Owner requests the hosted app `/index.html` URL as default and persistent user overrides. Updated only popup target initialization/input saving plus placeholder/help; existing chrome.storage.local remains the persistence owner (not the trainer webpage's localStorage). Valid saved addresses, including earlier localhost choices, win over first-use default. Valid edits save on input even before any Send; malformed/incomplete input does not overwrite the last valid choice. Invalid stored values/storage-read failure fall back to the hosted URL; delayed reads cannot overwrite current edits. No app runtime, permissions, protocol/version, MIDI matching, Wait or feedback changes.
+
+Validation: isolated Chrome popup runner passes first-use hosted default, a valid localhost edit saved without sending and restoration across popup reload; existing scan/resource-copy/timing/transfer checks continue to pass. Extension storage is mocked with a persistent per-test backing store; this tests preference wiring without touching the owner's profile. Changed extension/runner syntax and whitespace checks pass. Actual extension reload/custom-address persistence remains owner acceptance; this update neither verifies nor changes the hosted site's deployment.
+
 ## Manual timing copy/paste — 2026-10-24
 
 Started from clean main at e590fbf. Owner requests copying detected sync points separately and pasting them after adding a video, then also asks for copying any discovered asset link. Successful extension timing inspection now exposes the complete normalized JSON array and Copy sync points independently of score discovery. Every candidate also has Copy link for its full original URL/access parameters; the normal display stays redacted. Clipboard writes are gesture-triggered; failure selects the complete readonly JSON/link field for manual copy. Nothing is copied until the user clicks. No new extension permissions, persisted data, version or protocol changes.

@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Lesson Bridge target address default/persistence — 2026-10-24
+
+`extensions/lesson-bridge/popup.js` initializes the target to the owner's hosted `/index.html` URL and restores only addresses accepted by the existing appAddress validator. Valid input edits persist immediately through existing chrome.storage.local; a flag prevents delayed restoration overwriting in-progress edits. Existing valid saved local/hosted choices take precedence; invalid values/read failures leave the hosted fallback. popup.html matches the new placeholder/help. This is extension-only configuration, with no new module/permission/version, app runtime, native/MIDI/Wait/feedback or browser-origin storage migration.
+
 ## Manual sync-point copy/paste — 2026-10-24
 
 `extensions/lesson-bridge/popup.js` adds complete normalized Soundslice-array JSON and a user-triggered Copy sync points button after successful inspection; it remains available when no score candidate exists. Every resource card also offers Copy link for the original full URL including access parameters, independently of the redacted display. Standard clipboard write falls back to selecting readonly full text; no new extension permission, storage or protocol field. popup.css owns the copy field layout. Scanner/frame access is unchanged.
