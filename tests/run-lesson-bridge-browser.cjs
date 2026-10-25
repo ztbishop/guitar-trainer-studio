@@ -75,8 +75,13 @@ function previewWav(){const b=Buffer.alloc(44+8000*2*3);b.write('RIFF');b.writeU
       };
     },{result});
     await popup.goto('https://bridge.test/popup.html');
+    assert.equal(await popup.locator('#send-top').isDisabled(),true,'top Send waits for a successful scan');
     await popup.waitForFunction(()=>document.getElementById('app-address').value==='https://ztbishop.github.io/guitar-trainer-studio/index.html');
     await popup.locator('#scan').click();await popup.locator('#transfer').waitFor();
+    assert.equal(await popup.locator('#send-top').isDisabled(),false);
+    const scanBounds=await popup.locator('#scan').boundingBox(),sendBounds=await popup.locator('#send-top').boundingBox();
+    assert.equal(scanBounds.y,sendBounds.y,'top buttons share a row at the normal popup width');
+    assert(sendBounds.x>scanBounds.x);
     assert.equal(await popup.locator('#score-url-label').isVisible(),false);
     assert.equal(await popup.locator('#recording-url-label').isVisible(),false);
     assert.equal(await popup.locator('#timing-text-label').isVisible(),false);
@@ -118,8 +123,15 @@ function previewWav(){const b=Buffer.alloc(44+8000*2*3);b.write('RIFF');b.writeU
     await popup.locator('#test-score').click();await popup.locator('#test-score-status').filter({hasText:'Guitar Pro header'}).waitFor();
     await popup.locator('#test-recording').click();await popup.locator('#test-recording-status').filter({hasText:'metadata loaded'}).waitFor();
     assert.equal(await popup.locator('#recording-preview video').evaluate(v=>v.autoplay),false);
-    await popup.locator('#send').click();
+    await popup.evaluate(()=>{window.chrome.permissions.request=async()=>new Promise(resolve=>{window.releaseSend=()=>resolve(true);});});
+    await popup.locator('#send-top').click();
+    assert.equal(await popup.locator('#send-top').isDisabled(),true);
+    assert.equal(await popup.locator('#send').isDisabled(),true);
+    assert.equal(await popup.locator('#scan').isDisabled(),true);
+    await popup.evaluate(()=>{window.releaseSend();window.chrome.permissions.request=async()=>window.grant;});
     await popup.locator('#send-status').filter({hasText:'Sent.'}).waitFor();
+    assert.equal(await popup.locator('#send-top').isDisabled(),false);
+    assert.equal(await popup.locator('#send').isDisabled(),false);
     const delivered=await popup.evaluate(()=>window.delivered);
     assert.equal(delivered.version,2);assert.equal(delivered.score.fileName,'score.gp5');assert.match(atob(delivered.score.base64),/^FICHIER GUITAR PRO/);
     assert.equal(delivered.syncPoints.length,3);assert.equal(delivered.recording.url,'https://cdn.test/clip.mp4');
@@ -164,6 +176,7 @@ function previewWav(){const b=Buffer.alloc(44+8000*2*3);b.write('RIFF');b.writeU
     await popup.evaluate(()=>{window.chrome.scripting.executeScript=async()=>{throw new Error('blocked');};});
     await popup.locator('#scan').click();await popup.locator('#status').filter({hasText:'could not scan'}).waitFor();
     assert.equal(await popup.locator('#scan').isDisabled(),false,'failure permits retry');
+    assert.equal(await popup.locator('#send-top').isDisabled(),true,'failed rescan cannot send stale selections');
     assert.deepEqual(errors,[]);
     console.log('Lesson Bridge browser checks passed: real DOM/frame/manifest scanning and stale-timing filtering; popup review, redaction, timing grant/decline, selected resource download/transfer, text safety, empty/error recovery. Chrome APIs mocked; actual installation/TrueFire acceptance pending.');
   } finally {await browser?.close();}

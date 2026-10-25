@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+### Lesson Bridge top Send and icon — 2026-10-24
+
+- [x] Add Send selected lesson beside Scan, retaining the lower button and sharing the same handler/selections and scan/send disabled state.
+- [x] Package the existing app icon for the Chrome toolbar/extension list, without new artwork or permissions.
+- [x] All 471 Node tests, isolated popup top/lower Send and disabled-state checks, syntax/whitespace and visual layout review pass. Packaged PNG dimensions/content match the existing app artwork.
+- [ ] Owner reloads the unpacked extension and checks the toolbar icon and upper Send in normal Chrome. Automated evidence is recorded in DEV-NOTES.md.
+
 ### Methods discovery and manual/partial Send — 2026-10-24
 
 - [x] Resolve both standard TrueFire and Methods/Channels manifests using actual embedded player IDs; avoid confusing /l navigation IDs with player lesson IDs and filter stale timing.

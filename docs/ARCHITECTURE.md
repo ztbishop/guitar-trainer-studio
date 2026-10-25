@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Lesson Bridge shortcut and app icon — 2026-10-24
+
+popup.html adds a second Send button in the top action row; popup.css owns its wrapping layout. popup.js binds both buttons directly to the same sendLesson handler, preserving the permission request's click gesture and existing selection/review protocol. disableSend keeps both disabled during scan/send; the top shortcut starts disabled and becomes available only after a successful scan, avoiding stale sends after scan failure. Both retain the existing lower send-status output. manifest.json declares extension/action icons from packaged copies of the existing app PNGs at 16/32/48/192 pixels under extensions/lesson-bridge/icons; action uses 16/32/48. Copies keep Load unpacked self-contained; no new artwork, module, permissions, runtime/native/MIDI behavior or version change.
+
 ## Methods discovery and selective lesson updates — 2026-10-24
 
 Current behavior supersedes the selective-update limitations in earlier dated entries. No new module or permission is added. scanner.js resolves numeric course/lesson IDs from same-origin Soundslice app-shell iframes, accepting legacy courseid/lessonid and newer cid/sid forms. Standard /v pages must agree with their lesson ID; Methods/Channels /l navigation IDs are never substituted for player IDs. Observed manifests must match the player identity; absent endpoints are constructed only from exposed IDs. Stale lesson timing/manifests are filtered.

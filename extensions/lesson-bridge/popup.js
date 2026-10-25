@@ -92,9 +92,12 @@ for(const role of ['score','recording','timing'])get('test-'+role).addEventListe
     }
   } catch(error){status.textContent=error.message || 'This resource could not be tested.';}finally{button.disabled=false;}
 });
-get('send').addEventListener('click',async()=>{
+const sendButtons=[get('send'),get('send-top')];
+function disableSend(disabled){sendButtons.forEach(button=>{button.disabled=disabled;});}
+async function sendLesson(){
+  if(!scanned || get('scan').disabled)return;
   clearPreview();
-  get('send').disabled=get('scan').disabled=true;get('send-status').textContent='Preparing selected lesson…';
+  disableSend(true);get('scan').disabled=true;get('send-status').textContent='Preparing selected lesson…';
   try {
     const target=appAddress(get('app-address').value.trim()),score=selected('score'),recording=selected('recording'),timing=selected('timing');
     if(!score && !recording && !timing)throw new Error('Select a score, recording or timing update.');
@@ -114,8 +117,9 @@ get('send').addEventListener('click',async()=>{
     get('send-status').textContent='Sent. Review the import in Guitar Trainer.';
     await chrome.tabs.update(matches[0].id,{active:true});
   } catch(error) {get('send-status').textContent=error.name==='TypeError' || error.name==='TimeoutError'?'A resource could not be retrieved. Sign in, rescan and check the app address.':error.message;}
-  finally {get('send').disabled=get('scan').disabled=false;}
-});
+  finally {disableSend(false);get('scan').disabled=false;}
+}
+sendButtons.forEach(button=>button.addEventListener('click',sendLesson));
 
 async function inspectTiming(candidate, button, article) {
   button.disabled=true;
@@ -153,6 +157,7 @@ async function inspectTiming(candidate, button, article) {
 
 get('scan').addEventListener('click',async()=>{
   clearPreview();
+  disableSend(true);
   get('scan').disabled=true; get('results').replaceChildren(); get('notices').replaceChildren();
   get('transfer').hidden=true;scanned=null;candidates=[];get('send-status').textContent='';
   get('status').textContent='Scanning the open page…';
@@ -189,5 +194,5 @@ get('scan').addEventListener('click',async()=>{
     }
   } catch (error) {
     get('status').textContent=error.message.includes('Open a normal') ? error.message : 'Chrome could not scan this page. Refresh the lesson, reopen Lesson Bridge and try again. Protected pages may not allow scanning.';
-  } finally { get('scan').disabled=false; }
+  } finally { get('scan').disabled=false;disableSend(!scanned); }
 });

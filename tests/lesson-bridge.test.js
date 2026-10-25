@@ -32,6 +32,12 @@ test('discovery stays bounded and extension has no persistent observer, receiver
   const manifest=JSON.parse(readFileSync(new URL('../extensions/lesson-bridge/manifest.json',import.meta.url),'utf8'));
   assert.deepEqual(manifest.permissions,['activeTab','scripting','storage']);
   assert(!manifest.background && !manifest.content_scripts && !manifest.externally_connectable && !manifest.host_permissions);
+  for(const [size,file] of Object.entries(manifest.icons)) {
+    const bytes=readFileSync(new URL('../extensions/lesson-bridge/'+file,import.meta.url));
+    assert.equal(bytes.readUInt32BE(16),Number(size));assert.equal(bytes.readUInt32BE(20),Number(size));
+    assert.deepEqual(bytes,readFileSync(new URL('../assets/icons/icon-'+size+'x'+size+'.png',import.meta.url)),'extension reuses the existing app artwork');
+  }
+  for(const file of Object.values(manifest.action.default_icon))assert(Object.values(manifest.icons).includes(file));
 });
 
 test('discovery finds manifest MP4 redirects and filters Soundslice assets and malformed timing',()=>{
