@@ -24,7 +24,8 @@ export function classifyResource(raw, base) {
   }
   const hint = String(raw.label || '').slice(0, 180);
   let kind, detail;
-  if (/\.(gp[3-5]?|gpx|musicxml|mxl|xml)$/i.test(path)) {
+  if (youtubeVideoId(url)) {kind='Recording';detail='YouTube video';}
+  else if (/\.(gp[3-5]?|gpx|musicxml|mxl|xml)$/i.test(path)) {
     kind = 'Score'; detail = path.split('.').pop().toUpperCase();
   } else if (/\.(m3u8|mpd)$/i.test(path)) {
     kind = 'Recording'; detail = 'Streaming playlist; playback support unverified';
@@ -39,9 +40,20 @@ export function classifyResource(raw, base) {
     kind = 'Score'; detail = 'Download label only; file format unverified';
   } else if (/^(video|audio|source)$/.test(raw.origin || '') || (raw.origin === 'TrueFire manifest' && /video|audio|mp4|hls|stream/i.test(hint))) {
     kind = 'Recording'; detail = 'Player source; file format unverified';
+  } else if (/^(www\.)?soundslice\.com$/i.test(new URL(url).hostname) && /\/(scores|slices)\//.test(path)) {
+    kind='Player';detail='Soundslice player link';
   } else return null;
   let fileName=path.split('/').pop() || '';try{fileName=decodeURIComponent(fileName);}catch{/* Keep literal malformed escapes. */}
   return {url, kind, detail, fileName:fileName.slice(0,240), label:hint, origin:String(raw.origin || 'page').slice(0, 80)};
+}
+
+export function youtubeVideoId(value) {
+  try {
+    const u=new URL(value);let id;
+    if(u.hostname==='youtu.be')id=u.pathname.slice(1).split('/')[0];
+    else if(['youtube.com','www.youtube.com','www.youtube-nocookie.com'].includes(u.hostname))id=u.searchParams.get('v') || u.pathname.match(/^\/(?:embed|shorts)\/([^/]+)/)?.[1];
+    return /^[\w-]{11}$/.test(id || '')?id:null;
+  } catch {return null;}
 }
 
 export function redirectDestination(value) {
@@ -50,10 +62,15 @@ export function redirectDestination(value) {
   catch { return null; }
 }
 
-export function discoverResources(raw, base) {
+export function discoverResources(raw, base,{includeOther=false}={}) {
   const seen = new Set(), result = [];
   for (const item of raw.slice(0, 2500)) {
-    const candidate = classifyResource(item, base);
+    let candidate = classifyResource(item, base);
+    if(!candidate && includeOther) {
+      const url=webUrl(item.url,base);
+      if(url && /\.json(?:[?#]|$)|\.pdf(?:[?#]|$)|\/redirect\/|download|attachment/i.test(url) && !/soundfonts|analytics|telemetry/i.test(url))
+        candidate={url,kind:'Other',detail:'Unclassified download/data link',fileName:new URL(url).pathname.split('/').pop().slice(0,240),label:String(item.label || '').slice(0,180),origin:item.origin || 'page'};
+    }
     if (!candidate || seen.has(candidate.url)) continue;
     seen.add(candidate.url); result.push(candidate);
     if (result.length === 150) break;

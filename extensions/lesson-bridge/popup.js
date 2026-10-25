@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import {scanPage} from './scanner.js';
-import {discoverResources, displayUrl, displayLabel, readSyncPoints, redirectDestination} from './discovery.js';
-import {appAddress,appPath,fetchBytes,base64Bytes,deliverLesson} from './transfer.js';
+import {discoverResources, displayUrl, displayLabel, readSyncPoints, redirectDestination,webUrl,youtubeVideoId} from './discovery.js';
+import {appAddress,appPath,fetchBytes,base64Bytes,deliverLesson,checkScoreBytes} from './transfer.js';
 const get = id => document.getElementById(id);
 function element(tag, text) { const node=document.createElement(tag); node.textContent=text; return node; }
 let scanned=null,candidates=[];
-get('recording').addEventListener('change',()=>{get('timing').disabled=get('recording').value==='';});
 const defaultAppAddress='https://ztbishop.github.io/guitar-trainer-studio/index.html';
 get('app-address').value=defaultAppAddress;
 let addressEdited=false;
@@ -18,44 +17,98 @@ get('app-address').addEventListener('input',()=>{
   try{value=appAddress(get('app-address').value.trim()).href;}catch{return;}
   chrome.storage.local.set({appAddress:value}).catch(()=>{get('send-status').textContent='The address could not be saved. You can still enter it for this session.';});
 });
-function choices(id,kind,optional=false) {
+function choices(id,kind) {
   const select=get(id);select.replaceChildren();
-  if(optional)select.append(new Option('None',''));
+  select.append(new Option(id==='score'?'Use score already loaded':id==='recording'?'No new recording (keep it if keeping score)':'No new timing (keep only if score/recording unchanged)',''));
+  if(id==='recording')select.append(new Option('Keep current recording even with a new score','keep'));
   candidates.forEach((candidate,index)=>{
-    if(candidate.kind!==kind || (id==='recording' && /Download.*mp3/i.test(candidate.label)))return;
+    if((!get('manual-mode').checked && candidate.kind!==kind) || (id==='recording' && /Download.*mp3/i.test(candidate.label) && !get('manual-mode').checked))return;
     select.append(new Option(`${candidate.fileName || candidate.detail} · ${candidate.origin}`,String(index)));
   });
-  if(optional) {
-    const preferred=candidates.findIndex(c=>c.kind===kind && (kind==='Timing' || /\.mp4$/i.test(c.fileName)));
-    if(preferred>=0)select.value=String(preferred);
-  }
+  select.append(new Option(id==='timing'?'Paste timing JSON or URL':'Paste a URL','custom'));
+  const preferred=id==='score'?candidates.findIndex(c=>c.kind==='Score'):id==='timing'?candidates.findIndex(c=>c.kind==='Timing'):
+    [candidates.findIndex(c=>c.kind==='Recording' && /\.mp4$/i.test(c.fileName)),candidates.findIndex(c=>c.kind==='Recording' && youtubeVideoId(c.url)),candidates.findIndex(c=>c.kind==='Recording' && /m3u8|mpd/i.test(c.fileName))].find(i=>i>=0);
+  if(preferred>=0)select.value=String(preferred);
 }
+function fields() {
+  for(const role of ['score','recording','timing'])get(role==='timing'?'timing-text-label':role+'-url-label').hidden=get(role).value!=='custom';
+  get('score-name-label').hidden=get('score').value==='';
+  const candidate=candidates[Number(get('score').value)];
+  if(get('score').value!=='' && get('score').value!=='custom')get('score-name').value=candidate?.fileName || 'lesson.gp5';
+  if(get('score').value==='custom' && !get('score-name').value)get('score-name').value='lesson.gp5';
+}
+for(const role of ['score','recording','timing'])get(role).addEventListener('change',()=>{
+  fields();get('test-'+role+'-status').textContent='';
+  if(role==='recording')clearPreview();
+});
+get('manual-mode').addEventListener('change',()=>{
+  for(const [role,kind] of [['score','Score'],['recording','Recording'],['timing','Timing']]) {
+    const previous=get(role).value;choices(role,kind);if([...get(role).options].some(o=>o.value===previous))get(role).value=previous;
+  }fields();
+});
+function selected(role) {
+  const value=get(role).value;if(value==='' || value==='keep')return null;
+  const text=role==='timing'?get('timing-text').value.trim():get(role+'-url').value.trim();
+  if(text.length>1000000)throw new Error('Use at most 1 MB of timing JSON.');
+  if(value==='custom' && role==='timing' && text.startsWith('[')) {
+    try{return {points:readSyncPoints(JSON.parse(text)).map(p=>[p.bar,p.seconds,p.position,p.hide])};}catch{throw new Error('Paste a complete valid Soundslice timing array.');}
+  }
+  const url=value==='custom'?webUrl(text):candidates[Number(value)]?.url;
+  if(!url)throw new Error(`Choose or paste a valid ${role} URL.`);
+  return {url,fileName:role==='score'?get('score-name').value.trim():null};
+}
+async function allow(urls) {
+  const origins=[...new Set(urls.filter(Boolean).map(value=>`${new URL(value).origin}/*`))];
+  if(!origins.length)return;
+  if(!await chrome.permissions.request({origins}))throw new Error('Site access was declined. Nothing was sent.');
+}
+async function timingData(selection) {
+  if(!selection)return null;if(selection.points)return selection.points;
+  const text=new TextDecoder().decode(await fetchBytes(selection.url,1000000));
+  let data;try{data=JSON.parse(text);}catch{throw new Error('The timing response is not JSON.');}
+  return readSyncPoints(data).map(p=>[p.bar,p.seconds,p.position,p.hide]);
+}
+function clearPreview() {
+  get('recording-preview').querySelectorAll('video').forEach(video=>{video.pause();video.removeAttribute('src');video.load();});
+  get('recording-preview').replaceChildren();
+}
+for(const role of ['score','recording','timing'])get('test-'+role).addEventListener('click',async()=>{
+  const button=get('test-'+role),status=get('test-'+role+'-status');button.disabled=true;status.textContent='Checking…';
+  try {
+    const selection=selected(role);if(!selection)throw new Error('This choice keeps an existing item; select a resource to test it.');
+    if(role==='recording') {
+      clearPreview();const id=youtubeVideoId(selection.url);
+      if(id){const frame=element('iframe','');frame.src=`https://www.youtube-nocookie.com/embed/${id}`;frame.title='Selected YouTube preview';frame.allow='fullscreen';get('recording-preview').append(frame);status.textContent='YouTube preview opened. Press its Play button to test.';}
+      else {
+        const video=element('video','');video.controls=true;video.preload='metadata';video.src=selection.url;
+        video.addEventListener('loadedmetadata',()=>{if(video.isConnected)status.textContent=`Recording metadata loaded (${Number.isFinite(video.duration)?video.duration.toFixed(1)+' seconds':'unknown duration'}). Press Play to test playback.`;},{once:true});
+        video.addEventListener('error',()=>{if(video.isConnected)status.textContent='Preview could not load. Check access/expiry or choose an MP4 source; streaming support varies.';},{once:true});
+        get('recording-preview').append(video);status.textContent='Loading preview metadata; playback will not start automatically.';
+      }
+    } else {
+      await allow([selection.url,role==='score' && selection.url?redirectDestination(selection.url):null]);
+      if(role==='score')status.textContent=checkScoreBytes(await fetchBytes(selection.url,12*1024*1024),selection.fileName);
+      else {const points=await timingData(selection);status.textContent=`${points.length} timing points checked. They still need to match the score and recording in Guitar Trainer.`;}
+    }
+  } catch(error){status.textContent=error.message || 'This resource could not be tested.';}finally{button.disabled=false;}
+});
 get('send').addEventListener('click',async()=>{
+  clearPreview();
   get('send').disabled=get('scan').disabled=true;get('send-status').textContent='Preparing selected lesson…';
   try {
-    const target=appAddress(get('app-address').value.trim()),score=candidates[Number(get('score').value)];
-    const recording=get('recording').value===''?null:candidates[Number(get('recording').value)];
-    const timing=recording && get('timing').value!==''?candidates[Number(get('timing').value)]:null;
-    if(!score || score.kind!=='Score')throw new Error('Select a supported score first.');
-    if(!/\.(gp[3-5]?|gpx|xml|musicxml|mxl)$/i.test(score.fileName))throw new Error('This score link has no verified supported filename. Choose a Guitar Pro or MusicXML download.');
-    const urls=[target.href,score.url,redirectDestination(score.url),timing?.url].filter(Boolean);
-    const origins=[...new Set(urls.map(value=>`${new URL(value).origin}/*`))];
+    const target=appAddress(get('app-address').value.trim()),score=selected('score'),recording=selected('recording'),timing=selected('timing');
+    if(!score && !recording && !timing)throw new Error('Select a score, recording or timing update.');
+    const urls=[target.href,score?.url,score?redirectDestination(score.url):null,timing?.url].filter(Boolean);
     // Call immediately in this click gesture, before fetching anything.
-    if(!await chrome.permissions.request({origins}))throw new Error('Site access was declined. Nothing was sent.');
+    await allow(urls);
     const tabs=await chrome.tabs.query({url:`${target.origin}/*`});
     const matches=tabs.filter(tab=>{try{const url=new URL(tab.url);return url.origin===target.origin && appPath(url)===appPath(target);}catch{return false;}});
     if(matches.length!==1)throw new Error(matches.length?'More than one matching app tab is open. Keep one open and try again.':'Open Guitar Trainer at the address above, then try again.');
     await chrome.storage.local.set({appAddress:target.href});
-    const bytes=await fetchBytes(score.url,12*1024*1024);
-    let syncPoints=null;
-    if(timing) {
-      const text=new TextDecoder().decode(await fetchBytes(timing.url,1000000));
-      let data;try{data=JSON.parse(text);}catch{throw new Error('The selected timing response is not JSON. Rescan and choose another timing source.');}
-      syncPoints=readSyncPoints(data).map(p=>[p.bar,p.seconds,p.position,p.hide]);
-    }
-    const payload={format:'gts-lesson',version:1,title:scanned.title,lessonUrl:scanned.page,
-      score:{fileName:score.fileName || `lesson.${score.detail.toLowerCase()}`,base64:base64Bytes(bytes)},
-      recording:recording?{url:recording.url,label:scanned.title}:null,syncPoints};
+    let scoreData=null;
+    if(score){const bytes=await fetchBytes(score.url,12*1024*1024);checkScoreBytes(bytes,score.fileName);scoreData={fileName:score.fileName,base64:base64Bytes(bytes)};}
+    const payload={format:'gts-lesson',version:2,title:scanned.title,lessonUrl:scanned.page,score:scoreData,
+      recording:recording?{url:recording.url,label:scanned.title}:null,syncPoints:await timingData(timing),keepRecording:get('recording').value==='keep' || (!score && !recording)};
     const [{result}]=await chrome.scripting.executeScript({target:{tabId:matches[0].id},func:deliverLesson,args:[payload]});
     if(!result?.ok)throw new Error(result?.message || 'The app could not receive this lesson.');
     get('send-status').textContent='Sent. Review the import in Guitar Trainer.';
@@ -99,6 +152,7 @@ async function inspectTiming(candidate, button, article) {
 }
 
 get('scan').addEventListener('click',async()=>{
+  clearPreview();
   get('scan').disabled=true; get('results').replaceChildren(); get('notices').replaceChildren();
   get('transfer').hidden=true;scanned=null;candidates=[];get('send-status').textContent='';
   get('status').textContent='Scanning the open page…';
@@ -106,10 +160,9 @@ get('scan').addEventListener('click',async()=>{
     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
     if (!tab?.id || !/^https?:\/\//.test(tab.url || '')) throw new Error('Open a normal HTTP or HTTPS lesson page first. Chrome internal pages cannot be scanned.');
     const [{result}]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:scanPage});
-    scanned=result;candidates=discoverResources(result.raw,result.page);
-    choices('score','Score');choices('recording','Recording',true);choices('timing','Timing',true);
-    get('timing').disabled=get('recording').value==='';
-    get('transfer').hidden=!candidates.some(c=>c.kind==='Score');
+    scanned=result;candidates=discoverResources(result.raw,result.page,{includeOther:true});
+    choices('score','Score');choices('recording','Recording');choices('timing','Timing');
+    fields();get('transfer').hidden=false;
     get('status').textContent=`${result.title || 'Page'}: ${candidates.length} candidate${candidates.length===1?'':'s'} found.`;
     for (const notice of result.notices) get('notices').append(element('li',notice));
     if (!candidates.length) get('results').append(element('p','No supported resources were exposed. Start the player, reveal download links and scan again.'));

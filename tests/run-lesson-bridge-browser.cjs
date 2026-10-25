@@ -3,6 +3,7 @@ const {chromium}=require(process.env.GTS_PLAYWRIGHT_MODULE || 'playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
 const path=require('node:path');
+function previewWav(){const b=Buffer.alloc(44+8000*2*3);b.write('RIFF');b.writeUInt32LE(b.length-8,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(1,22);b.writeUInt32LE(8000,24);b.writeUInt32LE(16000,28);b.writeUInt16LE(2,32);b.writeUInt16LE(16,34);b.write('data',36);b.writeUInt32LE(b.length-44,40);return b;}
 (async()=>{
   let browser;
   try {
@@ -19,9 +20,13 @@ const path=require('node:path');
         return route.fulfill({status:200,contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html',
           body:await fs.readFile(path.join(__dirname,'../extensions/lesson-bridge',file),'utf8')});
       }
+      if(url.hostname==='truefire.com' && url.pathname==='/api/eq/nexus/courses/soundslice_manifest' && url.searchParams.get('cid')==='1069')
+        return route.fulfill({json:{mediaurl:'https://cdn.test/methods.mp4',sync:'https://cdn.test/soundslice/slices/1069/34884_sync.json'}});
       if(url.hostname==='truefire.com' && url.pathname==='/api/eq/nexus/courses/soundslice_manifest')
         return route.fulfill({json:{video_url:'https://cdn.test/play?token=secret',syncpoints_url:'https://cdn.test/lesson_sync.json'}});
-      if(url.hostname==='truefire.com' && url.pathname==='/score.gp5')return route.fulfill({contentType:'application/octet-stream',body:Buffer.from('fixture score bytes'),headers:{'Access-Control-Allow-Origin':'https://bridge.test','Access-Control-Allow-Credentials':'true'}});
+      if(url.hostname==='truefire.com' && url.pathname==='/score.gp5')return route.fulfill({contentType:'application/octet-stream',body:Buffer.from('FICHIER GUITAR PRO v5.00 fixture'),headers:{'Access-Control-Allow-Origin':'https://bridge.test','Access-Control-Allow-Credentials':'true'}});
+      if(url.hostname==='truefire.com' && url.pathname==='/inc/soundsliceappshell/072020/')return route.fulfill({contentType:'text/html',body:'Methods player fixture'});
+      if(url.hostname==='truefire.com' && url.pathname.includes('/channels/'))return route.fulfill({contentType:'text/html',body:'<title>Methods session</title><iframe src="/inc/soundsliceappshell/072020/?courseid=1069&lessonid=34884&force_top_video=1"></iframe><a href="/chart.pdf">Chart Download</a><script type="application/json">{"stale":"https://truefire.com/api/eq/nexus/courses/soundslice_manifest?cid=1069&sid=34943","oldTiming":"https://cdn.test/soundslice/slices/1069/34943_sync.json"}</script>'});
       if(url.hostname==='truefire.com' && url.pathname==='/player/soundsliceappshell')
         return route.fulfill({contentType:'text/html',body:'<a href="/inside.gpx">Inside frame</a>'});
       if(url.hostname==='other.test')return route.fulfill({contentType:'text/html',body:'<a href="https://cdn.test/hidden.gp5">Cross-origin hidden score</a>'});
@@ -29,6 +34,10 @@ const path=require('node:path');
         return route.fulfill({headers:{'Access-Control-Allow-Origin':'https://bridge.test','Access-Control-Allow-Credentials':'true'},json:[[0,10.410579],[63,147.833399],[64,149.9865480000009]]});
       if(url.hostname==='cdn.test' && url.pathname==='/many_sync.json')
         return route.fulfill({headers:{'Access-Control-Allow-Origin':'https://bridge.test'},json:Array.from({length:20},(_,i)=>[i,i+1])});
+      if(url.hostname==='cdn.test' && url.pathname==='/soundslice/slices/1069/34884_sync.json')
+        return route.fulfill({headers:{'Access-Control-Allow-Origin':'https://bridge.test','Access-Control-Allow-Credentials':'true'},json:[[0,1],[4,10]]});
+      if(url.hostname==='cdn.test' && url.pathname==='/clip.mp4')return route.fulfill({contentType:'audio/wav',body:previewWav()});
+      if(url.hostname==='www.youtube-nocookie.com')return route.fulfill({contentType:'text/html',body:'YouTube preview fixture'});
       return route.fulfill({contentType:'text/html',body:`<!doctype html><title>Test lesson</title>
         <a href="/score.gp5?auth_token=secret">Download GPX</a>
         <a href="/score.gp5?auth_token=secret">Duplicate</a><a href="/chart.pdf">PDF</a>
@@ -47,6 +56,11 @@ const path=require('node:path');
     assert(!result.raw.some(r=>r.url.includes('sid=2233')),'other-lesson manifest omitted');
     assert(result.notices.some(n=>n.includes('cross-origin')));
     assert.equal(requests.filter(u=>u.includes('soundslice_manifest')).length,1,'only known lesson manifest fetched');
+    const method=await context.newPage();await method.goto('https://truefire.com/channels/jazz-guitar-method/practice-session-17/l34943');
+    const methodResult=await method.evaluate(scanPage);
+    assert(methodResult.raw.some(r=>r.url.includes('1069/34884_sync.json')));
+    assert(!methodResult.raw.some(r=>r.url.includes('34943_sync.json') || r.url.includes('sid=34943')),'channel navigation ID must not replace player ID');
+    assert(methodResult.notices.some(n=>n.includes('lesson 34884')));
     // Render actual popup modules against controlled API responses. Never touches installed extensions.
     const popup=await context.newPage();
     await popup.addInitScript(({result})=>{
@@ -63,6 +77,9 @@ const path=require('node:path');
     await popup.goto('https://bridge.test/popup.html');
     await popup.waitForFunction(()=>document.getElementById('app-address').value==='https://ztbishop.github.io/guitar-trainer-studio/index.html');
     await popup.locator('#scan').click();await popup.locator('#transfer').waitFor();
+    assert.equal(await popup.locator('#score-url-label').isVisible(),false);
+    assert.equal(await popup.locator('#recording-url-label').isVisible(),false);
+    assert.equal(await popup.locator('#timing-text-label').isVisible(),false);
     await popup.locator('#app-address').fill('http://localhost:5501/index.html');
     await popup.waitForFunction(()=>JSON.parse(sessionStorage.getItem('mockPreferences') || '{}').appAddress==='http://localhost:5501/index.html');
     await popup.reload();
@@ -70,7 +87,7 @@ const path=require('node:path');
     await popup.locator('#scan').click();await popup.locator('#status').filter({hasText:'candidates found'}).waitFor();
     await popup.locator('#app-address').fill('https://trainer.test/');
     const body=await popup.locator('body').innerText();assert(!body.includes('auth_token=secret'));
-    assert(body.includes('Score · GP5'));assert(!body.includes('PDF'));
+    assert(body.includes('Score · GP5'));assert.equal(await popup.locator('#score option').filter({hasText:'chart.pdf'}).count(),0);
     assert.equal(await popup.getByRole('button',{name:'Copy link',exact:true}).count(),await popup.locator('article').count());
     const scoreCard=popup.locator('article').filter({hasText:'Score · GP5'});
     await scoreCard.getByRole('button',{name:'Copy link',exact:true}).click();
@@ -98,20 +115,47 @@ const path=require('node:path');
     assert.equal(await timing.locator('textarea').evaluate(el=>el.selectionEnd-el.selectionStart===el.value.length),true);
     await popup.evaluate(()=>{window.copyBlocked=false;});
     await popup.locator('#timing').selectOption({label:'lesson_sync.json · TrueFire manifest'});
+    await popup.locator('#test-score').click();await popup.locator('#test-score-status').filter({hasText:'Guitar Pro header'}).waitFor();
+    await popup.locator('#test-recording').click();await popup.locator('#test-recording-status').filter({hasText:'metadata loaded'}).waitFor();
+    assert.equal(await popup.locator('#recording-preview video').evaluate(v=>v.autoplay),false);
     await popup.locator('#send').click();
     await popup.locator('#send-status').filter({hasText:'Sent.'}).waitFor();
     const delivered=await popup.evaluate(()=>window.delivered);
-    assert.equal(delivered.score.fileName,'score.gp5');assert.equal(atob(delivered.score.base64),'fixture score bytes');
+    assert.equal(delivered.version,2);assert.equal(delivered.score.fileName,'score.gp5');assert.match(atob(delivered.score.base64),/^FICHIER GUITAR PRO/);
     assert.equal(delivered.syncPoints.length,3);assert.equal(delivered.recording.url,'https://cdn.test/clip.mp4');
     if(process.env.GTS_BRIDGE_SCREENSHOT) await popup.screenshot({path:process.env.GTS_BRIDGE_SCREENSHOT,fullPage:true});
     await popup.evaluate(()=>{window.fixture={title:'Timing-only page',page:'https://test.example/',raw:[{url:'https://cdn.test/many_sync.json'}],notices:[]};});
     await popup.locator('#scan').click();await popup.locator('#status').filter({hasText:'1 candidate found'}).waitFor();
-    assert.equal(await popup.locator('#transfer').isVisible(),false);
+    assert.equal(await popup.locator('#transfer').isVisible(),true,'partial/manual controls remain available without a score');
+    assert.equal(await popup.locator('#score').inputValue(),'');
     await popup.getByRole('button',{name:'Inspect timing'}).click();
     await popup.locator('pre').filter({hasText:'20 valid timing points'}).waitFor();
     await popup.getByRole('button',{name:'Copy sync points'}).click();
     assert.equal(JSON.parse(await popup.evaluate(()=>window.copiedJson)).length,20,'copy includes every point, not only the 12-point preview');
     if(process.env.GTS_TIMING_COPY_SCREENSHOT)await popup.locator('.timing-copy').screenshot({path:process.env.GTS_TIMING_COPY_SCREENSHOT});
+    await popup.locator('#timing').selectOption('custom');await popup.locator('#timing-text').fill('[[0,1],[4,10]]');
+    await popup.locator('#test-timing').click();await popup.locator('#test-timing-status').filter({hasText:'2 timing points checked'}).waitFor();
+    await popup.locator('#send').click();await popup.locator('#send-status').filter({hasText:'Sent.'}).waitFor();
+    assert.equal(await popup.evaluate(()=>window.delivered.score),null);assert.equal(await popup.evaluate(()=>window.delivered.keepRecording),true);
+    await popup.evaluate(result=>{window.fixture=result;},methodResult);
+    await popup.locator('#scan').click();await popup.locator('#status').filter({hasText:'candidates found'}).waitFor();
+    assert.equal(await popup.locator('#score').inputValue(),'','Methods PDF must not become a practice score');
+    assert.match(await popup.locator('#recording option:checked').textContent(),/mp4/);
+    assert.match(await popup.locator('#timing option:checked').textContent(),/34884_sync/);
+    await popup.locator('#manual-mode').check();
+    assert((await popup.locator('#score option').allTextContents()).some(text=>text.includes('pdf')),'manual mode exposes otherwise unclassified assets');
+    await popup.locator('#score').selectOption('custom');
+    assert.equal(await popup.locator('#score-url-label').isVisible(),true);
+    await popup.locator('#score-url').fill('https://truefire.com/score.gp5');
+    await popup.locator('#score-name').fill('manual.gp5');
+    await popup.locator('#test-score').click();await popup.locator('#test-score-status').filter({hasText:'Guitar Pro header'}).waitFor();
+    await popup.locator('#recording').selectOption('custom');
+    await popup.locator('#recording-url').fill('https://www.youtube.com/watch?v=PNnsydd-qG0');
+    await popup.locator('#test-recording').click();
+    assert.equal(await popup.locator('#recording-preview iframe').getAttribute('src'),'https://www.youtube-nocookie.com/embed/PNnsydd-qG0');
+    await popup.locator('#send').click();await popup.locator('#send-status').filter({hasText:'Sent.'}).waitFor();
+    assert.equal(await popup.evaluate(()=>window.delivered.score.fileName),'manual.gp5');
+    assert.equal(await popup.locator('#recording-preview iframe').count(),0,'sending closes preview');
     await popup.evaluate(()=>{window.fixture={title:'<img src=x onerror=alert(1)>',page:'https://test.example/',raw:[{url:'https://cdn.test/evil.gp5',label:'<script>alert(1)</script>'}],notices:[]};});
     await popup.locator('#scan').click();await popup.locator('#status').filter({hasText:'1 candidate found'}).waitFor();
     assert.equal(await popup.locator('article script, #status img').count(),0,'page-controlled labels rendered as text');

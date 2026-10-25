@@ -44,3 +44,10 @@ test('discovery finds manifest MP4 redirects and filters Soundslice assets and m
   ],'https://truefire.com');
   assert.equal(result.length,2);assert.equal(result[0].fileName,'fvjgfr-004_hi.mp4');assert.equal(result[0].kind,'Recording');
 });
+test('YouTube and Soundslice links are recognized and manual-only download choices stay classified separately',()=>{
+  const result=discoverResources([{url:'https://www.youtube.com/embed/PNnsydd-qG0?controls=0',origin:'iframe'},
+    {url:'https://www.soundslice.com/scores/157986/embed/',origin:'iframe'},{url:'https://example.com/download.pdf'}],'https://example.com',{includeOther:true});
+  assert.deepEqual(result.map(c=>c.kind),['Recording','Player','Other']);
+  assert.equal(result[0].detail,'YouTube video');
+  assert.equal(discoverResources([{url:'https://example.com/download.pdf'}],'https://example.com').length,0);
+});

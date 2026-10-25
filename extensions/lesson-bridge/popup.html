@@ -9,11 +9,20 @@
   <p class="hint">Scan, review and send a lesson. Scan results clear when this popup closes.</p>
   <section id="transfer" hidden>
     <h2>Send to Guitar Trainer</h2>
+    <label><input id="manual-mode" type="checkbox"> Manual selection: show all discovered resources in each selector</label>
     <label>Score<select id="score"></select></label>
+    <label id="score-url-label" hidden>Score URL<input id="score-url" type="url"></label>
+    <label id="score-name-label">Score filename<input id="score-name" placeholder="lesson.gp5"></label>
+    <button id="test-score" type="button">Test score</button><p id="test-score-status" role="status"></p>
     <label>Recording (optional)<select id="recording"></select></label>
+    <label id="recording-url-label" hidden>Recording or YouTube URL<input id="recording-url" type="url"></label>
+    <button id="test-recording" type="button">Test recording</button><p id="test-recording-status" role="status"></p><div id="recording-preview"></div>
     <label>Timing (optional)<select id="timing"></select></label>
+    <label id="timing-text-label" hidden>Timing JSON or URL<textarea id="timing-text" rows="4" maxlength="1000000"></textarea></label>
+    <button id="test-timing" type="button">Test timing</button><p id="test-timing-status" role="status"></p>
+    <p class="hint">Use the current score/recording for partial updates, or select resources manually. New score or recording choices need matching timing or manual alignment. PDF and Soundslice notation JSON cannot serve as scores.</p>
     <label>Your open Guitar Trainer address<input id="app-address" type="url" placeholder="https://ztbishop.github.io/guitar-trainer-studio/index.html"></label>
-    <p class="hint">Use the address of your running Guitar Trainer app, including <strong>/index.html at the end</strong>. Valid address changes are remembered automatically. Keep this popup open until sent. The app will ask you to review before replacing its score. Saving to the library is optional.</p>
+    <p class="hint">Use the address of your running Guitar Trainer app, including <strong>/index.html at the end</strong>. Valid address changes are remembered automatically. Keep this popup open until sent. The app will ask you to review the selected changes. Saving to the library is optional.</p>
     <button id="send">Send selected lesson</button>
     <p id="send-status" role="status"></p>
   </section>

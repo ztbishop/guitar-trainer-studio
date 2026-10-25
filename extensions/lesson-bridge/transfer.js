@@ -26,6 +26,17 @@ export function base64Bytes(bytes) {
   const parts=[];for(let i=0;i<bytes.length;i+=8192)parts.push(String.fromCharCode(...bytes.subarray(i,i+8192)));
   return btoa(parts.join(''));
 }
+export function checkScoreBytes(bytes,fileName) {
+  if(!/\.(gp[3-5]?|gpx|musicxml|xml|mxl)$/i.test(fileName || ''))throw new Error('Set a Guitar Pro or MusicXML filename, including its extension.');
+  const head=new TextDecoder().decode(bytes.subarray(0,4096)).replace(/^\uFEFF/,'').trimStart();
+  if(/<score-(?:partwise|timewise)(?:\s|>)/i.test(head)) {
+    if(!/\.(xml|musicxml)$/i.test(fileName))throw new Error('This appears to be MusicXML. Set a .musicxml or .xml filename.');
+    return 'MusicXML text detected; final score parsing happens in Guitar Trainer.';
+  }
+  if(/FICHIER GUITAR PRO|^BCF[ZS]/.test(head))return 'Guitar Pro header detected; final score parsing happens in Guitar Trainer.';
+  if(bytes[0]===80 && bytes[1]===75)return 'ZIP score container detected; final score parsing happens in Guitar Trainer.';
+  throw new Error('No supported score header found. PDF, webpage and Soundslice notation JSON are not Guitar Pro/MusicXML files.');
+}
 // Serialized into an isolated content world on the exact user-selected app tab.
 export function deliverLesson(payload) {
   return new Promise(resolve=>{

@@ -1,5 +1,13 @@
 # Guitar Trainer Studio Architecture
 
+## Methods discovery and selective lesson updates — 2026-10-24
+
+Current behavior supersedes the selective-update limitations in earlier dated entries. No new module or permission is added. scanner.js resolves numeric course/lesson IDs from same-origin Soundslice app-shell iframes, accepting legacy courseid/lessonid and newer cid/sid forms. Standard /v pages must agree with their lesson ID; Methods/Channels /l navigation IDs are never substituted for player IDs. Observed manifests must match the player identity; absent endpoints are constructed only from exposed IDs. Stale lesson timing/manifests are filtered.
+
+discovery.js recognizes YouTube recordings and Soundslice player links; its optional includeOther mode exposes plausible unclassified download/JSON/PDF candidates for manual assignment. popup.js owns role-specific defaults, optional all-candidate selectors, custom URLs/score filename/timing JSON, explicit score-header/timing checks and silent native/YouTube previews. transfer.js adds bounded score-header preflight, with final parsing still delegated to the existing app loader. No internal Soundslice notation conversion or cross-origin frame traversal is introduced.
+
+The popup sends schema version 2 (version 1 remains accepted). Nullable score means retain current score, nullable recording means retain it when keeping the score, and keepRecording:true explicitly reattaches a captured external/local/YouTube source across a new score. A no-op offer is rejected. lesson-import.js requires a ready score for partial updates, shows the selected effects in review and calls the normal loader only for a selected score. media-controls.captureRecording preserves an explicitly retained source/file; embedded backing audio remains tied to its score and cannot be retained across replacement. importLesson reuses the existing source/editor/host lifecycle. Replacing score or recording clears old alignment; timing-only validates before ordinary edit, preserving resource identities, Undo and profile identity. Changed-resource alignment starts unsaved with no profile identity. Score/source generations reject stale asynchronous work. No autoplay, automatic save, alphaTab runtime integration, MIDI matching, Wait or feedback rule changes.
+
 ## Lesson Bridge target address default/persistence — 2026-10-24
 
 Popup/README/setup guidance explicitly recommends `/index.html` at the end of custom destinations. This is wording only; existing directory/index.html tab-path equivalence and validation remain unchanged.

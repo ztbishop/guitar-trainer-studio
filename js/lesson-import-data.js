@@ -2,21 +2,28 @@
 // Untrusted bridge payload and timing conversion only; no native/player calls.
 import {mediaUrl,validatePoints} from './media-sync.js';
 export function validateLesson(data) {
-  if(data?.format!=='gts-lesson' || data.version!==1 || typeof data.title!=='string' || data.title.length>240)
+  if(data?.format!=='gts-lesson' || ![1,2].includes(data.version) || typeof data.title!=='string' || data.title.length>240)
     throw new Error('Unsupported Lesson Bridge payload.');
-  const fileName=data.score?.fileName,encoded=data.score?.base64;
-  if(typeof fileName!=='string' || fileName.length>240 || /[\\/\x00-\x1f]/.test(fileName) || !/\.(gp[3-5]?|gpx|xml|musicxml|mxl)$/i.test(fileName) ||
-      typeof encoded!=='string' || !encoded.length || encoded.length>16*1024*1024 || !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded) || encoded.length%4)
-    throw new Error('Choose a supported score of at most 12 MB.');
-  let binary;try{binary=atob(encoded);}catch{throw new Error('The score data is invalid.');}
-  const bytes=Uint8Array.from(binary,char=>char.charCodeAt(0));
-  if(!bytes.length || bytes.length>12*1024*1024)throw new Error('The score is empty or too large.');
+  if(data.version===2 && data.keepRecording!==undefined && typeof data.keepRecording!=='boolean')throw new Error('Invalid recording retention choice.');
+  let score=null;
+  if(data.score) {
+    const fileName=data.score?.fileName,encoded=data.score?.base64;
+    if(typeof fileName!=='string' || fileName.length>240 || /[\\/\x00-\x1f]/.test(fileName) || !/\.(gp[3-5]?|gpx|xml|musicxml|mxl)$/i.test(fileName) ||
+        typeof encoded!=='string' || !encoded.length || encoded.length>16*1024*1024 || !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded) || encoded.length%4)
+      throw new Error('Choose a supported score of at most 12 MB.');
+    let binary;try{binary=atob(encoded);}catch{throw new Error('The score data is invalid.');}
+    const bytes=Uint8Array.from(binary,char=>char.charCodeAt(0));
+    if(!bytes.length || bytes.length>12*1024*1024)throw new Error('The score is empty or too large.');
+    score={fileName,bytes};
+  } else if(data.version===1)throw new Error('A version-1 lesson needs a score.');
   const lessonUrl=mediaUrl(data.lessonUrl);
   let recording=null;
   if(data.recording)recording={url:mediaUrl(data.recording.url),label:String(data.recording.label || data.title).slice(0,240)};
   const syncPoints=data.syncPoints===null || data.syncPoints===undefined?null:validateSoundslice(data.syncPoints);
-  if(syncPoints && !recording)throw new Error('Timing needs a selected recording.');
-  return {title:data.title,lessonUrl,score:{fileName,bytes},recording,syncPoints};
+  if(data.version===1 && syncPoints && !recording)throw new Error('Timing needs a selected recording.');
+  const keepRecording=data.version===2 && (data.keepRecording===true || (!score && !recording));
+  if(data.version===2 && !score && !recording && !syncPoints)throw new Error('Select a score, recording or timing update.');
+  return {title:data.title,lessonUrl,score,recording,syncPoints,keepRecording};
 }
 export function validateSoundslice(data) {
   if(!Array.isArray(data) || data.length<2 || data.length>4096)throw new Error('Expected 2–4096 Soundslice timing points.');

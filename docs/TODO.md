@@ -1,5 +1,15 @@
 # Guitar Trainer Studio: status and to-do
 
+### Methods discovery and manual/partial Send — 2026-10-24
+
+- [x] Resolve both standard TrueFire and Methods/Channels manifests using actual embedded player IDs; avoid confusing /l navigation IDs with player lesson IDs and filter stale timing.
+- [x] Keep Send available without a detected score; allow selected recording/timing updates against an already loaded score, plus explicit recording retention across a new score. Clear unrelated alignment when resources change.
+- [x] Add manual assignment from all candidates, pasted asset URLs/score filename and timing JSON, score-header/timing checks, native recording preview and YouTube detection/preview using the existing app player.
+- [x] All 471 Node tests and isolated app import checks pass, including timing-only identity retention, invalid-duration preservation, recording replacement and explicit recording retention. Final popup/native-practice evidence is in DEV-NOTES.md.
+- [ ] Owner reloads extension, hard-refreshes app, compares standard lesson and Methods automatic selections, uses a matching existing score for PDF-only lessons, checks manual URL/preview and audible alignment plus Fishman Realtime/Wait. Real permissions/provider playback remain pending.
+
+This completes the selective-component follow-up listed in older entries below. Permissioned cross-origin frame scanning and internal notation conversion remain separate, unimplemented work.
+
 ### Lesson Bridge destination preference — 2026-10-24
 
 - [x] Clarify in the popup description, README and setup guide that custom destination URLs should include `/index.html` at the end. Wording only; preserve target validation/matching/persistence.

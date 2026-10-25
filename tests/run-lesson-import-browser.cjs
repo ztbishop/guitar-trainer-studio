@@ -99,6 +99,31 @@ function wav() {
     assert.equal(await page.evaluate(()=>lessonState.media.editing),false);
     assert.equal(await page.evaluate(()=>lessonState.isPlaying),false);
     assert.equal(await page.locator('#media-audio').evaluate(el=>el.muted && el.paused),true);
+    // Partial offers update only selected components, without reloading the native score.
+    const partial={...payload,version:2,score:null,recording:null,keepRecording:true,syncPoints:[[0,2],[3,9],[4,11]]};
+    await page.evaluate(()=>{window.retainedScore=lessonState.currentScoreFile;window.retainedTimeline=lessonState.playbackTimeline;});
+    const beforePartial=mediaRequests;
+    await offer(partial);await page.getByRole('button',{name:'Import lesson',exact:true}).click();
+    await page.locator('#lesson-import-notice').filter({hasText:'Lesson ready.'}).waitFor();
+    assert.equal(mediaRequests,beforePartial,'timing-only does not reload media');
+    assert.equal(await page.evaluate(()=>lessonState.currentScoreFile===retainedScore && lessonState.playbackTimeline===retainedTimeline),true);
+    assert.deepEqual(await page.evaluate(()=>lessonState.media.points.map(p=>p.millisecondOffset)),[2000,9000,11000]);
+    await offer({...partial,syncPoints:[[0,1],[4,13]]});await page.getByRole('button',{name:'Import lesson',exact:true}).click();
+    await page.locator('#lesson-import-dialog [role=status]').filter({hasText:'did not finish'}).waitFor();
+    assert.deepEqual(await page.evaluate(()=>lessonState.media.points.map(p=>p.millisecondOffset)),[2000,9000,11000],'invalid timing preserves alignment');
+    await page.getByRole('button',{name:'Close',exact:true}).click();
+    await offer({...partial,recording:{url:'https://recording.test/replacement.wav',label:'Replacement'},syncPoints:null});
+    await page.getByRole('button',{name:'Import lesson',exact:true}).click();
+    await page.locator('#lesson-import-notice').filter({hasText:'Add alignment'}).waitFor();
+    assert.equal(await page.evaluate(()=>lessonState.currentScoreFile===retainedScore),true);
+    assert.equal(await page.evaluate(()=>lessonState.media.editing),true);
+    assert.equal(await page.locator('#media-audio').getAttribute('src'),'https://recording.test/replacement.wav');
+    assert.notDeepEqual(await page.evaluate(()=>lessonState.media.points.map(p=>p.millisecondOffset)),[2000,9000,11000],'replacing a recording clears old alignment');
+    await offer({...partial,score:payload.score,syncPoints:payload.syncPoints});
+    await page.getByRole('button',{name:'Import lesson',exact:true}).click();
+    await page.locator('#lesson-import-notice').filter({hasText:'Lesson ready.'}).waitFor({timeout:35000});
+    assert.equal(await page.locator('#media-audio').getAttribute('src'),'https://recording.test/replacement.wav','explicit retention reattaches recording to new score');
+    assert.equal(await page.evaluate(()=>lessonState.media.editing),false);
     // A later file selection cancels a pending media load; its anchors cannot leak.
     let started;
     const requested=new Promise(resolve=>{started=resolve;});

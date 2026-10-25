@@ -123,6 +123,10 @@ The optional **Lesson Bridge** extension can find Guitar Pro/MusicXML files, rec
 
 Every discovered resource in Lesson Bridge has **Copy link** for its full URL. You can also copy timing separately: choose **Inspect timing → Copy sync points**, even if no score was found. After loading the matching score and recording in Guitar Trainer, open **Media Sync → Paste sync points**, paste the JSON and click **Apply pasted sync points**. Save the profile if you want to keep the alignment.
 
+Standard TrueFire lessons and Methods/Channels lessons use automatic asset selection when their player exposes the links. If a lesson offers only a PDF chart, load a matching Guitar Pro/MusicXML score yourself, then send its recording and timing. You can keep the score already loaded, replace only the recording or timing, or explicitly keep your recording with a new score. Changing a score or recording clears its old alignment unless you supply matching timing.
+
+For unfamiliar pages, turn on **Manual selection** to choose from all discovered links, or paste asset URLs and timing JSON. Use the **Test** buttons to check a score's format, inspect timing or preview a recording before sending. These checks help identify assets; timing still needs to match the music. PDF charts and Soundslice's internal notation JSON cannot be imported as scores.
+
 ## Where to find music
 
 You can use your own scores or download compatible files from music publishers and tab collections. A few starting points:

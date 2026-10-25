@@ -36,24 +36,27 @@ export async function scanPage() {
   };
   inspect(document);
   const isTrueFire = location.hostname === 'truefire.com' || location.hostname.endsWith('.truefire.com');
-  const lessonId=location.pathname.match(/\/v(\d+)/)?.[1];
+  const pageVideoId=location.pathname.match(/\/v(\d+)/)?.[1];
+  // Channels/Methods /l IDs are navigation IDs, not the player lesson ID.
+  const channelPage=/\/channels\//.test(location.pathname);
+  const playerIds=raw.filter(item=>item.origin==='iframe').map(item=>{
+    const url=new URL(item.url),q=url.searchParams;
+    if(url.origin!==location.origin || !/soundsliceappshell/i.test(url.pathname))return null;
+    const cid=q.get('cid') || q.get('courseid') || q.get('course_id');
+    const sid=q.get('sid') || q.get('lessonid') || q.get('videoid') || q.get('video_id') || pageVideoId;
+    return /^\d+$/.test(cid || '') && /^\d+$/.test(sid || '') && (!pageVideoId || sid===pageVideoId)?{cid,sid}:null;
+  }).find(Boolean);
+  const lessonId=playerIds?.sid || pageVideoId;
   if (isTrueFire) {
     // Prefer an actually observed manifest. Otherwise use IDs exposed in a player URL.
     let manifest = raw.find(item => {
       const u = new URL(item.url);
       return u.origin === location.origin && u.pathname === '/api/eq/nexus/courses/soundslice_manifest' &&
-        (!lessonId || u.searchParams.get('sid')===lessonId) && /^\d+$/.test(u.searchParams.get('cid') || '');
+        (!lessonId || u.searchParams.get('sid')===lessonId) && (!playerIds || u.searchParams.get('cid')===playerIds.cid) &&
+        (!channelPage || Boolean(playerIds)) && /^\d+$/.test(u.searchParams.get('cid') || '');
     })?.url;
     if (!manifest) {
-      for (const item of raw.filter(item => item.origin === 'iframe')) {
-        const u = new URL(item.url), q = u.searchParams;
-        if (u.origin !== location.origin || !/soundslice/i.test(u.pathname)) continue;
-        const cid = q.get('cid') || q.get('courseid') || q.get('course_id');
-        const sid = q.get('sid') || q.get('videoid') || q.get('video_id') || location.pathname.match(/\/v(\d+)/)?.[1];
-        if (/^\d+$/.test(cid || '') && /^\d+$/.test(sid || '') && (!lessonId || sid===lessonId)) {
-          manifest = `${location.origin}/api/eq/nexus/courses/soundslice_manifest?cid=${cid}&sid=${sid}`; break;
-        }
-      }
+      if(playerIds)manifest=`${location.origin}/api/eq/nexus/courses/soundslice_manifest?cid=${playerIds.cid}&sid=${playerIds.sid}`;
     }
     if (manifest) {
       add(manifest, '', 'TrueFire player', location.href);
@@ -79,6 +82,7 @@ export async function scanPage() {
     if(isTrueFire && lessonId && url.origin===location.origin && url.pathname==='/api/eq/nexus/courses/soundslice_manifest' && url.searchParams.get('sid')!==lessonId)return false;
     return !(isTrueFire && lessonId && match && match[1]!==lessonId);
   });
+  if(isTrueFire && playerIds)notices.push(`Player identified: course ${playerIds.cid}, lesson ${playerIds.sid}${channelPage?' (Methods/Channels)':''}.`);
   return {title:document.title.slice(0,240), page:location.origin + location.pathname, raw:filtered,
     notices:[...new Set(notices)], frames:documents.length};
 }

@@ -501,22 +501,35 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   renderLayout();sourceControls();sync();refreshProfiles().catch(error=>message(error.message));
   return {sync,timelineReady,finishEditing,async returnToPractice(){await returnToPractice();},
-    async importLesson(recording,syncPoints) {
+    captureRecording() {
+      return source && player?{source:structuredClone(source),file:localFile,score:AppState.currentScoreFile}:null;
+    },
+    async importLesson(recording,syncPoints,{retained=null}={}) {
       const score=AppState.currentScoreFile,initialGeneration=generation;
       await timelineReady();
       if(score!==AppState.currentScoreFile || initialGeneration!==generation)throw new Error('Lesson import was superseded by a score/source change.');
       const expectedTimeline=AppState.playbackTimeline;
       // Check score structure before loading a recording or applying any imported anchors.
       const imported=syncPoints?soundslicePoints(syncPoints,expectedTimeline):null;
-      const loadGeneration=generation+1;
-      await loadRecording({kind:'url',url:mediaUrl(recording.url),label:recording.label});
-      if(generation!==loadGeneration || score!==AppState.currentScoreFile || expectedTimeline!==AppState.playbackTimeline || !player)throw new Error('Lesson import was superseded by a score/source change.');
-      if(imported) {
-        const checked=validatePoints(imported,expectedTimeline,player.backingTrackDuration);
-        profileId='';points=checked;dirty=true;undo=[];redo=[];selected=-1;
-        get('profile-name').value=recording.label;renderPoints();sync();
+      if(!recording && !retained && !player)throw new Error('Load a recording before sending timing alone.');
+      const replacing=Boolean(recording || retained),loadGeneration=generation+(replacing?1:0);
+      if(recording) {
+        const url=mediaUrl(recording.url),hostName=new URL(url).hostname;
+        const isYoutube=['youtube.com','www.youtube.com','youtu.be','www.youtube-nocookie.com'].includes(hostName);
+        await loadRecording(isYoutube?{kind:'youtube',videoId:youtubeId(url),label:recording.label}:{kind:'url',url,label:recording.label});
+      } else if(retained) {
+        if(retained.source.kind==='embedded')throw new Error('Embedded backing audio cannot be retained across a score replacement. Choose a recording link instead.');
+        await loadRecording(retained.source,retained.file);
       }
-      openEditor();await selectRecording();
+      if(generation!==loadGeneration || score!==AppState.currentScoreFile || expectedTimeline!==AppState.playbackTimeline || !player)throw new Error('Lesson import was superseded by a score/source change.');
+      const checked=imported?validatePoints(imported,expectedTimeline,player.backingTrackDuration):null;
+      openEditor();
+      if(checked && !replacing)edit(checked);
+      else if(imported) {
+        profileId='';points=checked;dirty=true;undo=[];redo=[];selected=-1;
+        get('profile-name').value=recording?.label || retained?.source.label || 'Imported alignment';renderPoints();sync();
+      }
+      if(replacing)await selectRecording();
       if(generation!==loadGeneration || score!==AppState.currentScoreFile)throw new Error('Lesson import was superseded by a score/source change.');
       if(imported)finishEditing();
       message(imported?'Lesson ready. Press Play to practice. Save profile to keep the imported alignment.':'Recording loaded. Align it manually, then Save profile.');
