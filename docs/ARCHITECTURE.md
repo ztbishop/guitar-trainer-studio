@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## MusicXML presentation fidelity boundary — investigated/deferred 2026-10-26
+
+The pinned alphaTab 1.8.4 importer/model does not retain chord-frame finger numerals, independent above/below direction-word placement or harmony bass in chord names. Investigation and private local model/SVG evidence are recorded in DEV-NOTES.md; no new module, runtime adapter, rendering layer or dependency change was implemented. A future repair must keep native runtime integration in js/alphatab-host.js, separate source presentation metadata from practice data, preserve original/library bytes and grading, and use original synthetic fixtures for public tests. Restoring slash bass through the chord-name model is a candidate; numbered diagrams and separate annotation lanes need additional presentation support and layout validation. Ordinary multiline Beat.text is not equivalent to faithful above/below placement. Revisit only under a new explicit scope; do not silently patch vendor files or claim a stable upgrade resolves these losses.
+
 ## Extension naming — 2026-10-24
 
 The Chrome manifest name/action tooltip and popup document title now use Guitar Trainer Lesson Bridge. popup.html presents one h1 with Guitar Trainer above a smaller Lesson Bridge span; popup.css owns that subtitle styling. This is a display-name update only: extension folder, storage keys, transfer protocol, permissions, versions and trainer behavior remain unchanged. No new module is introduced; existing Lesson Bridge shorthand in historical notes remains valid.

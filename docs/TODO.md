@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+### Deferred MusicXML presentation fidelity — 2026-10-26
+
+- [x] Investigate pinned alphaTab 1.8.4 and current upstream support for chord-frame finger labels, simultaneous above/below words and slash-chord bass. Record private local model/SVG evidence and proposed boundaries in DEV-NOTES.md; no implementation added.
+- [ ] Revisit only when explicitly scoped: evaluate a narrow slash-bass adapter and independent source annotation/frame metadata; trial an app-owned presentation layer if faithful numbered diagrams and above/below placement are required. Native model/renderer limitations remain unresolved; a stable upgrade was not available at investigation time.
+- [ ] If resumed, add original synthetic regressions and verify actual rendering, source-to-beat mapping, paired imports, resize/zoom/tracks and unchanged playback targets/grading. Use private Soundslice Tool diagnostics locally; never copy lesson material or signed URLs into public fixtures. No current action or owner hardware retest is required for this deferred note.
+
 ### Extension naming — 2026-10-24
 
 - [x] Use Guitar Trainer Lesson Bridge in Chrome's extension name, toolbar tooltip and popup title; show Guitar Trainer above Lesson Bridge in the popup. Update current naming/setup documentation.
