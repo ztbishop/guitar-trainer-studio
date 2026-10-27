@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+## Media sync usability — 2026-10-27
+
+- [x] Select successfully loaded recordings automatically without autoplay; retain explicit Synth choice.
+- [x] Guard small YouTube duration revisions; preserve strict point/order validation.
+- [x] Separate score/time lanes, clarify copy/save actions, use hundredth-second arrow steps with typed milliseconds, keep zoom by timeline, and temporarily reclaim fretboard space while editing.
+- [ ] Owner acceptance: supplied Autumn Leaves GP + YouTube video, move Start after playback, audible alignment, local/URL/embedded recordings, laptop layout, profile reopening and Fishman Realtime/Wait. Automated evidence is recorded in DEV-NOTES.
+
 ### Deferred MusicXML presentation fidelity — 2026-10-26
 
 - [x] Investigate pinned alphaTab 1.8.4 and current upstream support for chord-frame finger labels, simultaneous above/below words and slash-chord bass. Record private local model/SVG evidence and proposed boundaries in DEV-NOTES.md; no implementation added.

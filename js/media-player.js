@@ -52,7 +52,7 @@ function loadYoutubeApi() {
 export async function youtubeMediaPlayer(container,videoId,{onState=()=>{},onError=()=>{},isCurrent=()=>true}={}) {
   await loadYoutubeApi();
   if(!isCurrent())throw new Error('Recording load cancelled.');
-  let player,destroyed=false,pauseAfterSeek=false,cancelReady=()=>{};
+  let player,destroyed=false,pauseAfterSeek=false,cancelReady=()=>{},durationMs=0;
   const ready=new Promise((resolve,reject)=>{
     const target=document.createElement('div');container.replaceChildren(target);
     const timer=setTimeout(()=>reject(new Error('YouTube video did not become ready.')),20000);
@@ -68,7 +68,14 @@ export async function youtubeMediaPlayer(container,videoId,{onState=()=>{},onErr
   });
   ready.catch(()=>{}); // A superseded source can be discarded before awaiting ready.
   const handler={ready,
-    get backingTrackDuration(){return (player.getDuration?.() || 0)*1000;},
+    // YouTube can refine its rounded duration after playback starts. Keep the
+    // editor's coordinate system stable across sub-second metadata changes;
+    // otherwise its untouched End anchor can invalidate an edit to Start.
+    get backingTrackDuration(){
+      const next=(player.getDuration?.() || 0)*1000;
+      if(Number.isFinite(next) && next>0 && (!durationMs || Math.abs(next-durationMs)>1000))durationMs=next;
+      return durationMs;
+    },
     get currentTime(){return (player.getCurrentTime?.() || 0)*1000;},
     get playing(){return player.getPlayerState?.()===1;},
     get playbackRate(){return player.getPlaybackRate() || 1;},

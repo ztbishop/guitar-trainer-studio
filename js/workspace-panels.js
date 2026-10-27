@@ -36,7 +36,8 @@ export function initWorkspacePanels() {
     return {'fretboard-container':automaticFretboard?fretboardPanelHeight(Number(svg.getAttribute('data-natural-height')??svg.getAttribute('height')),frame,scrollbar):144};
   }
   function fit() {
-    const visible=panels.filter(el=>!el.hidden && !el.classList.contains('hidden')).map(el=>el.id);
+    const editing=document.body.classList.contains('media-editor-visible');
+    const visible=panels.filter(el=>!el.hidden && !el.classList.contains('hidden') && !(editing && el.id==='fretboard-container')).map(el=>el.id);
     const limits=minimums();
     const wanted=automaticFretboard && limits['fretboard-container']?{...preferred,'fretboard-container':limits['fretboard-container']}:preferred;
     const fitted=fitPanelSizes(wanted,visible,main.clientHeight-20-visible.length*10-220,limits);
@@ -65,6 +66,7 @@ export function initWorkspacePanels() {
   new ResizeObserver(fit).observe(main);
   const observer=new MutationObserver(fit);
   panels.forEach(panel=>observer.observe(panel,{attributes:true,attributeFilter:['hidden','class']}));
+  observer.observe(document.body,{attributes:true,attributeFilter:['class']});
   observer.observe(document.getElementById('fretboard-content'),{childList:true,subtree:true});
   fit();
 }

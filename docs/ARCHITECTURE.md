@@ -1,5 +1,13 @@
 # Guitar Trainer Studio Architecture
 
+## Media sync editing polish — 2026-10-27
+
+media-player.js keeps YouTube's last positive duration stable when new metadata differs by at most 1000 ms, including a temporary zero. Larger changes remain visible to validation. This prevents fractional duration revisions from invalidating an unchanged terminal anchor during edits; it does not relax validatePoints or permit user-entered times beyond the stable recording extent. HTML media duration behavior is unchanged. Actual provider reproduction remains pending.
+
+media-controls.js selects loaded local, URL, YouTube and embedded recordings through the existing selectRecording/beginMediaPlayback path after alignment/profile readiness, without autoplay. The internal loading flag permits this transition while external load controls stay busy. edit applies native validation before committing local points/history. Existing host APIs, source restoration, grading and Wait semantics remain unchanged.
+
+index.html/media-sync.css distinguish purple score-target and red recording-time lanes with a divider, explain Copy playhead versus Add/Update, and use 0.01-second input steps while retaining typed millisecond precision. Zoom sits immediately above the timeline and sticks to the editor scroll viewport. Paste/help move to Load/options; header labels are compact. workspace-panels.js excludes the temporarily hidden fretboard from fitting during sync editing; CSS hides it without changing stored visibility, orientation or size. Body class observation restores sizing on editor exit. No new module or storage schema.
+
 ## MusicXML presentation fidelity boundary — investigated/deferred 2026-10-26
 
 The pinned alphaTab 1.8.4 importer/model does not retain chord-frame finger numerals, independent above/below direction-word placement or harmony bass in chord names. Investigation and private local model/SVG evidence are recorded in DEV-NOTES.md; no new module, runtime adapter, rendering layer or dependency change was implemented. A future repair must keep native runtime integration in js/alphatab-host.js, separate source presentation metadata from practice data, preserve original/library bytes and grading, and use original synthetic fixtures for public tests. Restoring slash bass through the chord-name model is a candidate; numbered diagrams and separate annotation lanes need additional presentation support and layout validation. Ordinary multiline Beat.text is not equivalent to faithful above/below placement. Revisit only under a new explicit scope; do not silently patch vendor files or claim a stable upgrade resolves these losses.

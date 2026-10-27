@@ -22,6 +22,8 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   get('apply-time').before(get('add-point'));
   get('extra-tools').append(get('unload'));
   get('popup').firstElementChild.append(get('extra-tools'));
+  get('extra-tools').before(get('paste-sync'));
+  get('timeline').parentElement.before(get('zoom-toolbar'));
   let player=null,source=null,localFile=null,blobUrl=null,points=[],peaks=[],selected=-1,undo=[],redo=[],profiles=[],scoreHash='',profileId='',pendingProfile=null;
   let generation=0,scoreBytes=null,busy=false,pendingDelete=null,playhead=null,dirty=false;
   let zoom=1,waveformBusy=false,waveformGeneration=0,dragging=false,lastTimelineInteraction=0,buffering=false;
@@ -141,14 +143,18 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       get('seek').max=String(player.backingTrackDuration/1000);
       renderPoints();await refreshProfiles();renderLayout();
       closeMenu();
-      message(relinked?'Saved alignment restored and linked to this local file.':matched?'Saved alignment restored.':'Recording ready. Select Recording as playback source, then use the main Play button.');
+      // Complete loading before selecting through the existing native host path.
+      try {await selectRecording({loading:true});}
+      catch(error) {message(`Recording loaded, but playback selection failed: ${error.message} Choose Recording to retry.`);return;}
+      if(token!==generation)return;
+      message(relinked?'Saved alignment restored and linked to this local file.':matched?'Saved alignment restored.':'Recording selected. Press Preview to listen; choose a measure and recording time, then add/update its sync point.');
       if(localFile)buildWaveform();
       else get('waveform-status').textContent='Waveform unavailable for this source; alignment controls still work.';
     } catch(error) {if(token===generation){disposal();message(error.message);renderLayout();throw error;}}
     finally {if(token===generation){busy=false;sync();}}
   }
-  async function selectRecording() {
-    if(!player || busy)return;
+  async function selectRecording({loading=false}={}) {
+    if(!player || (busy && !loading))return;
     if(!AppState.media.preview) {
       beforeListen();
       if(!host.beginMediaPlayback(player,points))throw new Error('Wait for the score player to become ready.');
@@ -165,8 +171,9 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     const checked=validatePoints(next,AppState.playbackTimeline,player?.backingTrackDuration);
     if(checked.length<2)throw new Error('Keep at least a start and end point.');
     if(JSON.stringify(checked)===JSON.stringify(points))return;
+    host.applyMediaSyncPoints(checked,{preservePlayback});
     undo.push(structuredClone(points));if(undo.length>100)undo.shift();redo=[];
-    points=checked;dirty=true;host.applyMediaSyncPoints(points,{preservePlayback});renderPoints();sync();message('Alignment edited. Save profile to keep these changes.');
+    points=checked;dirty=true;renderPoints();sync();message('Alignment edited. Save profile to keep these changes.');
   }
   function formPoint() {
     const measure=AppState.playbackTimeline?.measures[Number(get('measure').value)];
@@ -294,6 +301,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     if(selected>=points.length)selected=-1;
     const timeline=get('timeline'),duration=player?.backingTrackDuration || 1;
     timeline.replaceChildren();timeline.style.width=(zoom*100)+'%';get('timeline-zoom').textContent=`${Math.round(zoom*100)}%`;
+    timeline.append(svg('line',{class:'media-lane-divider',x1:-12,x2:1012,y1:32,y2:32,'pointer-events':'none'}));
     const unit=1024/(timeline.getBoundingClientRect().width || 1000);
     // Counter-scale only horizontally: the SVG widens on zoom, its height does not.
     for(let i=0;i<=10*zoom;i++)timeline.append(svg('text',{transform:`translate(${i/(10*zoom)*1000} 94) scale(${unit} 1)`,'font-size':12},clock(duration*i/(10*zoom))));

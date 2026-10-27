@@ -108,3 +108,14 @@ body.media-preview .toolbar-score-value { color:#2563eb; }
   .media-editor { max-height:36vh; }
 }
 #media-sync-json { display:block; box-sizing:border-box; width:100%; max-width:100%; resize:vertical; margin-top:6px; font:12px/1.4 monospace; }
+
+/* Keep zoom beside the timeline in a short manually resized editor. */
+#media-zoom-toolbar { position:sticky; top:0; z-index:1; background:var(--control-bg,#f8fafc); padding:4px 0; }
+.media-lane-divider { stroke:#64748b; stroke-width:1.5; vector-effect:non-scaling-stroke; }
+.media-guide.is-selected line,.media-marker.is-selected line { stroke:#7c3aed; }
+.media-guide.is-selected path,.media-marker.is-selected path { fill:#7c3aed; }
+#media-action-status { white-space:normal; overflow:visible; }
+#media-editor-toolbar { gap:4px; }
+#media-selection { margin:2px 0; }
+/* Sync preview has no fretboard targets; restore the saved panel on exit. */
+body.media-editor-visible #fretboard-container { display:none; }

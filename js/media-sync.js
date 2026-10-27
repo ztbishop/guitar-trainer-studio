@@ -59,7 +59,7 @@ export function validatePoints(points,timeline=null,durationMs=null) {
     if(!point || !Number.isInteger(point.barIndex) || point.barIndex<0 || !Number.isInteger(point.barOccurence) || point.barOccurence<0 ||
       !finite(point.barPosition) || point.barPosition<0 || point.barPosition>1 || !finite(point.millisecondOffset) || point.millisecondOffset<0 || point.millisecondOffset>86400000)
       throw new Error('Invalid sync point position or time.');
-    if(durationMs>0 && point.millisecondOffset>durationMs+1)throw new Error('A sync time is beyond the recording.');
+    if(durationMs>0 && point.millisecondOffset>durationMs+1)throw new Error(`Sync time ${(point.millisecondOffset/1000).toFixed(3)} s at measure ${point.barIndex+1} is beyond the recording (${(durationMs/1000).toFixed(3)} s). Check this point, including End, before retrying.`);
     return {barIndex:point.barIndex,barOccurence:point.barOccurence,barPosition:point.barPosition,millisecondOffset:point.millisecondOffset};
   });
   if(timeline) {

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {htmlMediaPlayer,youtubeMediaPlayer,waveformPeaks} from '../js/media-player.js';
+import {validatePoints} from '../js/media-sync.js';
 class MediaElement extends EventTarget {
   duration=10;currentTime=0;playbackRate=1;volume=1;paused=true;ended=false;readyState=4;
   load(){queueMicrotask(()=>this.dispatchEvent(new Event('loadedmetadata')));}
@@ -65,6 +66,8 @@ test('YouTube cued seeking updates the requested frame without waiting for Play 
   globalThis.location={origin:'https://example.org'};globalThis.document={createElement:()=>({})};
   globalThis.YT={Player:class {
     state=5;
+    duration=2078;
+    getDuration(){return this.duration;}
     constructor(target,options){instance=this;this.options=options;queueMicrotask(()=>options.events.onReady());}
     getPlayerState(){return this.state;}
     seekTo(seconds){calls.push(['seek',seconds]);this.state=1;this.options.events.onStateChange({data:1});}
@@ -75,6 +78,15 @@ test('YouTube cued seeking updates the requested frame without waiting for Play 
   }};
   try {
     const states=[],handler=await youtubeMediaPlayer({replaceChildren(){}},'abcdefghijk',{onState:state=>states.push(state)});await handler.ready;
+    const end=handler.backingTrackDuration;
+    instance.duration=2077.7;
+    assert.equal(handler.backingTrackDuration,end,'fractional metadata refinement keeps the original timeline extent');
+    const points=[{barIndex:0,barOccurence:0,barPosition:0,millisecondOffset:47038},
+      {barIndex:31,barOccurence:0,barPosition:1,millisecondOffset:end}];
+    assert.doesNotThrow(()=>validatePoints(points,null,handler.backingTrackDuration),'editing Start must not reject the unchanged End');
+    assert.throws(()=>validatePoints([{...points[0],millisecondOffset:end+100}],null,handler.backingTrackDuration),/beyond/);
+    instance.duration=0;assert.equal(handler.backingTrackDuration,end,'transient missing metadata retains duration');
+    instance.duration=2100;assert.equal(handler.backingTrackDuration,2100000,'material duration changes are not hidden');
     handler.seekTo(3500);assert.deepEqual(calls,[['mute'],['seek',3.5],['pause']]);
     assert.equal(instance.state,2);assert.deepEqual(states,['paused']);
     handler.play();assert.equal(states.at(-1),'playing');handler.destroy();

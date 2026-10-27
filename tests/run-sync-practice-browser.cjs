@@ -74,8 +74,24 @@ function recording() {
       if(!(await page.evaluate(()=>syncState.media.preview))) {
         await page.locator('#media-file').setInputFiles({name:'sync-test.wav',mimeType:'audio/wav',buffer:recording()});
         await page.waitForFunction(()=>!document.querySelector('#media-listen').disabled);
-        await page.evaluate(()=>document.querySelector('#media-listen').click());
         await page.waitForFunction(()=>syncState.media.preview && syncState.playerReady);
+        assert.equal(await page.evaluate(()=>syncState.isPlaying),false,'loading selects recording without autoplay');
+        await page.setViewportSize({width:1280,height:720});
+        await page.locator('#media-point-time').fill('1.038');
+        await page.locator('#media-point-time').dispatchEvent('input');
+        await page.evaluate(()=>document.querySelector('#media-point-list').firstElementChild.click());
+        assert.equal(await page.locator('#media-point-time').inputValue(),'1.038','score target selection preserves typed milliseconds');
+        await page.locator('#media-add-point').click();
+        await page.waitForFunction(()=>syncState.media.points[0].millisecondOffset===1038);
+        await page.locator('#media-apply-time').click();
+        assert.equal(await page.evaluate(()=>syncState.media.points[0].millisecondOffset),1038,'copying playhead does not save a point');
+        await page.locator('#media-zoom-fit').click();await page.locator('#media-zoom-in').click();
+        assert.equal(await page.locator('#media-timeline-zoom').textContent(),'120%');
+        if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.GTS_SCREENSHOT_DIR,'sync-laptop.png'),fullPage:true});
+        // Restore initial alignment for the existing first-note grading checks.
+        await page.locator('#media-point-time').fill('0');await page.locator('#media-add-point').click();
+        await page.waitForFunction(()=>syncState.media.points[0].millisecondOffset===0);
+        await page.setViewportSize({width:1440,height:1000});
       }
       await page.evaluate(()=>{document.querySelector('#media-point-list').lastElementChild.click();document.querySelector('#media-point-time').value='10';document.querySelector('#media-add-point').click();});
       await page.waitForFunction(()=>syncState.media.points.at(-1).millisecondOffset===10000);
