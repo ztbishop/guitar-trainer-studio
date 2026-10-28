@@ -1,11 +1,18 @@
 # Guitar Trainer Studio: status and to-do
 
+## YouTube comparative evidence — 2026-10-28
+
+- [x] Owner confirms rxsEDmdtRrY loads in the current normal browser; owner also reports EmeenSNRGBc worked before the recent updates.
+- [x] Compare bd1945a and cf569bf under identical isolated visible-player conditions: rxsEDmdtRrY loads with both, EmeenSNRGBc returns 150 with both. Full-app baseline/current tests also fail for EmeenSNRGBc. See DEV-NOTES for boundaries.
+- [ ] Historical difference remains unexplained: no evidence yet reproduces the owner's earlier successful EmeenSNRGBc session. Do not treat provider code alone as a proven cause or introduce speculative playback changes. Physical MIDI/listening acceptance remains separate.
+
+
 ## YouTube metadata readiness — 2026-10-28
 
 - [x] Reproduce All Of Me score/YouTube loading failure on Live Server: iframe ready precedes duration, causing premature disposal.
 - [x] Wait for finite positive metadata without autoplay; bound waiting and cancel timers on disposal/errors. Explain YouTube embedding refusal (101/150).
 - [x] Actual earlier Autumn Leaves link loads after fix; new All Of Me link returns provider code 150 in isolated Chrome. Score import works.
-- [ ] Owner hard-refreshes and retries: use an embeddable video or locally owned recording if code 150 persists. Listening and Fishman acceptance remain pending.
+- [ ] Continue the evidence-led investigation above; code 150 does not establish why a previously working session changed. Listening and Fishman acceptance remain pending.
 
 ## Media sync usability — 2026-10-27
 

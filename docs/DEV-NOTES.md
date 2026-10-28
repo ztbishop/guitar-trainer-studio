@@ -1,5 +1,14 @@
 # Development notes
 
+## YouTube comparison and owner correction — 2026-10-28
+
+Owner reports EmeenSNRGBc worked before the two recent updates, then confirms rxsEDmdtRrY works in the current normal browser. Treat the historical working behavior as owner evidence; an isolated code-150 response does not establish when or why that behavior changed. The earlier recommendation to switch recordings was premature as a diagnosis of the reported regression.
+
+Read-only comparisons used git-show response overrides on the same Live Server origin, without checking out/replacing files or changing the owner's Chrome profile. Full-app tests of pre-update bd1945a and current cf569bf both failed for EmeenSNRGBc in isolated Chrome: old code disposed the iframe on zero duration, while current code waited and surfaced code 150. A second controlled comparison used a visible 640×360 player with only each revision's media-player.js, excluding score, sync UI, automatic source selection and hidden-panel effects. EmeenSNRGBc produced code 150 with both adapters, and YouTube's own iframe displayed “This video is unavailable”. rxsEDmdtRrY loaded with both adapters at 2,257,000 ms. No autoplay or credential/settings changes were used.
+
+Conclusion limited to tested conditions: the recent two updates are not necessary to trigger this failure; current YouTube loading works for the owner-confirmed control video. The cause of the change from the owner's earlier successful EmeenSNRGBc session remains unestablished. Do not claim the owner changed embedding permissions, that this link never worked, or that these tests reproduce the earlier normal-browser session. No further runtime change is justified by this comparison. Documentation-only follow-up; no new runtime tests required.
+
+
 ## YouTube metadata readiness — 2026-10-28
 
 Reproduced against the owner's existing Live Server (127.0.0.1:8081) in fresh isolated Chrome using the supplied All-Of-Me-ChM.gp directly from its private disk location and EmeenSNRGBc YouTube link. Before the change, onReady arrived with getDuration=0; the app reported “Choose a recording with a known duration” and disposed the iframe before the actual provider result. The score loaded successfully. No private score bytes or screenshots are committed, and the owner's normal browser/profile/server were not changed.
