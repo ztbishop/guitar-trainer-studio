@@ -225,6 +225,8 @@ Video starts **Left of score** on first use. Change it in Media Sync → Load / 
 
 Sync follows the score's playback order, including repeats, alternate endings and recognized D.C./D.S./Coda/Fine markings. Each return to a written measure has its own position on the recording timeline. Your recording must follow the same musical order; add sync points at the appropriate passes when alignment needs adjustment.
 
+YouTube loading may take a few seconds while the video length becomes available. If you see **YouTube blocked embedded playback (code 101 or 150)**, choose another video or load a local recording you have. Playing on the YouTube website does not guarantee that a video can play inside Guitar Trainer.
+
 ### Settings and saved choices
 
 Settings selects the MIDI input and its mode/channel/bend configuration. Device settings save separately for each input. The last selected device can return automatically when reconnected; choosing None cancels that automatic selection.

@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## YouTube metadata readiness — 2026-10-28
+
+youtubeMediaPlayer in js/media-player.js now distinguishes iframe onReady from recording metadata readiness. After onReady, a 100 ms timer waits for a finite positive getDuration before resolving handler.ready and capturing durationMs. The existing 20-second load deadline covers both phases. Success, cancellation and provider errors clean up both timers; late/repeated onReady cannot recreate them. No play/seek request is used to force metadata. media-controls still owns loading, failure disposal, alignment and automatic source selection through the native host. Errors 101/150 explain embedded-playback refusal and suggest another recording. No new module, provider bypass, storage, MIDI, grading or Wait behavior change.
+
 ## Media sync editing polish — 2026-10-27
 
 media-player.js keeps YouTube's last positive duration stable when new metadata differs by at most 1000 ms, including a temporary zero. Larger changes remain visible to validation. This prevents fractional duration revisions from invalidating an unchanged terminal anchor during edits; it does not relax validatePoints or permit user-entered times beyond the stable recording extent. HTML media duration behavior is unchanged. Actual provider reproduction remains pending.

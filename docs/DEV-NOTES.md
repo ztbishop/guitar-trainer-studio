@@ -1,5 +1,13 @@
 # Development notes
 
+## YouTube metadata readiness — 2026-10-28
+
+Reproduced against the owner's existing Live Server (127.0.0.1:8081) in fresh isolated Chrome using the supplied All-Of-Me-ChM.gp directly from its private disk location and EmeenSNRGBc YouTube link. Before the change, onReady arrived with getDuration=0; the app reported “Choose a recording with a known duration” and disposed the iframe before the actual provider result. The score loaded successfully. No private score bytes or screenshots are committed, and the owner's normal browser/profile/server were not changed.
+
+Fix: wait for positive finite duration after iframe readiness, under the existing bounded loading deadline; clean up polling on success/error/disposal and ignore late/repeated readiness. Do not autoplay to acquire metadata. After the fix, the supplied link returned YouTube code 150 (embedding refused) in isolated Chrome. This is a provider response, not a claim that the video fails on youtube.com or in every browser/account. Earlier owner link c-cCNW73Qv0 loaded successfully with Recording selected and the native score player ready. Error 101/150 now gives a specific explanation and suggests another video/local recording. Official error meanings: https://developers.google.com/youtube/iframe_api_reference#onError.
+
+Added delayed-metadata, cancellation/late-ready and provider-error/late-ready Node regressions. Validation passed: all 474 Node tests, the existing isolated Chrome sync/practice regression runner, changed-module syntax checks and diff whitespace review. Actual listening and physical Fishman tests remain pending. Preserve existing extension packaging work.
+
 ## Media sync usability and duration guard — 2026-10-27
 
 Preserved pre-existing extension-store packaging edits (manifest, icons, NOTICE and packaging script). No score/media bytes are committed. The screenshot's generic error can be produced when YouTube revises its duration by a fraction of a second: validatePoints checks the untouched End anchor too. Added a bounded adapter guard and mocked-provider regression (2078 → 2077.7 seconds, Start at 47.038). This demonstrates and fixes that mechanism, not a confirmed reproduction with the owner's exact YouTube session. Material duration changes still reach validation; out-of-range user points remain rejected.

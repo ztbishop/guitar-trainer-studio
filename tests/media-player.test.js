@@ -92,3 +92,33 @@ test('YouTube cued seeking updates the requested frame without waiting for Play 
     handler.play();assert.equal(states.at(-1),'playing');handler.destroy();
   } finally {for(const [key,value] of Object.entries(saved)){if(value===undefined)delete globalThis[key];else globalThis[key]=value;}}
 });
+
+for(const outcome of ['metadata','cancel','provider error'])test(`YouTube iframe readiness waits for duration: ${outcome}`,async()=>{
+  const saved={YT:globalThis.YT,document:globalThis.document,location:globalThis.location};
+  let instance,plays=0;
+  globalThis.location={origin:'http://127.0.0.1:8081'};
+  globalThis.document={createElement:()=>({})};
+  globalThis.YT={Player:class {
+    duration=0;
+    constructor(target,options){instance=this;this.options=options;queueMicrotask(()=>options.events.onReady());}
+    getDuration(){return this.duration;}
+    playVideo(){plays++;}
+    destroy(){}
+  }};
+  try {
+    const handler=await youtubeMediaPlayer({replaceChildren(){}},'abcdefghijk');
+    let resolved=false;handler.ready.then(()=>{resolved=true;},()=>{});
+    await new Promise(resolve=>setTimeout(resolve,120));
+    assert.equal(resolved,false,'onReady with zero duration must not resolve');
+    if(outcome==='metadata'){
+      instance.duration=123.456;await handler.ready;
+      assert.equal(handler.backingTrackDuration,123456);assert.equal(plays,0);handler.destroy();
+    } else {
+      const rejected=assert.rejects(handler.ready,outcome==='cancel'?/cancelled/:/code 150/);
+      if(outcome==='cancel')handler.destroy();else instance.options.events.onError({data:150});
+      await rejected;instance.duration=123;instance.options.events.onReady();
+      await new Promise(resolve=>setTimeout(resolve,120));assert.equal(resolved,false);
+      handler.destroy();
+    }
+  } finally {for(const [key,value] of Object.entries(saved)){if(value===undefined)delete globalThis[key];else globalThis[key]=value;}}
+});

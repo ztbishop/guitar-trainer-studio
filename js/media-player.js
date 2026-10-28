@@ -55,15 +55,29 @@ export async function youtubeMediaPlayer(container,videoId,{onState=()=>{},onErr
   let player,destroyed=false,pauseAfterSeek=false,cancelReady=()=>{},durationMs=0;
   const ready=new Promise((resolve,reject)=>{
     const target=document.createElement('div');container.replaceChildren(target);
-    const timer=setTimeout(()=>reject(new Error('YouTube video did not become ready.')),20000);
-    cancelReady=()=>{clearTimeout(timer);reject(new Error('Recording load cancelled.'));};
+    let metadataTimer=null,settled=false;
+    const cleanup=()=>{settled=true;clearTimeout(timer);clearInterval(metadataTimer);};
+    const timer=setTimeout(()=>{cleanup();reject(new Error('YouTube did not provide a video duration. Check whether the video allows embedding, then retry Load link.'));},20000);
+    const checkMetadata=()=>{
+      const seconds=player?.getDuration?.();
+      if(Number.isFinite(seconds) && seconds>0){durationMs=seconds*1000;cleanup();resolve();}
+    };
+    cancelReady=()=>{cleanup();reject(new Error('Recording load cancelled.'));};
     player=new YT.Player(target,{host:'https://www.youtube-nocookie.com',videoId,width:'100%',height:'100%',
       playerVars:{autoplay:0,playsinline:1,controls:1,origin:location.origin},
-      events:{onReady(){clearTimeout(timer);resolve();},onStateChange(event){
+      // Iframe readiness precedes video metadata on real YouTube loads.
+      // Wait for usable duration without playing/seeking to force a load.
+      events:{onReady(){if(destroyed || settled || metadataTimer!==null)return;metadataTimer=setInterval(checkMetadata,100);checkMetadata();},onStateChange(event){
         if(destroyed)return;
         if(event.data===1 && pauseAfterSeek){pauseAfterSeek=false;player.pauseVideo();onState('paused');return;}
         onState(({0:'ended',1:'playing',2:'paused',3:'buffering',5:'cued'})[event.data] || 'paused');
-      },onPlaybackRateChange(){if(!destroyed)onState('ratechange');},onError(event){if(destroyed)return;clearTimeout(timer);const error=new Error(`YouTube cannot play this video (code ${event.data}). It may disallow embedding or require sign-in.`);reject(error);onError(error);}},
+      },onPlaybackRateChange(){if(!destroyed)onState('ratechange');},onError(event){
+        if(destroyed)return;cleanup();
+        const error=new Error([101,150].includes(event.data)?
+          `YouTube blocked embedded playback for this video (code ${event.data}). Choose another video or load a local recording you have. A video that plays on youtube.com may still be blocked here.`:
+          `YouTube cannot play this video (code ${event.data}). It may be unavailable or require sign-in.`);
+        reject(error);onError(error);
+      }},
     });
   });
   ready.catch(()=>{}); // A superseded source can be discarded before awaiting ready.

@@ -21,6 +21,8 @@ In the editor, **Load / options** opens source loading, profile naming/selection
 
 **Wait keeps playback audio paused and muted for either source**, while seeking the selected recording/video to each solved target. The independent Wait click/count-in remains available. Switching to Synth audio restores synthesized playback and the previously captured practice position; shared Tempo speed remains current. Source/unload/score changes pause and dispose old media, invalidating stale asynchronous work. A new score clears the current recording/editor session; saved profiles remain. Practice, Tempo and Loop settings remain available with recordings selected.
 
+YouTube loading may take a few seconds while the video length becomes available. If you see **YouTube blocked embedded playback (code 101 or 150)**, choose another video or load a local recording you have. Playing on the YouTube website does not guarantee that a video can play inside Guitar Trainer.
+
 ## Video position
 
 Video remains in its separate panel; audio-only sources leave this panel hidden without changing its saved visibility preference. **Edit sync** toggles the editor directly. Selecting Recording or using Play preserves saved visibility; it does not force a hidden panel back on. Video, editor and fretboard have labeled × buttons that hide the panel and update the saved visibility choice without discarding work. Open **Load / options** for visibility and placement controls.

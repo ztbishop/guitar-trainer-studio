@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+## YouTube metadata readiness — 2026-10-28
+
+- [x] Reproduce All Of Me score/YouTube loading failure on Live Server: iframe ready precedes duration, causing premature disposal.
+- [x] Wait for finite positive metadata without autoplay; bound waiting and cancel timers on disposal/errors. Explain YouTube embedding refusal (101/150).
+- [x] Actual earlier Autumn Leaves link loads after fix; new All Of Me link returns provider code 150 in isolated Chrome. Score import works.
+- [ ] Owner hard-refreshes and retries: use an embeddable video or locally owned recording if code 150 persists. Listening and Fishman acceptance remain pending.
+
 ## Media sync usability — 2026-10-27
 
 - [x] Select successfully loaded recordings automatically without autoplay; retain explicit Synth choice.
