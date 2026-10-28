@@ -1,5 +1,14 @@
 # Development notes
 
+## All Of Me origin-dependent YouTube result — 2026-10-28
+
+Further investigation identifies a concrete condition, superseding the earlier unresolved diagnosis for current loading. YouTube's normal watch-page player response for EmeenSNRGBc reports status OK and playableInEmbed:true. Its embedded_player_response under PLAYER_VARS instead returns previewPlayabilityStatus UNPLAYABLE with only “This video is unavailable” when embedded from http://127.0.0.1:8081. Both official youtube.com and youtube-nocookie.com embed hosts reproduce that failure; the same-creator control 2K_sBujnYfo returns OK. A direct navigation to /embed without a parent/referrer returned 153 for both and is not valid evidence about this 150 failure.
+
+Controlled in-memory parent pages (no deployed files or altered repository code) change only the parent address: http://localhost:8081 returns preview status OK for EmeenSNRGBc, and a test page at the existing https://ztbishop.github.io origin also returns OK. Actual current Guitar Trainer on the existing Live Server via http://localhost:8081 then loads the supplied All-Of-Me-ChM.gp and exact failing video successfully in two fresh isolated Chrome runs. An explicit Preview click reports playing:true and a recording clock advancing to approximately 2168 ms. No API origin spoofing, credentials, browser settings, vendor changes or alternate video were used. Owner's normal browser/server remained untouched. This is load/clock evidence, not listening or Fishman acceptance.
+
+Conclusion: the current failure is reproducibly dependent on the numeric-IP embedding origin for this video, not a global disabled-embedding flag. YouTube does not expose the internal policy/reason for that origin distinction, or its history, so do not attribute it to a creator decision/copyright claim or assert which address the owner used previously. Recommend opening the same Live Server at localhost:8081 and loading the original file/link there. localhost and 127.0.0.1 have separate browser libraries/preferences; existing data stays at its original address, with existing Backup Library/Import Library for deliberate transfer. No automatic redirect or storage migration is added. Documentation-only update; diff check and actual browser observations are the relevant verification.
+
+
 ## YouTube comparison and owner correction — 2026-10-28
 
 Owner reports EmeenSNRGBc worked before the two recent updates, then confirms rxsEDmdtRrY works in the current normal browser. Treat the historical working behavior as owner evidence; an isolated code-150 response does not establish when or why that behavior changed. The earlier recommendation to switch recordings was premature as a diagnosis of the reported regression.

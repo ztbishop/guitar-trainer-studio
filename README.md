@@ -225,7 +225,7 @@ Video starts **Left of score** on first use. Change it in Media Sync → Load / 
 
 Sync follows the score's playback order, including repeats, alternate endings and recognized D.C./D.S./Coda/Fine markings. Each return to a written measure has its own position on the recording timeline. Your recording must follow the same musical order; add sync points at the appropriate passes when alignment needs adjustment.
 
-YouTube loading may take a few seconds while the video length becomes available. If you see **YouTube blocked embedded playback (code 101 or 150)**, choose another video or load a local recording you have. Playing on the YouTube website does not guarantee that a video can play inside Guitar Trainer.
+YouTube loading may take a few seconds while the video length becomes available. If a video returns **code 150** on `http://127.0.0.1:8081/`, try the same server at [http://localhost:8081/](http://localhost:8081/) and load the same score/link. This resolved the tested All Of Me video; other videos may behave differently. These addresses have separate browser libraries and preferences: your original data stays at the original address. Use Backup Library/Import Library if you want to transfer saved scores and sync profiles. A video playing on youtube.com does not guarantee embedded playback in every context.
 
 ### Settings and saved choices
 

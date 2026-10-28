@@ -21,7 +21,7 @@ In the editor, **Load / options** opens source loading, profile naming/selection
 
 **Wait keeps playback audio paused and muted for either source**, while seeking the selected recording/video to each solved target. The independent Wait click/count-in remains available. Switching to Synth audio restores synthesized playback and the previously captured practice position; shared Tempo speed remains current. Source/unload/score changes pause and dispose old media, invalidating stale asynchronous work. A new score clears the current recording/editor session; saved profiles remain. Practice, Tempo and Loop settings remain available with recordings selected.
 
-YouTube loading may take a few seconds while the video length becomes available. If you see **YouTube blocked embedded playback (code 101 or 150)**, choose another video or load a local recording you have. Playing on the YouTube website does not guarantee that a video can play inside Guitar Trainer.
+YouTube loading may take a few seconds while the video length becomes available. If a video returns **code 150** on `http://127.0.0.1:8081/`, try the same server at [http://localhost:8081/](http://localhost:8081/) and load the same score/link. This resolved the tested All Of Me video; other videos may behave differently. These addresses have separate browser libraries and preferences: your original data stays at the original address. Use Backup Library/Import Library if you want to transfer saved scores and sync profiles. A video playing on youtube.com does not guarantee embedded playback in every context.
 
 ## Video position
 

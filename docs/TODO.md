@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+## All Of Me YouTube origin diagnosis — 2026-10-28
+
+- [x] Identify address-dependent behavior for EmeenSNRGBc: numeric 127.0.0.1 parent returns UNPLAYABLE/150; localhost parent returns OK. Both official embed hosts tested. Watch page reports playableInEmbed:true.
+- [x] Verify exact supplied GP/video in actual current app at localhost:8081: recording loads twice, and explicit Preview advances the media clock. No runtime changes.
+- [ ] Owner confirms same localhost address resolves playback in normal Chrome; libraries/preferences remain separate from 127.0.0.1. Actual audible sync/Fishman acceptance remains pending. YouTube's internal reason/history for differing treatment remains undisclosed.
+
+
 ## YouTube comparative evidence — 2026-10-28
 
 - [x] Owner confirms rxsEDmdtRrY loads in the current normal browser; owner also reports EmeenSNRGBc worked before the recent updates.
