@@ -121,6 +121,24 @@ function recording() {
         const afterDrag=await page.evaluate(()=>syncState.media.points[0].millisecondOffset);
         assert(Math.abs(afterDrag-beforeDrag-80/(box.width*256)*1024/1000*12000)<1,'drag uses full recording width at extreme zoom');
         await page.locator('#media-zoom-fit').click();
+        const selectedTime=await page.locator('#media-point-time').inputValue();
+        const playbackBefore=await page.evaluate(()=>syncHost.getAlphaTabApi().tickPosition);
+        await page.locator('[data-guide="1"][data-beat="1"] path').click();
+        assert.equal(await page.locator('#media-measure').inputValue(),'1');
+        assert.equal(await page.locator('#media-point-time').inputValue(),selectedTime);
+        assert.equal(await page.evaluate(()=>syncHost.getAlphaTabApi().tickPosition),playbackBefore,'triangle never seeks playback');
+        const scoreClick=await page.evaluate(()=>{
+          const api=syncHost.getAlphaTabApi(),beat=api.score.tracks[0].staves[0].bars[2].voices[0].beats[0];
+          const bounds=api.boundsLookup.findBeat(beat).realBounds,origin=document.querySelector('#alphatab-container').getBoundingClientRect();
+          return {x:origin.left+bounds.x+bounds.w/2,y:origin.top+bounds.y+bounds.h/2};
+        });
+        await page.mouse.click(scoreClick.x,scoreClick.y);
+        await page.waitForFunction(()=>document.querySelector('#media-measure').value==='2');
+        assert.equal(await page.locator('#media-point-time').inputValue(),selectedTime,'native score click preserves selected recording time');
+        assert.equal(await page.locator('[data-guide="2"][data-beat="1"].is-selected').count(),1);
+        assert.equal(await page.locator('#media-add-point').textContent(),'Add sync point');
+        await page.locator('[data-point="0"] rect').click();
+        assert.equal(await page.locator('#media-add-point').textContent(),'Update sync point');
         await page.locator('#media-close-editor').click();
         await page.evaluate(()=>document.querySelector('[data-open-media-editor]').click());
         assert.equal(await page.locator('#media-popup').isVisible(),false,'loaded editor reopens without load menu');

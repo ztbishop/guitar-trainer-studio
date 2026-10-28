@@ -798,6 +798,7 @@ async function bootstrap() {
       onCountInChanged: () => renderTrainerUi(),
       onLoopSelection: selection => {if(!AppState.media.preview)transportControls?.selectLoopByDrag(selection);},
       onMediaChanged: () => {mediaControls?.mediaChanged();if(!AppState.media.editing)resetRealtimeSession('media-source-or-alignment');renderTrainerUi();},
+      onMediaScoreTarget: target => mediaControls?.scoreTargetSelected(target),
     });
   } catch (error) {
     console.error('Failed to bootstrap Guitar Trainer Studio.', error);

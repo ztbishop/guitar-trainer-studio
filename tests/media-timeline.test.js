@@ -1,9 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {timelineGuides,boundedAnchorTime,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel,timelineRuler} from '../js/media-timeline.js';
+import {timelineGuides,boundedAnchorTime,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel,timelineRuler,scoreTargetForBeat} from '../js/media-timeline.js';
 const timeline={endTick:800,measures:[{measureNumber:1,occurrence:1,startTick:0,endTick:400},{measureNumber:1,occurrence:2,startTick:400,endTick:800}]};
 const score={masterBars:[{timeSignatureNumerator:4}]};
 const points=[{barIndex:0,barOccurence:0,barPosition:0,millisecondOffset:1000},{barIndex:0,barOccurence:1,barPosition:1,millisecondOffset:9000}];
+test('score click follows native repeat occurrence and keeps fractional beat targets',()=>{
+  const expanded={...timeline,events:[{sourceBeatId:'7',startTick:50,playbackMeasureIndex:0},{sourceBeatId:'7',startTick:450,playbackMeasureIndex:1}]};
+  assert.deepEqual(scoreTargetForBeat(expanded,7,450),{measureIndex:1,barPosition:0.125});
+  assert.deepEqual(scoreTargetForBeat(expanded,7,50),{measureIndex:0,barPosition:0.125});
+  assert.equal(scoreTargetForBeat(expanded,8,50),null);
+  const guides=timelineGuides(score,timeline,points,{measureIndex:1,beat:1.5});
+  assert.equal(guides.find(g=>g.measureIndex===1 && g.beat===1.5).millisecondOffset,5500);
+});
 test('point labels distinguish the last measure start, intermediate beats, repeats and score end',()=>{
   assert.equal(syncPointLabel(points[0],score,timeline),'Start');
   assert.equal(syncPointLabel({...points[1],barPosition:0},score,timeline),'1 (2)');

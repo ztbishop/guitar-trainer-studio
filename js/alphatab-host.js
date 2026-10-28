@@ -20,12 +20,15 @@ import {effectiveChordDiagramPlacement} from './display-preferences.js';
 import {findNotationTabPairs,combineNotationTabPair} from './musicxml-pairing.js';
 import {chooseNotationTabPair,cancelNotationTabChoice} from './musicxml-pairing-controls.js';
 import {rebuildPairedMusicXml} from './musicxml-repair.js';
+import {scoreTargetForBeat} from './media-timeline.js';
 
 let mediaSnapshot=null,mediaHandler=null,mediaPoints=[],mediaRestoreTick=null;
 let cursorRevealTick=null,cursorRevealGeneration=0;
 let editingCountIn=null;
 export function revealMediaScoreTarget(point) {
   if(!AppState.media.editing || !notationContainer)return false;
+  // A target choice supersedes delayed reveals from an earlier waveform seek.
+  cursorRevealTick=null;cursorRevealGeneration++;
   const bounds=alphaTabApi?.boundsLookup?.findMasterBarByIndex(point.barIndex)?.visualBounds;
   const wrapper=document.getElementById('alphatab-wrapper');
   if(!bounds || !wrapper)return false;
@@ -679,6 +682,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     onLoopSelection: callbacks.onLoopSelection || null,
     onCountInChanged: callbacks.onCountInChanged || null,
     onMediaChanged: callbacks.onMediaChanged || null,
+    onMediaScoreTarget: callbacks.onMediaScoreTarget || null,
   };
 
   ui = {
@@ -939,10 +943,18 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   let scoreDragging=false,scoreMouseDown=null;
   alphaTabApi.beatMouseDown?.on(beat => {pauseSeekPending=false;if(AppState.mode!=='wait')cancelCountIn();scoreMouseDown=beat.id;});
   alphaTabApi.beatMouseMove?.on(beat => {if(scoreMouseDown!==null && scoreMouseDown!==beat.id)scoreDragging=true;});
-  alphaTabApi.beatMouseUp?.on(() => {
+  alphaTabApi.beatMouseUp?.on(beat => {
+    const clicked=scoreMouseDown!==null && !scoreDragging;
     const selected=scoreDragging ? wholeMeasureSelection(AppState.playbackTimeline,alphaTabApi.playbackRange) : null;
     scoreMouseDown=null;scoreDragging=false;
-    if(AppState.media.editing){alphaTabApi.playbackRange=null;return;}
+    if(AppState.media.editing){
+      alphaTabApi.playbackRange=null;
+      if(clicked && beat) {
+        const target=scoreTargetForBeat(AppState.playbackTimeline,beat.id,alphaTabApi.tickPosition);
+        if(target)hostCallbacks.onMediaScoreTarget?.(target);
+      }
+      return;
+    }
     if(selected)hostCallbacks.onLoopSelection?.(selected);
     else {
       // A native single click clears its range. Retain our enabled loop instead.

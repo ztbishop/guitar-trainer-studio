@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+## Score selection in the sync editor — 2026-10-28
+
+- [x] Connect native notation/tab single clicks to sync target selection and Add/Update while preserving red recording seconds and native seeking.
+- [x] Support repeat occurrences/fractional triangles and cancel stale app cursor reveals when choosing a timeline target.
+- [ ] Owner check with original score: choose recording time, click notation/tab, verify target and unchanged red line, then select triangles across rows and repeats. Confirm no unexpected scrolling. The blue/black playback cursors intentionally remain distinct from the score target. Audible playback and physical MIDI acceptance remain separate.
+
 ## Media ruler and compact editor — 2026-10-28
 
 - [x] Owner reports recent media sync workflow works better; extreme-zoom timestamp blur and redundant vertical space prompted this follow-up.

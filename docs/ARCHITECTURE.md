@@ -1,5 +1,11 @@
 # Guitar Trainer Studio Architecture
 
+## Score selection in the sync editor — 2026-10-28
+
+The native beatMouseUp handler in alphatab-host.js emits onMediaScoreTarget only for a completed single score click during media editing, after native seeking. media-timeline.js scoreTargetForBeat matches source beat and nearest native playback tick to preserve repeat occurrences and fractional positions. Bootstrap routes this to media-controls.scoreTargetSelected, which selects the form/anchor, updates Add/Update and reveals the timeline target without changing recording seconds or seeking again. Playback events, waveform seeks and score drags do not emit this intent. timelineGuides accepts an optional fractional/bar-end target for a temporary selected triangle; it never creates saved points.
+
+revealMediaScoreTarget invalidates pending app cursor reveals from earlier waveform seeks before scrolling to the chosen measure. It never moves the native cursor. Triangle/form target selection continues to preserve both recording-time selections. No grading, Wait, matching or profile-format changes.
+
 ## Viewport media ruler and compact editor — 2026-10-28
 
 `media-controls.js` now keeps the SVG at viewport width, using a zero-height wide spacer for horizontal scroll extent and a sticky SVG with a moving viewBox. Logical time coordinates remain -12..1012; pointer seek, drag deltas and playback scrolling use the virtual recording width (viewport width × zoom). Labels/markers retain screen-sized geometry. Scroll redraws are animation-frame coalesced, reuse cached timelineGuides and avoid rebuilding the point list; only visible guides/anchors and waveform columns are emitted. This supersedes the recording-wide SVG sizing in earlier geometry notes and avoids browser raster-size blur at extreme zoom.

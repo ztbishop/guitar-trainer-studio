@@ -1,5 +1,13 @@
 # Development notes
 
+## Score selection in the sync editor — 2026-10-28
+
+Owner approved separate score target, black playback position and red recording-time selection. Native score clicks now select the corresponding sync target and Add/Update action, preserving native seeking and red time. Repeat occurrence follows native seeking; fractional onsets receive a temporary selected triangle. Zoomed timelines reveal the target.
+
+Triangle clicks already avoided transport seeks. Inspection found waveform-seek reveal requests could remain queued across a subsequent target choice; target reveal now cancels the pending acknowledgement reveal and scheduled cursor-reveal generations. This addresses a possible competing scroll, not a proven reproduction of every reported random jump. The blue native cursor still represents the black playhead and may differ from the chosen score target.
+
+Validation: 476 Node tests pass, including repeated/fractional source-beat projection. Isolated Chrome passes actual notation clicks, selected triangles, preserved red time, Add/Update, triangle no-seek, extreme zoom and existing practice restoration/synthetic MIDI/Wait checks. Original long score/recording, audible playback and physical Fishman acceptance remain pending. Unrelated extension work is preserved.
+
 ## Media ruler and compact editor — 2026-10-28
 
 Owner reports improved media sync but blurred timestamps at high zoom. The previous SVG expanded to hundreds of thousands of pixels; browser raster limits could degrade text despite counter-scaling. The new viewport-sized sticky SVG uses a logical-width spacer and moving viewBox. Ruler spacing uses round time intervals; only visible ticks and markers are drawn. Scroll redraws reuse guide projections and do not rebuild the point list. Waveform sampling stays bounded by visible width and existing decoded data. No measured cross-device performance claim is made.

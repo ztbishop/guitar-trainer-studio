@@ -216,7 +216,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     renderPoints();sync();
     if(preserveTime)host.revealMediaScoreTarget(point);
   }
-  function chooseGuide(measureIndex,beat) {
+  function chooseGuide(measureIndex,beat,{reveal=true}={}) {
     const targetMeasure=AppState.playbackTimeline.measures[measureIndex],beats=AppState.score.masterBars[targetMeasure.measureNumber-1].timeSignatureNumerator;
     if(!Number.isFinite(beat) || beat<1 || beat>beats+1)throw new Error(`Beat position must be between 1 and ${beats+1} (bar end).`);
     get('measure').value=String(measureIndex);get('beat').value=String(beat);
@@ -230,7 +230,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     renderTarget();
     sync();
     const measure=AppState.playbackTimeline.measures[measureIndex];
-    host.revealMediaScoreTarget({barIndex:measure.measureNumber-1,barPosition:(beat-1)/AppState.score.masterBars[measure.measureNumber-1].timeSignatureNumerator});
+    if(reveal)host.revealMediaScoreTarget({barIndex:measure.measureNumber-1,barPosition:(beat-1)/AppState.score.masterBars[measure.measureNumber-1].timeSignatureNumerator});
   }
   function renderTarget(time=player?.currentTime || 0) {
     get('selection').textContent=`Preview only · Grading and loops paused · Playhead: ${clock(time)}`;
@@ -321,7 +321,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       const x=tick.time/duration*1000;
       timeline.append(svg('line',{class:'media-ruler-tick',x1:x,x2:x,y1:79,y2:84}),svg('text',{class:'media-ruler-label',transform:`translate(${x} 96) scale(${unit} 1)`,'font-size':12,'text-anchor':x-left<40*unit?'start':left+span-x<40*unit?'end':'middle'},tick.label));
     }
-    if(!viewportOnly)projectedGuides=timelineGuides(AppState.score,AppState.playbackTimeline,points);
+    if(!viewportOnly)projectedGuides=timelineGuides(AppState.score,AppState.playbackTimeline,points,{measureIndex:Number(get('measure').value),beat:Number(get('beat').value)});
     for(const guide of projectedGuides) {
       if(guide.anchor>=0)continue;
       const x=guide.millisecondOffset/duration*1000;
@@ -573,6 +573,19 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     },
     scoreLoading(){generation++;disposal();points=[];undo=[];redo=[];scoreBytes=null;scoreHash='';profileId='';pendingProfile=null;selected=-1;busy=false;dirty=false;renderPoints();renderLayout();sync();},
     mediaChanged(){sync();if(!AppState.media.preview)afterPractice();},
+    scoreTargetSelected({measureIndex,barPosition}){
+      if(!showEditor || !player || busy)return;
+      const measure=AppState.playbackTimeline?.measures[measureIndex];if(!measure)return;
+      const beat=1+barPosition*AppState.score.masterBars[measure.measureNumber-1].timeSignatureNumerator;
+      chooseGuide(measureIndex,beat,{reveal:false});renderPoints();
+      const guide=projectedGuides.find(g=>g.measureIndex===measureIndex && g.beat===beat);
+      if(guide && player.backingTrackDuration>0) {
+        const scroll=get('timeline').parentElement;
+        const x=(12+guide.millisecondOffset/player.backingTrackDuration*1000)/1024*scroll.clientWidth*zoom;
+        if(x<scroll.scrollLeft || x>scroll.scrollLeft+scroll.clientWidth)scroll.scrollLeft=Math.max(0,x-scroll.clientWidth/2);
+        lastTimelineInteraction=performance.now();renderPoints(true);
+      }
+    },
     get dirty(){return dirty;},
   };
 }

@@ -1,6 +1,16 @@
 // Timeline projections only; no native player or grading calls.
 import {mediaTimeAtTick,pointTick} from './media-sync.js';
 
+// Follow the occurrence chosen by native score seeking, including repeats.
+export function scoreTargetForBeat(timeline,beatId,tick) {
+  const candidates=timeline?.events.filter(event=>event.sourceBeatId===String(beatId)) || [];
+  const event=candidates.reduce((best,item)=>!best || Math.abs(item.startTick-tick)<Math.abs(best.startTick-tick)?item:best,null);
+  if(!event)return null;
+  const measure=timeline.measures[event.playbackMeasureIndex];
+  if(!measure || measure.endTick<=measure.startTick)return null;
+  return {measureIndex:event.playbackMeasureIndex,barPosition:(event.startTick-measure.startTick)/(measure.endTick-measure.startTick)};
+}
+
 export function samePosition(a,b) {
   return a.barIndex===b.barIndex && a.barOccurence===b.barOccurence && Math.abs(a.barPosition-b.barPosition)<1e-8;
 }
@@ -14,11 +24,13 @@ export function syncPointLabel(point,score,timeline) {
   return `${point.barIndex+1}${point.barOccurence?` (${point.barOccurence+1})`:''}${point.barPosition?` · beat ${Number(beat.toFixed(2))}`:''}`;
 }
 
-export function timelineGuides(score,timeline,points) {
+export function timelineGuides(score,timeline,points,target=null) {
   if(!timeline || points.length<2)return [];
   return timeline.measures.flatMap((measure,index)=>{
     const beats=score.masterBars[measure.measureNumber-1].timeSignatureNumerator;
-    return Array.from({length:beats},(_,beat)=>{
+    const positions=Array.from({length:beats},(_,beat)=>beat);
+    if(target?.measureIndex===index && target.beat>=1 && target.beat<=beats+1 && !positions.includes(target.beat-1))positions.push(target.beat-1);
+    return positions.map(beat=>{
       const point={barIndex:measure.measureNumber-1,barOccurence:measure.occurrence-1,barPosition:beat/beats};
       return {...point,measureIndex:index,beat:beat+1,millisecondOffset:mediaTimeAtTick(points,timeline,measure.startTick+(measure.endTick-measure.startTick)*beat/beats),anchor:points.findIndex(p=>samePosition(p,point))};
     });
