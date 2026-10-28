@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+## Launchers prefer localhost — 2026-10-28
+
+- [x] Both ZIP launchers open/copy localhost through their shared server; continue displaying loopback IP and effective port and bind only to 127.0.0.1.
+- [x] Update user guide and developer/module documentation, including separate-origin library transfer guidance.
+- [ ] Actual Windows double-click/clipboard and Mac Finder/default-browser acceptance remain local; automated verification is recorded in DEV-NOTES.
+
 ## All Of Me YouTube origin diagnosis — 2026-10-28
 
 - [x] Identify address-dependent behavior for EmeenSNRGBc: numeric 127.0.0.1 parent returns UNPLAYABLE/150; localhost parent returns OK. Both official embed hosts tested. Watch page reports playableInEmbed:true.

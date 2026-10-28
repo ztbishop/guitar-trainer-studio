@@ -35,7 +35,7 @@ The included launchers use Node.js to serve the app on your computer. Node.js is
 3. Open the extracted folder's **Launchers** folder:
    - Windows: double-click **Guitar Trainer - Windows.bat**.
    - Mac: open **Guitar Trainer - Mac.command**.
-4. The launcher starts a small server on your computer and opens `http://127.0.0.1:8081/` in your default browser. The address also appears in the launcher window. Press **C, then Enter** there to copy it and paste into your preferred Web MIDI browser. If automatic copying fails, select and copy the displayed address.
+4. The launcher starts a small server on your computer and opens `http://localhost:8081/` in your default browser. The window shows that browser address and the server IP (`127.0.0.1`, this computer only). Use the localhost address for YouTube compatibility. Press **C, then Enter** there to copy it and paste into your preferred Web MIDI browser. If automatic copying fails, select and copy the displayed address.
 5. Keep the launcher/terminal window open while practicing. Press Ctrl+C in it to stop the server when finished.
 
 The app, score playback sounds, demo scores and this guide are bundled. You can practice offline with downloaded score files and local recordings. YouTube, linked online recordings and music download sites still need internet access. Guitar-to-MIDI software may have its own requirements.
@@ -48,11 +48,13 @@ chmod +x "Launchers/Guitar Trainer - Mac.command"
 
 Then open the launcher again. You can also start the local server directly from that folder with `node local-web-server.cjs --open`. Mac security prompts may depend on how the ZIP was downloaded; only allow files you trust.
 
+If you previously used the launcher at `127.0.0.1`, your saved library and preferences remain at that address. The new localhost address has separate browser storage. Use **Backup Library** at the old address and **Import Library (Merge)** at localhost to transfer saved scores and sync profiles; choose your MIDI/display settings again.
+
 The launcher serves only this computer. It is not a Wi-Fi/tablet server. It needs no VS Code or Live Server. Opening `index.html` directly as a disk file is not supported.
 
 ### Already using VS Code and Live Server?
 
-Keep using it. Open this folder, start Live Server for `index.html`, and use its actual localhost/127.0.0.1 address and port in your usual browser. No build step is required. After an update, hard-refresh if the browser shows old controls.
+Keep using it. Open this folder, start Live Server for `index.html`, and use `localhost` with its actual port in your usual browser (for example, `http://localhost:8081/`). No build step is required. After an update, hard-refresh if the browser shows old controls.
 
 ## Your first practice session
 

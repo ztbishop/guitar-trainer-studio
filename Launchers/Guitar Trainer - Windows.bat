@@ -7,5 +7,6 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
+rem The shared server opens localhost and prints its loopback IP and port.
 node local-web-server.cjs --open
 if errorlevel 1 pause

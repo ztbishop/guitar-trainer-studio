@@ -5,6 +5,7 @@ if ! command -v node >/dev/null 2>&1; then
   read -r -p "Press Return to close..."
   exit 1
 fi
+# The shared server opens localhost and prints its loopback IP and port.
 node local-web-server.cjs --open
 if [ "$?" -ne 0 ]; then
   read -r -p "Press Return to close..."

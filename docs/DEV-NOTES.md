@@ -1,5 +1,9 @@
 # Development notes
 
+## Launchers prefer localhost — 2026-10-28
+
+Owner requested both Windows and Mac launchers display the IP but open localhost after verified YouTube origin-dependent behavior. Changed the shared local-web-server.cjs browser URL only: binding stays 127.0.0.1 and the validated/default port is used in all output/open/copy paths. Startup prints both localhost URL and loopback IP/port, explaining which to use for YouTube. Both wrappers continue calling the same server with --open. README explains separate browser storage and deliberate Backup/Import transfer; no data is moved automatically. Existing extension packaging changes remain untouched. Verification: all 474 Node tests pass with Node 24, shared-server syntax and diff whitespace checks pass. A real temporary server on an unused custom port printed the expected localhost URL plus 127.0.0.1 IP/port, and an HTTP request through localhost returned the app successfully; the test server was stopped without touching Live Server. Existing clipboard tests use the localhost URL and fake clipboard processes. Actual Mac Finder/default-browser and Windows double-click/clipboard acceptance remains separate.
+
 ## All Of Me origin-dependent YouTube result — 2026-10-28
 
 Further investigation identifies a concrete condition, superseding the earlier unresolved diagnosis for current loading. YouTube's normal watch-page player response for EmeenSNRGBc reports status OK and playableInEmbed:true. Its embedded_player_response under PLAYER_VARS instead returns previewPlayabilityStatus UNPLAYABLE with only “This video is unavailable” when embedded from http://127.0.0.1:8081. Both official youtube.com and youtube-nocookie.com embed hosts reproduce that failure; the same-creator control 2K_sBujnYfo returns OK. A direct navigation to /embed without a parent/referrer returned 153 for both and is not valid evidence about this 150 failure.

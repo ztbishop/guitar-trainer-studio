@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Launchers prefer localhost — 2026-10-28
+
+local-web-server.cjs remains the shared runtime for both platform wrappers. It still binds only 127.0.0.1, but constructs the browser URL with localhost and the validated effective GTS_PORT (8081 by default). The same URL is printed, opened after successful listen, and passed to the existing copyAddress path. Startup separately identifies the loopback IP/port. Wrapper comments explain the shared behavior. Existing file allowlisting, errors, clipboard commands, browser launch and Live Server independence remain intact. No redirect, storage migration, new module, runtime trainer/MIDI change or version bump.
+
 ## YouTube metadata readiness — 2026-10-28
 
 youtubeMediaPlayer in js/media-player.js now distinguishes iframe onReady from recording metadata readiness. After onReady, a 100 ms timer waits for a finite positive getDuration before resolving handler.ready and capturing durationMs. The existing 20-second load deadline covers both phases. Success, cancellation and provider errors clean up both timers; late/repeated onReady cannot recreate them. No play/seek request is used to force metadata. media-controls still owns loading, failure disposal, alignment and automatic source selection through the native host. Errors 101/150 explain embedded-playback refusal and suggest another recording. No new module, provider bypass, storage, MIDI, grading or Wait behavior change.

@@ -10,7 +10,7 @@ Original application content is AGPL-3.0-or-later with the exceptions and source
 
 Keep the owner's usual VS Code Live Server/browser/Fishman workflow. There is no frontend build, npm install or required helper. For ZIP users, Launchers contains a Windows `.bat` and Mac `.command`, both calling `node local-web-server.cjs --open` from the project root. Node 22+ is required only for these launchers and development checks, not for hosted browser use.
 
-The optional dependency-free CommonJS server binds to `127.0.0.1:8081`. It starts the default browser only after listening succeeds. Keep its terminal open; Ctrl+C stops it. It serves allowlisted app assets/docs and checks decoded paths and real paths for containment; it never serves `.git`, launchers, tests, tools or arbitrary root files. It supports GET/HEAD and correct JS/module/font MIME types. There is no LAN, LED, conversion or MIDI helper. `GTS_PORT` overrides the port; changing ports creates a different browser storage origin. Port-in-use failures do not open an unrelated existing server. On Mac the `.command` may need `chmod +x`; `.gitattributes` preserves LF endings. Actual Finder/Terminal/security behavior must be accepted on a Mac.
+The optional dependency-free CommonJS server binds to `127.0.0.1:8081`. It opens/copies `http://localhost:<port>/` while still printing the bound IP and port; this avoids the reproduced numeric-IP YouTube embedding failure. It starts the default browser only after listening succeeds. Keep its terminal open; Ctrl+C stops it. It serves allowlisted app assets/docs and checks decoded paths and real paths for containment; it never serves `.git`, launchers, tests, tools or arbitrary root files. It supports GET/HEAD and correct JS/module/font MIME types. There is no LAN, LED, conversion or MIDI helper. `GTS_PORT` overrides the port; changing ports creates a different browser storage origin. Port-in-use failures do not open an unrelated existing server. On Mac the `.command` may need `chmod +x`; `.gitattributes` preserves LF endings. Actual Finder/Terminal/security behavior must be accepted on a Mac.
 
 Examples from the project root:
 
@@ -47,7 +47,7 @@ assets/demos contains original CC0 exercises and editable AlphaTex sources. `nod
 tests/guide-launchers.test.js covers real HTTP serving/boundaries and native score import, notation/tab render, MIDI generation and practice targets. tests/run-guide-demos-browser.cjs runs with an isolated Playwright profile against a supplied server URL, or starts/closes a temporary loopback server when no URL is supplied; it does not change the owner's browser/profile/library. It checks the actual demo buttons, optional save/reopen, guide navigation, offline local assets and narrow layout. Set GTS_PLAYWRIGHT_MODULE to an installed Playwright module path if needed:
 
 ```sh
-node tests/run-guide-demos-browser.cjs http://127.0.0.1:8081
+node tests/run-guide-demos-browser.cjs http://localhost:8081
 ```
 
 Automated native/browser checks do not establish audible balance, physical Fishman tracking, Mac launcher permissions, Windows Explorer launch/security prompts or every score/provider combination. Ask the owner to try the extracted-folder launcher, all demos, the help link and a familiar MIDI session; separately test the Mac launcher on actual macOS. Do not claim those checks passed from this Windows environment.

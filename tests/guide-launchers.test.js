@@ -11,7 +11,7 @@ import {buildPlaybackTimeline, getPracticeEvents} from '../js/score-playback.js'
 const {createAppServer,copyAddress} = createRequire(import.meta.url)('../local-web-server.cjs');
 
 test('launcher copies the exact local URL and handles missing/failed clipboard tools without changing the real clipboard', async () => {
-  const url = 'http://127.0.0.1:8081/';
+  const url = 'http://localhost:8081/';
   for (const result of ['success','failure','missing','pipe']) {
     let written;
     const copied = await copyAddress(url, (command,args,options) => {

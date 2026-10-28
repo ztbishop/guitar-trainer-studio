@@ -86,8 +86,10 @@ if (require.main === module) {
         process.exitCode = 1;
       });
       server.listen(port, '127.0.0.1', () => {
-        const url = `http://127.0.0.1:${port}/`;
-        console.log(`Guitar Trainer Studio: ${url}\nKeep this window open while practicing. Press Ctrl+C to stop.\nUse a Web MIDI browser such as Chrome for guitar input.`);
+        // Keep listening private to this computer, but use the hostname for
+        // embedded media: some YouTube videos reject a numeric-IP origin.
+        const url = `http://localhost:${port}/`;
+        console.log(`Guitar Trainer Studio: ${url}\nServer IP: 127.0.0.1 (this computer only), port ${port}.\nUse the localhost address above for YouTube compatibility.\nKeep this window open while practicing. Press Ctrl+C to stop.\nUse a Web MIDI browser such as Chrome for guitar input.`);
         if (process.stdin.isTTY) {
           console.log('Press C then Enter to copy the local address for another browser.');
           const input = readline.createInterface({input:process.stdin, output:process.stdout});
