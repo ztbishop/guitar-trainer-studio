@@ -59,3 +59,21 @@ export function visibleWaveform(peaks,start,end,columns) {
   }
   return result;
 }
+
+// Choose round recording-time intervals and generate only the visible ruler.
+export function timelineRuler(durationMs,fullWidth,scrollLeft,viewportWidth) {
+  if(!(durationMs>0 && fullWidth>0 && viewportWidth>0))return {stepMs:0,ticks:[]};
+  const msPerPixel=durationMs*1024/(1000*fullWidth);
+  const desired=Math.max(1,msPerPixel*90),power=10**Math.floor(Math.log10(desired));
+  const stepMs=[1,2,5,10].map(n=>n*power).find(n=>n>=desired);
+  const start=Math.max(0,(scrollLeft/fullWidth*1024-12)/1000*durationMs);
+  const end=Math.min(durationMs,((scrollLeft+viewportWidth)/fullWidth*1024-12)/1000*durationMs);
+  const decimals=Math.max(0,Math.min(3,Math.ceil(Math.log10(1000/stepMs))));
+  const ticks=[];
+  for(let index=Math.ceil(start/stepMs);index*stepMs<=end+0.00001;index++) {
+    const time=Math.round(index*stepMs),seconds=time/1000;
+    const label=`${Math.floor(seconds/60)}:${(seconds%60).toFixed(decimals).padStart(decimals?3+decimals:2,'0')}`;
+    ticks.push({time,label});
+  }
+  return {stepMs,ticks};
+}

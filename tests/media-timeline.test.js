@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {timelineGuides,boundedAnchorTime,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel} from '../js/media-timeline.js';
+import {timelineGuides,boundedAnchorTime,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel,timelineRuler} from '../js/media-timeline.js';
 const timeline={endTick:800,measures:[{measureNumber:1,occurrence:1,startTick:0,endTick:400},{measureNumber:1,occurrence:2,startTick:400,endTick:800}]};
 const score={masterBars:[{timeSignatureNumerator:4}]};
 const points=[{barIndex:0,barOccurence:0,barPosition:0,millisecondOffset:1000},{barIndex:0,barOccurence:1,barPosition:1,millisecondOffset:9000}];
@@ -44,4 +44,17 @@ test('visible waveform preserves narrow peaks and renders only the requested reg
   const samples=visibleWaveform(peaks,0.5,0.6,100);
   assert.equal(samples.length,100);assert.equal(Math.max(...samples),1);
   assert.equal(Math.max(...visibleWaveform(peaks,0.6,0.7,100)),0);
+});
+
+// A long recording at extreme zoom must stay cheap and have distinct fine labels.
+test('ruler uses round, finer intervals at high zoom with viewport-bounded tick counts',()=>{
+  const full=timelineRuler(980212,1280,0,1280);
+  const zoomed=timelineRuler(980212,1280*256,50000,1280);
+  assert(zoomed.stepMs<full.stepMs);assert(zoomed.stepMs<=1000);
+  assert(full.ticks.length<20 && zoomed.ticks.length<20);
+  assert.equal(new Set(zoomed.ticks.map(t=>t.label)).size,zoomed.ticks.length);
+  assert(zoomed.ticks.every(t=>t.time%zoomed.stepMs===0));
+  const fine=timelineRuler(12000,1280*256,10000,1280);
+  assert(fine.ticks.some(t=>/\.\d{3}$/.test(t.label)));
+  assert.deepEqual(timelineRuler(0,1280,0,1280).ticks,[]);
 });

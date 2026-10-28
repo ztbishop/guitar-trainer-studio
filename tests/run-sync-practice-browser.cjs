@@ -62,6 +62,10 @@ function recording() {
       await page.waitForFunction(()=>!syncState.isPlaying);
     };
     await restored();await grade();
+    // Empty editor opens loading options; an attached recording reopens directly.
+    await page.evaluate(()=>document.querySelector('[data-open-media-editor]').click());
+    assert.equal(await page.locator('#media-popup').isVisible(),true);
+    await page.keyboard.press('Escape');
     for(const returnToSynth of [true,false,true]) {
       await change('media-show-editor',true);
       assert.match(await page.locator('#media-action-status').textContent(),/Editing sync/,'reopening clears the finished-editing message');
@@ -88,6 +92,38 @@ function recording() {
         await page.locator('#media-zoom-fit').click();await page.locator('#media-zoom-in').click();
         assert.equal(await page.locator('#media-timeline-zoom').textContent(),'120%');
         if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.GTS_SCREENSHOT_DIR,'sync-laptop.png'),fullPage:true});
+        await page.evaluate(()=>{for(let i=0;i<35;i++)document.querySelector('#media-zoom-in').click();});
+        await page.waitForTimeout(100);
+        const extreme=await page.evaluate(()=>{
+          const svg=document.querySelector('#media-timeline'),scroll=svg.parentElement;
+          scroll.scrollLeft=(scroll.scrollWidth-scroll.clientWidth)/2;
+          return {width:svg.getBoundingClientRect().width,viewport:scroll.clientWidth};
+        });
+        await page.waitForTimeout(100);
+        assert(Math.abs(extreme.width-extreme.viewport)<1,'extreme zoom keeps SVG viewport-sized');
+        const ruler=await page.locator('.media-ruler-label').allTextContents();
+        assert(ruler.length>2 && ruler.length<25,'only visible ruler labels are drawn');
+        assert.equal(new Set(ruler).size,ruler.length,'fine time labels remain distinct');
+        assert(ruler.some(label=>/\.\d{3}$/.test(label)),'short recording supports millisecond ruler precision');
+        const expected=await page.evaluate(()=>{
+          const svg=document.querySelector('#media-timeline'),box=svg.viewBox.baseVal;
+          return (box.x+box.width*0.6)/1000*document.querySelector('#media-audio').duration;
+        });
+        const box=await page.locator('#media-timeline').boundingBox();
+        await page.mouse.click(box.x+box.width*0.6,box.y+55);
+        await page.waitForFunction(time=>Math.abs(Number(document.querySelector('#media-point-time').value)-time)<0.002,expected);
+        if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.GTS_SCREENSHOT_DIR,'sync-extreme-zoom.png'),fullPage:true});
+        await page.locator('#media-add-point').click();
+        const beforeDrag=await page.evaluate(()=>syncState.media.points[0].millisecondOffset);
+        const anchor=await page.locator('#media-timeline [data-point="0"] path').boundingBox();
+        await page.mouse.move(anchor.x+anchor.width/2,anchor.y+4);await page.mouse.down();
+        await page.mouse.move(anchor.x+anchor.width/2+80,anchor.y+4,{steps:5});await page.mouse.up();
+        const afterDrag=await page.evaluate(()=>syncState.media.points[0].millisecondOffset);
+        assert(Math.abs(afterDrag-beforeDrag-80/(box.width*256)*1024/1000*12000)<1,'drag uses full recording width at extreme zoom');
+        await page.locator('#media-zoom-fit').click();
+        await page.locator('#media-close-editor').click();
+        await page.evaluate(()=>document.querySelector('[data-open-media-editor]').click());
+        assert.equal(await page.locator('#media-popup').isVisible(),false,'loaded editor reopens without load menu');
         // Restore initial alignment for the existing first-note grading checks.
         await page.locator('#media-point-time').fill('0');await page.locator('#media-add-point').click();
         await page.waitForFunction(()=>syncState.media.points[0].millisecondOffset===0);

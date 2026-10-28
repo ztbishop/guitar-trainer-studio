@@ -119,3 +119,9 @@ body.media-preview .toolbar-score-value { color:#2563eb; }
 #media-selection { margin:2px 0; }
 /* Sync preview has no fretboard targets; restore the saved panel on exit. */
 body.media-editor-visible #fretboard-container { display:none; }
+
+/* Zoom changes a viewport-sized SVG viewBox, never a giant raster surface. */
+.media-timeline-scroll { position:relative; }
+.media-timeline-spacer { height:0; pointer-events:none; }
+#media-timeline { position:sticky; left:0; width:100%; overflow:hidden; }
+.media-ruler-tick { stroke:#64748b; stroke-width:1; vector-effect:non-scaling-stroke; pointer-events:none; }

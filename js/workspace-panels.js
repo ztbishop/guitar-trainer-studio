@@ -1,6 +1,6 @@
 // View sizing only; score rendering, transport and grading remain with their owners.
 const KEY='gts.workspacePanelSizes';
-const PANELS={ 'media-editor':{min:180,max:520,initial:400}, 'fretboard-container':{min:120,max:400,initial:190} };
+const PANELS={ 'media-editor':{min:180,max:520,initial:320}, 'fretboard-container':{min:120,max:400,initial:190} };
 export function panelSizes(value={}) {
   return Object.fromEntries(Object.entries(PANELS).map(([id,rule])=>[id,Number.isFinite(value?.[id])?Math.max(rule.min,Math.min(rule.max,value[id])):rule.initial]));
 }

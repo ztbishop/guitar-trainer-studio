@@ -1,5 +1,13 @@
 # Guitar Trainer Studio Architecture
 
+## Viewport media ruler and compact editor — 2026-10-28
+
+`media-controls.js` now keeps the SVG at viewport width, using a zero-height wide spacer for horizontal scroll extent and a sticky SVG with a moving viewBox. Logical time coordinates remain -12..1012; pointer seek, drag deltas and playback scrolling use the virtual recording width (viewport width × zoom). Labels/markers retain screen-sized geometry. Scroll redraws are animation-frame coalesced, reuse cached timelineGuides and avoid rebuilding the point list; only visible guides/anchors and waveform columns are emitted. This supersedes the recording-wide SVG sizing in earlier geometry notes and avoids browser raster-size blur at extreme zoom.
+
+`media-timeline.js` adds pure timelineRuler: choose 1/2/5 × powers-of-ten millisecond intervals for approximately 90 px spacing, emit only visible ticks, and format precision from the interval (up to milliseconds). `media-sync.css` owns sticky viewport/spacer/tick presentation. No profile format, native playback, matching or grading changes.
+
+Editor opening reuses the toolbar's existing Load/options popup action when no player is attached and no load is busy; otherwise focus goes to the point action. Field guidance moves to the existing options disclosure. The editor keeps one preview/playhead summary and hides only generic editing reminders from the lower action status, preserving confirmations/errors. `workspace-panels.js` changes the media editor first-use/reset preference from 400 to 320 px; saved manual heights and viewport fitting remain authoritative. Fretboard hiding/restoration is unchanged.
+
 ## Launchers prefer localhost — 2026-10-28
 
 local-web-server.cjs remains the shared runtime for both platform wrappers. It still binds only 127.0.0.1, but constructs the browser URL with localhost and the validated effective GTS_PORT (8081 by default). The same URL is printed, opened after successful listen, and passed to the existing copyAddress path. Startup separately identifies the loopback IP/port. Wrapper comments explain the shared behavior. Existing file allowlisting, errors, clipboard commands, browser launch and Live Server independence remain intact. No redirect, storage migration, new module, runtime trainer/MIDI change or version bump.

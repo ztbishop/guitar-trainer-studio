@@ -3,7 +3,7 @@ import {AppState} from './app-state.js';
 import {LibraryStore,fingerprint} from './library-store.js';
 import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport,pointTick} from './media-sync.js';
 import {htmlMediaPlayer,youtubeMediaPlayer,waveformPeaks} from './media-player.js';
-import {timelineGuides,boundedAnchorTime,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel} from './media-timeline.js';
+import {timelineGuides,boundedAnchorTime,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel,timelineRuler} from './media-timeline.js';
 import {soundslicePoints} from './lesson-import-data.js';
 
 const svg=(tag,attrs={},text)=>{const node=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,String(value));if(text!==undefined)node.textContent=text;return node;};
@@ -24,13 +24,17 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   get('popup').firstElementChild.append(get('extra-tools'));
   get('extra-tools').before(get('paste-sync'));
   get('timeline').parentElement.before(get('zoom-toolbar'));
+  get('extra-tools').append(get('workflow-help'));
+  const timelineSpacer=document.createElement('div');timelineSpacer.className='media-timeline-spacer';
+  timelineSpacer.setAttribute('aria-hidden','true');get('timeline').before(timelineSpacer);
+  let projectedGuides=[],timelineFrame=0;
   let player=null,source=null,localFile=null,blobUrl=null,points=[],peaks=[],selected=-1,undo=[],redo=[],profiles=[],scoreHash='',profileId='',pendingProfile=null;
   let generation=0,scoreBytes=null,busy=false,pendingDelete=null,playhead=null,dirty=false;
   let zoom=1,waveformBusy=false,waveformGeneration=0,dragging=false,lastTimelineInteraction=0,buffering=false;
   let seekGeneration=0;
   let layout='left',share=35,showPlayer=true,showEditor=false;
   try {const saved=JSON.parse(localStorage.getItem('gts.mediaLayout') || '{}');if(MEDIA_LAYOUTS.includes(saved.layout))layout=saved.layout;if(saved.share>=20 && saved.share<=65)share=saved.share;if(typeof saved.showPlayer==='boolean')showPlayer=saved.showPlayer;if(typeof saved.showEditor==='boolean')showEditor=saved.showEditor;}catch{}
-  const message=text=>{get('status').textContent=text;get('action-status').textContent=text;};
+  const message=text=>{get('status').textContent=text;get('action-status').textContent=text;get('action-status').hidden=text.startsWith('Editing sync');};
   function persistLayout() {try{localStorage.setItem('gts.mediaLayout',JSON.stringify({layout,share,showPlayer,showEditor}));}catch{}}
   function renderLayout() {
     if(Boolean(AppState.media.editing)!==showEditor){if(showEditor)beforeEdit();host.setMediaEditing(showEditor);if(!showEditor)afterEdit();else message('Editing sync · Preview only. Choose Finish editing to restore grading and loops.');}
@@ -166,7 +170,10 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     if(!AppState.media.preview || AppState.media.returning)return;
     message(AppState.media.editing?'Editing sync · Scoring paused. Use main Play/Pause; click the timeline to seek.':AppState.mode==='wait'?'Recording selected. Wait stays silent and seeks the video as you solve each target.':'Recording selected. Main Play/Pause and Tempo control it; Realtime grading remains active.');sync();
   }
-  function openEditor() {showEditor=true;renderLayout();persistLayout();closeMenu();get('add-point').focus();}
+  function openEditor() {showEditor=true;renderLayout();persistLayout();closeMenu();
+    if(!player && !busy)document.querySelector('[data-launch-panel="media-popup"]').click();
+    else get('add-point').focus();
+  }
   function edit(next,{preservePlayback=false}={}) {
     const checked=validatePoints(next,AppState.playbackTimeline,player?.backingTrackDuration);
     if(checked.length<2)throw new Error('Keep at least a start and end point.');
@@ -226,9 +233,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     host.revealMediaScoreTarget({barIndex:measure.measureNumber-1,barPosition:(beat-1)/AppState.score.masterBars[measure.measureNumber-1].timeSignatureNumerator});
   }
   function renderTarget(time=player?.currentTime || 0) {
-    const measure=AppState.playbackTimeline?.measures[Number(get('measure').value)];
-    const selectedTime=get('point-time').value?clock(Number(get('point-time').value)*1000):'—';
-    get('selection').textContent=measure?`Editing sync · Scoring paused. Measure ${measure.measureNumber}${measure.occurrence>1?` (repeat ${measure.occurrence})`:''} · beat ${get('beat').value} → Selected: ${selectedTime} · Playhead: ${clock(time)}.`:'Editing sync · Scoring paused. Choose a measure/beat to align.';
+    get('selection').textContent=`Preview only · Grading and loops paused · Playhead: ${clock(time)}`;
   }
   async function seekRecording(time,{resume=false}={}) {
     const token=++seekGeneration,sourceToken=generation;
@@ -276,11 +281,15 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     const ratio=selected>=0?points[selected].millisecondOffset/(player?.backingTrackDuration || 1):(player?.currentTime || 0)/(player?.backingTrackDuration || 1);
     const nextZoom=Math.max(1,Math.min(256,next));
     const left=zoomWindow(zoom,nextZoom,scroll.scrollLeft,width,(12+ratio*1000)/1024);
-    zoom=nextZoom;renderPoints();scroll.scrollLeft=left;renderWaveform();
+    zoom=nextZoom;timelineSpacer.style.width=(zoom*100)+'%';scroll.scrollLeft=left;renderPoints();
+  }
+  function timelineRect() {
+    const scroll=get('timeline').parentElement,rect=scroll.getBoundingClientRect();
+    return {left:rect.left-scroll.scrollLeft,width:scroll.clientWidth*zoom};
   }
   function renderWaveform() {
     const timeline=get('timeline');timeline.querySelectorAll('.media-wave,.media-wave-fallback').forEach(node=>node.remove());
-    const scroll=timeline.parentElement,width=timeline.getBoundingClientRect().width;
+    const scroll=timeline.parentElement,width=scroll.clientWidth*zoom;
     if(!width)return;
     if(!peaks.length) {
       if(!player)return;
@@ -296,18 +305,27 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     const wave=svg('path',{d:samples.map((peak,i)=>`M${(start+(end-start)*i/samples.length)*1000},${55-peak*22}v${peak*44}`).join(' '),class:'media-wave',fill:'none'});
     timeline.prepend(wave);
   }
-  function renderPoints() {
+  function renderPoints(viewportOnly=false) {
     if(dragging)return;
     if(selected>=points.length)selected=-1;
     const timeline=get('timeline'),duration=player?.backingTrackDuration || 1;
-    timeline.replaceChildren();timeline.style.width=(zoom*100)+'%';get('timeline-zoom').textContent=`${Math.round(zoom*100)}%`;
+    const scroll=timeline.parentElement,width=scroll.clientWidth*zoom;
+    if(!width)return;
+    timelineSpacer.style.width=(zoom*100)+'%';
+    const left=-12+scroll.scrollLeft/width*1024,span=1024/zoom;
+    timeline.setAttribute('viewBox',`${left} 0 ${span} 100`);
+    timeline.replaceChildren();get('timeline-zoom').textContent=`${Math.round(zoom*100)}%`;
     timeline.append(svg('line',{class:'media-lane-divider',x1:-12,x2:1012,y1:32,y2:32,'pointer-events':'none'}));
-    const unit=1024/(timeline.getBoundingClientRect().width || 1000);
-    // Counter-scale only horizontally: the SVG widens on zoom, its height does not.
-    for(let i=0;i<=10*zoom;i++)timeline.append(svg('text',{transform:`translate(${i/(10*zoom)*1000} 94) scale(${unit} 1)`,'font-size':12},clock(duration*i/(10*zoom))));
-    for(const guide of timelineGuides(AppState.score,AppState.playbackTimeline,points)) {
+    const unit=1024/width;
+    for(const tick of timelineRuler(duration,width,scroll.scrollLeft,scroll.clientWidth).ticks) {
+      const x=tick.time/duration*1000;
+      timeline.append(svg('line',{class:'media-ruler-tick',x1:x,x2:x,y1:79,y2:84}),svg('text',{class:'media-ruler-label',transform:`translate(${x} 96) scale(${unit} 1)`,'font-size':12,'text-anchor':x-left<40*unit?'start':left+span-x<40*unit?'end':'middle'},tick.label));
+    }
+    if(!viewportOnly)projectedGuides=timelineGuides(AppState.score,AppState.playbackTimeline,points);
+    for(const guide of projectedGuides) {
       if(guide.anchor>=0)continue;
       const x=guide.millisecondOffset/duration*1000;
+      if(x<left-100*unit || x>left+span+100*unit)continue;
       const active=Number(get('measure').value)===guide.measureIndex && Number(get('beat').value)===guide.beat;
       const marker=svg('g',{class:'media-guide'+(active?' is-selected':''),transform:`translate(${x} 0)`,'data-guide':guide.measureIndex,'data-beat':guide.beat,'data-time':guide.millisecondOffset});
       marker.append(svg('line',{x1:0,x2:0,y1:16,y2:active?31:84,'pointer-events':'none'}),svg('rect',{x:-6*unit,y:0,width:12*unit,height:30,fill:'transparent'}),svg('path',{class:guide.beat===1?'':'media-beat-arrow',d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}));
@@ -316,6 +334,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     }
     points.forEach((point,index)=>{
       const x=point.millisecondOffset/duration*1000;
+      if(x<left-100*unit || x>left+span+100*unit)return;
       const marker=svg('g',{class:'media-marker'+(selected===index?' is-selected':''),transform:`translate(${x} 0)`,'data-point':index});
       const label=syncPointLabel(point,AppState.score,AppState.playbackTimeline);
       marker.append(svg('line',{x1:0,x2:0,y1:16,y2:31,'pointer-events':'none'}),svg('path',{d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}),svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},label),svg('rect',{x:-9*unit,y:0,width:18*unit,height:30,fill:'transparent'}));
@@ -338,6 +357,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     timeline.insertBefore(timeMarker,playhead);renderSelectedTime();
     renderTarget();
     renderWaveform();
+    if(viewportOnly)return;
     get('point-list').replaceChildren();points.forEach((point,index)=>{
       const button=document.createElement('button');button.type='button';button.setAttribute('aria-pressed',String(index===selected));
       const beat=1+point.barPosition*AppState.score.masterBars[point.barIndex].timeSignatureNumerator;
@@ -389,7 +409,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   get('close-editor').addEventListener('click',finishEditing);
   get('finish-editing').addEventListener('click',finishEditing);
-  get('edit-sync').addEventListener('click',()=>{showEditor=!showEditor;renderLayout();persistLayout();if(showEditor)get('close-editor').focus();});
+  get('edit-sync').addEventListener('click',()=>{if(!showEditor)openEditor();else {showEditor=false;renderLayout();persistLayout();}});
   document.querySelectorAll('[data-open-media-editor]').forEach(button=>button.addEventListener('click',event=>{event.stopPropagation();if(showEditor){showEditor=false;renderLayout();persistLayout();closeMenu();}else openEditor();}));
   get('reset-layout').addEventListener('click',()=>{share=35;renderLayout();persistLayout();document.dispatchEvent(new Event('reset-panel-sizes'));});
   for(const key of ['layout','show-player','show-editor'])get(key).addEventListener('change',()=>{layout=get('layout').value;showPlayer=get('show-player').checked;showEditor=get('show-editor').checked;renderLayout();persistLayout();});
@@ -421,7 +441,9 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   get('zoom-in').addEventListener('click',()=>changeZoom(zoom*1.2));
   get('zoom-out').addEventListener('click',()=>changeZoom(zoom/1.2));
   for(const key of ['timeline-zoom','zoom-fit'])get(key).addEventListener('click',()=>changeZoom(1));
-  get('timeline').parentElement.addEventListener('scroll',renderWaveform);
+  get('timeline').parentElement.addEventListener('scroll',()=>{
+    if(timelineFrame)return;timelineFrame=requestAnimationFrame(()=>{timelineFrame=0;renderPoints(true);});
+  });
   get('timeline').parentElement.addEventListener('wheel',()=>{lastTimelineInteraction=performance.now();},{passive:true});
   get('waveform').addEventListener('click',buildWaveform);
   get('timeline').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key) || selected<0)return;event.preventDefault();action(()=>nudge((event.key==='ArrowLeft'?-1:1)*(event.shiftKey?100:10)))();});
@@ -431,12 +453,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     const marker=event.target.closest('[data-point]'),guide=event.target.closest('[data-guide]');
     if(!marker) {
       if(guide)chooseGuide(Number(guide.dataset.guide),Number(guide.dataset.beat));
-      else {const time=timeFromClientX(event.clientX,get('timeline').getBoundingClientRect(),player.backingTrackDuration);action(()=>seekRecording(time))();}
+      else {const time=timeFromClientX(event.clientX,timelineRect(),player.backingTrackDuration);action(()=>seekRecording(time))();}
       return;
     }
     event.preventDefault();const index=Number(marker.dataset.point);selectPoint(index,{preserveTime:true});
     const timeline=get('timeline'),initial=structuredClone(points),token=generation;timeline.setPointerCapture(event.pointerId);
-    dragging=true;const startX=event.clientX,startTime=initial[index].millisecondOffset,rect=timeline.getBoundingClientRect(),wasPlaying=AppState.isPlaying;
+    dragging=true;const startX=event.clientX,startTime=initial[index].millisecondOffset,rect=timelineRect(),wasPlaying=AppState.isPlaying;
     let nextTime=initial[index].millisecondOffset,moved=false;
     const move=e=>{if(e.pointerId!==event.pointerId || token!==generation)return;if(!moved){if(Math.abs(e.clientX-startX)<3)return;moved=true;host.pauseMediaPlayback();player.pause();}nextTime=boundedAnchorTime(initial,index,startTime+(e.clientX-startX)/rect.width*1024/1000*player.backingTrackDuration,player.backingTrackDuration);selectTime(nextTime);timeline.querySelector(`[data-point="${index}"]`)?.setAttribute('transform',`translate(${nextTime/player.backingTrackDuration*1000} 0)`);};
     const cleanup=()=>{dragging=false;timeline.removeEventListener('pointermove',move);timeline.removeEventListener('pointerup',finish);timeline.removeEventListener('pointercancel',cancel);if(timeline.hasPointerCapture(event.pointerId))timeline.releasePointerCapture(event.pointerId);};
@@ -487,7 +509,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     if(document.activeElement!==get('seek'))get('seek').value=String(time/1000);
     const x=duration>0?time/duration*1000:0;playhead?.setAttribute('x1',x);playhead?.setAttribute('x2',x);
     if(showEditor && player.playing && !dragging && performance.now()-lastTimelineInteraction>1000) {
-      const scroll=get('timeline').parentElement,position=(x+12)/1024*get('timeline').clientWidth;
+      const scroll=get('timeline').parentElement,position=(x+12)/1024*scroll.clientWidth*zoom;
       if(position<scroll.scrollLeft || position>scroll.scrollLeft+scroll.clientWidth)scroll.scrollLeft=Math.max(0,position-scroll.clientWidth/2);
     }
     if(AppState.media.preview && !AppState.media.returning) {

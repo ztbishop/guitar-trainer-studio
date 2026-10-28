@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+## Media ruler and compact editor — 2026-10-28
+
+- [x] Owner reports recent media sync workflow works better; extreme-zoom timestamp blur and redundant vertical space prompted this follow-up.
+- [x] Render a viewport-sized timeline with adaptive, visible-only time labels, retaining seek/drag coordinates and bounded waveform work.
+- [x] Move detailed guidance into Load/options; keep meaningful lower status messages; reduce first-use/reset height to 320 px without overwriting saved heights.
+- [x] Open Load/options with an empty editor; reopen directly when a recording is already attached.
+- [ ] Owner acceptance: zoom/scroll and fine-tune the long YouTube recording on the 16-inch laptop; inspect ruler clarity, compact layout and repeated open/close flow. Physical Fishman and audible playback checks remain separate from automated evidence.
+
 ## Launchers prefer localhost — 2026-10-28
 
 - [x] Both ZIP launchers open/copy localhost through their shared server; continue displaying loopback IP and effective port and bind only to 127.0.0.1.

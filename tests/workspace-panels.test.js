@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {panelSizes,fitPanelSizes,fretboardPanelHeight,usesAutomaticFretboardHeight} from '../js/workspace-panels.js';
 test('panel preferences reject malformed values and clamp restored sizes',()=>{
-  assert.deepEqual(panelSizes(null),{'media-editor':400,'fretboard-container':190});
-  assert.deepEqual(panelSizes({'media-editor':Infinity,'fretboard-container':900}),{'media-editor':400,'fretboard-container':400});
+  assert.deepEqual(panelSizes(null),{'media-editor':320,'fretboard-container':190});
+  assert.deepEqual(panelSizes({'media-editor':Infinity,'fretboard-container':900}),{'media-editor':320,'fretboard-container':400});
   assert.equal(panelSizes({'media-editor':280})['media-editor'],280);
 });
 
