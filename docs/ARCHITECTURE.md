@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Triangle navigation follows the chosen pass — 2026-10-28
+
+This supersedes the earlier triangle-no-seek decision. media-controls.seekSelectedTarget derives a performance tick from the selected expanded measure occurrence and fractional beat, projects it through mediaTimeAtTick, and uses seekRecording with preserveTime. Unsaved guide clicks seek immediately; saved anchor clicks seek on pointer release only if no drag occurred. Existing drag editing/resume behavior stays intact. The shared recording-seek path selects Recording when necessary and retains its generation/source guards and host cursor reveal. Native score clicks invalidate unfinished timeline seeks and keep the native occurrence selection. Red seconds, profiles, MIDI/grading and Wait rules are unchanged; selection alone never saves an anchor.
+
 ## Reset cursor follow — 2026-10-28
 
 alphatab-host.stop now queues a cursor reveal for the native playback range start (or zero) before native Stop, and requests a layout-delayed reveal immediately and on matching worker position acknowledgement. The shared reveal helper accepts followOnly for Reset; both queued and acknowledged reveals honor auto-scroll off without changing the preference. Waveform and explicit loop reveals retain their existing behavior. Native Stop remains responsible for transport/reset position; grading, Wait and source handling are unchanged.

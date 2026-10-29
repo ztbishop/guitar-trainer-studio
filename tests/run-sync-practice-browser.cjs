@@ -122,11 +122,11 @@ function recording() {
         assert(Math.abs(afterDrag-beforeDrag-80/(box.width*256)*1024/1000*12000)<1,'drag uses full recording width at extreme zoom');
         await page.locator('#media-zoom-fit').click();
         const selectedTime=await page.locator('#media-point-time').inputValue();
-        const playbackBefore=await page.evaluate(()=>syncHost.getAlphaTabApi().tickPosition);
         await page.locator('[data-guide="1"][data-beat="1"] path').click();
         assert.equal(await page.locator('#media-measure').inputValue(),'1');
         assert.equal(await page.locator('#media-point-time').inputValue(),selectedTime);
-        assert.equal(await page.evaluate(()=>syncHost.getAlphaTabApi().tickPosition),playbackBefore,'triangle never seeks playback');
+        await page.waitForFunction(()=>Math.abs(syncHost.getAlphaTabApi().tickPosition-syncState.playbackTimeline.measures[1].startTick)<3);
+        assert.equal(await page.locator('#media-point-time').inputValue(),selectedTime,'triangle seek preserves red recording time');
         const scoreClick=await page.evaluate(()=>{
           const api=syncHost.getAlphaTabApi(),beat=api.score.tracks[0].staves[0].bars[2].voices[0].beats[0];
           const bounds=api.boundsLookup.findBeat(beat).realBounds,origin=document.querySelector('#alphatab-container').getBoundingClientRect();
@@ -138,6 +138,8 @@ function recording() {
         assert.equal(await page.locator('[data-guide="2"][data-beat="1"].is-selected').count(),1);
         assert.equal(await page.locator('#media-add-point').textContent(),'Add sync point');
         await page.locator('[data-point="0"] rect').click();
+        await page.waitForFunction(()=>syncHost.getAlphaTabApi().tickPosition<3);
+        assert.equal(await page.locator('#media-point-time').inputValue(),selectedTime,'saved point click also preserves red time');
         assert.equal(await page.locator('#media-add-point').textContent(),'Update sync point');
         await page.locator('#media-close-editor').click();
         await page.evaluate(()=>document.querySelector('[data-open-media-editor]').click());
@@ -193,6 +195,22 @@ function recording() {
     await page.locator('#media-close-editor').click();
     assert.equal(await page.locator('#media-editor').isVisible(),false);
     assert.equal(await page.locator('#play-pause-button').textContent(),'▶ Play');
+    // Written measure 1 appears twice in performance order. Its second triangle
+    // must seek that pass, not the first occurrence of the same notation.
+    await page.setViewportSize({width:1280,height:900});
+    const repeatedXml='<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Guitar</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><barline location="left"><repeat direction="forward"/></barline><note><pitch><step>E</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note><barline location="right"><repeat direction="backward" times="2"/></barline></measure></part></score-partwise>';
+    await page.locator('#score-file-input').setInputFiles({name:'repeat-navigation.musicxml',mimeType:'application/xml',buffer:Buffer.from(repeatedXml)});
+    await page.waitForFunction(async()=>{window.syncState=(await import('./js/app-state.js')).AppState;window.syncHost=await import('./js/alphatab-host.js');return syncState.playerReady && syncState.playbackTimeline?.measures.length===2;});
+    await change('media-show-editor',true);
+    await page.locator('#media-file').setInputFiles({name:'repeat.wav',mimeType:'audio/wav',buffer:recording()});
+    await page.waitForFunction(()=>syncState.media.preview && syncState.playerReady);
+    await page.locator('#media-point-time').fill('3.333');
+    await page.locator('[data-guide="1"][data-beat="1"] path').click();
+    await page.waitForFunction(()=>Math.abs(syncHost.getAlphaTabApi().tickPosition-syncState.playbackTimeline.measures[1].startTick)<3);
+    assert.equal(await page.locator('#media-measure').inputValue(),'1');
+    assert.equal(await page.locator('#media-point-time').inputValue(),'3.333');
+    assert.equal(await page.locator('#media-add-point').textContent(),'Add sync point');
+    console.log('PASS repeated-measure triangle seeks the second pass and preserves selected recording seconds');
     assert.deepEqual(errors,[]);
     console.log('PASS first-use Left, saved Above/Right, closed-editor persistence, Wait gates and phone layout');
     await context.close();

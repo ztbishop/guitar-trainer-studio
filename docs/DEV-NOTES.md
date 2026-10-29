@@ -1,5 +1,11 @@
 # Development notes
 
+## Triangle navigation follows the chosen pass — 2026-10-28
+
+Owner approved replacing triangle reveal-only behavior with seeking, matching sheet clicks while preserving the red recording-time selection. Estimated and saved triangles now seek the mapped occurrence through existing recording/host paths. Saved-point drags remain alignment edits; only plain clicks use the new target seek. A native sheet click cancels unfinished timeline seeks, retains native repeat handling, and displays its resulting pass in the existing selector/highlight. Recording is selected if needed, as for waveform seeking; no new automatic playback is introduced.
+
+Verification: 476 Node tests pass; isolated Chrome covers guide/saved-anchor seeking with unchanged red seconds, native sheet clicks, Add/Update, fine zoom/drag and practice restoration. A repeated MusicXML fixture checks that the second-pass triangle seeks its second occurrence without changing typed seconds. Original-song/listening/Fishman acceptance remains pending. Documentation and in-app help supersede the older no-seek explanation; unrelated extension work is preserved.
+
 ## Reset cursor follow — 2026-10-28
 
 Owner reported Reset moved the cursor but did not follow it until Play. stop lacked the explicit paused reveal used by loop selection. Added an auto-scroll-gated immediate/layout-delayed reveal plus a native worker reset-position acknowledgement reveal. No forced seek or playback is added. Validation: 476 Node tests pass, with host checks for paused Reset, asynchronous acknowledgement, loop start and auto-scroll off. tests/run-reset-browser.cjs uses an isolated Chrome profile and real native worker with a scrollable bundled fixture: Reset reveals the cursor without Play; auto-scroll off preserves the viewport. Syntax and whitespace checks pass. Owner's original long score/recording and physical Fishman acceptance remain pending; existing extension changes are untouched.

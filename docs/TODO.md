@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+## Triangle navigation follows the chosen pass — 2026-10-28
+
+- [x] Triangle clicks seek their selected score beat and repeat pass, moving the sheet cursor/black playhead while preserving red recording seconds; saved drags remain unchanged.
+- [x] Keep native repeat selection for sheet clicks, with selector/triangle feedback and explicit pass choice through the timeline.
+- [ ] Owner check with original repeated song: choose red time, click first/second-pass triangles, check black/sheet cursor and Add/Update, then save explicitly. Audible playback and physical MIDI acceptance remain separate.
+
 ## Reset cursor follow — 2026-10-28
 
 - [x] Reset reveals the stopped cursor with auto-scroll enabled, including asynchronous native position updates; auto-scroll off preserves the viewport.

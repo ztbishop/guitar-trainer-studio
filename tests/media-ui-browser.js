@@ -60,10 +60,12 @@ document.getElementById('ui-run').addEventListener('click',async()=>{
     check(targetBefore==='0' && beatBefore==='1','Waveform seeking retains the selected alignment target');
     check(Math.abs(Number(get('media-point-time').value)*1000-seekMs)<5,'Waveform seeking fills recording seconds without saving a point');
     const guide=get('media-timeline').querySelector('[data-guide="2"][data-beat="1"]');
-    const savedPoints=JSON.stringify(state.media.points),priorTick=state.tickPosition;
+    const savedPoints=JSON.stringify(state.media.points);
     check(view.getComputedStyle(guide.querySelector('text')).pointerEvents==='auto','Measure number text accepts real pointer clicks');
     guide.querySelector('text').dispatchEvent(new view.PointerEvent('pointerdown',{button:0,bubbles:true}));
-    check(get('media-measure').value==='2' && Math.abs(get('media-audio').currentTime*1000-seekMs)<5 && state.tickPosition===priorTick && Math.abs(Number(get('media-point-time').value)*1000-seekMs)<5,'Measure click changes only the score target, preserving selected time and paused playback');
+    await until(()=>Math.abs(state.tickPosition-state.playbackTimeline.measures[2].startTick)<3);
+    const priorTick=state.tickPosition;
+    check(get('media-measure').value==='2' && get('media-audio').paused && Math.abs(Number(get('media-point-time').value)*1000-seekMs)<5,'Measure triangle seeks its score target while preserving red time and paused state');
     get('media-beat').value='2';get('media-beat').dispatchEvent(new view.Event('change'));
     check(get('media-point-time').value===(seekMs/1000).toFixed(3) && state.tickPosition===priorTick,'Beat selection also preserves the chosen recording time and native playhead');
     get('media-beat').value='1';get('media-beat').dispatchEvent(new view.Event('change'));
