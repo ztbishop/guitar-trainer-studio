@@ -19,25 +19,25 @@ test('repeated pitches require separate attacks; an attack cannot grade two even
  assert.equal(s.stats().correct,1);assert.equal(s.stats().missed,1);
  assert.equal(s.records[1].slots[0].hit,null);
 });
-test('chord attacks accumulate after release and fail excessive spread',()=>{
+test('chord attacks accumulate after release throughout the available window',()=>{
  const s=session([event('a',1000,[60,64,67])]);
  assert.equal(s.noteOn(note(60),960).type,'correct');
  assert.equal(s.noteOn(note(64),1000).type,'correct');
  assert.equal(s.noteOn(note(67),1020).type,'correct');
  assert.equal(s.stats().correct,3);
  const t=session([event('a',1000,[60,64])]);
- t.noteOn(note(60),960);assert.equal(t.noteOn(note(64),1021).type,'wrong');
- t.advance(1300);assert.equal(t.stats().missed,1);
+ t.noteOn(note(60),960);assert.equal(t.noteOn(note(64),1150).type,'correct');
+ t.advance(1300);assert.equal(t.stats().missed,0);
 });
 test('wrong notes remain penalized while correct chord notes still count',()=>{
  const s=session([event('a',1000,[60,64])]);
  s.noteOn(note(61),1000);s.noteOn(note(60),1000);s.noteOn(note(64),1010);
  assert.deepEqual(s.stats(),{correct:2,wrong:1,missed:0,pending:0,total:2,accuracy:67});
 });
-test('nearest unmatched occurrence wins when repeated-note windows overlap',()=>{
+test('current unmatched occurrence wins before an early repeated note',()=>{
  const s=session([event('a',1000,[60]),event('b',1200,[60])]);
- const hit=s.noteOn(note(60),1140);assert.equal(hit.eventId,'b');
- s.noteOn(note(60),1145);assert.equal(s.records[0].slots[0].hit.deltaMs,145);
+ const hit=s.noteOn(note(60),1140);assert.equal(hit.eventId,'a');
+ s.noteOn(note(60),1145);assert.equal(s.records[1].slots[0].hit.deltaMs,-55);
 });
 test('single-channel unisons share one pitch target; hex unisons require different channels',()=>{
  const e=event('a',1000,[60,60]);
@@ -80,6 +80,8 @@ test('engine ignores paused attacks, grades from event timestamps, and does not 
  handleMidiEvent(note(60,1,1500));handleMidiEvent({...note(60,1,1510),type:'note-off'});handleMidiEvent(note(64,1,1540));
  assert.equal(AppState.trainer.results.correct,2);
  handlePlaybackPosition({currentTick:1920,at:2000});advanceRealtimeClock(2200);
+ assert.equal(AppState.trainer.results.missed,0,'written target is still open');
+ advanceRealtimeClock(2500);
  assert.equal(AppState.trainer.results.missed,1);
 });
 test('engine resets on explicit forward seek, backward loop and stop/reset',()=>{

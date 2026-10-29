@@ -1,5 +1,5 @@
 // Timed attack matching, sharing input-tolerance rules with the untimed session.
-import {TimingDefaults,isWithinHitWindow} from './practice-timing.js';
+import {TimingDefaults,realtimeHitWindow,realtimeWindowExpired} from './practice-timing.js';
 import {inferPolyExpectedNoteIds} from './poly-feedback.js';
 import {attackSlots,ignoresMutedString} from './attack-rules.js';
 import {WaitSession} from './wait-session.js';
@@ -15,8 +15,9 @@ export class RealtimeSession extends WaitSession {
     // Reinitialize tolerance evidence without retaining held notes across attempts.
     const clean=new WaitSession(this.events,this.options);
     for(const key of ['held','pitch','pitchAttacks','spikeCandidates','singlePrecursors','pendingErrors','activeBriefErrors'])this[key]=clean[key];
-    this.records=this.events.map(event=>({eventId:event.id,event,timeMs:event.startTimeMs,slots:attackSlots(event,this.hex,null),
-      firstHitMs:null,wrong:0,wrongNotes:[],retries:0,burst:null,finalized:false,skipped:event.startTimeMs+this.timing.lateMs*speed<scoreMs}));
+    this.records=this.events.map((event,index)=>({eventId:event.id,event,timeMs:event.startTimeMs,slots:attackSlots(event,this.hex,null),
+      firstHitMs:null,wrong:0,wrongNotes:[],retries:0,burst:null,finalized:false,
+      skipped:realtimeWindowExpired(this.window(index,speed),scoreMs)}));
     this.orphanWrong=[];this.orphanRecord={wrong:0,wrongNotes:this.orphanWrong};this.liveWrong=new Map();this.lastFeedback=null;this.started=false;this.completed=false;
     this.anchor=null;this.finalizeIndex=0;this.lastClock=null;this.clockAt=0;this.finishRequested=false;this.pauseOffset=0;this.pausedAt=null;
   }
@@ -28,6 +29,7 @@ export class RealtimeSession extends WaitSession {
     if(running && this.pausedAt!==null){this.pauseOffset+=Math.max(0,at-this.pausedAt);this.pausedAt=null;}
   }
   eventTime(at){return (this.pausedAt??at)-this.pauseOffset;}
+  window(index,speed){return realtimeHitWindow(this.events[index],this.events[index+1],speed,this.timing);}
   pauseEvidence(){this.held.clear();this.pitch.reset();this.pitchAttacks.clear();this.spikeCandidates.clear();this.singlePrecursors.clear();}
   advance(scoreMs,speed=1,at=null) {
     if(!this.started || this.completed)return;
@@ -38,14 +40,15 @@ export class RealtimeSession extends WaitSession {
       const r=this.records[i];
       if(r.skipped || r.finalized)continue;
       const support=supportedHeldTone(this.events,this.records,this.held,i,this.clockAt,{...this,realtime:true,chordWindowMs:this.timing.chordGroupingMs});
-      if(support && isWithinHitWindow((scoreMs-r.timeMs)/speed,this.timing)){
+      const window=this.window(i,speed);
+      if(support && scoreMs>=window.start && !realtimeWindowExpired(window,scoreMs)){
         const noteIds=[];
         for(const {slot,source} of support.supports){slot.hit={at:this.clockAt,channel:source.channel};slot.channel=source.channel;slot.evidence='held';slot.originAt=source.originAt??source.hitAt;noteIds.push(...slot.noteIds);}
         this.lastFeedback={type:'supported-held-tone',eventId:r.eventId,noteIds,complete:true};
       }
     }
     while(this.finalizeIndex<this.records.length){
-      const r=this.records[this.finalizeIndex];if(scoreMs<=r.timeMs+this.timing.lateMs*speed)break;
+      const r=this.records[this.finalizeIndex];if(!realtimeWindowExpired(this.window(this.finalizeIndex,speed),scoreMs))break;
       if(!r.skipped){const missing=r.slots.filter(s=>!s.hit&&!s.missed);missing.forEach(s=>s.missed=true);
         if(missing.length)this.lastFeedback={type:'missed',eventId:r.eventId,pitches:missing.map(s=>s.midi),isPercussive:r.event.isPercussive};}
       r.finalized=true;this.finalizeIndex++;
@@ -53,15 +56,19 @@ export class RealtimeSession extends WaitSession {
     if(this.finishRequested&&!this.pendingErrors.size)this.completed=true;
   }
   selectTarget(note,correctedMs,speed){
-    const nearby=this.records.filter(r=>!r.skipped&&!r.finalized&&isWithinHitWindow((correctedMs-r.timeMs)/speed,this.timing))
-      .sort((a,b)=>Math.abs(a.timeMs-correctedMs)-Math.abs(b.timeMs-correctedMs));
+    // The current pending pitch wins over an early repeat. Only the immediate
+    // next onset may use early grace, so fast passages cannot skip ahead.
+    const next=this.records.find(r=>r.timeMs>correctedMs);
+    const nearby=this.records.filter((r,index)=>{
+      const window=this.window(index,speed);
+      return !r.skipped&&!r.finalized&&(r.timeMs<=correctedMs || r===next) &&
+        correctedMs>=window.start&&!realtimeWindowExpired(window,correctedMs);
+    }).sort((a,b)=>a.timeMs-b.timeMs);
     const nearest=nearby[0];
     if(nearest&&(ignoresMutedString(nearest.event,note,this.hex,this.extraStringTolerance)||nearest.event.isPercussive))return nearest;
     const candidates=nearby.filter(r=>!r.event.isPercussive&&!ignoresMutedString(r.event,note,this.hex,this.extraStringTolerance)&&
       r.slots.some(s=>!s.hit&&!s.missed&&s.midi===note.midi)&&
-      !(this.hex&&r.slots.some(s=>s.hit?.channel===note.channel&&s.midi===note.midi))&&
-      (r.firstHitMs===null||Math.abs(correctedMs-r.firstHitMs)/speed<=this.timing.chordGroupingMs));
-    candidates.sort((a,b)=>Number(b.slots.length>1&&b.firstHitMs!==null)-Number(a.slots.length>1&&a.firstHitMs!==null)||Math.abs(a.timeMs-correctedMs)-Math.abs(b.timeMs-correctedMs));
+      !(this.hex&&r.slots.some(s=>s.hit?.channel===note.channel&&s.midi===note.midi)));
     return candidates[0]??nearest;
   }
   noteOn(note,scoreMs,speed=1){
@@ -92,8 +99,7 @@ export class RealtimeSession extends WaitSession {
     if(correcting)for(const s of r.slots)if(!s.hit&&s.midi===note.midi)s.missed=false;
     const slot=r.slots.find(s=>!s.hit&&!s.missed&&(event.isPercussive||s.midi===note.midi));
     const duplicate=this.hex&&r.slots.some(s=>s.hit?.channel===note.channel&&s.midi===note.midi);
-    const fits=r.firstHitMs===null||Math.abs(scoreMs-r.firstHitMs)/speed<=this.timing.chordGroupingMs;
-    if(slot&&!duplicate&&fits){
+    if(slot&&!duplicate){
       const deltaMs=(scoreMs-r.timeMs)/speed;
       slot.hit={at,scoreMs,deltaMs,channel:note.channel,stringHint:note.stringHint??null};
       slot.channel=note.channel;slot.hitAt=at;slot.evidence='attack';delete slot.originAt;r.firstHitMs??=scoreMs;

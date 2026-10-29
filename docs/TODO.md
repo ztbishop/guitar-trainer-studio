@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+## Realtime written-span forgiveness — 2026-10-29
+
+- [x] Accept correct Realtime attacks/chord tones through the written target span, bounded by the next required attack or earlier written end/rest; retain 120 ms early grace and one-input/one-target ownership.
+- [x] Delay misses to the same deadline; preserve Wait, MIDI filters, held-note tolerance and native transport. Project deadlines through recording sync and loop boundaries.
+- [x] Add automated timing, repeat/rest/tie, tempo/speed, latency, boundary and recording tests plus isolated native Chrome synthetic Poly/Hex checks; document module ownership and player-facing rules.
+- [ ] Owner verifies normal Live Server/browser/Fishman: late single notes, slower strums, omitted notes turning red at the end, early/repeated notes, fast passages, loops and synced recording practice. Wait One at a time/Together remains unchanged. Automated evidence does not establish physical tracking or listening acceptance.
+
 ## Fretboard missed-target display — 2026-10-29
 
 - [x] Keep missed fretboard targets blue while preserving score miss history/results, played wrong-note rings, green feedback and Wait progression.

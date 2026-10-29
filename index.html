@@ -232,7 +232,7 @@
         </details>
         <details class="practice-advanced practice-tuning"><summary>MIDI timing adjustment <span class="practice-setting-summary">Realtime only</span></summary><label class="field-group" for="midi-latency-ms">
           <span class="field-label">MIDI input latency (ms)</span>
-          <span class="field-help">Realtime only: increase if your MIDI guitar reports notes late. Changing this resets Realtime results.</span>
+          <span class="field-help">Realtime accepts notes and chord tones throughout their written target span, ending at the next attack or an earlier written end/rest, with up to 120 ms early grace for the next target. Increase latency only if your MIDI guitar consistently reports notes late. Changing this resets Realtime results.</span>
           <input id="midi-latency-ms" type="number" min="0" max="1000" step="5" value="0" />
         </label></details>
         <div class="menu-action-row"><button id="new-attempt-here" type="button" disabled aria-describedby="new-attempt-help">Clear practice results</button><span id="new-attempt-help" class="field-help">Keeps your current position. Play/Pause preserves results; Reset returns to the start.</span></div>

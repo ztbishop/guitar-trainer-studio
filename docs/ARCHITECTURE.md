@@ -1,5 +1,17 @@
 # Guitar Trainer Studio Architecture
 
+## Realtime written-span timing — 2026-10-29
+
+Owner approved replacing fixed onset-only grading with written target spans, including spread chord attacks. `score-playback.js:getPracticeEvents` publishes `targetEndTimeMs` from the existing `targetEndTick` (written group end capped at the next required onset). The tempo map supplies both onset and end; ties still require only their original attack and do not extend this target opportunity through continuation-only beats.
+
+`practice-timing.js:realtimeHitWindow` owns the pure window policy: 120 real milliseconds of early grace, a half-open written deadline capped at the next required onset, and the old bounded 160 ms fallback only for absent/zero/invalid duration. `realtimeWindowExpired` supplies identical boundaries to reset/seek skipping, matching, held-evidence settlement and miss finalization. Playback speed scales early/fallback milliseconds, while written duration already lives in the selected playback clock. Exact boundaries belong to the next target/rest.
+
+`realtime-session.js` assigns one input to one target: current pending pitch first, otherwise only the immediately upcoming onset within early grace, otherwise existing wrong-note attribution. Completing the upcoming target early never opens a farther target early. Explicit chord attacks no longer have a 60 ms first-to-last limit. The existing 60 ms burst evidence and `supportedHeldTone` policy remain conservative and unchanged; widening explicit attacks does not widen automatic held-note credit. Normalized input, correction/filter rules, channel/unison semantics and Wait are unchanged.
+
+`media-practice.js:practiceEvents` projects onset, written end and capped target end into recording time through the same sync map, including nonlinear segments. It clips target ends to the active practice range in either clock without modifying original expected events. Synth events without a range keep their original identity. `practice-engine.js` continues applying latency consistently to input and clock advancement; no native transport or host changes.
+
+`tests/realtime-windows.test.js` covers duration/fallback, speed, latency, rests, repeated pitches, fast early overlap, multi-voice caps, native repeats/ties and synth/recording loop endpoints. `tests/run-realtime-windows-browser.cjs` owns isolated Chrome/native rendering/transport checks with synthetic Poly/Hex input; it creates and closes its own ephemeral server/profile. No owner browser or hardware is used. Historical Stage 3 fixed-window and tight-chord policies are superseded only for Realtime.
+
 ## Fretboard missed-target display — 2026-10-29
 
 `practice-visuals.js` keeps shared `noteStatesFromRecords` and `buildNotationMarks` unchanged. Only `buildFretboardModel` maps a current target's `missed` state to display state `expected` (blue). It does not mutate published states or session records. Bootstrap still supplies the same target and held-input evidence; context/advancement and the separate played-ring projection are unchanged. Correct and completed-with-errors targets retain their existing states. `fretboard-ui.js` consumes this model and describes the revised behavior accessibly; index.html owns matching help. No new module, setting, storage migration, alphaTab integration or grading/Wait/MIDI change.

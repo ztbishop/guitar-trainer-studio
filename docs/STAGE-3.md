@@ -1,5 +1,9 @@
 # Stage 3: realtime attack grading
 
+## Current policy update — 2026-10-29
+
+The original fixed 120 ms early / 160 ms late / 60 ms chord-spread policy below is historical. Realtime now accepts explicit attacks throughout the written target span, ending at the next required attack or earlier written end/rest, with 120 ms early grace for the immediate upcoming target. Current pending pitches win overlaps; spread chords may complete within the span. Misses finalize at its end. Wait and conservative held-note evidence remain independent. See ARCHITECTURE.md and DEV-NOTES.md for module responsibilities, verification and physical acceptance limits.
+
 Built from Stage 2. No deployment or Git push was performed. Existing score rendering, alphaTab cursor, MIDI routing, menus and CSS remain in place. The Practice panel gains a latency input and displays actual results; the toolbar now displays a calculated percentage.
 
 ## How to try it

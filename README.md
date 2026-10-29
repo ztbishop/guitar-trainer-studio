@@ -133,7 +133,9 @@ Scores with clear guitar tracks and written tab are especially useful for the vi
 
 ### Realtime
 
-The score moves at the selected tempo. Play along to practice pitch and timing; missed notes and wrong attacks affect the result. Slow down in Tempo and work on a smaller Loop if needed.
+The score moves at the selected tempo. Realtime gives you the current written note or chord span to play the required pitches, up to the next required attack or the written end/rest, whichever comes first. Notes can also arrive up to 120 ms early for the immediately upcoming target. If both targets need the same pitch, an unfinished current target gets it first; another attack can then count for the upcoming target. Missed notes turn red on the score only after their opportunity closes, and still affect your result.
+
+Chord tones can arrive separately anywhere within that span; they do not need to fit a tight strum window. Repeated notes still need fresh attacks, except for the existing held-note tolerance described below. Wrong pitches still count as mistakes. Slow down in Tempo and work on a smaller Loop if needed.
 
 ### Wait
 

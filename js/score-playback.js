@@ -141,6 +141,7 @@ export function getPracticeEvents(timeline, trackId) {
     event.pitchNames = event.pitches.map(midiToNoteName);
     // An earlier long voice must not hide a later attack in another voice.
     event.targetEndTick = Math.min(event.endTick,events[index+1]?.startTick ?? timeline.endTick);
+    event.targetEndTimeMs = tickToTimeMs(timeline,event.targetEndTick);
     event.durationTicks = event.endTick-event.startTick;
     event.endTimeMs = tickToTimeMs(timeline,event.endTick);
   });

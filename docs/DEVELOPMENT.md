@@ -51,3 +51,7 @@ node tests/run-guide-demos-browser.cjs http://localhost:8081
 ```
 
 Automated native/browser checks do not establish audible balance, physical Fishman tracking, Mac launcher permissions, Windows Explorer launch/security prompts or every score/provider combination. Ask the owner to try the extracted-folder launcher, all demos, the help link and a familiar MIDI session; separately test the Mac launcher on actual macOS. Do not claim those checks passed from this Windows environment.
+
+## Realtime written-span checks
+
+Run node --test tests/realtime-windows.test.js for timing boundaries, tempo/speed, rests/repeats/ties and recording/loop projections. Run node tests/run-realtime-windows-browser.cjs with GTS_PLAYWRIGHT_MODULE set to an installed Playwright module when needed. The browser runner starts/closes an ephemeral local server and isolated headless Chrome profile, imports an original generated score and supplies synthetic Poly/Hex MIDI. It checks delayed notation misses and late spread-chord green feedback without accessing the owner's normal browser or devices. Real Fishman/listening acceptance remains separate.
