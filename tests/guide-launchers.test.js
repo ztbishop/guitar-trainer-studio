@@ -55,7 +55,7 @@ test('local ZIP server serves offline app/guide assets and rejects nonpublic pat
     });
     req.on('error', reject); req.end();
   });
-  for (const [url, type] of [['/appearance.css','text/css'], ['/','text/html'], ['/README.html','text/html'], ['/README.md','text/plain'],
+  for (const [url, type] of [['/assets/styles/appearance.css','text/css'], ['/','text/html'], ['/README.html','text/html'], ['/README.md','text/plain'],
     ['/LICENSE','text/plain'], ['/docs/LICENSING.md','text/plain'], ['/docs/licenses/Apache-2.0.txt','text/plain'],
     ['/assets/vendor/alphatab/LICENSE','text/plain'], ['/assets/vendor/alphatab/font/Bravura-OFL.txt','text/plain'],
     ['/assets/vendor/alphatab/soundfont/LICENSE','text/plain'],

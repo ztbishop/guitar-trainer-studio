@@ -1,5 +1,10 @@
 # Practice fretboard
 
+## Stable initial width — 2026-10-29
+
+The eight-times-height width cap now uses at least the neck's normal string-layout height. A transient small content height during loading therefore cannot squeeze fret spacing. Actual vertical fitting and saved panel height remain unchanged. Resize-triggered SVG updates run on the next animation frame after workspace sizing. This refines the earlier wide-screen cap without removing it.
+
+
 ## More visible inlays — 2026-10-29
 
 Neutral position dots are slightly larger and brighter; physical octave double dots are larger again. The displayed 12 and 24 labels are bold. Capo-aware inlay locations, relative fret labels, handedness and feedback colors retain their existing meaning. No column shading or dark theme is added.

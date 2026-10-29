@@ -1,5 +1,14 @@
 # Guitar Trainer Studio Architecture
 
+## Initial neck layout and running-launcher theme repair — 2026-10-29
+
+Theme CSS now lives at assets/styles/appearance.css, an existing allowed subtree in pre-theme launchers. index.html loads that path; no new top-level server allowlist entry is needed. An already-running Node server retains its old allowlist even while serving updated HTML/JS, which previously produced pale native ink on a white page when /appearance.css returned 404. The native palette and black-on-white print logic are unchanged.
+
+fretboard-geometry.js:fretboardWidth caps requested width at eight times the larger of the normal string-layout height and usable panel height, bounded by available width. This normal-height floor prevents short startup measurements from horizontally compressing the neck. Existing vertical fitting still uses the actual panel height, preserves circular markers and leaves saved sizing untouched. fretboard-ui.js coalesces ResizeObserver repaint into requestAnimationFrame after workspace sizing instead of mutating SVG within resize delivery; reinitialization cancels stale frames. The existing signature avoids redundant renders. No grading, transport, preference-schema or alphaTab changes.
+
+The developer-only run-layout-repair-browser.cjs loads the pre-theme launcher implementation from preserved commit 1f8042f while serving current workspace files. It requires Git history and Playwright. It checks the old rejected root path, accepted asset path, native themes, initial and reloaded necks, saved manual heights and side-by-side video layout using a finite HTML video-metadata fixture. The fixture checks load/layout wiring, not media decoding or playback.
+
+
 ## Saved Appearance themes — 2026-10-29
 
 Owner now authorizes Light, Soft Light and Dark, superseding earlier dark-mode deferral. New appearance.js owns accepted values, normalization, root data-appearance projection and plain native score color palettes. It imports no native API. display-preferences.js validates/saves ui.appearance independently under gts.displayPreferences; missing/invalid values use Light. Bootstrap restores the root theme before toolbar/native startup; display-controls.js saves changes and calls the existing display refresh without resetting results.

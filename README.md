@@ -191,7 +191,7 @@ The menus keep controls compact; this guide provides the detailed explanations. 
 
 ### Display and the fretboard
 
-Choose **Display → Appearance** for **Light** (the default white page), **Soft Light** (a very light gray page) or **Dark** (soft-white notation on charcoal). Your choice returns across visits and score loads. Practice feedback keeps the same meanings in each appearance. Printing and Save as PDF use black notation on white regardless of your screen choice.
+Choose **Display → Appearance** for **Light** (the default white page), **Soft Light** (a very light gray page) or **Dark** (soft-white notation on charcoal). Your choice returns across visits and score loads. After updating the app, reload the browser to load the latest appearance styles; the local launcher can keep running. Practice feedback keeps the same meanings in each appearance. Printing and Save as PDF use black notation on white regardless of your screen choice.
 
 Display controls zoom, auto-scroll, full screen on Play, chord diagrams, visible tracks and fretboard visibility. Showing all tracks does not change which single track is graded.
 

@@ -1,18 +1,28 @@
 // Consumes display data; never decides correctness.
 import {midiToNoteName} from './note-utils.js';
 import {fretboardLabel} from './fretboard-context.js';
-import {fretX,fretWireX,fretboardGeometry,fretInlayYs,fretNumberVisible,fretboardFit} from './fretboard-geometry.js';
+import {fretX,fretWireX,fretboardGeometry,fretInlayYs,fretNumberVisible,fretboardFit,fretboardWidth} from './fretboard-geometry.js';
 let container=null,helpStatus=null,lastSignature='',lastLeftHanded=null,lastModel=null,resizeObserver=null,lastAvailableWidth=0,lastRenderedWidth=0;
 const ns='http://www.w3.org/2000/svg';
+let resizeFrame=null;
 function shape(tag,attrs,text) {
   const el=document.createElementNS(ns,tag);
   for(const [key,value] of Object.entries(attrs))el.setAttribute(key,String(value));
   if(text!==undefined)el.textContent=text;return el;
 }
 export function initFretboard(el,statusEl=null) {
+  if(resizeFrame!==null){cancelAnimationFrame(resizeFrame);resizeFrame=null;}
   resizeObserver?.disconnect();container=el;helpStatus=statusEl;lastSignature='';lastLeftHanded=null;lastModel=null;lastAvailableWidth=0;lastRenderedWidth=0;
   if(container && typeof ResizeObserver==='function') {
-    resizeObserver=new ResizeObserver(()=>{if(lastModel && container.clientWidth>0)renderFretboard(lastModel);});
+    resizeObserver=new ResizeObserver(()=>{
+      // Workspace sizing reacts to this SVG too. Repaint in the next frame,
+      // after its sizing pass, instead of writing inside resize delivery.
+      if(resizeFrame!==null)return;
+      resizeFrame=requestAnimationFrame(()=>{
+        resizeFrame=null;
+        if(lastModel && container.clientWidth>0)renderFretboard(lastModel);
+      });
+    });
     resizeObserver.observe(container);
   }
 }
@@ -38,7 +48,7 @@ export function renderFretboard(model) {
   const panelHeight=container.closest?.('.fretboard-panel')?availableHeight:0;
   // Keep wide monitors from spreading the neck across the entire workspace.
   // The panel still spans the workspace; resizing its height adjusts this cap.
-  const neckWidth=panelHeight>0?Math.min(availableWidth,panelHeight*8):availableWidth;
+  const neckWidth=fretboardWidth(availableWidth,panelHeight,model.stringCount);
   const natural=fretboardGeometry(model.maxFret,model.stringCount,neckWidth);
   const fit=fretboardFit(natural.width,natural.height,neckWidth,panelHeight);
   const geometry=fretboardGeometry(model.maxFret,model.stringCount,fit.width);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fretboardGeometry,fretWireX,fretX,fretNumberVisible,fretboardFit} from '../js/fretboard-geometry.js';
+import {fretboardGeometry,fretWireX,fretX,fretNumberVisible,fretboardFit,fretboardWidth} from '../js/fretboard-geometry.js';
 
 test('horizontal compression retains height, readable cells and mirrored round-marker positions',()=>{
   for(const maxFret of [24,36])for(const count of [1,4,6,7,12]) {
@@ -38,4 +38,13 @@ test('compact fret labels omit 1, keep 0 and landmarks, and always retain curren
   assert(fretNumberVisible(1,24,800,[1]));assert(fretNumberVisible(36,36,1100));
   assert(!fretNumberVisible(2,24,800));
   for(let fret=0;fret<=24;fret++)assert(fretNumberVisible(fret,24,1400));
+});
+
+
+test('initial short panel cannot compress neck proportions; tall and ultrawide caps remain',()=>{
+  for(const h of [0,1,60,98,126,170])assert.equal(fretboardWidth(3800,h,6),1360);
+  assert.equal(fretboardWidth(1334,170,6),1334);
+  assert.equal(fretboardWidth(3800,282,6),2256);
+  assert.equal(fretboardWidth(284,170,6),284);
+  for(const strings of [4,6,7,12])assert.equal(fretboardWidth(6000,1,strings),fretboardGeometry(24,strings).height*8);
 });

@@ -1,5 +1,14 @@
 # Development notes
 
+## Initial neck and theme stylesheet repair — 2026-10-29
+
+Owner reported a narrow neck until dragging its divider, and Dark giving pale notation on white while other surfaces stayed light. Read-only requests to the owner's running localhost:8081 confirmed index.html referenced appearance.css but that URL returned 404. The old server retained its startup allowlist. Move the unchanged theme stylesheet to assets/styles/appearance.css and use the pre-existing assets allowance; do not restart/replace the owner's server. At implementation time that server was no longer reachable, so compatibility was verified using an isolated pre-theme launcher loaded from preserved commit 1f8042f.
+
+For initial sizing, add a normal-neck-height floor to the width-cap input and defer ResizeObserver repaint to the next animation frame after workspace sizing. This addresses sensitivity to transient short measurements and observer delivery; the exact owner's lesson load sequence was not reproduced. Preserve the ultrawide cap, centering, saved height/automatic mode, small-screen scrolling, all feedback and MIDI/Wait rules. No new runtime module.
+
+Verification: 484 Node tests pass, including the startup-height floor and relocated stylesheet serving. Isolated legacy-server Chrome checks all theme backgrounds and dark toolbar; initial load, attached side-by-side video layout, score replacement and reload settle without divider interaction. At 1580 px width automatic/190 px saved panels render 1360/1376 px necks; at 3820 px width a saved 300 px panel renders 2256 px, with equal side margins and unchanged stored sizes. The video fixture supplies finite metadata and bypasses decoding; it is not video/audio acceptance. Earlier MediaRecorder fixture attempts lacked usable metadata and were replaced. The existing theme/feedback/print browser suite also passes, including persisted appearance, black print ink and phone layout. Syntax/whitespace checks pass; the repaired laptop neck screenshot was inspected. Owner still needs to reload the normal browser and retry the actual lesson; physical Fishman and actual PDF/printer checks remain separate.
+
+
 ## Appearance themes — 2026-10-29
 
 Owner approved saved Light, Soft Light and Dark under Display → Appearance, with Light default and black-on-white printing. This supersedes earlier deferral. appearance.js owns theme validation/root selection and palettes; appearance.css owns app/feedback colors. Runtime native color conversion and print override stay in alphatab-host.js. Display persistence/bootstrap/control wiring use the existing lifecycle. No changes to matching, Realtime timing, Wait progression, chord/score-view independence or feedback rules; no version bump.

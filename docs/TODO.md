@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+## Initial fretboard and running-server themes — 2026-10-29
+
+- [x] Serve theme styles from the existing assets subtree so pre-theme running launchers can load them without restarting.
+- [x] Stabilize initial neck proportions and schedule resize repaint after workspace sizing; retain ultrawide cap, centering and saved sizes.
+- [x] Add startup-size regression and isolated pre-theme server/load-layout coverage; 484 Node tests pass.
+- [ ] Owner reloads the normal browser and checks the actual imported lesson before touching the divider, then switches Light/Soft Light/Dark. Hardware MIDI and actual PDF/printing remain pending.
+
+
 ## Appearance themes — 2026-10-29
 
 - [x] Add saved Light / Soft Light / Dark in Display, Light default; supersedes previous dark-mode deferral.

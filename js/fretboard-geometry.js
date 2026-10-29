@@ -1,4 +1,11 @@
 // SVG neck coordinates only. Frets and note centers deliberately differ.
+export function fretboardWidth(availableWidth, panelHeight, stringCount = 6) {
+  // A transient short panel must not squeeze fret spacing below its normal
+  // proportions. Vertical fitting still honors the actual saved panel height.
+  const normalHeight = 50 + (stringCount - 1) * 24;
+  return Math.min(availableWidth, Math.max(normalHeight, panelHeight || 0) * 8);
+}
+
 export function fretboardGeometry(maxFret = 24, stringCount = 6, availableWidth = 1200) {
   // Reserve a readable cell for every fret, then distribute remaining width
   // with the neck's taper. Only horizontal geometry responds to the viewport.
