@@ -158,6 +158,9 @@ test('secondary More panels close on switching, backdrop and Escape', () => {
   launches[0].click(); elements.get('toolbar-backdrop').click(); assert.equal(elements.get('audio-popup').attrs['aria-hidden'],'true');
 });
 test('host settings use bundled alphaTab serializer; loading, transport and playback callbacks stay wired', async t => {
+  const priorRaf=globalThis.requestAnimationFrame,frames=[];
+  globalThis.requestAnimationFrame=callback=>frames.push(callback);
+  t.after(()=>{if(priorRaf)globalThis.requestAnimationFrame=priorRaf;else delete globalThis.requestAnimationFrame;});
   const {elements}=dom();
   const context=vm.createContext({console, process});
   vm.runInContext(readFileSync(new URL('../assets/vendor/alphatab/alphaTab.js',import.meta.url),'utf8'),context);
@@ -378,9 +381,7 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   assert.equal(setPlaybackSpeed(0.5),true);assert.equal(api.playbackSpeed,0.5);assert.equal(AppState.playbackSpeed,0.5);
   assert.equal(setPlaybackSpeed(0),false);assert.equal(api.playbackSpeed,0.5);
   const loopRange={startTick:3840,endTick:7680};
-  const priorRaf=globalThis.requestAnimationFrame,frames=[];
-  globalThis.requestAnimationFrame=callback=>frames.push(callback);
-  t.after(()=>{if(priorRaf)globalThis.requestAnimationFrame=priorRaf;else delete globalThis.requestAnimationFrame;});
+  frames.length=0;
   let reveals=0;api.scrollToCursor=()=>reveals++;
   AppState.ui.autoScroll=true;
   assert.equal(applyPracticeLoop(loopRange),true);assert.equal(api.tickPosition,3840);assert.equal(api.isLooping,true);
@@ -397,4 +398,17 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
   await loadScoreFile({name:'new.gp'});assert.equal(AppState.practiceLoop.enabled,false);assert.equal(AppState.practiceLoop.range,null);
   while(frames.length)frames.shift()();
   assert.equal(reveals,1,'score replacement cancels an obsolete queued reveal');
+  AppState.ui.autoScroll=true;api.playbackRange=null;
+  stop();while(frames.length)frames.shift()();
+  assert.equal(reveals,2,'Reset reveals while paused without Play');
+  api.playerPositionChanged.emit({currentTick:0,currentTime:0,isSeek:true});
+  while(frames.length)frames.shift()();
+  assert.equal(reveals,3,'worker acknowledgement repeats reveal after cursor layout');
+  api.playbackRange=loopRange;stop();
+  api.playerPositionChanged.emit({currentTick:3840,currentTime:2000,isSeek:true});
+  while(frames.length)frames.shift()();assert.equal(reveals,4,'Reset reveals native loop start');
+  AppState.ui.autoScroll=false;stop();
+  api.playerPositionChanged.emit({currentTick:3840,currentTime:2000,isSeek:true});
+  while(frames.length)frames.shift()();assert.equal(reveals,4,'Reset honors disabled auto-scroll');
+  assert.equal(AppState.isPlaying,false);
 });

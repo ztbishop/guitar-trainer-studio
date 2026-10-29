@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Reset cursor follow — 2026-10-28
+
+alphatab-host.stop now queues a cursor reveal for the native playback range start (or zero) before native Stop, and requests a layout-delayed reveal immediately and on matching worker position acknowledgement. The shared reveal helper accepts followOnly for Reset; both queued and acknowledged reveals honor auto-scroll off without changing the preference. Waveform and explicit loop reveals retain their existing behavior. Native Stop remains responsible for transport/reset position; grading, Wait and source handling are unchanged.
+
 ## Score selection in the sync editor — 2026-10-28
 
 The native beatMouseUp handler in alphatab-host.js emits onMediaScoreTarget only for a completed single score click during media editing, after native seeking. media-timeline.js scoreTargetForBeat matches source beat and nearest native playback tick to preserve repeat occurrences and fractional positions. Bootstrap routes this to media-controls.scoreTargetSelected, which selects the form/anchor, updates Add/Update and reveals the timeline target without changing recording seconds or seeking again. Playback events, waveform seeks and score drags do not emit this intent. timelineGuides accepts an optional fractional/bar-end target for a temporary selected triangle; it never creates saved points.

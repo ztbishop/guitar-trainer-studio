@@ -65,7 +65,7 @@ Keep using it. Open this folder, start Live Server for `index.html`, and use `lo
 3. Open **Scores**. Choose **Open File**, or expand **Try a demo score** and open **First notes**.
 4. Open **Practice**, select the guitar track you want to practice, and choose **Wait** to learn at your own pace or **Realtime** to practice timing.
 5. Press **Play**. There is a one-bar count-in. In Wait, play the expected note or chord to move forward. In Realtime, follow the score at the set tempo.
-6. Use **Pause** for a break; ordinary Pause/Resume preserves your results. You can also pause during count-in or while playback is starting. **Reset** returns to the start. **Clear practice results** starts fresh at the current position.
+6. Use **Pause** for a break; ordinary Pause/Resume preserves your results. You can also pause during count-in or while playback is starting. **Reset** returns to the start and brings the cursor into view when auto-scroll is enabled, without needing Play. **Clear practice results** starts fresh at the current position.
 
 Both Poly and Hex currently grade **pitch**, not exact string/fret position. Playing the right pitch at another guitar position can still count. Feedback about strings depends on your MIDI configuration; optional Poly fret estimates are guidance, not detected hand positions.
 

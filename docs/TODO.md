@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+## Reset cursor follow — 2026-10-28
+
+- [x] Reset reveals the stopped cursor with auto-scroll enabled, including asynchronous native position updates; auto-scroll off preserves the viewport.
+- [x] Verify host loop-start/worker behavior and real Chrome paused Reset without Play.
+- [ ] Owner acceptance with the original long song and recording; physical MIDI remains untested for this update.
+
 ## Score selection in the sync editor — 2026-10-28
 
 - [x] Connect native notation/tab single clicks to sync target selection and Add/Update while preserving red recording seconds and native seeking.

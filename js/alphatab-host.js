@@ -24,6 +24,7 @@ import {scoreTargetForBeat} from './media-timeline.js';
 
 let mediaSnapshot=null,mediaHandler=null,mediaPoints=[],mediaRestoreTick=null;
 let cursorRevealTick=null,cursorRevealGeneration=0;
+let cursorRevealFollowOnly=false;
 let editingCountIn=null;
 export function revealMediaScoreTarget(point) {
   if(!AppState.media.editing || !notationContainer)return false;
@@ -53,11 +54,12 @@ export function setMediaEditing(enabled) {
   hostCallbacks.onMediaChanged?.();
 }
 
-function revealScoreCursor() {
+function revealScoreCursor(followOnly=false) {
   const token=++cursorRevealGeneration;
   // Native cursor bounds update after the seek notification reaches the UI.
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     if(token!==cursorRevealGeneration || !AppState.score || AppState.media.returning)return;
+    if(followOnly && !AppState.ui.autoScroll)return;
     if(AppState.ui.autoScroll){alphaTabApi.scrollToCursor();return;}
     // ScrollMode.Off has no native scroll handler. Reveal only inside the score
     // viewport, without toggling the preference or scrolling the whole page.
@@ -203,7 +205,7 @@ export function seekMediaTime(timeMs) {
   if(!resume)alphaTabApi.pause();
   const time=Math.max(0,Math.min(mediaHandler.backingTrackDuration,timeMs));
   AppState.media.clock={timeMs:time,at:performance.now(),playing:resume};
-  cursorRevealTick=tickAtMediaTime(mediaPoints,AppState.playbackTimeline,time);
+  cursorRevealFollowOnly=false;cursorRevealTick=tickAtMediaTime(mediaPoints,AppState.playbackTimeline,time);
   if(AppState.media.editing)cursorRevealTick=Math.min(cursorRevealTick,Math.max(0,AppState.playbackTimeline.endTick-4));
   alphaTabApi.tickPosition=cursorRevealTick;
   // The native tick setter also seeks the provider. The requested recording
@@ -925,7 +927,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     const currentTime = event?.currentTime ?? 0;
     AppState.timePositionMs = currentTime;
     AppState.tickPosition = event?.currentTick ?? 0;
-    if(cursorRevealTick!==null && Math.abs(AppState.tickPosition-cursorRevealTick)<=3){cursorRevealTick=null;revealScoreCursor();}
+    if(cursorRevealTick!==null && Math.abs(AppState.tickPosition-cursorRevealTick)<=3){cursorRevealTick=null;revealScoreCursor(cursorRevealFollowOnly);}
     AppState.playbackSpeed = alphaTabApi.playbackSpeed || 1;
     setPlaybackPosition(currentTime);
     hostCallbacks.onPlayerPositionChanged?.({
@@ -1293,7 +1295,7 @@ export function applyPracticeLoop(range) {
   alphaTabApi.playbackRange=range;
   cursorRevealTick=null;cursorRevealGeneration++;
   if(range) {
-    if(!AppState.media.returning)cursorRevealTick=range.startTick;
+    if(!AppState.media.returning){cursorRevealFollowOnly=false;cursorRevealTick=range.startTick;}
     alphaTabApi.tickPosition=range.startTick;
     // Explicit range choices reveal the paused destination, too. Repeat the
     // reveal on the seek acknowledgement because native cursor layout is async.
@@ -1331,7 +1333,12 @@ export function stop() {
   if (!alphaTabApi) return false;
   pauseSeekPending = false;
   cancelCountIn();
+  // Stop is asynchronous with the native worker. Reveal again when its reset
+  // position arrives, after native cursor layout, without starting playback.
+  cursorRevealGeneration++;cursorRevealFollowOnly=true;
+  cursorRevealTick=AppState.ui.autoScroll?(alphaTabApi.playbackRange?.startTick ?? 0):null;
   alphaTabApi.stop();
+  if(AppState.ui.autoScroll)revealScoreCursor(true);
   AppState.isPlaying = false;
   updatePlayPauseLabel();
   return true;

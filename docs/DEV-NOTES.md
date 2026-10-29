@@ -1,5 +1,9 @@
 # Development notes
 
+## Reset cursor follow — 2026-10-28
+
+Owner reported Reset moved the cursor but did not follow it until Play. stop lacked the explicit paused reveal used by loop selection. Added an auto-scroll-gated immediate/layout-delayed reveal plus a native worker reset-position acknowledgement reveal. No forced seek or playback is added. Validation: 476 Node tests pass, with host checks for paused Reset, asynchronous acknowledgement, loop start and auto-scroll off. tests/run-reset-browser.cjs uses an isolated Chrome profile and real native worker with a scrollable bundled fixture: Reset reveals the cursor without Play; auto-scroll off preserves the viewport. Syntax and whitespace checks pass. Owner's original long score/recording and physical Fishman acceptance remain pending; existing extension changes are untouched.
+
 ## Score selection in the sync editor — 2026-10-28
 
 Owner approved separate score target, black playback position and red recording-time selection. Native score clicks now select the corresponding sync target and Add/Update action, preserving native seeking and red time. Repeat occurrence follows native seeking; fractional onsets receive a temporary selected triangle. Zoomed timelines reveal the target.
