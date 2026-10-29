@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+## Compact menus — 2026-10-29
+
+- [x] Remove routine helper text in Display, Loop, Tempo and Audio; retain contextual unavailable explanations and input errors.
+- [x] Place tempo reset beside BPM arrows and fit five Scores actions in one desktop row, with responsive wrapping.
+- [x] Verify 481 Node tests, syntax checks and isolated Chrome layouts at 1440/768/390 pixels; verify tempo/pitch validation and reset.
+- [ ] Owner checks menu spacing at their normal browser zoom. Physical Fishman testing was not performed for this presentation-only update.
+
+
 ## Score display and printing — 2026-10-29
 
 - [x] Add saved Score Default / Notation + Tab / Tab Only / Notation Only and independent Automatic / Show / Hide tab rhythm; preserve chord diagram choices and unsupported-track notation fallback.

@@ -253,6 +253,7 @@
               <button id="bpm-up" type="button" aria-label="Increase BPM to the next multiple of five" disabled>▴</button>
             </div>
           </div>
+          <button id="reset-playback-speed" type="button" disabled>Reset to 100%</button>
         </div>
         <div class="menu-row">
           <label for="playback-speed-slider">Speed (%)</label>
@@ -264,10 +265,6 @@
               <button id="speed-up" type="button" aria-label="Increase speed to the next multiple of five" disabled>▴</button>
             </div>
           </div>
-        </div>
-        <div class="tempo-speed-help">
-          <span id="tempo-speed-description">25–200%. Changing BPM or speed pauses practice and resets results.</span>
-          <button id="reset-playback-speed" type="button" disabled>Reset to 100%</button>
         </div>
         <hr />
         <div class="tempo-metronome-row">
@@ -284,7 +281,7 @@
         </div>
         <label class="menu-option tempo-unavailable"><input type="checkbox" disabled /> Accented downbeat <span class="field-help">Not implemented yet</span></label>
         <label id="metronome-visual-label" class="menu-option tempo-unavailable"><input id="metronome-visual-pulse" type="checkbox" checked disabled /> Visual pulse</label>
-        <p id="tempo-controls-status" role="status">Load a score to adjust playback speed.</p>
+        <p id="tempo-controls-status" role="status"></p>
       </div>
     </section>
 
@@ -315,7 +312,6 @@
             </div>
           </div>
         </div>
-        <p class="loop-help">Play starts with a count-in. Loop Count-in adds one before each repeat.<br />Drag across score beats to select whole measures. Range changes pause practice and reset results.</p>
         <p id="loop-controls-status" role="status">Load a score to choose a section.</p>
       </div>
     </section>
@@ -352,13 +348,13 @@
                 <span class="toggle-row-title">Play backing tracks</span>
               </span>
             </label>
-          </div><p class="field-help">Realtime playback choices. Score accompaniment stays paused in Wait mode.</p><hr />
+          </div><hr />
           <div class="menu-row"><label for="master-volume">Synth master volume (%)</label><input id="master-volume" type="range" min="0" max="100" step="1" value="100" /><div class="menu-number"><input id="master-volume-number" aria-label="Synth master volume percent" type="number" min="0" max="100" step="1" value="100" /></div></div>
-          <p class="field-help">Controls synthesized score playback, metronome and count-in. Saved for this browser.</p>
+
           <div class="menu-row"><label for="media-volume">Synced media volume (%)</label><input id="media-volume" type="range" min="0" max="100" step="1" value="100" /><div class="menu-number"><input id="media-volume-number" aria-label="Synced media volume percent" type="number" min="0" max="100" step="1" value="100" /></div></div>
-          <p class="field-help">Controls local, linked, embedded and YouTube recordings independently. Saved for this browser.</p>
-          <fieldset id="playback-pitch-controls" disabled><legend>Synth playback pitch</legend><div class="pitch-offset-row"><label for="playback-pitch-semitones">Semitones</label><input id="playback-pitch-semitones" type="number" min="-12" max="12" step="1" value="0" /><button id="reset-playback-pitch" type="button" aria-label="Reset pitch to written pitch">Reset</button></div></fieldset><p id="pitch-offset-status" class="field-help" role="status">Load a score to enable pitch shifting.</p><p class="field-help">Changes synthesized score sound only. Notation, tab, MIDI targets and synced recordings stay unchanged.</p>
-          <details><summary>Track volume &amp; mute</summary><div id="track-mixer"></div><p class="field-help">Track levels start at 100% of the score's mix and reset when another score opens. Playback switches above still apply. Tracks sharing MIDI channels have one control.</p></details>
+
+          <fieldset id="playback-pitch-controls" disabled><legend>Synth playback pitch</legend><div class="pitch-offset-row"><label for="playback-pitch-semitones">Semitones</label><input id="playback-pitch-semitones" type="number" min="-12" max="12" step="1" value="0" /><button id="reset-playback-pitch" type="button" aria-label="Reset pitch to written pitch">Reset</button></div></fieldset><p id="pitch-offset-status" class="field-help" role="status"></p>
+          <details><summary>Track volume &amp; mute</summary><div id="track-mixer"></div></details>
           </div></section>
 
     <section id="display-popup" class="toolbar-popup panel popup-surface hidden" aria-hidden="true">
@@ -376,13 +372,12 @@
             <div class="menu-number"><input id="score-zoom-number" aria-label="Zoom percent" type="number" min="50" max="200" step="5" value="100" /><div class="menu-steppers"><button id="score-zoom-down" type="button" aria-label="Zoom out">−</button><button id="score-zoom-up" type="button" aria-label="Zoom in">+</button></div></div>
           </div>
           <label class="field-group"><span class="field-label">Score display</span><select id="score-display" aria-describedby="score-display-help"><option value="score-default">Score Default</option><option value="both">Notation + Tab</option><option value="tab">Tab Only</option><option value="notation">Notation Only</option></select></label>
-          <p id="score-display-help" class="field-help">Changes the score view only. Tracks without usable written tab keep notation. Chord diagrams remain independent.</p>
-          <label class="field-group"><span class="field-label">Tab rhythm</span><select id="tab-rhythm" disabled aria-describedby="tab-rhythm-help"><option value="automatic">Automatic</option><option value="show">Show</option><option value="hide">Hide</option></select></label>
-          <p id="tab-rhythm-help" class="field-help">Automatic shows rhythm markers on tab when notation is hidden. Show keeps them visible with notation too. Your choice is remembered while tab is hidden.</p>
+          <p id="score-display-help" class="field-help"></p>
+          <label class="field-group"><span class="field-label">Tab rhythm</span><select id="tab-rhythm" disabled><option value="automatic">Automatic</option><option value="show">Show</option><option value="hide">Hide</option></select></label>
           <label class="toggle-row"><input id="score-auto-scroll" type="checkbox" checked /><span>Auto-scroll during playback</span></label>
           <label class="toggle-row"><input id="fullscreen-on-play" type="checkbox" /><span>Full screen on Play</span></label>
           <label class="field-group"><span class="field-label">Chord diagrams</span><select id="chord-diagram-placement" aria-describedby="chord-diagram-help"><option value="score-default">Score Default</option><option value="above-chord">Above Chord</option><option value="top-of-score">Top of Score</option><option value="off">Off</option></select></label>
-          <p id="chord-diagram-help" class="field-help">Choose where Guitar Pro chord diagrams appear. Above Chord places each diagram in the score at its chord position.</p>
+          <p id="chord-diagram-help" class="field-help"></p>
         </div>
         <div class="popup-card">
           <fieldset class="menu-radio-group"><legend>Visible tracks</legend>

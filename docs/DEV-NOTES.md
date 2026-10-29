@@ -1,5 +1,12 @@
 # Development notes
 
+## Compact menus — 2026-10-29
+
+Owner approved removing three Display helper paragraphs, Loop instructions, two Tempo explanations and Audio helper copy, moving Reset to 100% beside BPM arrows, and using five equal Scores action columns. Routine tempo/pitch status is now empty; explicit input errors and playback-readiness failures remain. Display retains short unavailable-tab/diagram explanations only. No new modules or changes to playback, MIDI, grading, Wait, saved preferences or native alphaTab behavior. Detailed user guidance stays in README.
+
+Verification: all 481 Node tests pass; changed JS syntax and whitespace checks pass. Isolated Chrome with the original First notes demo checked all five menus at 1440/768/390 pixels for horizontal overflow, desktop reset placement and the five-button row. Invalid tempo/pitch messages remain visible and pitch reset clears the error. Desktop screenshots were inspected. An initial ad-hoc layout probe used an incorrect Scores ID, then manually exposed panels without native popup placement; those probe attempts were discarded and checks rerun through actual toolbar actions. Normal browser zoom/visual acceptance and physical Fishman testing remain pending. No user browser or Live Server configuration was touched.
+
+
 ## Score display, rhythm and Print / Save PDF — 2026-10-29
 
 Implemented the owner's approved Display choices and independent saved tab rhythm, with chord diagram placement unchanged. Tab-only structured scores can show standard notation; staffs without complete written string/fret data keep notation rather than guessed tablature. Score Default restores imported visibility. Automatic rhythm follows native alphaTab behavior; explicit Show includes bars/beams. Disabling the selector without visible tab retains its preference. New score-display.js owns metadata projection, score-print-controls.js owns print UI; native settings/render/print remain in alphatab-host.js. ARCHITECTURE records interactions and README explains player use.

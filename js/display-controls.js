@@ -23,13 +23,13 @@ export function initDisplayControls(onChange) {
     if(scoreDisplay)scoreDisplay.value=AppState.ui.scoreDisplay;
     if(tabRhythm){tabRhythm.value=AppState.ui.tabRhythm;tabRhythm.disabled=!AppState.score || !visibleTab(AppState);}
     if(scoreDisplayHelp)scoreDisplayHelp.textContent=AppState.score && ['both','tab'].includes(AppState.ui.scoreDisplay) && !visibleTab(AppState)
-      ? 'No usable written tab on the visible tracks. Notation stays visible; your saved choice is retained.'
-      : 'Changes the score view only. Tracks without usable written tab keep notation. Chord diagrams remain independent.';
+      ? 'No written tab on these tracks; showing notation.'
+      : '';
     const noDiagrams=AppState.scoreHasChordDiagrams===false;
     if(chordDiagrams){chordDiagrams.value=effectiveChordDiagramPlacement(AppState);chordDiagrams.disabled=noDiagrams;}
     if(chordDiagramHelp)chordDiagramHelp.textContent=noDiagrams
-      ? 'No chord diagrams in this score. Your saved preference applies to scores with diagrams.'
-      : 'Choose where Guitar Pro chord diagrams appear. Above Chord places each diagram in the score at its chord position.';
+      ? 'No chord diagrams in this score.'
+      : '';
     if(fretboard)fretboard.checked=AppState.ui.showFretboard;
   }
   function zoom(value) {

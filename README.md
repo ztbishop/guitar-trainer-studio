@@ -187,6 +187,8 @@ Tempo links BPM and playback percentage. Metronome volume and visual pulse help 
 
 Loop selects the section to repeat. Native score dragging selects whole measures; sliders allow precise repeat-occurrence choices. Changing the enabled range moves the cursor to its start and brings it into view while paused, without pressing Play. This one-time reveal also works with playback auto-scroll off; it does not change that setting. Play/resume has a one-bar count-in; Loop Count-in adds one at each repeat. Loop enablement and Loop Count-in reset when a score loads; they are not saved preferences.
 
+The menus keep controls compact; this guide provides the detailed explanations. Input errors appear when needed. Scores actions share one row on wider screens and wrap on smaller screens.
+
 ### Display and the fretboard
 
 Display controls zoom, auto-scroll, full screen on Play, chord diagrams, visible tracks and fretboard visibility. Showing all tracks does not change which single track is graded.

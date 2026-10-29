@@ -1,5 +1,10 @@
 # Guitar Trainer Studio Architecture
 
+## Compact toolbar menus — 2026-10-29
+
+index.html omits routine Display, Loop, Tempo and Audio instructional paragraphs; README retains user guidance. display-controls.js writes only contextual unavailable-tab/diagram explanations to the existing described-by targets. tempo-controls.js and pitch-controls.js clear routine status while retaining validation/readiness failure messages. menu-controls.css collapses empty status elements, places speed reset beside BPM arrows on desktop (stacking on phones), and uses five equal Scores action columns with the existing narrow-screen two-column fallback. No modules added, preference changes, grading changes or native alphaTab changes. This supersedes earlier descriptions of always-visible helper text.
+
+
 ## Score display, tab rhythm and printing — 2026-10-29
 
 `score-display.js` owns a pure staff-visibility projection. A WeakMap captures original standard/tab/slash/numbered flags once per staff, so Score Default restores the imported layout after overrides. Explicit views request standard notation, tablature or both; tab requires tuning and usable written string/fret data for every note, and unsupported staffs retain notation. No fingering is inferred. Cached capability and flags are display metadata; pitch, duration, timeline, MIDI and session results are untouched. Visible-track helpers drive rhythm-control availability.

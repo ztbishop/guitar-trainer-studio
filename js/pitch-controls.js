@@ -18,7 +18,7 @@ export function initPitchControls(onOffsetChange) {
       return false;
     }
     input.value=String(value);
-    if(status)status.textContent=value===0?'Pitch: written':`Pitch: ${value>0?'+':''}${value} semitones`;
+    if(status)status.textContent='';
     return true;
   }
 
@@ -28,7 +28,7 @@ export function initPitchControls(onOffsetChange) {
   return {sync({enabled=fieldset.disabled===false,value=Number(input.value)||0}={}) {
     fieldset.disabled=!enabled;
     input.value=String(value);
-    if(status && !enabled)status.textContent='Load a score to enable pitch shifting.';
+    if(status && !enabled)status.textContent='';
     else if(enabled)update(value);
   }};
 }

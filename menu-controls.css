@@ -160,10 +160,9 @@
 }
 .loop-notice.is-visible { opacity: 1; transform: translate(-50%, 0); }
 @media (prefers-reduced-motion: reduce) { .loop-notice { transition: none; } }
-.menu-bpm-row { grid-template-columns: var(--menu-label-width) var(--menu-number-group) minmax(0, 1fr); }
+.menu-bpm-row { grid-template-columns: var(--menu-label-width) var(--menu-number-group) max-content; }
 .tempo-metronome-row { display: grid; grid-template-columns: auto auto minmax(60px, 1fr) var(--menu-number-group); align-items: center; gap: var(--menu-gap); }
 .tempo-metronome-row label { display: flex; align-items: center; gap: 10px; min-height: var(--menu-control-height); }
-.tempo-speed-help { display: flex; align-items: center; gap: var(--menu-gap); font-size: 0.75rem; color: var(--muted); }
 .toolbar-popup #reset-playback-speed { flex: 0 0 auto; min-height: var(--menu-control-height); padding: 6px 10px; border-radius: var(--menu-radius); font-size: 0.75rem; box-shadow: none; }
 .tempo-unavailable { opacity: 0.45; }
 #tempo-controls-status { margin: 14px 0 0; font-size: 0.75rem; color: var(--muted); }
@@ -178,7 +177,7 @@
   .menu-row { grid-template-columns: minmax(0, 1fr) var(--menu-number-group); }
   .menu-row > label { grid-column: 1 / -1; }
   .menu-bpm-row .menu-number { grid-column: 1 / -1; }
-  .tempo-speed-help { flex-wrap: wrap; }
+  .menu-bpm-row #reset-playback-speed { grid-column: 1 / -1; justify-self: start; }
   .tempo-metronome-row { grid-template-columns: minmax(0, 1fr) var(--menu-number-group); }
   .tempo-metronome-row > label { grid-column: 1 / -1; }
 }
@@ -280,7 +279,7 @@
 .scores-demos .scores-library-actions { grid-template-columns: repeat(3,minmax(0,1fr)); }
 .scores-demos > a { color: #245f88; }
 #demo-score-status:empty { display: none; }
-.scores-library-actions { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
+.scores-library-actions { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 10px; }
 .scores-library-actions > button, .scores-library-actions .button-like { width: 100%; min-height: 48px; padding: 8px 10px; border-radius: 9px; box-shadow: none; text-align: center; box-sizing: border-box; }
 .scores-library-actions .file-picker { display: flex; min-width: 0; margin: 0; }
 .scores-library-actions .button-like { font-size: .9rem; }
@@ -400,3 +399,6 @@
   #practice-popup .brief-error-duration { margin-left: 0; }
   #practice-popup .brief-error-duration > label { grid-column: 1 / -1; }
 }
+
+/* Context and validation messages occupy space only when needed. */
+#score-display-help:empty, #chord-diagram-help:empty, #tempo-controls-status:empty, #pitch-offset-status:empty { display: none; }

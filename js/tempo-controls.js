@@ -142,13 +142,9 @@ export function initTempoControls({ onSpeedChange, onMetronomeChange = () => {} 
     if (visual) visual.checked = AppState.metronome.visualPulse;
     for (const id of ['metronome-volume-label', 'metronome-visual-label']) get(id)?.classList?.toggle('tempo-unavailable', !metroAvailable);
     updateNumbers();
-    status.textContent = !ready() ? 'Load a score to adjust playback speed.' : AppState.mode === 'wait'
-      ? 'Wait metronome runs at the set BPM, independently of notes and cursor. Tempo changes keep your results.'
-      : `Score tempo here: ${displayNumber(baseTempo())} BPM. Speed scales all score tempo changes.`;
+    status.textContent = '';
     onMetronomeChange(available && AppState.metronome.enabled ? AppState.metronome.volumePercent / 100 : 0,
       {wait: AppState.mode === 'wait', bpm: baseTempo() * AppState.playbackSpeed, running: running(), enabled: available && AppState.metronome.enabled});
-    const help = get('tempo-speed-description');
-    if (help) help.textContent = AppState.mode === 'wait' ? '25–200%. In Wait mode, tempo changes adjust the click and keep your results.' : '25–200%. Changing BPM or speed pauses practice and resets results.';
     if (!running() || !metroAvailable || !AppState.metronome.visualPulse) clearPulse();
   }
 
