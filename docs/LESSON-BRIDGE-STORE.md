@@ -26,7 +26,7 @@ Single purpose: Help users discover, inspect and transfer permitted lesson score
 | --- | --- |
 | activeTab | Read the current lesson only when the user opens the extension and explicitly scans it. |
 | scripting | Run the bundled scanner in that tab and the bundled one-shot delivery function in the chosen Guitar Trainer tab. No remotely hosted code is executed. |
-| storage | Remember only the user's destination app address in chrome.storage.local. |
+| storage | Remember the destination app address in chrome.storage.local and a short send result in chrome.storage.session; no lesson payload is persisted. |
 | Optional HTTPS hosts | Read user-selected score/timing resources on provider/CDN hosts and deliver to the user's HTTPS trainer. The manifest allows arbitrary HTTPS destinations because lesson providers/CDNs and self-hosted trainers vary; actual grants request individual origins from explicit actions. |
 | Optional localhost/127.0.0.1 HTTP hosts | Deliver to an already open local trainer on its actual port. Other HTTP hosts are not requested as supported remote fetch destinations. |
 
@@ -50,7 +50,7 @@ The 128-pixel icon is in the manifest. `docs/lesson-bridge-store/startup.jpg` is
 1. Open the hosted trainer at `/index.html` and the original demo lesson at `docs/lesson-bridge-store/demo.html` under the same hosted site. No provider account is required for this example.
 2. Open Lesson Bridge on the demo tab. Scan; select First notes as the score and leave recording/timing empty. Send, grant the requested host if desired, and approve the trainer's review. The original CC0 score should open without playback or automatic saving.
 3. Declining site permission must show an explanatory status and send nothing. Keep only one matching trainer tab open; no matching tab and duplicate matching tabs must produce recovery messages.
-4. Inspect the extension's Privacy link and destination-address persistence. No browsing monitor/background process should exist.
+4. Inspect the extension's Privacy link and destination-address persistence. No browsing monitor should exist. An on-demand worker continues only explicit sends when permission prompts close the popup.
 5. For a provider lesson, the reviewer must have their own authorized access. TrueFire is not required for the account-free score-transfer example. Do not provide the owner's account credentials or signed lesson URLs.
 
 ## Installed-browser acceptance before submission

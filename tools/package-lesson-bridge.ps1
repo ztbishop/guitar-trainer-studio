@@ -8,7 +8,7 @@ $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $manifest = Get-Content -LiteralPath (Join-Path $extensionRoot 'manifest.json') -Raw | ConvertFrom-Json
 $packagePath = Join-Path $OutputDirectory ("guitar-trainer-lesson-bridge-" + $manifest.version + '.zip')
-$files = @('manifest.json','popup.html','popup.css','popup.js','scanner.js','discovery.js','transfer.js','privacy.html','NOTICE.txt')
+$files = @('manifest.json','popup.html','popup.css','popup.js','scanner.js','discovery.js','transfer.js','send-job.js','send-worker.js','privacy.html','NOTICE.txt')
 $files += @($manifest.icons.PSObject.Properties.Value | Sort-Object -Unique)
 foreach ($file in $files) {
     if (!(Test-Path -LiteralPath (Join-Path $extensionRoot $file) -PathType Leaf)) { throw "Missing package file: $file" }

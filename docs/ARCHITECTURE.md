@@ -1,5 +1,11 @@
 # Guitar Trainer Studio Architecture
 
+## Send survives first-use permission prompts — 2026-10-28
+
+`popup.js` snapshots the chosen lesson in an immediate click-triggered runtime message. `send-worker.js` accepts messages only from this extension's popup URL, rejects concurrent sends, and owns completion independently of the popup. It starts `send-job.js` before any storage await so permissions.request retains the message's user gesture. `send-job.js` requests exact selected origins, resolves one matching app tab, downloads score/timing concurrently with existing 25-second/size bounds, delivers once through transfer.deliverLesson, and focuses the app. No provider access or app import occurs after a declined permission. Native app review remains mandatory.
+
+Only the app address persists locally. Session storage keeps a short status (URL-bearing error messages are replaced with a generic recovery message); lesson payloads stay in worker memory until completion. Reopening shows the status, and a stale pending status after worker restart asks for a fresh explicit Send. No retry queue, browsing listener, external messaging or automatic injection is added. Manifest declares the module worker and Chrome 116 minimum for permission-prompt worker lifetime support. Packaging includes both new modules. Preview/Test/Inspect operations remain popup-scoped. No app, alphaTab, MIDI, Wait or grading changes.
+
 ## Lesson Bridge import handoff and unlisted preparation — 2026-10-28
 
 `media-controls.importLesson` now publishes validated imported anchors through `host.applyMediaSyncPoints` when replacing/reattaching a recording. `loadRecording` already activates native external playback using provisional points, so a later `selectRecording` is a no-op: assigning editor points alone left native playback stale. The host remains the sole alphaTab integration owner and its native sync update handles repositioning. Timing-only uses the existing edit/Undo path. Red selected recording seconds remain independent; no MIDI, grading, Wait or feedback rules change.

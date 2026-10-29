@@ -41,7 +41,8 @@ test('discovery stays bounded and extension has no persistent observer, receiver
   assert.equal(discoverResources(Array.from({length:400},(_,i)=>({url:`https://example.com/${i}.gp5`})),'https://example.com').length,150);
   const manifest=JSON.parse(readFileSync(new URL('../extensions/lesson-bridge/manifest.json',import.meta.url),'utf8'));
   assert.deepEqual(manifest.permissions,['activeTab','scripting','storage']);
-  assert(!manifest.background && !manifest.content_scripts && !manifest.externally_connectable && !manifest.host_permissions);
+  assert.deepEqual(manifest.background,{service_worker:'send-worker.js',type:'module'});
+  assert(!manifest.content_scripts && !manifest.externally_connectable && !manifest.host_permissions);
   for(const [size,file] of Object.entries(manifest.icons)) {
     const bytes=readFileSync(new URL('../extensions/lesson-bridge/'+file,import.meta.url));
     assert.equal(bytes.readUInt32BE(16),Number(size));assert.equal(bytes.readUInt32BE(20),Number(size));

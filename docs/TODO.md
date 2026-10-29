@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+## First-use Lesson Bridge send — 2026-10-28
+
+- [x] Move explicit Send permission/download/delivery into an on-demand worker so popup closure does not discard the operation.
+- [x] Reject duplicate active sends, retain a session-only result, preserve decline/no-send behavior, document privacy/lifecycle changes and include worker modules in the ZIP.
+- [ ] Owner reloads the extension and tests a fresh site-access grant: one Send followed by approval should open the trainer review without a second Send. Decline should send nothing. Actual Chrome prompt/provider acceptance remains distinct from automated closure simulation.
+
 ## Lesson Bridge timing and unlisted preparation — 2026-10-28
 
 - [x] Correct replacing-recording import: publish validated anchors to active native playback as well as the editor.

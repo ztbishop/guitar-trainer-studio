@@ -16,7 +16,7 @@ function previewWav(){const b=Buffer.alloc(44+8000*2*3);b.write('RIFF');b.writeU
       const url=new URL(route.request().url()); requests.push(url.href);
       if(url.hostname==='bridge.test') {
         const file=path.basename(url.pathname);
-        if(!['popup.html','popup.js','popup.css','scanner.js','discovery.js','transfer.js'].includes(file))return route.abort();
+        if(!['popup.html','popup.js','popup.css','scanner.js','discovery.js','transfer.js','send-job.js'].includes(file))return route.abort();
         return route.fulfill({status:200,contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html',
           body:await fs.readFile(path.join(__dirname,'../extensions/lesson-bridge',file),'utf8')});
       }
@@ -68,6 +68,7 @@ function previewWav(){const b=Buffer.alloc(44+8000*2*3);b.write('RIFF');b.writeU
       window.copyBlocked=false;window.copiedJson=null;
       Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{if(window.copyBlocked)throw new Error('blocked');window.copiedJson=text;}}});
       window.chrome={
+        runtime:{sendMessage:async message=>message.type==='send-status'?null:(await import('/send-job.js')).sendJob(message.job,window.chrome)},
         storage:{local:{get:async()=>JSON.parse(sessionStorage.getItem('mockPreferences') || '{}'),set:async value=>{sessionStorage.setItem('mockPreferences',JSON.stringify(value));}}},
         tabs:{query:async options=>options.url?[{id:2,url:'https://trainer.test/'}]:[{id:1,url:'https://truefire.com/lesson/v32682'}],update:async()=>{}},
         scripting:{executeScript:async options=>{if(options.args){window.delivered=options.args[0];return [{result:{ok:true}}];}return [{result:window.fixture}];}},

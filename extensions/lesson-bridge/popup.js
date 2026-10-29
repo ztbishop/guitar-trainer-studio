@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import {scanPage} from './scanner.js';
 import {discoverResources, displayUrl, displayLabel, readSyncPoints, redirectDestination,webUrl,youtubeVideoId} from './discovery.js';
-import {appAddress,appPath,fetchBytes,base64Bytes,deliverLesson,checkScoreBytes} from './transfer.js';
+import {appAddress,fetchBytes,checkScoreBytes} from './transfer.js';
 const get = id => document.getElementById(id);
 function element(tag, text) { const node=document.createElement(tag); node.textContent=text; return node; }
 let scanned=null,candidates=[];
+chrome.runtime.sendMessage({type:'send-status'}).then(result=>{
+  if(!scanned && result?.message)get('status').textContent=result.message;
+}).catch(()=>{});
 const defaultAppAddress='https://ztbishop.github.io/guitar-trainer-studio/index.html';
 get('app-address').value=defaultAppAddress;
 let addressEdited=false;
@@ -101,21 +104,13 @@ async function sendLesson(){
   try {
     const target=appAddress(get('app-address').value.trim()),score=selected('score'),recording=selected('recording'),timing=selected('timing');
     if(!score && !recording && !timing)throw new Error('Select a score, recording or timing update.');
-    const urls=[target.href,score?.url,score?redirectDestination(score.url):null,timing?.url].filter(Boolean);
-    // Call immediately in this click gesture, before fetching anything.
-    await allow(urls);
-    const tabs=await chrome.tabs.query({url:`${target.origin}/*`});
-    const matches=tabs.filter(tab=>{try{const url=new URL(tab.url);return url.origin===target.origin && appPath(url)===appPath(target);}catch{return false;}});
-    if(matches.length!==1)throw new Error(matches.length?'More than one matching app tab is open. Keep one open and try again.':'Open Guitar Trainer at the address above, then try again.');
-    await chrome.storage.local.set({appAddress:target.href});
-    let scoreData=null;
-    if(score){const bytes=await fetchBytes(score.url,12*1024*1024);checkScoreBytes(bytes,score.fileName);scoreData={fileName:score.fileName,base64:base64Bytes(bytes)};}
-    const payload={format:'gts-lesson',version:2,title:scanned.title,lessonUrl:scanned.page,score:scoreData,
-      recording:recording?{url:recording.url,label:scanned.title}:null,syncPoints:await timingData(timing),keepRecording:get('recording').value==='keep' || (!score && !recording)};
-    const [{result}]=await chrome.scripting.executeScript({target:{tabId:matches[0].id},func:deliverLesson,args:[payload]});
-    if(!result?.ok)throw new Error(result?.message || 'The app could not receive this lesson.');
-    get('send-status').textContent='Sent. Review the import in Guitar Trainer.';
-    await chrome.tabs.update(matches[0].id,{active:true});
+    // Dispatch in the click gesture; the worker survives toolbar popup closure.
+    const result=await chrome.runtime.sendMessage({type:'send-lesson',job:{
+      target:target.href,title:scanned.title,page:scanned.page,score,recording,timing,
+      keepRecording:get('recording').value==='keep' || (!score && !recording)
+    }});
+    if(!result?.ok)throw new Error(result?.message || 'The send could not finish. Reopen Lesson Bridge and try again.');
+    get('send-status').textContent=result.message;
   } catch(error) {get('send-status').textContent=error.name==='TypeError' || error.name==='TimeoutError'?'A resource could not be retrieved. Sign in, rescan and check the app address.':error.message;}
   finally {disableSend(false);get('scan').disabled=false;}
 }
