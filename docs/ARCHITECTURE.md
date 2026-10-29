@@ -1,5 +1,10 @@
 # Guitar Trainer Studio Architecture
 
+## Centered fretboard width cap — 2026-10-29
+
+fretboard-ui.js limits the requested neck width to min(available content width, usable panel height × 8) before invoking the existing geometry/fit helpers. Both geometry and fit receive the capped width, preventing fit from re-expanding the neck across an ultrawide viewport. Existing readable minimum fret-cell width and small-screen horizontal scrolling take precedence. workspace-panels.css centers the SVG using automatic inline margins, which collapse when it overflows. The panel remains full width; existing ResizeObserver responds to height/width changes and saved automatic/manual sizing remains owned by workspace-panels.js. No new module, setting, grading or alphaTab behavior is introduced.
+
+
 ## Compact toolbar menus — 2026-10-29
 
 index.html omits routine Display, Loop, Tempo and Audio instructional paragraphs; README retains user guidance. display-controls.js writes only contextual unavailable-tab/diagram explanations to the existing described-by targets. tempo-controls.js and pitch-controls.js clear routine status while retaining validation/readiness failure messages. menu-controls.css collapses empty status elements, places speed reset beside BPM arrows on desktop (stacking on phones), and uses five equal Scores action columns with the existing narrow-screen two-column fallback. No modules added, preference changes, grading changes or native alphaTab changes. This supersedes earlier descriptions of always-visible helper text.

@@ -35,8 +35,12 @@ export function renderFretboard(model) {
   if(helpStatus)helpStatus.textContent=(model.supported?`${model.stringCount} ${model.stringCount===1?'string':'strings'} · Frets relative to capo ${model.capo}. `:'')+model.message+
     (model.unmappedPitches?.length?` Outside displayed positions: ${model.unmappedPitches.map(midiToNoteName).join(', ')}.`:'');
   if(!model.supported){const hint=document.createElement('p');hint.className='field-help';hint.textContent=model.message;container.appendChild(hint);return;}
-  const natural=fretboardGeometry(model.maxFret,model.stringCount,availableWidth);
-  const fit=fretboardFit(natural.width,natural.height,availableWidth,container.closest?.('.fretboard-panel')?availableHeight:0);
+  const panelHeight=container.closest?.('.fretboard-panel')?availableHeight:0;
+  // Keep wide monitors from spreading the neck across the entire workspace.
+  // The panel still spans the workspace; resizing its height adjusts this cap.
+  const neckWidth=panelHeight>0?Math.min(availableWidth,panelHeight*8):availableWidth;
+  const natural=fretboardGeometry(model.maxFret,model.stringCount,neckWidth);
+  const fit=fretboardFit(natural.width,natural.height,neckWidth,panelHeight);
   const geometry=fretboardGeometry(model.maxFret,model.stringCount,fit.width);
   const {width,height,firstY,stringGap,top,bottom}=geometry;
   const scroll=document.createElement('div');scroll.className='fretboard-scroll';

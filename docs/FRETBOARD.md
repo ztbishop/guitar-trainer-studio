@@ -1,5 +1,10 @@
 # Practice fretboard
 
+## Wide-screen proportions — 2026-10-29
+
+The neck is centered and its requested width is capped at eight times the usable panel height. Taller manually resized panels permit wider necks; the panel itself stays full width. Smaller viewports retain readable fret cells and horizontal scrolling. Marker/text scaling, orientation, saved sizing and feedback semantics are unchanged.
+
+
 ## Missed targets stay blue — 2026-10-29
 
 Current targets no longer turn red merely because their Realtime attack window was missed. They remain blue until ordinary advancement replaces them or presents them as context. Score notation/history and miss totals are unchanged. Incorrect played-note rings keep their existing red/release behavior, and green accepted feedback (including partial Wait chords) is unchanged. Completed-with-errors feedback is also unchanged: this is specifically suppression of missed-target red, not a redesign of all error feedback. This supersedes older descriptions of red missed targets below. No saved preference or new control is added.

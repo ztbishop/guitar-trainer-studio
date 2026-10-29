@@ -207,6 +207,8 @@ The fretboard starts visible with **Beat + Bar**, note-name labels, alternate po
 
 Optional **Show alternate positions** adds faint dashed blue guides for the current target's exact pitches elsewhere on the neck. It defaults off and saves your choice. The guides help you explore other positions; they are not detected fingering, octave substitutions or extra notes to play. Written targets and grading stay unchanged, and alternate positions never invent finger numbers.
 
+On wide screens, the fretboard stays centered with its width limited by the panel height. Drag the panel taller to allow a wider neck; small screens keep horizontal scrolling.
+
 Fretboard arrows pause and browse targets while clearing the current attempt. Drag the divider to resize the panel; double-click it to restore automatic fit. Saved display choices return when you reopen the app.
 
 ### Audio and recordings

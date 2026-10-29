@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+## Ultrawide fretboard proportions — 2026-10-29
+
+- [x] Cap neck width relative to usable panel height and center the SVG; preserve responsive scrolling and saved panel sizing.
+- [x] Pass 481 Node tests and isolated Chrome checks at 3820×1550, 1440×900 and 390×844; inspect ultrawide/laptop screenshots and verify taller saved panels expand the cap.
+- [ ] Owner confirms appearance on the physical LG 38-inch display at their usual browser zoom. Physical MIDI acceptance remains separate.
+
+
 ## Compact menus — 2026-10-29
 
 - [x] Remove routine helper text in Display, Loop, Tempo and Audio; retain contextual unavailable explanations and input errors.

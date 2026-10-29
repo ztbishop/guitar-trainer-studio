@@ -1,5 +1,12 @@
 # Development notes
 
+## Ultrawide fretboard proportions — 2026-10-29
+
+Owner approved capping the neck relative to panel height and centering it. A local projection in fretboard-ui.js supplies a maximum requested width of eight times usable panel height to the existing geometry/fit code; workspace-panels.css supplies automatic inline SVG margins. Minimum readable fret widths still permit horizontal scrolling on narrow screens. Full-width panel, saved heights, orientation, markers, MIDI matching, Wait and native alphaTab are unchanged. No new module or preference.
+
+Verification: 481 Node tests pass; module syntax and diff whitespace checks pass. Isolated Chrome using the original Easy chords demo measured a centered 1360×170 neck at 3820×1550 (equal 1177 px content margins), a 1334×170 neck at 1440×900, and a scrollable 784×170 neck at 390×844 with no vertical clipping. Reloading a saved 300 px manual panel height expanded the ultrawide neck to 2256 px. Ultrawide and laptop screenshots were inspected. Physical LG/browser zoom and Fishman acceptance remain pending; the user's browser and Live Server were not changed.
+
+
 ## Compact menus — 2026-10-29
 
 Owner approved removing three Display helper paragraphs, Loop instructions, two Tempo explanations and Audio helper copy, moving Reset to 100% beside BPM arrows, and using five equal Scores action columns. Routine tempo/pitch status is now empty; explicit input errors and playback-readiness failures remain. Display retains short unavailable-tab/diagram explanations only. No new modules or changes to playback, MIDI, grading, Wait, saved preferences or native alphaTab behavior. Detailed user guidance stays in README.
