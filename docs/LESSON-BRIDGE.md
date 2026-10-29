@@ -77,6 +77,12 @@ Conversion from internal Soundslice notation would be a separate feasibility/fid
 
 ## Developer continuation
 
+Store preparation and the installed-browser acceptance checklist are in [LESSON-BRIDGE-STORE.md](LESSON-BRIDGE-STORE.md). The packaged `privacy.html` explains page scanning, provider requests, selected transfers, app storage and clipboard handling. `tools/package-lesson-bridge.ps1` includes it and the existing notice/license/icon work in an explicit extension-only ZIP. No store submission or app release is implied.
+
+October 28 timing repair: `loadRecording` already activates Recording with provisional/default points. The replacing-recording branch of `importLesson` must call `host.applyMediaSyncPoints(checked)` before finishing, in addition to setting its editor points. Otherwise the editor can show imported triangles while native playback and AppState.media.points retain the provisional zero-start mapping. The existing host owns validation, native sync update and native repositioning; no extra seek or playback workaround is needed. Timing-only imports continue through `edit`. The red editing time remains independent of anchor selection; it is not evidence that the import lost its start time.
+
+Timing inspection now uses `transfer.fetchBytes` with explicit omit-credentials/reject-redirect options and a streaming 1,000,000-byte limit. Scanner's serialized page function contains its own bounded reader for the same manifest limit. Both TrueFire redirect route families now use consistent destination permission resolution and encoded-path redaction. These changes do not broaden permissions or change discovery/provider access scope.
+
 The extension is optional and uses its own prototype version 0.2.0; the app remains Beta v0.0.4. App runtime imports no files from the extension folder, so the existing local launcher allowlist only adds the app's new review stylesheet.
 
 | File | Responsibility |

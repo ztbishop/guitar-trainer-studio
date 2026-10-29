@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+## Lesson Bridge timing and unlisted preparation — 2026-10-28
+
+- [x] Correct replacing-recording import: publish validated anchors to active native playback as well as the editor.
+- [x] Bound timing-inspection/manifest responses while reading; consistently redact/resolve both TrueFire redirect forms.
+- [x] Add packaged privacy policy, use-permission guidance, store copy/disclosures, account-free original demo, listing screenshot and extension-only packaging.
+- [ ] Owner tests the installed extension's actual permissions and hosted/local destination paths, then Blue Nova's 7.932401-second start through its ending. Physical Fishman and real provider acceptance remain separate from automated evidence.
+- [ ] Verify public policy/demo links after hosting updates; owner completes developer-account requirements and authorizes Unlisted submission. Add the real store URL to README only when available. No store submission or app release in this update.
+
 ## Triangle navigation follows the chosen pass — 2026-10-28
 
 - [x] Triangle clicks seek their selected score beat and repeat pass, moving the sheet cursor/black playhead while preserving red recording seconds; saved drags remain unchanged.

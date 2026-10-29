@@ -18,7 +18,11 @@ function wav() {
     browser=await chromium.launch({headless:true,channel:process.env.GTS_BROWSER_CHANNEL || 'chrome'});
     const context=await browser.newContext({viewport:{width:1360,height:900}});
     let mediaRequests=0;
-    await context.route('https://recording.test/**',route=>{mediaRequests++;return route.fulfill({contentType:'audio/wav',body:wav(),headers:{'Access-Control-Allow-Origin':'*'}});});
+    await context.route('https://recording.test/**',route=>{
+      mediaRequests++;const bytes=wav(),range=route.request().headers().range?.match(/bytes=(\d+)-(\d*)/);
+      const start=range?Number(range[1]):0,end=range?.[2]?Math.min(Number(range[2]),bytes.length-1):bytes.length-1;
+      return route.fulfill({status:range?206:200,contentType:'audio/wav',body:bytes.subarray(start,end+1),headers:{'Access-Control-Allow-Origin':'*','Accept-Ranges':'bytes',...(range?{'Content-Range':`bytes ${start}-${end}/${bytes.length}`}:{})}});
+    });
     const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
     await page.goto(base);await page.locator('#lesson-import-dialog').waitFor({state:'attached'});
     assert.equal(await page.locator('#media-apply-pasted-sync').isDisabled(),true);
@@ -56,6 +60,15 @@ function wav() {
     assert.equal(await page.locator('#media-editor').isVisible(),false,'import automatically finishes editing');
     assert.equal(await page.locator('#play-pause-button').textContent(),'▶ Play');
     assert.equal(await page.locator('#play-pause-button').evaluate(el=>el===document.activeElement),true);
+    await page.locator('#btn-more').click();await page.locator('[data-open-media-editor]').click();
+    assert.equal(await page.locator('#media-timeline [data-point]').count(),3,'editor retains all imported anchors');
+    assert.equal(await page.locator('#media-point-time').inputValue(),'0.000','independent red time selection is not an imported anchor');
+    await page.locator('#media-finish-editing').click();
+    await page.locator('#play-pause-button').click();
+    await page.waitForFunction(()=>!document.querySelector('#media-audio').paused,{timeout:15000});
+    const startTime=await page.locator('#media-audio').evaluate(el=>el.currentTime);
+    assert(startTime>=0.95 && startTime<3,`Play uses the imported one-second start, not the provisional zero-second alignment (actual ${startTime})`);
+    await page.locator('#play-pause-button').click();
     // Mismatched timing fails before a recording request and keeps the opened score usable.
     const requestsBefore=mediaRequests;
     await offer({...payload,syncPoints:[[0,1],[96,11]]});await page.getByRole('button',{name:'Import lesson',exact:true}).click();
@@ -72,6 +85,7 @@ function wav() {
     await page.locator('#lesson-import-notice').filter({hasText:'Add alignment'}).waitFor({timeout:35000});
     assert.equal(await page.locator('#lesson-import-dialog').isVisible(),false);
     assert.equal(await page.evaluate(()=>lessonState.media.editing),true);
+    await page.locator('[data-launch-panel="media-popup"]').click();
     await page.locator('#media-paste-sync summary').click();
     const previous=await page.evaluate(()=>JSON.stringify(lessonState.media.points));
     for(const value of ['not JSON','[[0,1],[96,11]]','[[0,1],[4,13]]']) {
@@ -85,11 +99,12 @@ function wav() {
     assert.deepEqual(await page.evaluate(()=>lessonState.media.points.map(p=>p.millisecondOffset)),[2000,9000,11000]);
     assert.equal(await page.locator('#media-audio').getAttribute('src'),recordingUrl);
     assert.equal(await page.evaluate(()=>lessonState.currentScoreFile.fileName),'imported-lesson.gp');
+    await page.keyboard.press('Escape');
     await page.locator('#media-undo').click();assert.equal(await page.evaluate(()=>JSON.stringify(lessonState.media.points)),previous);
     await page.locator('#media-redo').click();
     assert.deepEqual(await page.evaluate(()=>lessonState.media.points.map(p=>p.millisecondOffset)),[2000,9000,11000]);
     assert.equal(await page.locator('#media-dirty').textContent(),'Unsaved changes');
-    if(process.env.GTS_PASTE_SCREENSHOT)await page.locator('#media-paste-sync').screenshot({path:process.env.GTS_PASTE_SCREENSHOT});
+    if(process.env.GTS_PASTE_SCREENSHOT){await page.locator('[data-launch-panel="media-popup"]').click();await page.locator('#media-paste-sync').screenshot({path:process.env.GTS_PASTE_SCREENSHOT});await page.keyboard.press('Escape');}
     await page.locator('#media-finish-editing').click();
     // Automatic completion must retain Wait mode and leave the recording silent.
     await page.evaluate(()=>{const input=document.querySelector('input[name="practice-mode"][value="wait"]');input.checked=true;input.dispatchEvent(new Event('change'));});

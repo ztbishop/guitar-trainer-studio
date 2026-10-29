@@ -75,6 +75,11 @@ function previewWav(){const b=Buffer.alloc(44+8000*2*3);b.write('RIFF');b.writeU
       };
     },{result});
     await popup.goto('https://bridge.test/popup.html');
+    if(process.env.GTS_STORE_SCREENSHOT) {
+      await popup.setViewportSize({width:640,height:400});
+      await popup.screenshot({path:process.env.GTS_STORE_SCREENSHOT,type:'jpeg',quality:95});
+      await popup.setViewportSize({width:600,height:800});
+    }
     assert.equal(await popup.locator('#send-top').isDisabled(),true,'top Send waits for a successful scan');
     await popup.waitForFunction(()=>document.getElementById('app-address').value==='https://ztbishop.github.io/guitar-trainer-studio/index.html');
     await popup.locator('#scan').click();await popup.locator('#transfer').waitFor();

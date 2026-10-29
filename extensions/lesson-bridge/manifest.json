@@ -7,6 +7,7 @@
     "16": "icons/icon-16x16.png",
     "32": "icons/icon-32x32.png",
     "48": "icons/icon-48x48.png",
+    "128": "icons/icon-128x128.png",
     "192": "icons/icon-192x192.png"
   },
   "permissions": ["activeTab", "scripting", "storage"],

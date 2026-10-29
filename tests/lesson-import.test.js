@@ -62,3 +62,20 @@ test('extension downloads stop at their byte limit and reject sign-in HTML rathe
     await assert.rejects(fetchBytes('https://example.com/test.gp5',100),/Sign in/);
   } finally {globalThis.fetch=oldFetch;}
 });
+
+test('timing inspection preserves no-credential/no-redirect policy while enforcing the streaming byte cap',async()=>{
+  const oldFetch=globalThis.fetch;let cancelled=false,options;
+  try {
+    globalThis.fetch=async(_url,init)=>{options=init;return new Response(new ReadableStream({start(c){c.enqueue(new Uint8Array(1000001));},cancel(){cancelled=true;}}));};
+    await assert.rejects(fetchBytes('https://example.com/sync.json',1000000,{credentials:'omit',redirect:'error'}),/size limit/);
+    assert(cancelled);assert.equal(options.credentials,'omit');assert.equal(options.redirect,'error');
+  } finally {globalThis.fetch=oldFetch;}
+});
+
+test('Blue Nova timing preserves its nonzero start and terminal anchor across 64 performance measures',()=>{
+  const measures=Array.from({length:64},(_,i)=>({measureNumber:i+1,occurrence:1,startTick:i*3840,endTick:(i+1)*3840}));
+  const timeline={measures,endTick:64*3840};
+  const result=soundslicePoints([[0,7.932401116538729,0,0],[63,133.861,0,0],[64,135.97788300000013,0,0]],timeline,140000);
+  for(const [i,time] of [7932.401116538729,133861,135977.883].entries())assert(Math.abs(result[i].millisecondOffset-time)<0.000001);
+  assert.equal(pointTick(result[0],timeline),0);assert.equal(pointTick(result.at(-1),timeline),timeline.endTick);
+});

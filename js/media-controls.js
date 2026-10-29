@@ -562,6 +562,9 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       openEditor();
       if(checked && !replacing)edit(checked);
       else if(imported) {
+        // Loading already selected Recording with its provisional alignment.
+        // Publish imported anchors to that active native player as well as the editor.
+        host.applyMediaSyncPoints(checked);
         profileId='';points=checked;dirty=true;undo=[];redo=[];selected=-1;
         get('profile-name').value=recording?.label || retained?.source.label || 'Imported alignment';renderPoints();sync();
       }

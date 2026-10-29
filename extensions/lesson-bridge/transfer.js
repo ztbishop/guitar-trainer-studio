@@ -7,8 +7,8 @@ export function appAddress(value) {
   return url;
 }
 export function appPath(url) { return url.pathname.replace(/\/index\.html$/,'/'); }
-export async function fetchBytes(url,limit) {
-  const response=await fetch(url,{credentials:'include',signal:AbortSignal.timeout(25000)});
+export async function fetchBytes(url,limit,options={}) {
+  const response=await fetch(url,{credentials:'include',signal:AbortSignal.timeout(25000),...options});
   if (!response.ok || /text\/html/i.test(response.headers.get('content-type') || ''))
     throw new Error('A selected resource could not be downloaded. Sign in and rescan; the link may have expired.');
   const reader=response.body.getReader(),chunks=[];let length=0;

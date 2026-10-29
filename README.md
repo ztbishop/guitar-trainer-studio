@@ -119,6 +119,10 @@ Opening a demo replaces the current open score just like opening another file. I
 
 ### Import a lesson from Chrome
 
+Lesson Bridge is currently installed locally; it has not been published to the Chrome Web Store. An unlisted store listing is being prepared. Use it for personal practice with content you are permitted to use, and respect the lesson provider's restrictions. Finding a link does not grant permission to redistribute its content. The extension imports score/timing data and links recordings; saving a score to your library keeps a browser copy. Read the [privacy policy](extensions/lesson-bridge/privacy.html).
+
+Imported timing appears as blue anchors in Media Sync (often just Start, a late measure, and End); lighter triangles are estimated positions between them. The red recording-seconds field is your separate editing selection, so its value can differ from the Start anchor. Import now applies the same timing to playback and the editor. After updating, hard-refresh Guitar Trainer and import again if an earlier import started the recording at zero despite a later Start anchor.
+
 Lesson Bridge starts with the [hosted Guitar Trainer address](https://ztbishop.github.io/guitar-trainer-studio/index.html). Change it to your local or other app address if needed, including **/index.html at the end**; valid changes are remembered automatically, even before sending a lesson. Your saved address takes precedence on later visits.
 
 Look for **Guitar Trainer Lesson Bridge** with the app's guitar icon in Chrome's extension toolbar. Its popup shows Guitar Trainer above Lesson Bridge. After scanning and reviewing your choices, either **Send selected lesson** button works: one sits beside **Scan this page**, and the other remains below the selectors.

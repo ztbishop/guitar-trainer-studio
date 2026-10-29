@@ -1,5 +1,13 @@
 # Guitar Trainer Studio Architecture
 
+## Lesson Bridge import handoff and unlisted preparation — 2026-10-28
+
+`media-controls.importLesson` now publishes validated imported anchors through `host.applyMediaSyncPoints` when replacing/reattaching a recording. `loadRecording` already activates native external playback using provisional points, so a later `selectRecording` is a no-op: assigning editor points alone left native playback stale. The host remains the sole alphaTab integration owner and its native sync update handles repositioning. Timing-only uses the existing edit/Undo path. Red selected recording seconds remain independent; no MIDI, grading, Wait or feedback rules change.
+
+`transfer.fetchBytes(url,limit,options)` owns bounded extension downloads, with timing inspection overriding credential/redirect/timeout policy. The serialized `scanner.scanPage` cannot import helpers, so it owns a local bounded manifest reader. `discovery.redirectDestination` and `displayUrl` cover both eq and site/courses redirects for permission destinations and redaction.
+
+`extensions/lesson-bridge/privacy.html` is the packaged/public privacy-policy source linked by the popup. `tools/package-lesson-bridge.ps1` owns the explicit extension-only ZIP allowlist, root manifest, license inclusion and hash output. `docs/LESSON-BRIDGE-STORE.md` owns listing copy, permission/data disclosures, reviewer steps and pending installed-browser acceptance. `docs/lesson-bridge-store/demo.html` links the original CC0 demo for account-free review; startup.jpg is a reproducible popup screenshot. None is a trainer runtime dependency. Store submission remains separate; no version bump/tag or changed access scope.
+
 ## Triangle navigation follows the chosen pass — 2026-10-28
 
 This supersedes the earlier triangle-no-seek decision. media-controls.seekSelectedTarget derives a performance tick from the selected expanded measure occurrence and fractional beat, projects it through mediaTimeAtTick, and uses seekRecording with preserveTime. Unsaved guide clicks seek immediately; saved anchor clicks seek on pointer release only if no drag occurred. Existing drag editing/resume behavior stays intact. The shared recording-seek path selects Recording when necessary and retains its generation/source guards and host cursor reveal. Native score clicks invalidate unfinished timeline seeks and keep the native occurrence selection. Red seconds, profiles, MIDI/grading and Wait rules are unchanged; selection alone never saves an anchor.

@@ -57,7 +57,7 @@ export function youtubeVideoId(value) {
 }
 
 export function redirectDestination(value) {
-  const encoded = new URL(value).pathname.match(/\/api\/eq\/redirect\/([^/]+)(?:\/\d+)?$/)?.[1];
+  const encoded = new URL(value).pathname.match(/\/api\/(?:eq|site\/courses)\/redirect\/([^/]+)(?:\/\d+)?$/)?.[1];
   try { return encoded ? webUrl(atob(decodeURIComponent(encoded).replace(/-/g,'+').replace(/_/g,'/'))) : null; }
   catch { return null; }
 }
@@ -81,7 +81,7 @@ export function discoverResources(raw, base,{includeOther=false}={}) {
 export function displayUrl(value) {
   const url = new URL(value);
   // Query values often contain signed access tokens. Keep them out of the review UI.
-  const path = url.pathname.replace(/(\/api\/eq\/redirect\/).+/, '$1[encoded destination]');
+  const path = url.pathname.replace(/(\/api\/(?:eq|site\/courses)\/redirect\/).+/, '$1[encoded destination]');
   return `${url.origin}${path}${url.search ? '?[parameters hidden]' : ''}`;
 }
 

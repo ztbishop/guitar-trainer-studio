@@ -63,8 +63,17 @@ export async function scanPage() {
       try {
         const response = await fetch(manifest, {credentials:'same-origin', signal:AbortSignal.timeout(8000)});
         if (!response.ok) throw new Error();
-        const text = await response.text();
-        if (text.length > 1000000) throw new Error();
+        // This function runs serialized in the page, so keep its bounded reader local.
+        const reader=response.body.getReader(),chunks=[];let length=0;
+        try {
+          while(true) {
+            const {value,done}=await reader.read();if(done)break;
+            length+=value.length;if(length>1000000)throw new Error();chunks.push(value);
+          }
+        } finally {await reader.cancel().catch(()=>{});}
+        const bytes=new Uint8Array(length);let offset=0;
+        for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
+        const text = new TextDecoder().decode(bytes);
         const payload = JSON.parse(text);
         let count = 0;
         const walk = (value, key = '', depth = 0) => {

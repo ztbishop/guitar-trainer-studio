@@ -1,0 +1,11 @@
+Guitar Trainer Lesson Bridge
+Copyright 2026 ztbishop and contributors.
+
+Original extension code and packaged project artwork are licensed under
+AGPL-3.0-or-later. See the included LICENSE for the complete terms.
+Source and installation/limitations documentation:
+https://github.com/ztbishop/guitar-trainer-studio/tree/main/extensions/lesson-bridge
+https://github.com/ztbishop/guitar-trainer-studio/blob/main/docs/LESSON-BRIDGE.md
+
+No lesson music, recordings or third-party score content is included.
+This project is not affiliated with TrueFire, Soundslice, YouTube or Google.

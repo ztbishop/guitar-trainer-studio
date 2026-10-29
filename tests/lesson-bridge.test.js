@@ -1,7 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {classifyResource,discoverResources,displayUrl,displayLabel,readSyncPoints} from '../extensions/lesson-bridge/discovery.js';
+import {classifyResource,discoverResources,displayUrl,displayLabel,readSyncPoints,redirectDestination} from '../extensions/lesson-bridge/discovery.js';
+
+test('both TrueFire redirect forms resolve permission destinations and hide encoded access parameters',()=>{
+  const target='https://cdn.example/lesson.gp5?token=private';
+  const encoded=Buffer.from(target).toString('base64url');
+  for(const route of ['eq','site/courses']) {
+    const url=`https://truefire.com/api/${route}/redirect/${encoded}/961?secret=value`;
+    assert.equal(redirectDestination(url),target);
+    assert(!displayUrl(url).includes(encoded));assert(!displayUrl(url).includes('value'));
+  }
+});
 
 test('lesson discovery identifies the real TrueFire redirect file type and excludes unrelated files',()=>{
   const encoded=Buffer.from('https://cdn.example/lesson.gp5').toString('base64');

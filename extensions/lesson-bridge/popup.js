@@ -131,10 +131,7 @@ async function inspectTiming(candidate, button, article) {
     const granted=await chrome.permissions.request({origins:[`${url.origin}/*`]});
     if (!granted) throw new Error('Site access was declined. You can still review the discovered link.');
     output.textContent='Reading timing…';
-    const response=await fetch(url.href,{credentials:'omit',redirect:'error',signal:AbortSignal.timeout(10000)});
-    if (!response.ok) throw new Error('The timing source could not be read. Its link may have expired or require sign-in.');
-    const text=await response.text();
-    if (text.length>1000000) throw new Error('Timing response is too large.');
+    const text=new TextDecoder().decode(await fetchBytes(url.href,1000000,{credentials:'omit',redirect:'error',signal:AbortSignal.timeout(10000)}));
     let points;
     try { points=readSyncPoints(JSON.parse(text)); }
     catch { throw new Error('This response is not a supported Soundslice timing array.'); }
