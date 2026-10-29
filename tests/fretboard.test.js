@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {buildFretboardModel,fretboardDisplayEvent} from '../js/practice-visuals.js';
+import {buildFretboardModel,fretboardDisplayEvent,buildNotationMarks,noteStatesFromRecords} from '../js/practice-visuals.js';
 
 test('idle fretboard previews next attack without changing session state; paused targets win',()=>{
   const events=[{id:'first',startTick:480,notes:[]},{id:'next',startTick:960,notes:[]}];
@@ -47,12 +47,39 @@ for(const profile of profiles)test(`${profile.name}: score-defined strings, targ
   const before=JSON.stringify({track,currentEvent,activeNotes});
   const model=buildFretboardModel({track,currentEvent,activeNotes,noteStates:{high:'correct',low:'missed'},lastFeedback:{midi:lowest+3,type:'wrong'}});
   assert.equal(model.stringCount,count);assert.equal(model.supported,true);
-  assert.deepEqual(model.targets.map(t=>[t.string,t.fret,t.state]),[[1,0,'correct'],[count,3,'missed']]);
+  assert.deepEqual(model.targets.map(t=>[t.string,t.fret,t.state]),[[1,0,'correct'],[count,3,'expected']]);
   assert.equal(model.openPitches[0],highest);assert.equal(model.openPitches.at(-1),lowest);
   assert.ok(model.played.some(p=>p.string===count && p.fret===3 && p.state==='wrong'));
   assert.equal(new Set(model.played.map(p=>`${p.string}:${p.fret}`)).size,model.played.length);
   assert.deepEqual(model.unmappedPitches,[0]);
   assert.equal(JSON.stringify({track,currentEvent,activeNotes}),before);
+});
+
+test('Realtime misses stay on the score without turning unplayed fretboard targets red',()=>{
+  const event={id:'chord',startTimeMs:0,notes:[
+    {id:'a',sourceNoteId:'written-a',string:1,fret:0,midi:64},
+    {id:'b',sourceNoteId:'written-b',string:2,fret:0,midi:59}
+  ]};
+  for(const inputMode of ['single-channel','hex-6ch'])for(const partial of [false,true]) {
+    const session=new RealtimeSession([event],{hex:inputMode==='hex-6ch'});
+    session.started=true;
+    if(partial)session.noteOn({midi:64,channel:1,stringHint:1,at:0},0);
+    session.advance(1000);
+    const noteStates=noteStatesFromRecords(session.records,true,{hex:inputMode==='hex-6ch'});
+    const before=JSON.stringify(session.records),stats=session.stats();
+    const args={track:{staves:[{tuning:[64,59,55,50,45,40]}]},currentEvent:event,noteStates,inputMode,lastFeedback:session.lastFeedback};
+    const model=buildFretboardModel(args);
+    assert.deepEqual(model.targets.map(n=>n.state),[partial?'correct':'expected','expected']);
+    assert.deepEqual(model.played,[],'a miss invents no played ring');
+    assert.deepEqual(buildNotationMarks([event],event,noteStates).map(n=>n.state),[partial?'correct':'missed','missed']);
+    assert.equal(stats.missed,partial?1:2);
+    const wrong={midi:61,channel:2,stringHint:2};
+    const held=buildFretboardModel({...args,activeNotes:[wrong],liveWrongNotes:[wrong]});
+    assert.ok(held.played.length>0 && held.played.every(n=>n.state==='wrong'));
+    assert.deepEqual(buildFretboardModel({...args,liveWrongNotes:[wrong]}).played,[],'released input has no ring');
+    assert.deepEqual(session.stats(),stats);
+    assert.equal(JSON.stringify(session.records),before,'display does not mutate grading records');
+  }
 });
 
 test('held accepted chord tones stay green while multiple held wrong pitches stay red until release',()=>{

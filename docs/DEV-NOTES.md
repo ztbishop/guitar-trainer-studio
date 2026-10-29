@@ -1,5 +1,11 @@
 # Development notes
 
+## Fretboard missed-target display — 2026-10-29
+
+Owner approved the narrow proposal to suppress only missed-note red on the virtual fretboard. buildFretboardModel now projects missed targets as expected/blue without editing shared note states. Native score feedback/history, miss counts, matching, Wait progression, green collected-tone feedback, completed-with-errors states and played-ring attribution/release remain unchanged. No new modules or preferences. README stays player-facing; FRETBOARD and ARCHITECTURE document the boundary for future maintainers.
+
+Focused verification: 17 fretboard tests pass on Node 24.14.0, including real Realtime no-input/partial-chord misses for Poly/Hex, independent wrong rings, score miss marks and record/result immutability. All 470 Node regressions pass. The initial restricted run passed 469 but the launcher HTTP test could not connect to localhost (EACCES); the complete suite passed with approved local networking. Syntax checks for both changed application modules and the changed test, plus git diff --check, pass. Physical Fishman and normal-browser visual acceptance remain pending: watch a Realtime playthrough without input, deliberately miss notes, play/release wrong notes, and verify green partial chords in Wait One at a time/Together. Live Server and the owner's browser were not changed.
+
 ## Private extension separation — 2026-10-29
 
 Owner approved removal of extension distribution while explicitly retaining Send selected lesson reception. Verified all 24 removed tracked extension/store/tool/test files have byte-identical counterparts in the separate Music File Chrome Extension project before removal. The trainer receiver, schema, CSS, bootstrap wiring and media import behavior remain unchanged. Only customer-facing timing label text changes; README/Media Sync no longer promote the extension.

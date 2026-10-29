@@ -1,5 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
+## Fretboard missed-target display — 2026-10-29
+
+- [x] Keep missed fretboard targets blue while preserving score miss history/results, played wrong-note rings, green feedback and Wait progression.
+- [x] Add Poly/Hex no-input and partial-chord Realtime regression coverage; update player guidance and module responsibilities.
+- [ ] Owner checks in normal Live Server/browser/Fishman workflow: watch Realtime without playing, miss selected notes, play/release wrong notes, and complete Wait chords with One at a time and Together. Automated evidence is recorded in DEV-NOTES; physical acceptance remains separate.
+
 ## Private extension separation — 2026-10-29
 
 - [x] Remove distributable extension source, store materials, packaging and extension-only tests; retain the app receiver and timing behavior.

@@ -62,7 +62,8 @@ export function buildFretboardModel({track,currentEvent,contextEvents=[],labelMo
   const stringMapped=inputMode==='hex-6ch' && stringCount===6;
   const openPitches=tuning.map(pitch=>pitch+(staff.capo||0)-(staff.transpositionPitch||0));
   const targets=(currentEvent?.notes||[]).filter(n=>!n.isDead&&Number.isInteger(n.string)&&n.string>=1&&n.string<=stringCount&&Number.isInteger(n.fret)&&n.fret>=0&&n.fret<=36)
-    .map(note=>({string:note.string,fret:note.fret,midi:note.midi,finger:note.leftHandFinger,state:noteStates[note.id]||'expected'}))
+    // Miss history belongs on the score; an unplayed neck target stays blue.
+    .map(note=>({string:note.string,fret:note.fret,midi:note.midi,finger:note.leftHandFinger,state:noteStates[note.id]==='missed'?'expected':noteStates[note.id]||'expected'}))
     .filter((marker,index,all)=>all.findIndex(other=>other.string===marker.string && other.fret===marker.fret)===index);
   const occupied=new Set(targets.map(note=>`${note.string}:${note.fret}`));
   const context=[];

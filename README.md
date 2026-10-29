@@ -151,7 +151,7 @@ Written muted **X** beats need a fresh MIDI attack. If your muted strum produces
 - The light-blue score cursor shows the current beat.
 - Staff feedback uses green for correct notes and red for mistakes; wrong pitches can appear as red noteheads.
 - Tab shows green correct frets on the active target and red errors. Original written frets remain intact; incorrect fret numbers appear beside them where supported.
-- The fretboard uses blue targets, green correct notes and red mistakes. Optional upcoming-note views use gold outlines; earlier positions in the bar are faint.
+- The fretboard uses blue targets, green correct notes and red mistakes. Missed notes stay blue until the target moves on, so watching a Realtime playthrough does not flash unplayed targets red. Misses still appear on the score and count in your results. Incorrect notes you play keep their red rings until release. Optional upcoming-note views use gold outlines; earlier positions in the bar are faint.
 
 Accepted notes still ringing from an earlier target stop drawing extra fretboard rings after you advance, including tones replayed while completing a Wait chord; they do not become mistakes. Genuine wrong-note rings remain visible, and fresh notes played while paused appear in neutral purple.
 

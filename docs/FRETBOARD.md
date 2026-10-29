@@ -1,5 +1,9 @@
 # Practice fretboard
 
+## Missed targets stay blue — 2026-10-29
+
+Current targets no longer turn red merely because their Realtime attack window was missed. They remain blue until ordinary advancement replaces them or presents them as context. Score notation/history and miss totals are unchanged. Incorrect played-note rings keep their existing red/release behavior, and green accepted feedback (including partial Wait chords) is unchanged. Completed-with-errors feedback is also unchanged: this is specifically suppression of missed-target red, not a redesign of all error feedback. This supersedes older descriptions of red missed targets below. No saved preference or new control is added.
+
 Updated 2026-10-23. Supersedes Stage 6's original six-string-only display.
 
 ## First-use defaults and saved choices — 2026-10-24

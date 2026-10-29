@@ -1,5 +1,11 @@
 # Guitar Trainer Studio Architecture
 
+## Fretboard missed-target display — 2026-10-29
+
+`practice-visuals.js` keeps shared `noteStatesFromRecords` and `buildNotationMarks` unchanged. Only `buildFretboardModel` maps a current target's `missed` state to display state `expected` (blue). It does not mutate published states or session records. Bootstrap still supplies the same target and held-input evidence; context/advancement and the separate played-ring projection are unchanged. Correct and completed-with-errors targets retain their existing states. `fretboard-ui.js` consumes this model and describes the revised behavior accessibly; index.html owns matching help. No new module, setting, storage migration, alphaTab integration or grading/Wait/MIDI change.
+
+`tests/fretboard.test.js` exercises real Realtime session misses with no input and partial chord input in Poly/Hex, checking score marks, unchanged records/results, blue missed targets and independent held wrong/released rings. Existing green chord, native import and completed-with-errors renderer checks remain in place. See DEV-NOTES for verification and pending hardware acceptance.
+
 ## Private extension / retained receiver — 2026-10-29
 
 The extension is maintained outside this distribution in the owner’s Music File Chrome Extension project. Extension source, packaging, store materials and extension-only tests are absent here. Keep this separation in future updates; no customer-facing installation or store promotion.
