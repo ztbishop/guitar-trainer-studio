@@ -21,6 +21,16 @@ import {findNotationTabPairs,combineNotationTabPair} from './musicxml-pairing.js
 import {chooseNotationTabPair,cancelNotationTabChoice} from './musicxml-pairing-controls.js';
 import {rebuildPairedMusicXml} from './musicxml-repair.js';
 import {scoreTargetForBeat} from './media-timeline.js';
+import {ScoreDisplayProjection} from './score-display.js';
+
+const scoreDisplayProjection=new ScoreDisplayProjection();
+function applyNotationDisplay() {
+  const changed=scoreDisplayProjection.apply(AppState.score,AppState.ui.scoreDisplay);
+  const mode={automatic:window.alphaTab.TabRhythmMode.Automatic,show:window.alphaTab.TabRhythmMode.ShowWithBars,hide:window.alphaTab.TabRhythmMode.Hidden}[AppState.ui.tabRhythm]??window.alphaTab.TabRhythmMode.Automatic;
+  const rhythmChanged=alphaTabApi.settings.notation.rhythmMode!==mode;
+  alphaTabApi.settings.notation.rhythmMode=mode;
+  return changed || rhythmChanged;
+}
 
 let mediaSnapshot=null,mediaHandler=null,mediaPoints=[],mediaRestoreTick=null;
 let cursorRevealTick=null,cursorRevealGeneration=0;
@@ -639,6 +649,7 @@ function applyTrackRenderState() {
   const renderedTracks = getRenderedTracks();
   if (!renderedTracks.length) return false;
   alphaTabApi.renderTracks(renderedTracks);
+  hostCallbacks.onScoreDisplayChanged?.();
   return true;
 }
 
@@ -674,6 +685,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     onScoreLoading: callbacks.onScoreLoading || null,
     onScoreLoadError: callbacks.onScoreLoadError || null,
     onScoreLoaded: callbacks.onScoreLoaded || null,
+    onScoreDisplayChanged: callbacks.onScoreDisplayChanged || null,
     onPlaybackTimelineChanged: callbacks.onPlaybackTimelineChanged || null,
     onPlayerFinished: callbacks.onPlayerFinished || null,
     onPlayerPositionChanged: callbacks.onPlayerPositionChanged || null,
@@ -813,6 +825,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     // alphaTab raises scoreLoaded before MIDI generation and initial rendering,
     // so apply a saved placement override before the native render begins.
     applyChordDiagramPlacement();
+    applyNotationDisplay();
     AppState.currentScoreFile=pendingScoreFile;
     pendingScoreFile=null;
     AppState.audio.tracks={};
@@ -1123,10 +1136,20 @@ export function applyScoreDisplay() {
   const scale=AppState.ui.zoomPercent/100;
   const zoomChanged=alphaTabApi.settings.display.scale!==scale;
   const chordDiagramsChanged=applyChordDiagramPlacement();
+  const notationChanged=applyNotationDisplay();
   alphaTabApi.settings.display.scale=scale;
   alphaTabApi.settings.player.scrollMode=AppState.ui.autoScroll ? window.alphaTab.ScrollMode.Continuous : window.alphaTab.ScrollMode.Off;
   alphaTabApi.updateSettings();
-  if(zoomChanged || chordDiagramsChanged)alphaTabApi.render();
+  if(zoomChanged || chordDiagramsChanged || notationChanged)alphaTabApi.render();
+  hostCallbacks.onScoreDisplayChanged?.();
+  return true;
+}
+
+export function printScore() {
+  if(!alphaTabApi || !AppState.score || !AppState.playerReady)return false;
+  // Native print builds a clean, noninteractive renderer of the visible tracks.
+  // App feedback, fretboard and media UI never enter that renderer.
+  alphaTabApi.print(undefined,{display:{startBar:1,barCount:-1}});
   return true;
 }
 

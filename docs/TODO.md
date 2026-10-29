@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+## Score display and printing — 2026-10-29
+
+- [x] Add saved Score Default / Notation + Tab / Tab Only / Notation Only and independent Automatic / Show / Hide tab rhythm; preserve chord diagram choices and unsupported-track notation fallback.
+- [x] Add Scores → Print / Save PDF using native alphaTab printing of full visible tracks without practice overlays; handle popup blocking.
+- [x] Document module ownership and player workflow; 481 Node tests and isolated native Chrome display/print checks pass.
+- [ ] Owner checks normal Live Server/browser: display preferences, chord diagrams, actual print/Save as PDF output and Fishman feedback after switching layouts. Automated print checks suppress the OS dialog and do not verify a physical printer or saved PDF.
+
 ## Realtime written-span forgiveness — 2026-10-29
 
 - [x] Accept correct Realtime attacks/chord tones through the written target span, bounded by the next required attack or earlier written end/rest; retain 120 ms early grace and one-input/one-target ownership.

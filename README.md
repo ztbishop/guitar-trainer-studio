@@ -191,6 +191,12 @@ Loop selects the section to repeat. Native score dragging selects whole measures
 
 Display controls zoom, auto-scroll, full screen on Play, chord diagrams, visible tracks and fretboard visibility. Showing all tracks does not change which single track is graded.
 
+**Score display** offers Score Default, Notation + Tab, Tab Only and Notation Only. Score Default follows the file's original layout. A guitar tab score can also show notation using its written pitches and rhythms. Tracks without usable string/fret information keep notation instead of showing empty or guessed tab.
+
+**Tab rhythm** controls the stems and beams that show timing on tablature. Automatic shows them when notation is absent and hides them when notation supplies the rhythm; Show and Hide override that choice. The control is unavailable while no tab is visible, but remembers your choice. Score display, tab rhythm and chord diagram placement save independently across visits and score loads.
+
+Use **Scores → Print / Save PDF…** to print the full score for the currently visible tracks, using your score display, rhythm and chord diagram choices. The clean print view leaves out practice feedback and the fretboard. Choose a printer or Save as PDF in your browser's print dialog; allow pop-ups for the app if the print view is blocked.
+
 Use the **gear on the fretboard** for Beat / Beat + Next Beat / Beat + Bar views, note/fret/finger labels, left-handed orientation and help. Finger labels need explicit fingering in the score; the app does not invent it. Left-handed display does not reverse MIDI channel mapping.
 
 The fretboard starts visible with **Beat + Bar**, note-name labels, alternate positions off, left-handed display off and automatic panel sizing. Your saved choices take precedence and return across score loads and visits, including manual sizing and choices made while the fretboard is hidden.

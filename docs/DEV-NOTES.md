@@ -1,5 +1,13 @@
 # Development notes
 
+## Score display, rhythm and Print / Save PDF — 2026-10-29
+
+Implemented the owner's approved Display choices and independent saved tab rhythm, with chord diagram placement unchanged. Tab-only structured scores can show standard notation; staffs without complete written string/fret data keep notation rather than guessed tablature. Score Default restores imported visibility. Automatic rhythm follows native alphaTab behavior; explicit Show includes bars/beams. Disabling the selector without visible tab retains its preference. New score-display.js owns metadata projection, score-print-controls.js owns print UI; native settings/render/print remain in alphatab-host.js. ARCHITECTURE records interactions and README explains player use.
+
+Native Print / Save PDF opens a clean full-score print view for the visible tracks and current display choices. It excludes app grading overlays and retains the live session; popup blocking produces actionable status. No changes to MIDI matching, timing forgiveness, Wait progression, feedback rules, vendor assets, Live Server or version metadata.
+
+Verification: all 481 Node tests pass on Node 24.14.0 with localhost access for the server fixture. The isolated Chrome runner passes native views/rhythm, independent diagrams, preserved partial Wait results and overlay alignment, clean native print popup, blocked-popup messaging, saved reload, notation-only fallback and phone overflow. The original generated multi-track fixture required unique native IDs across tracks; this test-fixture correction does not alter runtime code. Screenshots of Display and the native print view were inspected. The print runner suppresses only the OS dialog, so actual Save as PDF output, physical printing, normal-browser popup handling and Fishman acceptance remain pending. No user browser or hardware configuration was changed.
+
 ## Realtime written-span forgiveness — 2026-10-29
 
 Owner confirmed Realtime-only scope and approved accepting attacks throughout each written target span, retaining early grace and allowing chord tones to accumulate within that span. Earlier fixed 160 ms late/60 ms chord-spread behavior is superseded. Current unfinished pitches take precedence over early repeated occurrences; only the immediate upcoming onset can receive 120 ms early credit. Exact end boundaries belong to the next target/rest. No arbitrary additional late grace extends into rests. Invalid/missing written durations retain a bounded legacy fallback.

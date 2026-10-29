@@ -4,6 +4,8 @@ export const DISPLAY_BOOLEAN_KEYS = ['autoScroll', 'fullscreenOnPlay', 'showFret
 export const CHORD_DIAGRAM_PLACEMENTS = ['score-default', 'above-chord', 'top-of-score', 'off'];
 export const FRETBOARD_VIEWS = ['beat','next','bar'];
 export const FRETBOARD_LABELS = ['notes','frets','fingers','none'];
+export const SCORE_DISPLAYS = ['score-default','both','tab','notation'];
+export const TAB_RHYTHMS = ['automatic','show','hide'];
 
 // A score-specific fallback never replaces the saved viewing preference.
 export function effectiveChordDiagramPlacement(state) {
@@ -11,10 +13,12 @@ export function effectiveChordDiagramPlacement(state) {
 }
 
 export function readDisplayPreferences(storage) {
-  const defaults = {viewMode: 'practice-only', ui: {zoomPercent: 100, autoScroll: true, fullscreenOnPlay: false, chordDiagramPlacement: 'score-default', showFretboard: true, leftHanded: false, fretboardView:'bar', fretboardLabels:'notes',showAlternatePositions:false}};
+  const defaults = {viewMode: 'practice-only', ui: {zoomPercent: 100, autoScroll: true, fullscreenOnPlay: false, chordDiagramPlacement: 'score-default', scoreDisplay:'score-default',tabRhythm:'automatic',showFretboard: true, leftHanded: false, fretboardView:'bar', fretboardLabels:'notes',showAlternatePositions:false}};
   try {
     storage ??= globalThis.window?.localStorage;
     const saved = JSON.parse(storage?.getItem(DISPLAY_PREFERENCES_KEY) ?? 'null');
+    if(SCORE_DISPLAYS.includes(saved?.ui?.scoreDisplay))defaults.ui.scoreDisplay=saved.ui.scoreDisplay;
+    if(TAB_RHYTHMS.includes(saved?.ui?.tabRhythm))defaults.ui.tabRhythm=saved.ui.tabRhythm;
     if(FRETBOARD_VIEWS.includes(saved?.ui?.fretboardView))defaults.ui.fretboardView=saved.ui.fretboardView;
     if(FRETBOARD_LABELS.includes(saved?.ui?.fretboardLabels))defaults.ui.fretboardLabels=saved.ui.fretboardLabels;
     if (['practice-only', 'all-tracks'].includes(saved?.viewMode)) defaults.viewMode = saved.viewMode;
@@ -34,6 +38,8 @@ export function saveDisplayPreferences(state, storage) {
     storage?.setItem(DISPLAY_PREFERENCES_KEY, JSON.stringify({
       viewMode: state.viewMode,
       ui: Object.fromEntries(['zoomPercent', 'chordDiagramPlacement', ...DISPLAY_BOOLEAN_KEYS].map(key => [key, key==='showAlternatePositions'?state.ui[key]===true:state.ui[key]]).concat([
+        ['scoreDisplay',SCORE_DISPLAYS.includes(state.ui.scoreDisplay)?state.ui.scoreDisplay:'score-default'],
+        ['tabRhythm',TAB_RHYTHMS.includes(state.ui.tabRhythm)?state.ui.tabRhythm:'automatic'],
         ['fretboardView',FRETBOARD_VIEWS.includes(state.ui.fretboardView)?state.ui.fretboardView:'bar'],
         ['fretboardLabels',FRETBOARD_LABELS.includes(state.ui.fretboardLabels)?state.ui.fretboardLabels:'notes'],
       ])),

@@ -1,5 +1,17 @@
 # Guitar Trainer Studio Architecture
 
+## Score display, tab rhythm and printing — 2026-10-29
+
+`score-display.js` owns a pure staff-visibility projection. A WeakMap captures original standard/tab/slash/numbered flags once per staff, so Score Default restores the imported layout after overrides. Explicit views request standard notation, tablature or both; tab requires tuning and usable written string/fret data for every note, and unsupported staffs retain notation. No fingering is inferred. Cached capability and flags are display metadata; pitch, duration, timeline, MIDI and session results are untouched. Visible-track helpers drive rhythm-control availability.
+
+`display-preferences.js` validates and persists independent `ui.scoreDisplay` (score-default/both/tab/notation) and `ui.tabRhythm` (automatic/show/hide) under the existing storage key. First use is score-default/automatic. `display-controls.js` saves intents, explains fallback and disables rhythm when no visible staff has tab without clearing the preference. Existing chord diagram preferences and stylesheet projection remain independent.
+
+`alphatab-host.js` alone maps rhythm choices to native TabRhythmMode Automatic/ShowWithBars/Hidden and applies visibility before initial rendering and on display changes. Native rendering supplies rhythm suppression with notation and recomputes bounds for existing feedback overlays. The display callback resynchronizes controls after track/view changes. No transport/session reset is added.
+
+`score-print-controls.js` owns Scores-menu readiness, click/status and popup-failure messaging, with the native action injected by bootstrap. Host `printScore` uses alphaTab's separate print renderer for current visible tracks, explicitly starting at bar 1 with no bar-count limit. Native printing opens the browser dialog and carries score/rhythm/chord settings; app feedback, fretboard and media overlays are absent. The live session is unchanged. Browser Save as PDF is the export route; no PDF library or score-byte rewrite is introduced. Bootstrap coordinates load/readiness callbacks.
+
+Coverage: `tests/score-display.test.js` exercises native-model views/rhythm, fallback/default restoration and persistence. `tests/run-score-display-browser.cjs` uses an original generated two-track score, isolated Chrome and synthetic MIDI to check UI, Wait feedback, native clean printing, popup blocking, reload persistence and phone overflow. Real browser print destinations and physical MIDI remain owner acceptance.
+
 ## Realtime written-span timing — 2026-10-29
 
 Owner approved replacing fixed onset-only grading with written target spans, including spread chord attacks. `score-playback.js:getPracticeEvents` publishes `targetEndTimeMs` from the existing `targetEndTick` (written group end capped at the next required onset). The tempo map supplies both onset and end; ties still require only their original attack and do not extend this target opportunity through continuation-only beats.

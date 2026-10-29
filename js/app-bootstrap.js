@@ -39,7 +39,8 @@ import { initTransportControls } from './transport-controls.js';
 import { initChordControls } from './chord-controls.js';
 import { initAttemptControls } from './attempt-controls.js';
 import { initDisplayControls } from './display-controls.js';
-import { applyScoreDisplay } from './alphatab-host.js';
+import { applyScoreDisplay,printScore } from './alphatab-host.js';
+import {initScorePrintControls} from './score-print-controls.js';
 import {applyMasterVolume,applyTrackMixer,applyPlaybackPitchOffset} from './alphatab-host.js';
 import {initAudioControls} from './audio-controls.js';
 import {initPitchControls} from './pitch-controls.js';
@@ -748,6 +749,7 @@ async function bootstrap() {
     {closeMenu:toolbar.closeAllPopups,beforeEdit(){if(waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);pauseWaitTransport();clearActiveMidiNotes();},afterEdit(){clearActiveMidiNotes();configureWaitSession();resetRealtimeSession('sync-editor-closed');renderTrainerUi();},beforeListen(){if(AppState.mode==='wait' && waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);pauseWaitTransport();clearActiveMidiNotes();},afterPractice(){clearActiveMidiNotes();if(AppState.mode==='realtime' && !AppState.media.editing)handlePlaybackState();renderTrainerUi();}});
   initFretboard(document.getElementById('fretboard-content'),document.getElementById('fretboard-help-status'));
   const displayControls=wireScoreStageUi();
+  const printControls=initScorePrintControls(printScore);
   fretboardControls=initFretboardControls(()=>renderTrainerUi(),stepFretboard);
   document.getElementById('play-pause-button').addEventListener('click',()=>{fretboardBrowseTick=null;renderTrainerUi();});
   initWorkspacePanels();
@@ -763,6 +765,7 @@ async function bootstrap() {
   try {
     await initAlphaTab(document.getElementById('alphatab-container'), {
       onScoreLoaded: () => {
+        printControls.loading(false);
         displayControls.sync();
         scoreLibrary?.scoreLoaded();audioControls?.sync();
         pitchControls?.sync({enabled:false,value:0});
@@ -790,9 +793,10 @@ async function bootstrap() {
         if(!AppState.media.returning && !AppState.media.editing && AppState.mode==='realtime')handlePlaybackState();
         renderTrainerUi();
       },
-      onPlayerReady: () => {audioControls?.sync();pitchControls?.sync({enabled:true,value:AppState.pitchOffsetSemitones});renderTrainerUi();},
-      onScoreLoading: () => {lessonImport.scoreLoading();mediaControls?.scoreLoading();scoreLibrary?.sync();audioControls?.sync();pitchControls?.sync({enabled:false,value:AppState.pitchOffsetSemitones});},
-      onScoreLoadError: () => scoreLibrary?.sync(),
+      onScoreDisplayChanged: () => displayControls.sync(),
+      onPlayerReady: () => {printControls.sync();audioControls?.sync();pitchControls?.sync({enabled:true,value:AppState.pitchOffsetSemitones});renderTrainerUi();},
+      onScoreLoading: () => {printControls.loading(true);lessonImport.scoreLoading();mediaControls?.scoreLoading();scoreLibrary?.sync();audioControls?.sync();pitchControls?.sync({enabled:false,value:AppState.pitchOffsetSemitones});},
+      onScoreLoadError: () => {printControls.loading(true);scoreLibrary?.sync();},
       onMetronomeTick: () => transportControls?.pulse(),
       onMetronomeError: () => renderTrainerUi(),
       onCountInChanged: () => renderTrainerUi(),

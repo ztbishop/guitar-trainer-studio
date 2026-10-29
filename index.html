@@ -68,12 +68,14 @@
             <input id="score-file-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl" />
           </label>
           <button id="library-save" type="button" disabled>Save to Library</button>
+          <button id="score-print" type="button" disabled>Print / Save PDF…</button>
           <button id="library-backup" type="button">Backup Library</button>
           <button id="library-restore" type="button">Import Library (Merge)</button>
         </div>
         <input id="library-import-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl" multiple hidden />
         <input id="library-backup-input" type="file" accept=".json,application/json" hidden />
         <p id="library-status" class="field-help" role="status" aria-live="polite">Opening score library…</p>
+        <p id="score-print-status" class="field-help" role="status" aria-live="polite"></p>
         <details class="scores-demos">
           <summary>Try a demo score</summary>
           <p class="field-help">Short original exercises in standard tuning. Open one to explore, then choose Save to Library if wanted.</p>
@@ -373,6 +375,10 @@
             <input id="score-zoom" type="range" min="50" max="200" step="5" value="100" />
             <div class="menu-number"><input id="score-zoom-number" aria-label="Zoom percent" type="number" min="50" max="200" step="5" value="100" /><div class="menu-steppers"><button id="score-zoom-down" type="button" aria-label="Zoom out">−</button><button id="score-zoom-up" type="button" aria-label="Zoom in">+</button></div></div>
           </div>
+          <label class="field-group"><span class="field-label">Score display</span><select id="score-display" aria-describedby="score-display-help"><option value="score-default">Score Default</option><option value="both">Notation + Tab</option><option value="tab">Tab Only</option><option value="notation">Notation Only</option></select></label>
+          <p id="score-display-help" class="field-help">Changes the score view only. Tracks without usable written tab keep notation. Chord diagrams remain independent.</p>
+          <label class="field-group"><span class="field-label">Tab rhythm</span><select id="tab-rhythm" disabled aria-describedby="tab-rhythm-help"><option value="automatic">Automatic</option><option value="show">Show</option><option value="hide">Hide</option></select></label>
+          <p id="tab-rhythm-help" class="field-help">Automatic shows rhythm markers on tab when notation is hidden. Show keeps them visible with notation too. Your choice is remembered while tab is hidden.</p>
           <label class="toggle-row"><input id="score-auto-scroll" type="checkbox" checked /><span>Auto-scroll during playback</span></label>
           <label class="toggle-row"><input id="fullscreen-on-play" type="checkbox" /><span>Full screen on Play</span></label>
           <label class="field-group"><span class="field-label">Chord diagrams</span><select id="chord-diagram-placement" aria-describedby="chord-diagram-help"><option value="score-default">Score Default</option><option value="above-chord">Above Chord</option><option value="top-of-score">Top of Score</option><option value="off">Off</option></select></label>
