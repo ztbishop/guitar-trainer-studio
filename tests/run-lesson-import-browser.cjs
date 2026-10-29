@@ -13,7 +13,20 @@ function wav() {
   const server=createAppServer();let browser;
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   try {
-    const {deliverLesson}=await import('../extensions/lesson-bridge/transfer.js');
+    // Test-only protocol peer: exercise the receiver without private extension code.
+    function deliverLesson(payload) {
+      return new Promise(resolve=>{
+        const id=crypto.randomUUID();
+        const finish=result=>{clearTimeout(timer);window.removeEventListener('message',receive);resolve(result);};
+        const receive=event=>{
+          if(event.source===window && event.origin===location.origin && event.data?.type==='gts-lesson-reply' && event.data.id===id)
+            finish({ok:event.data.ok===true,message:String(event.data.message || '')});
+        };
+        const timer=setTimeout(()=>finish({ok:false,message:'Receiver timed out.'}),4000);
+        window.addEventListener('message',receive);
+        window.postMessage({type:'gts-lesson-offer',id,payload},location.origin);
+      });
+    }
     const base=`http://127.0.0.1:${server.address().port}`;
     browser=await chromium.launch({headless:true,channel:process.env.GTS_BROWSER_CHANNEL || 'chrome'});
     const context=await browser.newContext({viewport:{width:1360,height:900}});

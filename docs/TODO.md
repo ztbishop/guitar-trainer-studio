@@ -1,18 +1,11 @@
 # Guitar Trainer Studio: status and to-do
 
-## First-use Lesson Bridge send — 2026-10-28
+## Private extension separation — 2026-10-29
 
-- [x] Move explicit Send permission/download/delivery into an on-demand worker so popup closure does not discard the operation.
-- [x] Reject duplicate active sends, retain a session-only result, preserve decline/no-send behavior, document privacy/lifecycle changes and include worker modules in the ZIP.
-- [ ] Owner reloads the extension and tests a fresh site-access grant: one Send followed by approval should open the trainer review without a second Send. Decline should send nothing. Actual Chrome prompt/provider acceptance remains distinct from automated closure simulation.
-
-## Lesson Bridge timing and unlisted preparation — 2026-10-28
-
-- [x] Correct replacing-recording import: publish validated anchors to active native playback as well as the editor.
-- [x] Bound timing-inspection/manifest responses while reading; consistently redact/resolve both TrueFire redirect forms.
-- [x] Add packaged privacy policy, use-permission guidance, store copy/disclosures, account-free original demo, listing screenshot and extension-only packaging.
-- [ ] Owner tests the installed extension's actual permissions and hosted/local destination paths, then Blue Nova's 7.932401-second start through its ending. Physical Fishman and real provider acceptance remain separate from automated evidence.
-- [ ] Verify public policy/demo links after hosting updates; owner completes developer-account requirements and authorizes Unlisted submission. Add the real store URL to README only when available. No store submission or app release in this update.
+- [x] Remove distributable extension source, store materials, packaging and extension-only tests; retain the app receiver and timing behavior.
+- [x] Remove customer-facing extension instructions; document the retained protocol and private-project boundary. Extension development/store tasks belong to the separate project.
+- [x] 469 Node tests, isolated Chrome receiver checks, changed-test syntax and diff whitespace checks pass.
+- [ ] Owner loads the extension from its separate project folder and verifies Send to the refreshed hosted/local trainer, including nonzero timing and normal Fishman practice.
 
 ## Triangle navigation follows the chosen pass — 2026-10-28
 
@@ -79,72 +72,6 @@
 - [x] Investigate pinned alphaTab 1.8.4 and current upstream support for chord-frame finger labels, simultaneous above/below words and slash-chord bass. Record private local model/SVG evidence and proposed boundaries in DEV-NOTES.md; no implementation added.
 - [ ] Revisit only when explicitly scoped: evaluate a narrow slash-bass adapter and independent source annotation/frame metadata; trial an app-owned presentation layer if faithful numbered diagrams and above/below placement are required. Native model/renderer limitations remain unresolved; a stable upgrade was not available at investigation time.
 - [ ] If resumed, add original synthetic regressions and verify actual rendering, source-to-beat mapping, paired imports, resize/zoom/tracks and unchanged playback targets/grading. Use private Soundslice Tool diagnostics locally; never copy lesson material or signed URLs into public fixtures. No current action or owner hardware retest is required for this deferred note.
-
-### Extension naming — 2026-10-24
-
-- [x] Use Guitar Trainer Lesson Bridge in Chrome's extension name, toolbar tooltip and popup title; show Guitar Trainer above Lesson Bridge in the popup. Update current naming/setup documentation.
-- [ ] Owner reloads the extension and confirms its updated name/heading in normal Chrome; no app or MIDI behavior change.
-
-### Lesson Bridge top Send and icon — 2026-10-24
-
-- [x] Add Send selected lesson beside Scan, retaining the lower button and sharing the same handler/selections and scan/send disabled state.
-- [x] Package the existing app icon for the Chrome toolbar/extension list, without new artwork or permissions.
-- [x] All 471 Node tests, isolated popup top/lower Send and disabled-state checks, syntax/whitespace and visual layout review pass. Packaged PNG dimensions/content match the existing app artwork.
-- [ ] Owner reloads the unpacked extension and checks the toolbar icon and upper Send in normal Chrome. Automated evidence is recorded in DEV-NOTES.md.
-
-### Methods discovery and manual/partial Send — 2026-10-24
-
-- [x] Resolve both standard TrueFire and Methods/Channels manifests using actual embedded player IDs; avoid confusing /l navigation IDs with player lesson IDs and filter stale timing.
-- [x] Keep Send available without a detected score; allow selected recording/timing updates against an already loaded score, plus explicit recording retention across a new score. Clear unrelated alignment when resources change.
-- [x] Add manual assignment from all candidates, pasted asset URLs/score filename and timing JSON, score-header/timing checks, native recording preview and YouTube detection/preview using the existing app player.
-- [x] All 471 Node tests and isolated app import checks pass, including timing-only identity retention, invalid-duration preservation, recording replacement and explicit recording retention. Final popup/native-practice evidence is in DEV-NOTES.md.
-- [ ] Owner reloads extension, hard-refreshes app, compares standard lesson and Methods automatic selections, uses a matching existing score for PDF-only lessons, checks manual URL/preview and audible alignment plus Fishman Realtime/Wait. Real permissions/provider playback remain pending.
-
-This completes the selective-component follow-up listed in older entries below. Permissioned cross-origin frame scanning and internal notation conversion remain separate, unimplemented work.
-
-### Lesson Bridge destination preference — 2026-10-24
-
-- [x] Clarify in the popup description, README and setup guide that custom destination URLs should include `/index.html` at the end. Wording only; preserve target validation/matching/persistence.
-
-- [x] Default first use to `https://ztbishop.github.io/guitar-trainer-studio/index.html`; preserve valid saved overrides and save valid edits before Send through existing extension local storage.
-- [x] Isolated popup browser checks verify the hosted default, immediate custom localhost persistence without sending and restoration after reopening/reload, alongside existing scan/copy/transfer checks. Syntax/whitespace checks pass; actual normal-Chrome preference acceptance remains local.
-
-### Manual timing copy/paste — 2026-10-24
-
-- [x] Allow complete timing-array JSON copy after Inspect timing, including timing-only scans without a score; selectable full-text fallback when clipboard writing is blocked. Preview truncation never truncates copied data.
-- [x] User-requested Copy link on every resource candidate, retaining complete original access parameters and using a selected full-link fallback if clipboard writing is blocked. Redacted default display remains.
-- [x] Add Media Sync → Paste sync points with current score/recording validation, complete endpoint/duration checks and existing edit/Undo/Redo/Save-profile behavior. Reject invalid input without changing alignment; do not reload or replace score/recording.
-- [x] Automated extension popup and real-app checks cover timing-only copy, all 20 points beyond the preview limit, clipboard failure fallback, invalid/mismatched/out-of-duration preservation, accepted alignment, Undo/Redo and resource identity retention. See DEV-NOTES.md for final checks.
-- [x] All 468 Node tests, extension copy/transfer and real-app import/paste browser checks, existing MIDI/media restoration, syntax/whitespace and copy/paste visual review pass. Actual OS clipboard and owner lesson acceptance remain separate.
-- [ ] Owner reloads the extension and hard-refreshes the app; copy real lesson timing, load the matching score/video, paste/apply, compare alignment and optionally save/reopen. Cross-origin frame discovery and automatic selective component updates remain separate follow-ups.
-
-### Practice-ready Lesson Bridge completion — 2026-10-24
-
-- [x] Owner confirms the automatic TrueFire lesson import worked; screenshots show the review/success dialogs and still-open sync editor. This confirms the tested signed-in transfer, not every-measure alignment or hardware acceptance.
-- [x] Timed imports automatically use existing Finish editing, retain recording/unsaved anchors and return to practice without autoplay. Score-only imports also finish editing. Close successful review automatically and replace the success dialog with a brief nonblocking notice; retain error details and one initial replacement review.
-- [x] Keep the manual alignment editor open for recordings without timing. Document current partial-import, Dropbox-preview and embedded-frame limits; no expansion of the transfer protocol in this update.
-- [x] All 468 Node tests, updated real-app import and existing MIDI/media-practice browser checks, syntax/whitespace and visual review pass. Actual revised normal-browser/Fishman acceptance remains separate.
-- [ ] Follow-up: explicit Keep current/Replace choices for recording-only/timing-only or other selected component updates. Validate compatibility and invalidate unrelated timing when score/recording changes; avoid silently clearing unspecified components.
-- [ ] Follow-up: inspect a representative Teachable/embedded-player lesson and consider explicit additional-host/frame scanning. Video-only players may have no musical synchronization points; no universal extraction promise.
-- [ ] Owner checks revised automatic completion, imported alignment across the performance, optional saving and actual Fishman Realtime/Wait. Automated evidence is in DEV-NOTES.md.
-
-### Lesson Bridge selected import — 2026-10-24
-
-- [x] Owner confirms discovery/resource selection for All About Me — Playalong (course 961/lesson 32684). Prior non-Soundslice overview findings are discarded.
-- [x] Filter metronome/soundfont and empty-ID timing candidates; recognize encoded manifest MP4 routes and prefer them; match observed TrueFire manifest/timing to the current lesson ID.
-- [x] Add explicit score/recording/timing selection and Send to an exact existing app tab; remember app address only. Fetch score bytes with size limits and optional site grants; keep saving optional.
-- [x] Add app-side payload review, independent validation, native expanded-order timing conversion, complete endpoint/duration checks and stale score/source cancellation through existing loaders. Reject unsupported hidden-playhead semantics; open the existing sync editor without autoplay.
-- [x] 468 Node tests plus isolated extension-popup, real-app import and existing synthetic MIDI/media-practice browser checks pass. See DEV-NOTES.md for precise evidence; authenticated end-to-end and physical checks remain separate.
-- [ ] Owner reloads extension/app and tests GP5 + MP4 + timing transfer for lesson 32684, alignment across the performance, optional library/profile saving, score-only/manual timing, expired links and Fishman Wait/Realtime. No store release or internal-notation conversion is included.
-
-### Lesson Bridge local discovery prototype — 2026-10-24
-
-- [x] Recover the October 13 TrueFire/Soundslice investigation and document its actual evidence without signed access URLs.
-- [x] Add an optional unpacked desktop Chrome extension for explicit page scans, score/media/timing candidate review, guarded TrueFire manifest discovery and optional timing-array inspection. No app import or grading/runtime changes.
-- [x] Document installation, module boundaries, generic-page limits and the distinction between provided score files, paid Soundslice export access and unimplemented internal-notation conversion. See LESSON-BRIDGE.md.
-- [x] All 462 Node tests and isolated synthetic Chrome scanner/popup checks pass; syntax/whitespace checks pass. Chrome permission APIs are mocked in that runner; see DEV-NOTES.md for evidence and limits.
-- [x] Owner installed in normal Chrome and confirmed the score/video/timing candidates for lesson 32684. Full import/permission/provider acceptance is tracked above.
-- [x] Following discovery acceptance, implement selected transfer through existing score/media loaders (above). Generic scanning remains best-effort; store publication, notation reconstruction/PDF conversion, jamtrack/PDF UI and unrelated deferred features remain outside this update.
 
 ### Beta v0.0.4 release and Pages guidance — 2026-10-24
 

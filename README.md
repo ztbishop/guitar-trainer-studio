@@ -117,24 +117,6 @@ Scores → **Try a demo score** offers three original, four-measure exercises in
 
 Opening a demo replaces the current open score just like opening another file. It does not start playback or add anything to your library. Choose Save to Library if wanted. The demos are available offline and are offered under CC0; see [demo source and reuse details](assets/demos/README.md).
 
-### Import a lesson from Chrome
-
-Lesson Bridge is currently installed locally; it has not been published to the Chrome Web Store. An unlisted store listing is being prepared. Use it for personal practice with content you are permitted to use, and respect the lesson provider's restrictions. Finding a link does not grant permission to redistribute its content. The extension imports score/timing data and links recordings; saving a score to your library keeps a browser copy. Read the [privacy policy](extensions/lesson-bridge/privacy.html).
-
-Imported timing appears as blue anchors in Media Sync (often just Start, a late measure, and End); lighter triangles are estimated positions between them. The red recording-seconds field is your separate editing selection, so its value can differ from the Start anchor. Import now applies the same timing to playback and the editor. After updating, hard-refresh Guitar Trainer and import again if an earlier import started the recording at zero despite a later Start anchor.
-
-Lesson Bridge starts with the [hosted Guitar Trainer address](https://ztbishop.github.io/guitar-trainer-studio/index.html). Change it to your local or other app address if needed, including **/index.html at the end**; valid changes are remembered automatically, even before sending a lesson. Your saved address takes precedence on later visits.
-
-Look for **Guitar Trainer Lesson Bridge** with the app's guitar icon in Chrome's extension toolbar. Its popup shows Guitar Trainer above Lesson Bridge. After scanning and reviewing your choices, either **Send selected lesson** button works: one sits beside **Scan this page**, and the other remains below the selectors.
-
-The optional **Lesson Bridge** extension can find Guitar Pro/MusicXML files, recordings and timing links on an open lesson page. Install it locally in desktop Chrome using **Load unpacked**, scan the lesson, then select its score and optional video/timing. Enter the exact address of your already open Guitar Trainer tab and click **Send selected lesson**. After you approve site access, sending continues even if Chrome closes the extension popup. Reopen it to see the last send status if needed. Review the import in Guitar Trainer before replacing the score. With valid timing, the import closes its dialog and sync editor automatically, ready for you to press Play. A recording without timing stays in Media Sync for manual alignment. Saving the score and sync profile is optional; playback does not start automatically. See [setup and testing instructions](docs/LESSON-BRIDGE.md). TrueFire import has been confirmed by the owner; links can still expire and some video formats need a different recording choice.
-
-Every discovered resource in Lesson Bridge has **Copy link** for its full URL. You can also copy timing separately: choose **Inspect timing → Copy sync points**, even if no score was found. After loading the matching score and recording in Guitar Trainer, open **Media Sync → Load / options → Paste sync points**, paste the JSON and click **Apply pasted sync points**. Save the profile if you want to keep the alignment.
-
-Standard TrueFire lessons and Methods/Channels lessons use automatic asset selection when their player exposes the links. If a lesson offers only a PDF chart, load a matching Guitar Pro/MusicXML score yourself, then send its recording and timing. You can keep the score already loaded, replace only the recording or timing, or explicitly keep your recording with a new score. Changing a score or recording clears its old alignment unless you supply matching timing.
-
-For unfamiliar pages, turn on **Manual selection** to choose from all discovered links, or paste asset URLs and timing JSON. Use the **Test** buttons to check a score's format, inspect timing or preview a recording before sending. These checks help identify assets; timing still needs to match the music. PDF charts and Soundslice's internal notation JSON cannot be imported as scores.
-
 ## Where to find music
 
 You can use your own scores or download compatible files from music publishers and tab collections. A few starting points:

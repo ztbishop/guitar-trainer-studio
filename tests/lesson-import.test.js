@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {validateLesson,soundslicePoints} from '../js/lesson-import-data.js';
 import {repeatFixture,repeatCases} from './media-repeat-fixtures.js';
 import {pointTick} from '../js/media-sync.js';
-import {appAddress,fetchBytes,base64Bytes,checkScoreBytes} from '../extensions/lesson-bridge/transfer.js';
 const payload=()=>({format:'gts-lesson',version:1,title:'Lesson',lessonUrl:'https://truefire.com/lesson/v32684',score:{fileName:'test.gp5',base64:btoa('test score')},recording:null,syncPoints:null});
 test('lesson payload validation rejects unsupported versions, dangerous names, URLs and bytes',()=>{
   assert.equal(new TextDecoder().decode(validateLesson(payload()).score.bytes),'test score');
@@ -19,14 +18,6 @@ test('version 2 supports explicit partial updates while rejecting empty or ambig
   assert.throws(()=>validateLesson({...p,recording:null}));
   assert.throws(()=>validateLesson({...p,keepRecording:'yes'}));
   assert.equal(validateLesson({...payload(),version:2,keepRecording:true}).keepRecording,true);
-});
-test('manual score tests distinguish supported headers from PDF, HTML and internal notation JSON',()=>{
-  const bytes=text=>new TextEncoder().encode(text);
-  assert.match(checkScoreBytes(bytes('FICHIER GUITAR PRO v5.00'),'lesson.gp5'),/Guitar Pro/);
-  assert.match(checkScoreBytes(bytes('<?xml version="1.0"?><score-partwise version="3.0">'),'lesson.musicxml'),/MusicXML/);
-  assert.match(checkScoreBytes(bytes('PK fixture container'),'lesson.gp'),/container/);
-  for(const text of ['%PDF-1.5','<!DOCTYPE html><html>Sign in</html>','{"notation":"internal"}'])assert.throws(()=>checkScoreBytes(bytes(text),'lesson.gp5'));
-  assert.throws(()=>checkScoreBytes(bytes('<score-partwise>'),'lesson.gp5'));
 });
 test('Soundslice conversion maps native expanded repeats/jumps, fractions and terminal endpoints without mutation',()=>{
   for(const spec of repeatCases) {
@@ -45,31 +36,6 @@ test('timing mismatches and unsupported playhead semantics fail before anchors a
     assert.throws(()=>soundslicePoints(data,timeline,21000));
   assert.throws(()=>soundslicePoints([[0,1],[n,22]],timeline,21000));
   assert.equal(soundslicePoints([[0,1],[n-1,20,480]],timeline,21000).at(-1).barPosition,1);
-});
-test('extension target validation limits insecure targets to loopback and encodes score bytes losslessly',()=>{
-  assert.equal(appAddress('http://localhost:5500/index.html').port,'5500');
-  assert.equal(appAddress('https://example.com/trainer/').pathname,'/trainer/');
-  for(const url of ['http://remote.example/','file:///app.html','https://user:pass@example.com/','http://localhost/?token=secret'])assert.throws(()=>appAddress(url));
-  const bytes=Uint8Array.from({length:17000},(_,i)=>i%256);
-  assert.deepEqual(Uint8Array.from(atob(base64Bytes(bytes)),c=>c.charCodeAt(0)),bytes);
-});
-test('extension downloads stop at their byte limit and reject sign-in HTML rather than importing it',async()=>{
-  const oldFetch=globalThis.fetch;let cancelled=false;
-  try {
-    globalThis.fetch=async()=>new Response(new ReadableStream({start(c){c.enqueue(new Uint8Array(8));},cancel(){cancelled=true;}}));
-    await assert.rejects(fetchBytes('https://example.com/test.gp5',4),/size limit/);assert(cancelled);
-    globalThis.fetch=async()=>new Response('<html>Sign in</html>',{headers:{'content-type':'text/html'}});
-    await assert.rejects(fetchBytes('https://example.com/test.gp5',100),/Sign in/);
-  } finally {globalThis.fetch=oldFetch;}
-});
-
-test('timing inspection preserves no-credential/no-redirect policy while enforcing the streaming byte cap',async()=>{
-  const oldFetch=globalThis.fetch;let cancelled=false,options;
-  try {
-    globalThis.fetch=async(_url,init)=>{options=init;return new Response(new ReadableStream({start(c){c.enqueue(new Uint8Array(1000001));},cancel(){cancelled=true;}}));};
-    await assert.rejects(fetchBytes('https://example.com/sync.json',1000000,{credentials:'omit',redirect:'error'}),/size limit/);
-    assert(cancelled);assert.equal(options.credentials,'omit');assert.equal(options.redirect,'error');
-  } finally {globalThis.fetch=oldFetch;}
 });
 
 test('Blue Nova timing preserves its nonzero start and terminal anchor across 64 performance measures',()=>{

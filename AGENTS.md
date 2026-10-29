@@ -15,6 +15,11 @@
 - Keep one coding chat actively editing this shared folder at a time. Record durable decisions in project files; do not assume another chat's full transcript is available.
 - Earlier ChatGPT discussions are in the project named **Guitar Trainer**. Treat them as optional historical context if accessible, not automatically loaded or authoritative over current decisions.
 
+## Private extension boundary
+
+- The owner maintains the Chrome extension separately in the private Music File Chrome Extension project. Do not restore extension source, ZIP packaging, store assets or installation/promotion instructions to this distribution or customer-facing README/Help.
+- Preserve the trainer-side lesson receiver, review dialog, message compatibility and timing handling. Developer documentation and receiver tests remain here; see docs/LESSON-BRIDGE.md. This separation does not authorize changes or pushes in the private project.
+
 ## Implementation boundaries
 
 - Runtime alphaTab integration belongs in `js/alphatab-host.js`. Existing tests may inspect the bundled native API directly.
