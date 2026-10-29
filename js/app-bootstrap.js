@@ -1,3 +1,4 @@
+import {applyAppearance} from './appearance.js';
 import {initBriefErrorControls} from './brief-error-controls.js';
 import {syncPracticeMenuSummary} from './practice-menu.js';
 import {initMidiCaptureControls,captureFeedbackView} from './midi-capture.js';
@@ -739,6 +740,7 @@ async function bootstrap() {
   const displayPreferences=readDisplayPreferences();
   AppState.viewMode=displayPreferences.viewMode;
   Object.assign(AppState.ui,displayPreferences.ui);
+  applyAppearance(AppState.ui.appearance);
   loadMidiDebugPreference();
   const toolbar=initToolbar();
   scoreLibrary=initScoreLibrary(loadScoreFile);

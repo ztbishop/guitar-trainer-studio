@@ -7,7 +7,7 @@ const readline = require('node:readline');
 
 const ROOT = __dirname;
 const ALLOWED = new Set(['index.html', 'README.html', 'README.md', 'LICENSE', 'style.css',
-  'menu-controls.css', 'media-sync.css', 'workspace-panels.css', 'guide.css', 'lesson-import.css',
+  'menu-controls.css', 'media-sync.css', 'workspace-panels.css', 'appearance.css', 'guide.css', 'lesson-import.css',
   'site.webmanifest', 'version.json', 'assets', 'js', 'docs']);
 const TYPES = {'':'text/plain; charset=utf-8', '.txt':'text/plain; charset=utf-8', '.html':'text/html; charset=utf-8', '.md':'text/plain; charset=utf-8',
   '.js':'text/javascript; charset=utf-8', '.mjs':'text/javascript; charset=utf-8',

@@ -1,4 +1,5 @@
 // Display preferences and form wiring; native rendering stays in the host.
+import {APPEARANCES,applyAppearance} from './appearance.js';
 import {AppState} from './app-state.js';
 import {saveDisplayPreferences,effectiveChordDiagramPlacement,SCORE_DISPLAYS,TAB_RHYTHMS} from './display-preferences.js';
 import {visibleTab} from './score-display.js';
@@ -13,6 +14,7 @@ export function initDisplayControls(onChange) {
   const chordDiagrams=document.getElementById('chord-diagram-placement');
   const chordDiagramHelp=document.getElementById('chord-diagram-help');
   const fretboard=document.getElementById('show-fretboard');
+  const appearance=document.getElementById('appearance');
   const scoreDisplay=document.getElementById('score-display');
   const tabRhythm=document.getElementById('tab-rhythm');
   const scoreDisplayHelp=document.getElementById('score-display-help');
@@ -20,6 +22,7 @@ export function initDisplayControls(onChange) {
     slider.value=number.value=String(AppState.ui.zoomPercent);
     down.disabled=AppState.ui.zoomPercent<=50;up.disabled=AppState.ui.zoomPercent>=200;
     scroll.checked=AppState.ui.autoScroll;fullscreen.checked=AppState.ui.fullscreenOnPlay;
+    if(appearance)appearance.value=AppState.ui.appearance;
     if(scoreDisplay)scoreDisplay.value=AppState.ui.scoreDisplay;
     if(tabRhythm){tabRhythm.value=AppState.ui.tabRhythm;tabRhythm.disabled=!AppState.score || !visibleTab(AppState);}
     if(scoreDisplayHelp)scoreDisplayHelp.textContent=AppState.score && ['both','tab'].includes(AppState.ui.scoreDisplay) && !visibleTab(AppState)
@@ -61,10 +64,10 @@ export function initDisplayControls(onChange) {
     onChange();
     sync();
   });
-  for(const [control,key,choices] of [[scoreDisplay,'scoreDisplay',SCORE_DISPLAYS],[tabRhythm,'tabRhythm',TAB_RHYTHMS]])
+  for(const [control,key,choices] of [[appearance,'appearance',APPEARANCES],[scoreDisplay,'scoreDisplay',SCORE_DISPLAYS],[tabRhythm,'tabRhythm',TAB_RHYTHMS]])
     control?.addEventListener('change',()=>{
       if(control.disabled || !choices.includes(control.value)){sync();return;}
-      AppState.ui[key]=control.value;saveDisplayPreferences(AppState);onChange();sync();
+      AppState.ui[key]=control.value;applyAppearance(AppState.ui.appearance);saveDisplayPreferences(AppState);onChange();sync();
     });
   sync();
   return {sync};

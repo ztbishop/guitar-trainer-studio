@@ -1,0 +1,51 @@
+/* App surfaces and feedback only. Score glyphs use native host resources. */
+:root { color-scheme:light; --score-paper:#ffffff; }
+:root[data-appearance='soft-light'] { --score-paper:#eceff1; --panel:#e7ebee; --panel-strong:#eceff1; --panel-soft:#e7ebee; --panel-raised:#eceff1; --control-bg:#f0f2f4; --control-bg-hover:#f5f6f7; }
+body.has-score .alphatab-wrapper { background:var(--score-paper); }
+:root[data-appearance='soft-light'] .toolbar-popup { background:#e7ebee !important; }
+:root[data-appearance='dark'] {
+  color-scheme:dark; --score-paper:#20262e; --bg:#171c23;
+  --panel:#252d37; --panel-strong:#252d37; --panel-soft:#29333f; --panel-raised:#303c49;
+  --toolbar:#252d37; --text:#e4ebf2; --muted:#b4c1cf; --muted-strong:#bdcbd9;
+  --border:#526171; --border-strong:#718297; --section-rule:#465363;
+  --control-bg:#344150; --control-bg-hover:#405166; --control-border:#718297; --control-border-soft:#596b80;
+  --control-shadow:none; --control-shadow-hover:none; --score-stage-empty-bg:#20262e;
+}
+:root[data-appearance='dark'] .toolbar-popup { background:var(--panel) !important; --menu-track:#526171; --menu-track-border:#718297; --menu-input-border:#718297; }
+:root[data-appearance='dark'] :is(.app-toolbar,.panel,.popup-surface,.popup-card,.library-action-dialog,#fretboard-options) { background:var(--panel); color:var(--text); }
+:root[data-appearance='dark'] :is(.library-pane,.library-score-open,.status-pill,.debug-grid div,.midi-event-item,.midi-placeholder,.track-item,.track-placeholder,.score-empty-state) { background:var(--panel-soft); color:var(--text); box-shadow:none; }
+:root[data-appearance='dark'] :is(button,select,textarea,input:not([type='range']):not([type='checkbox']):not([type='radio']),.button-like,.library-row-menu,.score-fullscreen-toggle) { background:var(--control-bg); color:var(--text); border-color:var(--control-border-soft); box-shadow:none; }
+:root[data-appearance='dark'] :is(button,.button-like):hover:not(:disabled) { background:var(--control-bg-hover); }
+:root[data-appearance='dark'] input:is([type='checkbox'],[type='radio']) { color-scheme:dark; }
+:root[data-appearance='dark'] input[type='checkbox']:not(:checked) { background:#344150; border-color:#718297; }
+:root[data-appearance='dark'] .toolbar-popup .menu-number input:disabled { background:#29333f; color:#a6b4c3; }
+:root[data-appearance='dark'] :is(a,.library-folder-open.is-active,.library-selection-row.is-active) { color:#8dccff; }
+:root[data-appearance='dark'] :is(.library-bulk-toolbar,.library-dialog-actions) .is-danger { color:#ff9393; }
+:root[data-appearance='dark'] :is(.loop-notice,#btn-loop.has-enabled-loop) { background:#304e66; color:#d7edff; }
+:root[data-appearance='dark'] .fretboard-label { fill:#d5e0ec; }
+:root[data-appearance='dark'] #media-timeline { background:#20262e; }
+:root[data-appearance='dark'] #media-timeline text { fill:#d5e0ec; }
+:root[data-appearance='dark'] .media-wave-fallback rect { fill:#20262e; }
+:root[data-appearance='dark'] .media-playhead { stroke:#f1f5f9; }
+:root[data-appearance='dark'] #media-mode-controls button[aria-pressed='true'] { background:#304e66; }
+:root[data-appearance='dark'] #media-dirty { color:#f3ce78; }
+/* Preserve category meanings, with lighter ink against charcoal. */
+:root[data-appearance='dark'] .notation-feedback-overlay [data-state='expected'] { stroke:#75baff; }
+:root[data-appearance='dark'] .notation-feedback-overlay [data-state='correct'] { stroke:#67e49b; }
+:root[data-appearance='dark'] .notation-feedback-overlay :is([data-state='missed'],[data-state='wrong'],[data-state='completed-with-errors']) { stroke:#ff8080; }
+:root[data-appearance='dark'] .notation-feedback-overlay .target-notehead[data-state='correct'] { fill:#67e49b; }
+:root[data-appearance='dark'] .notation-feedback-overlay .target-notehead:is([data-state='missed'],[data-state='wrong'],[data-state='completed-with-errors']) { fill:#ff8080; }
+:root[data-appearance='dark'] .notation-feedback-overlay .tab-correct-highlight { fill:#67e49b; }
+:root[data-appearance='dark'] .notation-feedback-overlay .tab-error-highlight { fill:#ff8080; fill-opacity:.28; }
+:root[data-appearance='dark'] .notation-feedback-overlay .wrong-notehead { fill:#ff8080; stroke:#ff8080; }
+:root[data-appearance='dark'] .notation-feedback-overlay :is(.wrong-ledger,.wrong-accidental) { stroke:#ff8080; }
+:root[data-appearance='dark'] .notation-feedback-overlay .wrong-fret-background { fill:#20262e; fill-opacity:.95; }
+:root[data-appearance='dark'] .notation-feedback-overlay .wrong-fret-number { fill:#ff8080; }
+:root[data-appearance='dark'] .trainer-error-history { color:#ff9393; }
+:root[data-appearance='dark'] .loop-shading-overlay rect { fill:#aab9cb; }
+
+:root[data-appearance='dark'] :is(input,select,textarea) { color-scheme:dark; }
+:root[data-appearance='dark'] .toolbar-popup .menu-radio-group input { color-scheme:dark; }
+
+:root[data-appearance='dark'] :is(.panel,.toolbar-popup,.library-action-dialog,#fretboard-options) { border-color:var(--border); }
+:root[data-appearance='dark'] .score-stage { box-shadow:var(--shadow-soft); }

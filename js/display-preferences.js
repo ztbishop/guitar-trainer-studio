@@ -1,4 +1,5 @@
 // Browser viewing preferences; excludes score identities, results and transport state.
+import {normalizeAppearance} from './appearance.js';
 export const DISPLAY_PREFERENCES_KEY = 'gts.displayPreferences';
 export const DISPLAY_BOOLEAN_KEYS = ['autoScroll', 'fullscreenOnPlay', 'showFretboard', 'leftHanded', 'showAlternatePositions'];
 export const CHORD_DIAGRAM_PLACEMENTS = ['score-default', 'above-chord', 'top-of-score', 'off'];
@@ -13,10 +14,11 @@ export function effectiveChordDiagramPlacement(state) {
 }
 
 export function readDisplayPreferences(storage) {
-  const defaults = {viewMode: 'practice-only', ui: {zoomPercent: 100, autoScroll: true, fullscreenOnPlay: false, chordDiagramPlacement: 'score-default', scoreDisplay:'score-default',tabRhythm:'automatic',showFretboard: true, leftHanded: false, fretboardView:'bar', fretboardLabels:'notes',showAlternatePositions:false}};
+  const defaults = {viewMode: 'practice-only', ui: {appearance:'light',zoomPercent: 100, autoScroll: true, fullscreenOnPlay: false, chordDiagramPlacement: 'score-default', scoreDisplay:'score-default',tabRhythm:'automatic',showFretboard: true, leftHanded: false, fretboardView:'bar', fretboardLabels:'notes',showAlternatePositions:false}};
   try {
     storage ??= globalThis.window?.localStorage;
     const saved = JSON.parse(storage?.getItem(DISPLAY_PREFERENCES_KEY) ?? 'null');
+    defaults.ui.appearance=normalizeAppearance(saved?.ui?.appearance);
     if(SCORE_DISPLAYS.includes(saved?.ui?.scoreDisplay))defaults.ui.scoreDisplay=saved.ui.scoreDisplay;
     if(TAB_RHYTHMS.includes(saved?.ui?.tabRhythm))defaults.ui.tabRhythm=saved.ui.tabRhythm;
     if(FRETBOARD_VIEWS.includes(saved?.ui?.fretboardView))defaults.ui.fretboardView=saved.ui.fretboardView;
@@ -38,6 +40,7 @@ export function saveDisplayPreferences(state, storage) {
     storage?.setItem(DISPLAY_PREFERENCES_KEY, JSON.stringify({
       viewMode: state.viewMode,
       ui: Object.fromEntries(['zoomPercent', 'chordDiagramPlacement', ...DISPLAY_BOOLEAN_KEYS].map(key => [key, key==='showAlternatePositions'?state.ui[key]===true:state.ui[key]]).concat([
+        ['appearance',normalizeAppearance(state.ui.appearance)],
         ['scoreDisplay',SCORE_DISPLAYS.includes(state.ui.scoreDisplay)?state.ui.scoreDisplay:'score-default'],
         ['tabRhythm',TAB_RHYTHMS.includes(state.ui.tabRhythm)?state.ui.tabRhythm:'automatic'],
         ['fretboardView',FRETBOARD_VIEWS.includes(state.ui.fretboardView)?state.ui.fretboardView:'bar'],

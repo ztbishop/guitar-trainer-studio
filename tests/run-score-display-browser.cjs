@@ -69,6 +69,9 @@ const {createAppServer}=require('../local-web-server.cjs');
     });
     await page.locator('#play-pause-button').click();
     await page.waitForFunction(()=>!displayState.countInActive && displayState.waitTrainer?.phase==='waiting');
+    await page.evaluate(()=>sendDisplayMidi([0x90,61,100]));
+    await page.waitForTimeout(400);
+    await page.evaluate(()=>sendDisplayMidi([0x80,61,0]));
     await page.evaluate(()=>sendDisplayMidi([0x90,displayState.expectedEvents[0].notes[0].midi,100]));
     await page.locator('#play-pause-button').click();
     const result=await page.evaluate(()=>JSON.stringify(displayState.waitTrainer.results));
@@ -84,14 +87,35 @@ const {createAppServer}=require('../local-web-server.cjs');
       window.originalPrintOpen=window.open;
       window.open=(...args)=>{const p=originalPrintOpen(...args);p.print=()=>{p.printRequested=true;};return p;};
     });
-    await page.locator('#btn-scores').click();
+    for(const theme of ['light','soft-light','dark']) {
+      await page.evaluate(theme=>{const c=document.querySelector('#appearance');c.value=theme;c.dispatchEvent(new Event('change'));},theme);
+      await page.waitForTimeout(300);
+      assert.equal(await page.evaluate(()=>document.documentElement.dataset.appearance),theme);
+      assert.equal(await page.evaluate(()=>displayApi.settings.display.resources.mainGlyphColor.rgba.toLowerCase()),theme==='dark'?'#e8edf2':'#000000');
+      assert.equal(await page.evaluate(()=>JSON.stringify(displayState.waitTrainer.results)),result);
+      const paper=await page.locator('.alphatab-wrapper').evaluate(e=>getComputedStyle(e).backgroundColor);
+      assert.equal(paper,{light:'rgb(255, 255, 255)','soft-light':'rgb(236, 239, 241)',dark:'rgb(32, 38, 46)'}[theme]);
+      // Probe each feedback category through its actual stylesheet, without changing session data.
+      const strokes=await page.evaluate(()=>{
+        const overlay=document.querySelector('.notation-feedback-overlay');
+        return ['expected','correct','missed','wrong','completed-with-errors'].map(state=>{const el=document.createElementNS('http://www.w3.org/2000/svg','rect');el.dataset.state=state;overlay.append(el);const color=getComputedStyle(el).stroke;el.remove();return color;});
+      });
+      assert.equal(new Set(strokes.slice(0,3)).size,3);
+      const luminance=rgb=>{const c=rgb.match(/\d+/g).slice(0,3).map(Number).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;});return c[0]*.2126+c[1]*.7152+c[2]*.0722;};
+      for(const stroke of strokes){const a=luminance(stroke),b=luminance(paper);assert((Math.max(a,b)+.05)/(Math.min(a,b)+.05)>=3,theme+' feedback contrast');}
+      await page.keyboard.press('Escape');
+      if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:require('node:path').join(process.env.GTS_SCREENSHOT_DIR,'appearance-'+theme+'.png')});
+      await page.locator('#btn-scores').click();
     const popupPromise=page.waitForEvent('popup');await page.locator('#score-print').click();const popup=await popupPromise;
     await popup.waitForFunction(()=>window.printRequested && document.querySelector('svg'));
     assert.equal(await popup.locator('.notation-feedback-overlay,.fretboard-marker,.at-cursor-beat,#media-editor').count(),0);
     assert.match(await popup.title(),/Display and print QA/);
     assert.equal(await page.evaluate(()=>JSON.stringify(displayState.waitTrainer.results)),result);
     if(process.env.GTS_SCREENSHOT_DIR)await popup.screenshot({path:require('node:path').join(process.env.GTS_SCREENSHOT_DIR,'score-print.png'),fullPage:true});
+    const fills=await popup.locator('svg [fill]').evaluateAll(es=>es.map(e=>e.getAttribute('fill')).filter(v=>v && v!=='none' && v!=='transparent'));
+    assert(fills.every(v=>['#000000','#000','black'].includes(v.toLowerCase())),'print ink must be black: '+[...new Set(fills)]);
     await popup.close();
+    }
     // Blocked popups get an actionable message rather than an uncaught failure.
     await page.evaluate(()=>{window.open=()=>null;document.querySelector('#score-print').click();});
     assert.match(await page.locator('#score-print-status').textContent(),/Allow pop-ups/);
@@ -99,6 +123,8 @@ const {createAppServer}=require('../local-web-server.cjs');
     await page.locator('#stop-button').click();
     await change('score-display','tab');await change('tab-rhythm','show');
     await page.reload();await load();
+    assert.equal(await page.locator('#appearance').inputValue(),'dark');
+    assert.equal(await page.evaluate(()=>document.documentElement.dataset.appearance),'dark');
     assert.deepEqual(await flags(),[[false,true]]);assert.equal(await page.locator('#tab-rhythm').inputValue(),'show');
     assert.equal(await page.locator('#chord-diagram-placement').inputValue(),'above-chord');
     // Select a notation-only track: safe fallback, unchanged saved preference.
@@ -109,8 +135,10 @@ const {createAppServer}=require('../local-web-server.cjs');
     await page.evaluate(()=>document.querySelector('[data-launch-panel="display-popup"]').click());
     if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:require('node:path').join(process.env.GTS_SCREENSHOT_DIR,'score-display.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844});
+    await page.waitForTimeout(300);
+    if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:require('node:path').join(process.env.GTS_SCREENSHOT_DIR,'appearance-phone.png')});
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal page overflow');
     assert.deepEqual(errors,[]);
-    console.log('PASS native score views, rhythm modes, independent diagrams, Wait feedback, clean print popup, blocked-popup message, saved reload and notation-only fallback.');
+    console.log('PASS themes, feedback contrast, black print ink, saved appearance, native score views, rhythm modes, independent diagrams, Wait feedback, clean print popup, blocked-popup message, saved reload and notation-only fallback.');
   } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});

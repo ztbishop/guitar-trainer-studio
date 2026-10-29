@@ -1,5 +1,12 @@
 # Development notes
 
+## Appearance themes — 2026-10-29
+
+Owner approved saved Light, Soft Light and Dark under Display → Appearance, with Light default and black-on-white printing. This supersedes earlier deferral. appearance.js owns theme validation/root selection and palettes; appearance.css owns app/feedback colors. Runtime native color conversion and print override stay in alphatab-host.js. Display persistence/bootstrap/control wiring use the existing lifecycle. No changes to matching, Realtime timing, Wait progression, chord/score-view independence or feedback rules; no version bump.
+
+All 483 Node tests pass. Isolated Chrome checks three score backgrounds/native colors, unchanged partial Wait results after synthetic correct/wrong attacks, distinct feedback stroke categories with at least 3:1 contrast against each paper color, persisted Dark after reload, phone overflow after native resize settles, and all-black native print ink from every theme. OS print dialogs are suppressed only in automation. Actual correct-note/tab highlights, native cursor, dark menus, Soft Light and clean print screenshots were inspected. Additional menu review covers Audio, Scores, Settings and Display plus returning to native black notation in Light. An initial browser check found the new CSS missing from the launcher's allowlist; fixed and added serving coverage. Native phone reflow requires settling before measuring overflow. Syntax/whitespace checks pass. Owner's normal browser, Live Server and hardware settings were untouched; real-world comfort, physical Fishman and actual Save PDF/printer acceptance remain pending.
+
+
 ## Fret inlay emphasis — 2026-10-29
 
 Owner approved slightly larger/brighter neutral dots, extra emphasis on octave doubles and bold 12/24 labels; dark mode is explicitly deferred. Ordinary radius changes from 4 to 5 and physical octave radius to 6. Neutral fill changes from #b0bac5/.65 opacity to #c2c8ce/.85. Relative octave labels use weight 700. Existing capo placement, orientation, neck sizing, note feedback, MIDI/Wait behavior and native alphaTab are unchanged; no new modules or settings.

@@ -191,6 +191,8 @@ The menus keep controls compact; this guide provides the detailed explanations. 
 
 ### Display and the fretboard
 
+Choose **Display → Appearance** for **Light** (the default white page), **Soft Light** (a very light gray page) or **Dark** (soft-white notation on charcoal). Your choice returns across visits and score loads. Practice feedback keeps the same meanings in each appearance. Printing and Save as PDF use black notation on white regardless of your screen choice.
+
 Display controls zoom, auto-scroll, full screen on Play, chord diagrams, visible tracks and fretboard visibility. Showing all tracks does not change which single track is graded.
 
 **Score display** offers Score Default, Notation + Tab, Tab Only and Notation Only. Score Default follows the file's original layout. A guitar tab score can also show notation using its written pitches and rhythms. Tracks without usable string/fret information keep notation instead of showing empty or guessed tab.

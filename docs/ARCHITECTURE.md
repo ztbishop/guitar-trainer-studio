@@ -1,5 +1,14 @@
 # Guitar Trainer Studio Architecture
 
+## Saved Appearance themes — 2026-10-29
+
+Owner now authorizes Light, Soft Light and Dark, superseding earlier dark-mode deferral. New appearance.js owns accepted values, normalization, root data-appearance projection and plain native score color palettes. It imports no native API. display-preferences.js validates/saves ui.appearance independently under gts.displayPreferences; missing/invalid values use Light. Bootstrap restores the root theme before toolbar/native startup; display-controls.js saves changes and calls the existing display refresh without resetting results.
+
+alphatab-host.js converts palette values to native Color objects, initializes renderer resources from the saved theme, and updates the six native score colors on theme changes. Its existing render path rebuilds bounds/feedback while retaining session state. Soft Light retains Light ink on #eceff1 paper; Dark uses #e8edf2 ink on #20262e paper with muted staff/bar colors. Native print receives a separate all-black resource override for all six color fields; its standalone white preview never inherits app CSS or changes live theme/settings. No inversion filter, vendor edit or engraving change.
+
+New appearance.css loads last and owns theme variables, remaining explicit surface/control overrides, score paper, dark timeline/fret labels and brighter blue/green/red score-feedback styles. Fretboard neck/marker color meanings are unchanged. local-web-server.cjs explicitly allows this new root stylesheet; hosted/Live Server usage still needs no build. Tests cover preference normalization/persistence, native palette conversion, stylesheet serving and Chrome theme switching with retained partial Wait results, feedback contrast and actual native black-ink print previews. No new grading/MIDI/session module or behavior.
+
+
 ## Fret inlay emphasis — 2026-10-29
 
 fretboard-ui.js draws ordinary inlays at radius 5 and physical octave double inlays at radius 6 (formerly radius 4 for both). Existing capo-aware physical placement and symmetric string-gap geometry remain intact. Relative fret labels at positive multiples of 12 receive fretboard-octave-label; style.css gives these weight 700 and sets all inlays to neutral #c2c8ce at .85 opacity. Note markers still render above the inlays. No new module, preference, grading or native alphaTab change; dark mode remains deferred.

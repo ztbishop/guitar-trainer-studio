@@ -73,6 +73,7 @@ export const AppState = {
     autoScroll: true,
     fullscreenOnPlay: false,
     chordDiagramPlacement: 'score-default',
+    appearance: 'light',
     scoreDisplay: 'score-default',
     tabRhythm: 'automatic',
     layoutMode: 'page',

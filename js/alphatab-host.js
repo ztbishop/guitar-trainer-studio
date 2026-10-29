@@ -7,6 +7,7 @@
 // Owns: all alphaTab integration (loading, rendering, playback, events)
 // Do NOT: put trainer logic here
 
+import {scoreColors} from './appearance.js';
 import { AppState } from './app-state.js';
 import { buildPlaybackTimeline, tickToTimeMs } from './score-playback.js';
 import { audibleDelayMs, createMetronomeClock } from './metronome-clock.js';
@@ -25,11 +26,17 @@ import {ScoreDisplayProjection} from './score-display.js';
 
 const scoreDisplayProjection=new ScoreDisplayProjection();
 function applyNotationDisplay() {
+  let colorsChanged=false;
+  for(const [key,value] of Object.entries(scoreColors(AppState.ui.appearance))) {
+    const color=window.alphaTab.model.Color.fromJson(value);
+    if(alphaTabApi.settings.display.resources[key].rgba!==color.rgba)colorsChanged=true;
+    alphaTabApi.settings.display.resources[key]=color;
+  }
   const changed=scoreDisplayProjection.apply(AppState.score,AppState.ui.scoreDisplay);
   const mode={automatic:window.alphaTab.TabRhythmMode.Automatic,show:window.alphaTab.TabRhythmMode.ShowWithBars,hide:window.alphaTab.TabRhythmMode.Hidden}[AppState.ui.tabRhythm]??window.alphaTab.TabRhythmMode.Automatic;
   const rhythmChanged=alphaTabApi.settings.notation.rhythmMode!==mode;
   alphaTabApi.settings.notation.rhythmMode=mode;
-  return changed || rhythmChanged;
+  return changed || rhythmChanged || colorsChanged;
 }
 
 let mediaSnapshot=null,mediaHandler=null,mediaPoints=[],mediaRestoreTick=null;
@@ -773,7 +780,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     display: {
       // Keep all musical voices equally readable; correctness overlays own
       // their separate green/red colors and do not use these native defaults.
-      resources: { mainGlyphColor: '#000000', secondaryGlyphColor: '#000000' },
+      resources: scoreColors(AppState.ui.appearance),
       scale: AppState.ui.zoomPercent / 100,
       layoutMode: alphaTabGlobal.LayoutMode?.Page,
       systemsLayoutMode: alphaTabGlobal.SystemsLayoutMode?.Automatic,
@@ -1149,7 +1156,7 @@ export function printScore() {
   if(!alphaTabApi || !AppState.score || !AppState.playerReady)return false;
   // Native print builds a clean, noninteractive renderer of the visible tracks.
   // App feedback, fretboard and media UI never enter that renderer.
-  alphaTabApi.print(undefined,{display:{startBar:1,barCount:-1}});
+  alphaTabApi.print(undefined,{display:{startBar:1,barCount:-1,resources:scoreColors('light',{print:true})}});
   return true;
 }
 

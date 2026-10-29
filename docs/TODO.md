@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+## Appearance themes — 2026-10-29
+
+- [x] Add saved Light / Soft Light / Dark in Display, Light default; supersedes previous dark-mode deferral.
+- [x] Apply native score colors and app surfaces; retain feedback semantics with clearer dark colors; always request black print ink in the standalone white print view.
+- [x] Verify 483 Node tests, syntax/whitespace and isolated Chrome appearance/persistence, feedback contrast, native print, menus and phone layout.
+- [ ] Owner checks actual LG/laptop viewing comfort, Fishman feedback and browser Save as PDF/physical printing. Automated print checks suppress the OS dialog; they do not verify physical output.
+
+
 ## Fret inlay emphasis — 2026-10-29
 
 - [x] Enlarge and brighten neutral inlays, emphasize octave double dots and bold 12/24 labels.
