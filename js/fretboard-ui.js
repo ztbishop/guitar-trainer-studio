@@ -56,11 +56,11 @@ export function renderFretboard(model) {
     const wire=wireX(fret);
     svg.appendChild(shape('line',{x1:wire,y1:top,x2:wire,y2:bottom,class:fret===0?'fretboard-nut':'fretboard-fret','data-fret':fret}));
     if(fretNumberVisible(fret,model.maxFret,renderedWidth,model.targets.map(note=>note.fret)))
-      svg.appendChild(shape('text',{x,y:14,'text-anchor':'middle',class:'fretboard-label','data-fret-label':fret},String(fret)));
+      svg.appendChild(shape('text',{x,y:14,'text-anchor':'middle',class:fret>0 && fret%12===0?'fretboard-label fretboard-octave-label':'fretboard-label','data-fret-label':fret},String(fret)));
     const physicalFret=fret+model.capo;
     if(fret>0 && [3,5,7,9,0].includes(physicalFret%12)) {
       const ys=fretInlayYs(model.stringCount,physicalFret%12===0);
-      for(const y of ys)svg.appendChild(shape('circle',{cx:x,cy:y,r:4,class:'fretboard-inlay','data-physical-fret':physicalFret}));
+      for(const y of ys)svg.appendChild(shape('circle',{cx:x,cy:y,r:physicalFret%12===0?6:5,class:'fretboard-inlay','data-physical-fret':physicalFret}));
     }
   }
   if(model.capo>0) {

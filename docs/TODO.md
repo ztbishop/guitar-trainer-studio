@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+## Fret inlay emphasis — 2026-10-29
+
+- [x] Enlarge and brighten neutral inlays, emphasize octave double dots and bold 12/24 labels.
+- [x] Pass 481 regressions, syntax/whitespace checks and isolated Chrome sizing/label checks at laptop and ultrawide sizes; inspect the rendered neck.
+- [ ] Owner checks contrast on the physical LG at normal zoom. Hardware MIDI testing was not performed for this visual-only change.
+- Dark mode remains deferred by owner decision; no implementation included.
+
+
 ## Ultrawide fretboard proportions — 2026-10-29
 
 - [x] Cap neck width relative to usable panel height and center the SVG; preserve responsive scrolling and saved panel sizing.

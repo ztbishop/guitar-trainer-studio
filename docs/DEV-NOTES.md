@@ -1,5 +1,12 @@
 # Development notes
 
+## Fret inlay emphasis — 2026-10-29
+
+Owner approved slightly larger/brighter neutral dots, extra emphasis on octave doubles and bold 12/24 labels; dark mode is explicitly deferred. Ordinary radius changes from 4 to 5 and physical octave radius to 6. Neutral fill changes from #b0bac5/.65 opacity to #c2c8ce/.85. Relative octave labels use weight 700. Existing capo placement, orientation, neck sizing, note feedback, MIDI/Wait behavior and native alphaTab are unchanged; no new modules or settings.
+
+All 481 Node tests pass, plus module syntax and diff whitespace checks. Isolated Chrome with the original Easy chords demo verifies double-dot count/radius at physical 12/24, ordinary radius and bold labels; screenshots were captured at 1440×900 and 3820×1550 and the rendered neck inspected. Blue targets remain visually distinct from the gray inlays. Physical display/zoom acceptance and Fishman checks remain pending; the owner's browser/Live Server were untouched.
+
+
 ## Ultrawide fretboard proportions — 2026-10-29
 
 Owner approved capping the neck relative to panel height and centering it. A local projection in fretboard-ui.js supplies a maximum requested width of eight times usable panel height to the existing geometry/fit code; workspace-panels.css supplies automatic inline SVG margins. Minimum readable fret widths still permit horizontal scrolling on narrow screens. Full-width panel, saved heights, orientation, markers, MIDI matching, Wait and native alphaTab are unchanged. No new module or preference.

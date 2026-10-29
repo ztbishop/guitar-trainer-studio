@@ -1,5 +1,10 @@
 # Guitar Trainer Studio Architecture
 
+## Fret inlay emphasis — 2026-10-29
+
+fretboard-ui.js draws ordinary inlays at radius 5 and physical octave double inlays at radius 6 (formerly radius 4 for both). Existing capo-aware physical placement and symmetric string-gap geometry remain intact. Relative fret labels at positive multiples of 12 receive fretboard-octave-label; style.css gives these weight 700 and sets all inlays to neutral #c2c8ce at .85 opacity. Note markers still render above the inlays. No new module, preference, grading or native alphaTab change; dark mode remains deferred.
+
+
 ## Centered fretboard width cap — 2026-10-29
 
 fretboard-ui.js limits the requested neck width to min(available content width, usable panel height × 8) before invoking the existing geometry/fit helpers. Both geometry and fit receive the capped width, preventing fit from re-expanding the neck across an ultrawide viewport. Existing readable minimum fret-cell width and small-screen horizontal scrolling take precedence. workspace-panels.css centers the SVG using automatic inline margins, which collapse when it overflows. The panel remains full width; existing ResizeObserver responds to height/width changes and saved automatic/manual sizing remains owned by workspace-panels.js. No new module, setting, grading or alphaTab behavior is introduced.

@@ -1257,7 +1257,8 @@ body.has-score .alphatab-wrapper {
 .fretboard-neck { fill:#303944; stroke:#202934; stroke-width:1; }
 .fretboard-fret { stroke:#a9b3bf; stroke-width:2; }
 .fretboard-nut { stroke:#eee8d9; stroke-width:7; }
-.fretboard-inlay { fill:#b0bac5; opacity:.65; }
+.fretboard-inlay { fill:#c2c8ce; opacity:.85; }
+.fretboard-octave-label { font-weight:700; }
 .fretboard-string { stroke:#d6dce3; }
 .fretboard-label { fill:#334155; font-size:12px; }
 .fretboard-marker { color:#7c3aed; }

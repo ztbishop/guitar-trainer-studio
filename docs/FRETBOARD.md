@@ -1,5 +1,10 @@
 # Practice fretboard
 
+## More visible inlays — 2026-10-29
+
+Neutral position dots are slightly larger and brighter; physical octave double dots are larger again. The displayed 12 and 24 labels are bold. Capo-aware inlay locations, relative fret labels, handedness and feedback colors retain their existing meaning. No column shading or dark theme is added.
+
+
 ## Wide-screen proportions — 2026-10-29
 
 The neck is centered and its requested width is capped at eight times the usable panel height. Taller manually resized panels permit wider necks; the panel itself stays full width. Smaller viewports retain readable fret cells and horizontal scrolling. Marker/text scaling, orientation, saved sizing and feedback semantics are unchanged.
