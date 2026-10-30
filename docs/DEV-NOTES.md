@@ -1,5 +1,10 @@
 # Development notes
 
+## Stable v1.0.0 — 2026-10-29
+
+Owner confirmed v1.0.0 stable on 2026-10-29. Starting tree was clean at cda6c99 on main. GitHub currently lists Beta v0.0.4; v1.0.0 is unused locally/remotely. Update version metadata, current instructions, README and publishing guidance, preserve historical beta records, and publish a new annotated tag and nondraft/non-prerelease release. Release validation passed: 486 Node regressions; isolated Chrome guide/demo desktop/phone checks, themes/native views/rhythm/Wait feedback and black-ink print checks, library/profile/folder download and restore checks, and Realtime written-span/late-chord checks with synthetic Poly and Hex input. Diff whitespace is clean. No physical Fishman, actual printer/PDF destination, Mac launcher or provider-wide acceptance was performed in this release run. Publication verification will be recorded after GitHub confirms the release.
+
+
 ## Score download and folder export — 2026-10-29
 
 Added Download original file and Export folder. Folder exports preserve saved library titles, folder membership and all related saved sync profiles using the existing JSON format; scores download in their original format without conversion. Files, recordings and preferences are not altered.

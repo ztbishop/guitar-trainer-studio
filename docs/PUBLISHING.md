@@ -40,8 +40,10 @@ Publishing from main means every later push to main updates the website. Release
 
 Official reference: [GitHub Pages publishing sources](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
 
-## Beta release maintenance
+## Release maintenance
 
-For an explicitly authorized release: verify that the proposed version/tag is unused, update version.json and current project guidance, run appropriate checks, review/commit/push the release files, create and push a new annotated tag, then publish a GitHub Release marked prerelease. Use the saved notes under docs/releases as the release body. Verify the published tag, target commit, prerelease status and download/source links. Preserve older tags and unrelated changes. Publishing a release never implicitly changes repository visibility or Pages settings.
+For an explicitly authorized release: verify that the proposed version/tag is unused, update version.json and current project guidance, run appropriate checks, review/commit/push the release files, create and push a new annotated tag, then publish a GitHub Release. Stable releases are not marked prerelease; beta releases are. Use the saved notes under docs/releases as the release body. Verify the published tag, target commit, prerelease status and download/source links. Preserve older tags and unrelated changes. Publishing a release never implicitly changes repository visibility or Pages settings.
+
+Stable v1.0.0 was explicitly authorized on 2026-10-29. Preserve the earlier beta release and all tags.
 
 Beta v0.0.4 was explicitly authorized on 2026-10-24, lifting the prior documentation/licensing hold. Its checks and publication result belong in DEV-NOTES.md and the task handoff; physical hardware acceptance and actual public hosting are separate from automated evidence.

@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+## Stable v1.0.0 — 2026-10-29
+
+- [x] Owner authorizes stable v1.0.0; align version metadata and current guidance, preserving historical releases/tags.
+- [x] Finish release validation: 486 Node tests and isolated Chrome guide/display/print/library/Realtime checks.
+- [ ] Publish and verify the new stable GitHub release.
+- [ ] Physical-device/provider and Mac-launcher combinations remain separate acceptance checks; stable status does not imply exhaustive hardware coverage.
+
+
 ## Score download and folder export — 2026-10-29
 
 - [x] Add original file downloads to individual stored score menus.

@@ -1,5 +1,10 @@
 # Guitar Trainer Studio Architecture
 
+## Stable v1.0.0 — 2026-10-29
+
+The owner authorized v1.0.0 as the first stable release. version.json remains the single runtime version source; current AGENTS guidance and README agree. docs/releases/v1.0.0.md supplies the GitHub release body. No runtime architecture, storage schema, MIDI/Wait behavior or native integration changes are introduced by the release preparation. Historical beta entries and tags remain intact. Publication does not change repository visibility or Pages configuration.
+
+
 ## Score download and folder export — 2026-10-29
 
 score-library.js adds Download original file to stored score actions and Export folder to user folder actions. The existing download helper accepts a MIME type; original files use application/octet-stream and stored bytes/filename, while backup exports retain application/json. Folder filenames use a safe prefixed label.

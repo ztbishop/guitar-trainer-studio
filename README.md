@@ -268,7 +268,7 @@ Updates are manual; the app does not check for new versions or replace your file
 - **Port already in use?** Close the other Guitar Trainer launcher. Advanced users can set `GTS_PORT` to another port before starting; that address has its own browser library/preferences.
 - **Guide or app will not load from disk?** Use the website, launcher or Live Server instead of double-clicking an HTML file.
 
-This is beta software. Compatibility depends on score contents, browser and MIDI device behavior. Automated checks do not establish physical MIDI accuracy or every score/provider combination.
+The current stable release is **v1.0.0**. Compatibility depends on score contents, browser and MIDI device behavior. Automated checks do not establish physical MIDI accuracy or every score/provider combination.
 
 ## Appendix: MIDI input options
 
