@@ -106,7 +106,7 @@ Supported files are **Guitar Pro** (`.gp`, `.gp3`, `.gp4`, `.gp5`, `.gpx`) and *
 
 For a separate transfer of sync settings, open **Media & Sync → Profile name & saved profiles → Transfer sync profiles only**. Export profiles includes all saved profiles, without scores or recordings. You do not need a separate profile export when using Backup Library.
 
-**Keep backups outside your browser.** The library belongs to this browser profile and website address. The hosted site, local launcher, and Live Server can have separate libraries. Even `localhost` and `127.0.0.1`, or different ports, are separate. Clearing browser data can remove saved scores. Backups include saved sync profiles but exclude recordings, MIDI settings, display preferences and practice results.
+**Keep backups outside your browser.** The library belongs to this browser profile and website address. The hosted site, local launcher, and Live Server can have separate libraries. Even `localhost` and `127.0.0.1`, or different ports, are separate. Clearing browser data can remove saved scores and sync profiles. Browsers can also remove site storage automatically when space is low or under inactivity/cleanup policies; private browsing is temporary. Use **Backup Library** regularly, especially after saving scores or editing sync profiles, and keep the downloaded JSON outside the browser. Restore it with **Import Library (Merge)**. Backups include saved sync profiles but exclude recordings, MIDI settings, display preferences and practice results.
 
 Some uncompressed MusicXML files contain separate, closely matching notation and tab guitar parts. When offered **Combine notation and tab**, you can combine them for practice or keep them separate. The original file is not changed. The app asks each time; compressed `.mxl` uses its normal import path.
 
@@ -268,7 +268,7 @@ Updates are manual; the app does not check for new versions or replace your file
 - **Port already in use?** Close the other Guitar Trainer launcher. Advanced users can set `GTS_PORT` to another port before starting; that address has its own browser library/preferences.
 - **Guide or app will not load from disk?** Use the website, launcher or Live Server instead of double-clicking an HTML file.
 
-The current stable release is **v1.0.0**. Compatibility depends on score contents, browser and MIDI device behavior. Automated checks do not establish physical MIDI accuracy or every score/provider combination.
+The current stable release is **v1.0.1**. Compatibility depends on score contents, browser and MIDI device behavior. Automated checks do not establish physical MIDI accuracy or every score/provider combination.
 
 ## Appendix: MIDI input options
 

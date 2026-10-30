@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+## v1.0.1 backup guidance and tall lists — 2026-10-30
+
+- [x] Add Scores backup reminder and explain automatic browser cleanup in README/Help.
+- [x] Let long lists grow on tall screens while retaining short-list minimums and laptop/narrow limits.
+- [x] Verify 486 Node tests and isolated Chrome tall/laptop/narrow list and guide checks.
+- [ ] Publish and verify stable v1.0.1; owner checks final layout on their actual displays.
+
+
 ## Stable v1.0.0 — 2026-10-29
 
 - [x] Owner authorizes stable v1.0.0; align version metadata and current guidance, preserving historical releases/tags.

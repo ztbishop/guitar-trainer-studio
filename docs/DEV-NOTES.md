@@ -1,5 +1,12 @@
 # Development notes
 
+## v1.0.1 backup guidance and tall lists — 2026-10-30
+
+Owner authorized stable v1.0.1. Added a concise browser-only backup warning and expanded README/Help guidance for automatic storage cleanup, private browsing, regular external backups and restoration. Long folder/score lists can grow on tall desktop viewports; short-list minimums and laptop limits remain unchanged.
+
+Verification: 486 Node regressions pass; isolated Chrome checked 65 folders/scores at 1920x1400, empty/filtered lists, 1440x900 laptop limits and 390x700 narrow overflow, plus guide/demo desktop/phone checks. Tall-list screenshot inspected. Browser test syntax and diff whitespace checks pass. Normal owner browser/storage and physical MIDI were untouched. Publication verification follows.
+
+
 ## Stable v1.0.0 — 2026-10-29
 
 Owner confirmed v1.0.0 stable on 2026-10-29. Starting tree was clean at cda6c99 on main. GitHub currently lists Beta v0.0.4; v1.0.0 is unused locally/remotely. Update version metadata, current instructions, README and publishing guidance, preserve historical beta records, and publish a new annotated tag and nondraft/non-prerelease release. Release validation passed: 486 Node regressions; isolated Chrome guide/demo desktop/phone checks, themes/native views/rhythm/Wait feedback and black-ink print checks, library/profile/folder download and restore checks, and Realtime written-span/late-chord checks with synthetic Poly and Hex input. Diff whitespace is clean. No physical Fishman, actual printer/PDF destination, Mac launcher or provider-wide acceptance was performed in this release run. Publication verified: release commit 00d725aa4e46875d93864dc3320c33106a283998 and annotated v1.0.0 tag 958d2f5ec873643b893e4814faf9402959687292 were pushed. GitHub confirms https://github.com/ztbishop/guitar-trainer-studio/releases/tag/v1.0.0 is nondraft, non-prerelease and latest, with ZIP/tar source links. Remote peeled tag matches the tested commit. Earlier tags/releases are unchanged. This documentation follow-up does not move the fixed release tag.

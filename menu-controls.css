@@ -419,3 +419,10 @@
 @media (min-width: 761px) {
  .library-folder-list, .library-score-list { max-height: min(55vh,620px); min-height: min(40vh,360px); }
 }
+
+.library-backup-warning { margin: 8px 2px; }
+/* Grow only the content ceiling on tall desktops; short lists and laptops keep
+   their existing minimums. Reserve room for the toolbar and menu controls. */
+@media (min-width: 761px) and (min-height: 1000px) {
+ .library-folder-list, .library-score-list { max-height: calc(100dvh - var(--toolbar-height,58px) - 300px); }
+}

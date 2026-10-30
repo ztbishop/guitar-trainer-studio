@@ -1,5 +1,10 @@
 # Guitar Trainer Studio Architecture
 
+## v1.0.1 backup guidance and tall lists — 2026-10-30
+
+index.html adds a persistent, non-modal backup reminder below the library actions. README.md supplies both Markdown and rendered Help guidance about browser cleanup and external JSON backups. menu-controls.css increases only the list max-height at viewport widths >=761px and heights >=1000px, reserving toolbar plus 300px for menu controls/margins. Existing list minimums and laptop/narrow rules remain unchanged; long lists scroll independently. No runtime modules, preference/storage changes, native rendering or MIDI behavior changes.
+
+
 ## Stable v1.0.0 — 2026-10-29
 
 The owner authorized v1.0.0 as the first stable release. version.json remains the single runtime version source; current AGENTS guidance and README agree. docs/releases/v1.0.0.md supplies the GitHub release body. No runtime architecture, storage schema, MIDI/Wait behavior or native integration changes are introduced by the release preparation. Historical beta entries and tags remain intact. Publication does not change repository visibility or Pages configuration.
