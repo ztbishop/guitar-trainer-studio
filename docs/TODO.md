@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+## Scores library refinement — 2026-10-29
+
+- [x] Compact library search, fixed Demo Scores view and alphabetical user folders.
+- [x] Preserve useful status messages and use filenames for untitled scores.
+- [x] Verify 485 Node tests and isolated Chrome demo/search/folder ordering/save/error flows and desktop/phone layout.
+- [ ] Owner checks the updated Scores menu with their own library in the normal browser.
+
+
 ## Initial fretboard and running-server themes — 2026-10-29
 
 - [x] Serve theme styles from the existing assets subtree so pre-theme running launchers can load them without restarting.

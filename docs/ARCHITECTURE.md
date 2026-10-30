@@ -1,5 +1,10 @@
 # Guitar Trainer Studio Architecture
 
+## Scores library refinement — 2026-10-29
+
+score-library.js owns the fixed All Scores / Unfiled / Demo Scores navigation followed by sorted stored folders. Demo Scores is a virtual view, never an IndexedDB folder or backup entry. Existing demo-scores.js loading remains injected through the host; its static buttons now occupy the scores pane and search matches their title/filename. Add Files and score management are disabled in this view; Save to Library routes to Unfiled. libraryTitle applies the filename fallback only when initially saving an empty or exact case-insensitive Untitled/Untitled song title; existing names and original score bytes remain unchanged. Routine load status clears; errors and action confirmations remain. The compact accessible search wraps on narrow screens.
+
+
 ## Initial neck layout and running-launcher theme repair — 2026-10-29
 
 Theme CSS now lives at assets/styles/appearance.css, an existing allowed subtree in pre-theme launchers. index.html loads that path; no new top-level server allowlist entry is needed. An already-running Node server retains its old allowlist even while serving updated HTML/JS, which previously produced pale native ink on a white page when /appearance.css returned 404. The native palette and black-on-white print logic are unchanged.

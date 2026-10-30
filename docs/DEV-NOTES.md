@@ -1,5 +1,10 @@
 # Development notes
 
+## Scores library refinement — 2026-10-29
+
+Moved demos into the third fixed library view, retained alphabetical user folders, moved search into the action header, and removed routine open messages. Empty/Untitled/Untitled song titles use the filename on initial Save to Library. No storage migration, native rendering, MIDI, grading or transport changes. Verification: all 485 Node regression tests pass; changed JavaScript syntax and diff whitespace checks pass. Isolated Chrome verified fixed navigation and alphabetical user folders, demo filename search, disabled demo management/import, all three native demo loads, explicit save/reopen, recoverable load errors, and desktop 1440px / phone 390px fit. Screenshots were inspected. The normal browser/server/profile was untouched; owner acceptance with their library remains pending. No physical MIDI test was needed for these library-only changes.
+
+
 ## Initial neck and theme stylesheet repair — 2026-10-29
 
 Owner reported a narrow neck until dragging its divider, and Dark giving pale notation on white while other surfaces stayed light. Read-only requests to the owner's running localhost:8081 confirmed index.html referenced appearance.css but that URL returned 404. The old server retained its startup allowlist. Move the unchanged theme stylesheet to assets/styles/appearance.css and use the pre-existing assets allowance; do not restart/replace the owner's server. At implementation time that server was no longer reachable, so compatibility was verified using an isolated pre-theme launcher loaded from preserved commit 1f8042f.

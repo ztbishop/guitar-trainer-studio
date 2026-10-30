@@ -402,3 +402,14 @@
 
 /* Context and validation messages occupy space only when needed. */
 #score-display-help:empty, #chord-diagram-help:empty, #tempo-controls-status:empty, #pitch-offset-status:empty { display: none; }
+
+/* Compact library header; search wraps on narrow screens. */
+#library-status:empty, #demo-score-status:empty { display: none; }
+.library-scores-actions { flex-wrap: wrap; align-items: center; max-width: 100%; }
+.library-scores-actions .library-search-row { padding: 0; flex: 1 1 210px; width: 240px; }
+#library-demos { margin: 0; padding: 12px; }
+#library-demos .scores-library-actions { display: flex; flex-direction: column; }
+@media (max-width: 600px) {
+ .library-scores-actions { width: 100%; margin-left: 0; }
+ .library-scores-actions .library-search-row { flex-basis: 100%; width: 100%; }
+}

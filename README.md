@@ -62,7 +62,7 @@ Keep using it. Open this folder, start Live Server for `index.html`, and use `lo
 2. Open **Settings** and select the correct MIDI input. Match **Poly** or **Hex** to your device output:
    - **Poly / single channel:** notes share a MIDI channel; the app knows pitch but cannot reliably identify the played string.
    - **Hex / six channels:** each string sends on a different channel. Set the lowest-string base channel and channel order to match your device.
-3. Open **Scores**. Choose **Open File**, or expand **Try a demo score** and open **First notes**.
+3. Open **Scores**. Choose **Open File**, or select **Demo Scores** and open **First notes**.
 4. Open **Practice**, select the guitar track you want to practice, and choose **Wait** to learn at your own pace or **Realtime** to practice timing.
 5. Press **Play**. There is a one-bar count-in. In Wait, play the expected note or chord to move forward. In Realtime, follow the score at the set tempo.
 6. Use **Pause** for a break; ordinary Pause/Resume preserves your results. You can also pause during count-in or while playback is starting. **Reset** returns to the start and brings the cursor into view when auto-scroll is enabled, without needing Play. **Clear practice results** starts fresh at the current position.
@@ -107,9 +107,11 @@ Supported files are **Guitar Pro** (`.gp`, `.gp3`, `.gp4`, `.gp5`, `.gpx`) and *
 
 Some uncompressed MusicXML files contain separate, closely matching notation and tab guitar parts. When offered **Combine notation and tab**, you can combine them for practice or keep them separate. The original file is not changed. The app asks each time; compressed `.mxl` uses its normal import path.
 
+All Scores, Unfiled and Demo Scores stay at the top; your folders follow alphabetically. Search by title or filename beside Add File(s). If an opened score is titled “Untitled” or “Untitled song”, Save to Library uses its filename instead. You can rename library entries without changing the original file.
+
 ### Included demos
 
-Scores → **Try a demo score** offers three original, four-measure exercises in standard six-string tuning:
+Scores → **Demo Scores** offers three original, four-measure exercises in standard six-string tuning:
 
 - **First notes:** a slow single-note melody on the top three strings.
 - **Easy chords:** Em, Am and C, including repeated chords. Try Wait's One at a time before Together.

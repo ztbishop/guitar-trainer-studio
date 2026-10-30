@@ -33,7 +33,14 @@ const {createAppServer} = require('../local-web-server.cjs');
     });
     assert.equal((await snapshot()).scores, 0, 'no automatic first-run import');
     await page.locator('#btn-scores').click();
-    await page.locator('.scores-demos summary').click();
+    assert.deepEqual(await page.locator('.library-folder-open').allTextContents(),['All Scores','Unfiled','Demo Scores']);
+    assert.equal(await page.locator('#library-status').textContent(),'');
+    await page.getByRole('button',{name:'Demo Scores',exact:true}).click();
+    assert(await page.locator('#library-import').isDisabled());
+    assert(await page.locator('#library-manage-scores').isDisabled());
+    await page.locator('#library-search').fill('easy-chords.gp');
+    assert.equal(await page.locator('[data-demo-score]:visible').count(),1);
+    await page.locator('#library-search').fill('');
     for (const [key,title,count] of [['melody','First notes',15],['chords','Easy chords',7],['picking','Gentle picking',29]]) {
       await page.locator(`[data-demo-score=${key}]`).click();
       await page.waitForFunction(async ({title,count}) => {
@@ -41,18 +48,26 @@ const {createAppServer} = require('../local-web-server.cjs');
         return s.playerReady && s.score?.title === title && s.expectedEvents.length === count;
       }, {title,count});
       const s = await snapshot(); assert.equal(s.playing,false); assert.equal(s.scores,0);
-      await page.locator('#demo-score-status').filter({hasText:'opened'}).waitFor();
+      await page.waitForFunction(()=>document.querySelector('#demo-score-status').textContent==='');
     }
     await page.locator('#library-save').click();
-    await page.waitForFunction(() => document.querySelectorAll('.library-score-open').length === 1);
+    await page.waitForFunction(() => document.querySelector('#library-status').textContent === 'Saved to the library.');
     await page.reload(); await page.locator('#fretboard-content svg').waitFor();
     assert.equal((await snapshot()).scores,1, 'only explicit Save persists');
     await page.locator('#btn-scores').click();
+    for(const name of ['Zulu','Alpha']) {
+      await page.locator('#library-new-folder').click();
+      await page.getByRole('textbox',{name:'Folder name',exact:true}).fill(name);
+      await page.getByRole('dialog').getByRole('button',{name:'Save',exact:true}).click();
+      await page.waitForFunction(name=>[...document.querySelectorAll('.library-folder-open')].some(e=>e.textContent===name),name);
+    }
+    assert.deepEqual(await page.locator('.library-folder-open').allTextContents(),['All Scores','Unfiled','Demo Scores','Alpha','Zulu']);
+    await page.getByRole('button',{name:'All Scores',exact:true}).click();
     await page.locator('.library-score-open').click();
     await page.waitForFunction(async () => { const {AppState:s} = await import('./js/app-state.js'); return s.playerReady && s.score?.title === 'Gentle picking'; });
     // A missing demo stays recoverable and reports an error rather than saving anything.
     await page.route('**/assets/demos/first-notes.gp', route => route.fulfill({status:404,body:'Missing'}));
-    await page.locator('.scores-demos summary').click();
+    await page.getByRole('button',{name:'Demo Scores',exact:true}).click();
     await page.locator('[data-demo-score=melody]').click();
     await page.locator('#demo-score-status').filter({hasText:'could not be read'}).waitFor();
     assert(!(await page.locator('[data-demo-score=melody]').isDisabled()));

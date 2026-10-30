@@ -20,7 +20,7 @@ export function initDemoScores(loadFile) {
       if (!response.ok) throw new Error('The demo file could not be read. Try downloading the app again.');
       const accepted = await loadFile(new File([await response.arrayBuffer()], demo.file));
       if (accepted === false) throw new Error('This demo could not be opened.');
-      status.textContent = `${demo.title} opened. Choose Save to Library if you want to keep it there.`;
+      status.textContent = '';
     } catch (error) { status.textContent = error.message || 'The demo could not be opened.'; }
     finally { busy = false; buttons.forEach(item => { item.disabled = false; }); }
   });

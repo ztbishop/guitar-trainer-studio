@@ -1,6 +1,12 @@
 // Library UI owns storage and file intent; loading remains an injected host action.
 import {AppState} from './app-state.js';
 import {LibraryStore} from './library-store.js';
+import {DEMO_SCORES} from './demo-scores.js';
+
+export function libraryTitle(title,fileName) {
+  const trimmed=String(title||'').trim();
+  return !trimmed || /^untitled(?: song)?$/i.test(trimmed) ? fileName.replace(/\.[^.]+$/,'') : trimmed;
+}
 
 export function initScoreLibrary(loadFile,store=new LibraryStore()) {
   const get=id=>document.getElementById(id);
@@ -14,12 +20,13 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
     for(const key of actions)get(key).disabled=busy;
     get('library-save').disabled=busy || !AppState.currentScoreFile;
     get('library-search').disabled=busy;
+    get('library-import').disabled=busy || activeFolderId==='__demos__';
     for(const button of folderList.querySelectorAll('button'))button.disabled=busy;
     for(const button of list.querySelectorAll('button'))button.disabled=busy;
     for(const input of [...folderList.querySelectorAll('input'),...list.querySelectorAll('input')])input.disabled=busy;
     for(const kind of ['folders','scores']) {
       const button=get(`library-manage-${kind}`);
-      button.disabled=busy || (!managing[kind] && !snapshot[kind].length);
+      button.disabled=busy || (kind==='scores' && activeFolderId==='__demos__') || (!managing[kind] && !snapshot[kind].length);
       button.textContent=managing[kind]?'Done':'Manage';
       button.setAttribute('aria-pressed',String(managing[kind]));
       for(const action of get(`library-${kind}-bulk`).querySelectorAll('button'))
@@ -97,6 +104,7 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
     const options=[
       {id:'__all__',name:'All Scores',system:true},
       {id:'',name:'Unfiled',system:true},
+      {id:'__demos__',name:'Demo Scores',system:true},
       ...snapshot.folders.slice().sort((a,b)=>a.name.localeCompare(b.name))
     ];
     for(const folder of options) {
@@ -107,7 +115,7 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
       const open=document.createElement('button');open.type='button';open.className='library-folder-open';
       open.textContent=folder.name;
       if(activeFolderId===folder.id){open.classList.add('is-active');open.setAttribute('aria-current','page');}
-      open.addEventListener('click',()=>{activeFolderId=folder.id;selected.scores.clear();renderFolders();renderList();});
+      open.addEventListener('click',()=>{activeFolderId=folder.id;managing.scores=false;selected.scores.clear();renderFolders();renderList();});
       row.append(open);
       if(!folder.system) {
         const menu=document.createElement('button');menu.type='button';menu.className='library-row-menu';
@@ -138,6 +146,19 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
 
   function renderList() {
     list.replaceChildren();
+    const demos=activeFolderId==='__demos__';
+    get('library-demos').hidden=!demos;list.hidden=demos;
+    if(demos) {
+      const query=get('library-search').value.trim().toLowerCase();let count=0;
+      for(const button of get('library-demos').querySelectorAll('[data-demo-score]')) {
+        const demo=DEMO_SCORES[button.dataset.demoScore];
+        button.hidden=!`${demo.title} ${demo.file}`.toLowerCase().includes(query);
+        if(!button.hidden)count++;
+      }
+      get('library-folder-title').textContent='Demo Scores';
+      get('library-score-count').textContent=`${count} ${count===1?'score':'scores'}`;
+      renderBulk('scores');sync();return;
+    }
     const scores=visibleScores();
     get('library-folder-title').textContent=folderName(activeFolderId);
     get('library-score-count').textContent=`${scores.length} ${scores.length===1?'score':'scores'}`;
@@ -165,7 +186,7 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
       open.addEventListener('click',()=>run(async()=>{
         const accepted=await loadFile(new File([score.bytes],score.fileName));
         if(accepted===false)throw new Error('This score could not be opened.');
-        await refresh();message(`Opened ${score.title}.`);
+        await refresh();message('');
       }));
       const menu=document.createElement('button');menu.type='button';menu.className='library-row-menu';
       menu.textContent='⋯';menu.setAttribute('aria-label',`Actions for ${score.title}`);
@@ -196,6 +217,7 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
 
   function folderName(id) {
     if(id==='__all__')return 'All Scores';
+    if(id==='__demos__')return 'Demo Scores';
     if(!id)return 'Unfiled';
     return snapshot.folders.find(folder=>folder.id===id)?.name || 'All Scores';
   }
@@ -206,7 +228,7 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
       const existing=new Set(snapshot[kind].map(item=>item.id));
       for(const id of selected[kind])if(!existing.has(id))selected[kind].delete(id);
     }
-    if(activeFolderId && activeFolderId!=='__all__' && !snapshot.folders.some(folder=>folder.id===activeFolderId))activeFolderId='__all__';
+    if(activeFolderId && !['__all__','__demos__'].includes(activeFolderId) && !snapshot.folders.some(folder=>folder.id===activeFolderId))activeFolderId='__all__';
     renderFolders();renderList();
   }
 
@@ -224,8 +246,8 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
   get('library-search').addEventListener('input',()=>{selected.scores.clear();renderList();});
   get('library-save').addEventListener('click',()=>run(async()=>{
     const file=AppState.currentScoreFile;if(!file)throw new Error('Open a score first.');
-    const folderId=activeFolderId==='__all__'?'':activeFolderId;
-    const result=await store.save({...file,title:AppState.score?.title || file.fileName.replace(/\.[^.]+$/,''),folderId:folderId||null});
+    const folderId=['__all__','__demos__'].includes(activeFolderId)?'':activeFolderId;
+    const result=await store.save({...file,title:libraryTitle(AppState.score?.title,file.fileName),folderId:folderId||null});
     await refresh();message(result.duplicate?'This score is already saved in the library.':'Saved to the library.');
   }));
   get('library-new-folder').addEventListener('click',()=>run(async()=>{
@@ -257,7 +279,7 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
   });
 
   run(async()=>{await refresh();message('');});
-  return {sync,scoreLoaded(){sync();refresh().then(()=>message('Score opened.')).catch(error=>message(error.message||'Could not refresh the library.'));}};
+  return {sync,scoreLoaded(){sync();refresh().then(()=>message('')).catch(error=>message(error.message||'Could not refresh the library.'));}};
 }
 
 function download(text,fileName) {

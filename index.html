@@ -75,19 +75,8 @@
         </div>
         <input id="library-import-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl" multiple hidden />
         <input id="library-backup-input" type="file" accept=".json,application/json" hidden />
-        <p id="library-status" class="field-help" role="status" aria-live="polite">Opening score library…</p>
+        <p id="library-status" class="field-help" role="status" aria-live="polite"></p>
         <p id="score-print-status" class="field-help" role="status" aria-live="polite"></p>
-        <details class="scores-demos">
-          <summary>Try a demo score</summary>
-          <p class="field-help">Short original exercises in standard tuning. Open one to explore, then choose Save to Library if wanted.</p>
-          <div class="scores-library-actions">
-            <button type="button" data-demo-score="melody">First notes</button>
-            <button type="button" data-demo-score="chords">Easy chords</button>
-            <button type="button" data-demo-score="picking">Gentle picking</button>
-          </div>
-          <p id="demo-score-status" class="field-help" role="status" aria-live="polite"></p>
-          <a href="./README.html#scores-and-your-library" target="_blank" rel="noopener">Loading scores and finding music</a>
-        </details>
 
         <div class="library-browser">
           <section class="library-pane library-folders-pane" aria-labelledby="library-folders-heading">
@@ -106,14 +95,22 @@
               <span id="library-score-count" class="field-help library-score-count"></span>
               </div>
               <div class="library-scores-actions">
+              <div class="library-search-row"><input id="library-search" type="search" aria-label="Search title or filename" placeholder="Search title or filename" /></div>
               <button id="library-import" type="button">Add File(s)</button>
               <button id="library-manage-scores" type="button" aria-pressed="false">Manage</button>
               </div>
             </div>
             <div id="library-scores-bulk" class="library-bulk-toolbar" hidden></div>
-            <div class="library-search-row">
-              <label for="library-search">Search scores</label>
-              <input id="library-search" type="search" placeholder="Title or filename" />
+
+            <div id="library-demos" class="scores-demos" hidden>
+              <p class="field-help">Short original exercises in standard tuning. Open one to explore, then choose Save to Library if wanted.</p>
+              <div class="scores-library-actions">
+                <button type="button" data-demo-score="melody">First notes</button>
+                <button type="button" data-demo-score="chords">Easy chords</button>
+                <button type="button" data-demo-score="picking">Gentle picking</button>
+              </div>
+              <p id="demo-score-status" class="field-help" role="status" aria-live="polite"></p>
+              <a href="./README.html#scores-and-your-library" target="_blank" rel="noopener">Loading scores and finding music</a>
             </div>
             <div id="library-list" class="library-score-list" aria-label="Saved scores"></div>
           </section>
