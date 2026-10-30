@@ -1,5 +1,10 @@
 # Guitar Trainer Studio Architecture
 
+## Profile transfer grouping — 2026-10-29
+
+index.html groups the existing media-export-profile, media-import-profile and media-profile-file controls in the initially closed media-profile-transfer details element, separate from Manage all profiles. Existing IDs, media-controls.js handlers, profile JSON format and library backup contents are unchanged. Preferences remain excluded.
+
+
 ## Backup verification and library space — 2026-10-29
 
 The Scores header now contains the existing score-title element; the duplicate track-list DOM and bottom current-score card are removed. Native host track-list rendering already guards absent elements, so practice track selection and native behavior require no changes. Desktop folder/score list height limits reclaim the former footer space; narrow-screen rules remain in place.

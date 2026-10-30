@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+## Profile transfer grouping — 2026-10-29
+
+- [x] Collapse standalone sync-profile transfer controls and explain their overlap with Library Backup.
+- [x] Keep app preferences excluded and retain existing profile transfer format.
+- [x] Verify collapsed controls and actual profile transfer plus library round-trip in isolated Chrome.
+- [ ] Owner reviews the revised Media & Sync section in their normal browser.
+
+
 ## Backup verification and library space — 2026-10-29
 
 - [x] Verify Backup Library / Import Library round-trip and document existing-library conflict behavior.

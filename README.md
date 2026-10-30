@@ -103,6 +103,8 @@ Supported files are **Guitar Pro** (`.gp`, `.gp3`, `.gp4`, `.gp5`, `.gpx`) and *
 - **Manage** lets you select multiple scores or folders. Deleting a folder also deletes its saved scores after confirmation. Original files on your computer are unaffected.
 - **Backup Library** downloads saved scores (including library names), folders and saved media sync profiles with their sync points. **Import Library (Merge)** restores these into an empty library or adds them to an existing library. Identical score files already present keep their current name and folder; identical sync profiles are skipped, while different sync versions are retained. Recordings and app preferences are not included. Piano Trainer backups use a different format and cannot be imported.
 
+For a separate transfer of sync settings, open **Media & Sync → Profile name & saved profiles → Transfer sync profiles only**. Export profiles includes all saved profiles, without scores or recordings. You do not need a separate profile export when using Backup Library.
+
 **Keep backups outside your browser.** The library belongs to this browser profile and website address. The hosted site, local launcher, and Live Server can have separate libraries. Even `localhost` and `127.0.0.1`, or different ports, are separate. Clearing browser data can remove saved scores. Backups include saved sync profiles but exclude recordings, MIDI settings, display preferences and practice results.
 
 Some uncompressed MusicXML files contain separate, closely matching notation and tab guitar parts. When offered **Combine notation and tab**, you can combine them for practice or keep them separate. The original file is not changed. The app asks each time; compressed `.mxl` uses its normal import path.

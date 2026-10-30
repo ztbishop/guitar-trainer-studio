@@ -1,5 +1,10 @@
 # Development notes
 
+## Profile transfer grouping — 2026-10-29
+
+Moved standalone profile import/export into an initially collapsed Transfer sync profiles only section with a note that Scores → Backup Library already includes saved profiles. Manage all profiles and Delete profile remain outside the transfer section. No runtime or storage changes; app preferences remain excluded from backups. Verification: isolated Chrome confirmed collapsed controls, the backup note, actual profile download/file-chooser import and duplicate handling. The full library backup round-trip browser check also passes. Diff whitespace and browser test syntax checks pass; no application JavaScript changed. Owner normal-browser review remains pending; physical MIDI testing is not applicable to this markup-only change.
+
+
 ## Backup verification and library space — 2026-10-29
 
 Verified backup/import using the actual UI controls and isolated browser databases: three folders (including empty), three renamed scores (including Unfiled), and six saved sync profiles round-trip exactly for meaningful data and survive reload. Identical scores retain newer local names/folders on merge; changed sync versions coexist, and a repeated import adds no duplicates. This is verification of existing merge behavior, not a promise to overwrite an existing library with backup metadata. Recordings and preferences remain excluded.

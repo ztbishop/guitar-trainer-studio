@@ -55,6 +55,25 @@ const fs=require('node:fs/promises');
   assert.equal(merged.mediaProfiles.length,7);
   await target.locator('#library-backup-input').setInputFiles([]);await restore();
   assert.deepEqual(canonical(await snapshot()),canonical(merged));
+  // Standalone transfer remains available, but starts collapsed beside management.
+  await source.keyboard.press('Escape');
+  await source.evaluate(()=>document.querySelector('[data-launch-panel="media-popup"]').click());
+  const transfer=source.locator('#media-profile-transfer');
+  assert.equal(await transfer.getAttribute('open'),null);
+  assert.equal(await source.locator('#media-export-profile').isVisible(),false);
+  assert(await transfer.textContent().then(text=>text.includes('Backup Library already includes')));
+  await transfer.locator('summary').click();
+  const profilesDownload=source.waitForEvent('download');await source.locator('#media-export-profile').click();
+  const profilesBuffer=await fs.readFile(await (await profilesDownload).path());
+  assert.equal(JSON.parse(profilesBuffer).profiles.length,6);
+  await target.keyboard.press('Escape');
+  await target.evaluate(()=>document.querySelector('[data-launch-panel="media-popup"]').click());
+  await target.locator('#media-profile-transfer summary').click();
+  const chooser=target.waitForEvent('filechooser');await target.locator('#media-import-profile').click();
+  await (await chooser).setFiles({name:'profiles.json',mimeType:'application/json',buffer:profilesBuffer});
+  await target.waitForFunction(()=>document.querySelector('#media-status').textContent.startsWith('Imported 0 new sync profiles'));
+  assert.deepEqual(canonical(await snapshot()),canonical(merged));
+  console.log('PASS: profile transfer starts collapsed; expanding enables export/import with unchanged duplicate handling.');
   console.log('PASS: real backup download/import restores empty folders, renamed titles, memberships, unfiled scores, exact bytes and six complete sync profiles; reload, duplicate merge, newer metadata and distinct sync edits preserved.');
  } finally {await browser?.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

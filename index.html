@@ -423,9 +423,13 @@
       </div>
       <details open><summary>Profile name &amp; saved profiles</summary><div class="media-profile-controls">
         <div id="media-profile-toolbar" class="media-actions"><label class="field-group"><span class="field-label">Profile for this score</span><select id="media-profile-select"><option value="">New profile</option></select></label><label class="field-group"><span class="field-label">Profile name</span><input id="media-profile-name" maxlength="240" placeholder="Lesson performance" /></label><button id="media-save-profile" type="button" disabled>Save profile</button><span id="media-dirty" role="status"></span></div>
-        <div class="media-actions"><button id="media-delete-profile" type="button" disabled>Delete profile</button><button id="media-export-profile" type="button" disabled>Export profiles</button><button id="media-import-profile" type="button">Import profiles</button></div>
-        <input id="media-profile-file" type="file" accept=".json" hidden />
+        <div class="media-actions"><button id="media-delete-profile" type="button" disabled>Delete profile</button></div>
         <details><summary>Manage all profiles</summary><label class="field-group"><span class="field-label">Search profiles</span><input id="media-profile-search" type="search" placeholder="Profile, score or recording" /></label><p id="media-profile-storage" class="field-help"></p><div id="media-profile-list" class="media-profile-list"></div></details>
+        <details id="media-profile-transfer"><summary>Transfer sync profiles only</summary>
+          <p class="field-help">Scores → Backup Library already includes all saved sync profiles. Use these controls to transfer only profiles, without scores or recordings.</p>
+          <div class="media-actions"><button id="media-export-profile" type="button" disabled>Export profiles</button><button id="media-import-profile" type="button">Import profiles</button></div>
+          <input id="media-profile-file" type="file" accept=".json" hidden />
+        </details>
         <div id="media-delete-confirm" hidden><p>Delete this saved sync profile? The recording and score will be kept.</p><div class="media-actions"><button id="media-delete-cancel" type="button">Cancel</button><button id="media-delete-confirm-button" type="button">Delete profile</button></div></div>
         <p class="field-help">Profiles store timing and source details, not recordings. They are included in Scores library backups. Save edits explicitly before switching recordings or profiles. Local files need selecting again after reload; online links may expire.</p>
       </div></details>
