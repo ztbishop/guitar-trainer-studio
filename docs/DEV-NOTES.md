@@ -4,7 +4,7 @@
 
 Owner authorized stable v1.0.1. Added a concise browser-only backup warning and expanded README/Help guidance for automatic storage cleanup, private browsing, regular external backups and restoration. Long folder/score lists can grow on tall desktop viewports; short-list minimums and laptop limits remain unchanged.
 
-Verification: 486 Node regressions pass; isolated Chrome checked 65 folders/scores at 1920x1400, empty/filtered lists, 1440x900 laptop limits and 390x700 narrow overflow, plus guide/demo desktop/phone checks. Tall-list screenshot inspected. Browser test syntax and diff whitespace checks pass. Normal owner browser/storage and physical MIDI were untouched. Publication verification follows.
+Verification: 486 Node regressions pass; isolated Chrome checked 65 folders/scores at 1920x1400, empty/filtered lists, 1440x900 laptop limits and 390x700 narrow overflow, plus guide/demo desktop/phone checks. Tall-list screenshot inspected. Browser test syntax and diff whitespace checks pass. Normal owner browser/storage and physical MIDI were untouched. Publication verified: release commit d3649be7621cecc479a4b272011dc4bfad0c34ff and annotated tag v1.0.1 were pushed; remote peeled tag matches. GitHub confirms https://github.com/ztbishop/guitar-trainer-studio/releases/tag/v1.0.1 is latest, nondraft and non-prerelease. This documentation follow-up preserves the fixed release tag.
 
 
 ## Stable v1.0.0 — 2026-10-29
