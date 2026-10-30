@@ -4,7 +4,7 @@
 
 - [x] Owner authorizes stable v1.0.0; align version metadata and current guidance, preserving historical releases/tags.
 - [x] Finish release validation: 486 Node tests and isolated Chrome guide/display/print/library/Realtime checks.
-- [ ] Publish and verify the new stable GitHub release.
+- [x] Publish and verify v1.0.0 as the latest stable GitHub release, tagged at 00d725a; source ZIP/tar links available and historical tags preserved.
 - [ ] Physical-device/provider and Mac-launcher combinations remain separate acceptance checks; stable status does not imply exhaustive hardware coverage.
 
 
