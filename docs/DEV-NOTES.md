@@ -1,5 +1,12 @@
 # Development notes
 
+## Score download and folder export — 2026-10-29
+
+Added Download original file and Export folder. Folder exports preserve saved library titles, folder membership and all related saved sync profiles using the existing JSON format; scores download in their original format without conversion. Files, recordings and preferences are not altered.
+
+Verification: 486 Node tests pass, including folder hash filtering, empty/missing folders and unchanged full backups. Isolated Chrome exercised row downloads (exact bytes/original filename), folder export excluding unrelated scores/profiles, empty folder export and Import Library restoration. Existing full-library/profile-transfer checks also pass. Syntax and diff whitespace checks pass. Normal browser/download-location acceptance remains for the owner; physical MIDI is outside this library-only change.
+
+
 ## Open File button styling — 2026-10-29
 
 Fixed Open File visual mismatch using scoped menu CSS: shared soft border plus matching hover shadow/lift and active press. Isolated Chrome compared computed border, background, shadow and transform against Backup Library at rest and on hover in Light, Soft Light and Dark; all matched. Clicking Open File still raised the native file chooser. Diff whitespace passes. No application JavaScript, storage or MIDI change; normal-browser acceptance remains pending.

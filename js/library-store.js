@@ -164,9 +164,16 @@ export class LibraryStore {
       scores.getAll().onsuccess=event=>{for(const score of event.target.result)if(score.folderId===folderId)scores.put({...score,folderId:null});folders.delete(folderId);};
     });
   }
-  async backup() {
-    const {folders,scores}=await this.list();
-    const mediaProfiles=await this.listProfiles();
+  async backup(folderId=undefined) {
+    let {folders,scores}=await this.list();
+    let mediaProfiles=await this.listProfiles();
+    if(folderId!==undefined) {
+      folders=folders.filter(folder=>folder.id===folderId);
+      if(!folders.length)throw new Error('The folder no longer exists.');
+      scores=scores.filter(score=>score.folderId===folderId);
+      const hashes=new Set(scores.map(score=>score.hash));
+      mediaProfiles=mediaProfiles.filter(profile=>hashes.has(profile.scoreHash));
+    }
     return {format:LIBRARY_FORMAT,version:2,exportedAt:new Date().toISOString(),folders,mediaProfiles,
       scores:scores.map(({bytes,...score})=>({...score,data:encodeBytes(bytes)}))};
   }

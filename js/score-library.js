@@ -121,13 +121,18 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
         const menu=document.createElement('button');menu.type='button';menu.className='library-row-menu';
         menu.textContent='⋯';menu.setAttribute('aria-label',`Actions for folder ${folder.name}`);
         menu.addEventListener('click',async()=>{
-          const action=await showActionMenu(folder.name,[['rename','Rename'],['delete','Delete folder','danger']]);
+          const action=await showActionMenu(folder.name,[['rename','Rename'],['export','Export folder'],['delete','Delete folder','danger']]);
           if(!action)return;
           await run(async()=>{
             if(action==='rename') {
               const name=await requestText('Rename folder',folder.name,'Folder name');
               if(name===null)return;
               await store.renameFolder(folder.id,name);message(`Folder renamed to ${name}.`);
+            } else if(action==='export') {
+              const backup=await store.backup(folder.id);
+              const name=folder.name.replace(/[<>:"/\\|?*\x00-\x1f]/g,'_').replace(/[. ]+$/,'').slice(0,120)||'folder';
+              download(JSON.stringify(backup),`guitar-trainer-folder-${name}.json`);
+              message(`Folder exported: ${backup.scores.length} scores and ${backup.mediaProfiles.length} sync profiles.`);
             } else {
               if(!await confirmLibraryAction(folderDeletionWarning([folder.id],`Delete folder “${folder.name}”?`),'Delete folder'))return;
               await store.deleteFolderAndScores(folder.id);
@@ -191,7 +196,7 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
       const menu=document.createElement('button');menu.type='button';menu.className='library-row-menu';
       menu.textContent='⋯';menu.setAttribute('aria-label',`Actions for ${score.title}`);
       menu.addEventListener('click',async()=>{
-        const action=await showActionMenu(score.title,[['rename','Rename'],['move','Move'],['delete','Delete','danger']]);
+        const action=await showActionMenu(score.title,[['rename','Rename'],['move','Move'],['download','Download original file'],['delete','Delete','danger']]);
         if(!action)return;
         await run(async()=>{
           if(action==='rename') {
@@ -203,6 +208,9 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
             if(folderId===undefined)return;
             await store.updateScore(score.id,{title:score.title,folderId:folderId||null});
             activeFolderId=folderId||'__all__';message(`Moved ${score.title} to ${folderName(folderId||'')}.`);
+          } else if(action==='download') {
+            download(score.bytes,score.fileName,'application/octet-stream');
+            message(`Downloaded ${score.fileName}.`);
           } else {
             if(!await confirmLibraryAction(`Delete “${score.title}” from this browser's library? The open score and original file will remain available.`,'Delete score'))return;
             await store.deleteScore(score.id);message('Saved score deleted.');
@@ -282,8 +290,8 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
   return {sync,scoreLoaded(){sync();refresh().then(()=>message('')).catch(error=>message(error.message||'Could not refresh the library.'));}};
 }
 
-function download(text,fileName) {
-  const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));
+function download(data,fileName,type='application/json') {
+  const url=URL.createObjectURL(new Blob([data],{type}));
   const link=document.createElement('a');link.href=url;link.download=fileName;link.addEventListener('click',event=>event.stopPropagation());document.body.append(link);link.click();link.remove();
   setTimeout(()=>URL.revokeObjectURL(url),10000);
 }

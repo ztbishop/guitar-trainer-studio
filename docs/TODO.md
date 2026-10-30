@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+## Score download and folder export — 2026-10-29
+
+- [x] Add original file downloads to individual stored score menus.
+- [x] Export user folders in the existing library JSON format with only related saved sync profiles; retain Import Library compatibility.
+- [x] Verify 486 Node tests plus actual isolated-browser downloads and folder restore.
+- [ ] Owner tries downloads and folder restore with their normal browser/files; recordings and preferences remain excluded.
+
+
 ## Open File button styling — 2026-10-29
 
 - [x] Match Open File border and hover styling to neighboring Scores actions.

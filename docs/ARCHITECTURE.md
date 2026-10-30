@@ -1,5 +1,12 @@
 # Guitar Trainer Studio Architecture
 
+## Score download and folder export — 2026-10-29
+
+score-library.js adds Download original file to stored score actions and Export folder to user folder actions. The existing download helper accepts a MIME type; original files use application/octet-stream and stored bytes/filename, while backup exports retain application/json. Folder filenames use a safe prefixed label.
+
+LibraryStore.backup(folderId) restricts folders/scores by the requested ID and profiles by member score hashes; a missing folder errors instead of exporting the entire library. An empty folder is retained with empty score/profile arrays. With no argument, full-library behavior remains unchanged, including profiles whose scores are not currently saved. Folder exports use the existing version-2 library schema and ordinary atomic merge path, with no migration or new importer. System views have no folder export action. No alphaTab conversion, MIDI, playback or grading change.
+
+
 ## Open File button styling — 2026-10-29
 
 The Scores Open File control remains a label wrapping the native file input. menu-controls.css gives its button-like span the same soft border, hover shadow/lift and active press styles as neighboring buttons. This scoped override resolves the menu sizing rule suppressing the span hover shadow; theme rules still apply. No runtime or file-loading changes.

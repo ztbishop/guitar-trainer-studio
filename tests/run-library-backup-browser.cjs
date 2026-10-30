@@ -35,6 +35,32 @@ const fs=require('node:fs/promises');
    scores:data.scores.map(s=>({title:s.title,fileName:s.fileName,data:s.data,folder:data.folders.find(f=>f.id===s.folderId)?.name||null})).sort((a,b)=>a.fileName.localeCompare(b.fileName)),
    profiles:data.mediaProfiles.map(({id,...p})=>p).sort((a,b)=>(a.scoreHash+a.name).localeCompare(b.scoreHash+b.name))
   });
+  // Row downloads retain original names/bytes; folder exports share the library format.
+  await source.getByRole('button',{name:'Actions for Renamed score 0',exact:true}).click();
+  const originalDownload=source.waitForEvent('download');
+  await source.getByRole('dialog').getByRole('button',{name:'Download original file',exact:true}).click();
+  const original=await originalDownload;
+  assert.equal(original.suggestedFilename(),'original-0.gp');
+  assert.deepEqual(await fs.readFile(await original.path()),Buffer.from([1,2,255,0]));
+  const exportFolder=async name=>{
+   await source.getByRole('button',{name:'Actions for folder '+name,exact:true}).click();
+   const pending=source.waitForEvent('download');
+   await source.getByRole('dialog').getByRole('button',{name:'Export folder',exact:true}).click();
+   return fs.readFile(await (await pending).path());
+  };
+  const folderBuffer=await exportFolder('Lessons'),folderBackup=JSON.parse(folderBuffer);
+  const folderId=backup.folders.find(f=>f.name==='Lessons').id;
+  const expectedFolder={...backup,folders:backup.folders.filter(f=>f.id===folderId),scores:backup.scores.filter(s=>s.folderId===folderId)};
+  expectedFolder.mediaProfiles=backup.mediaProfiles.filter(p=>expectedFolder.scores.some(s=>s.hash===p.scoreHash));
+  assert.deepEqual(canonical(folderBackup),canonical(expectedFolder));
+  const empty=JSON.parse(await exportFolder('Empty folder'));
+  assert.equal(empty.folders.length,1);assert.equal(empty.scores.length,0);assert.equal(empty.mediaProfiles.length,0);
+  const folderTarget=await browser.newPage();await folderTarget.goto(url);await folderTarget.locator('#btn-scores').click();
+  await folderTarget.locator('#library-backup-input').setInputFiles({name:'folder.json',mimeType:'application/json',buffer:folderBuffer});
+  await folderTarget.waitForFunction(()=>document.querySelector('#library-status').textContent.startsWith('Library merged:'));
+  const restoredFolder=await folderTarget.evaluate(async()=>new (await import('./js/library-store.js')).LibraryStore().backup());
+  assert.deepEqual(canonical(restoredFolder),canonical(expectedFolder));await folderTarget.close();
+  console.log('PASS: original row download is byte-exact; folder JSON includes only member scores/related profiles, supports empty folders and restores through Import Library.');
   await target.locator('#btn-scores').click();
   const restore=async()=>{
    await target.evaluate(()=>document.querySelector('#library-status').textContent='');

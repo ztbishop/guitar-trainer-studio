@@ -99,7 +99,8 @@ Supported files are **Guitar Pro** (`.gp`, `.gp3`, `.gp4`, `.gp5`, `.gpx`) and *
 - **Open File** opens a score for this session. It does not save it automatically.
 - **Save to Library** keeps a browser copy of the open score.
 - **Add File(s)** saves one or more files to the library without opening them. Files go into the selected folder, or Unfiled when All Scores is selected.
-- Click a saved score to open it. Use its three-dot menu to rename, move or delete it. Use folders and search to organize your collection.
+- Click a saved score to open it. Its three-dot menu offers Rename, Move, **Download original file**, and Delete. Download keeps the original filename and format (such as `.gp5` or MusicXML); it does not convert the score or include sync profiles.
+- A folder’s three-dot menu offers **Export folder**: a JSON backup of that folder, its saved scores and their related saved sync profiles. Restore it with **Import Library (Merge)**. Recordings and app preferences are not included. Use folders and search to organize your collection.
 - **Manage** lets you select multiple scores or folders. Deleting a folder also deletes its saved scores after confirmation. Original files on your computer are unaffected.
 - **Backup Library** downloads saved scores (including library names), folders and saved media sync profiles with their sync points. **Import Library (Merge)** restores these into an empty library or adds them to an existing library. Identical score files already present keep their current name and folder; identical sync profiles are skipped, while different sync versions are retained. Recordings and app preferences are not included. Piano Trainer backups use a different format and cannot be imported.
 
