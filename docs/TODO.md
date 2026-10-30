@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+## Open File button styling — 2026-10-29
+
+- [x] Match Open File border and hover styling to neighboring Scores actions.
+- [x] Verify all three themes and native chooser activation in isolated Chrome.
+- [ ] Owner confirms the button appearance in their normal browser.
+
+
 ## Profile transfer grouping — 2026-10-29
 
 - [x] Collapse standalone sync-profile transfer controls and explain their overlap with Library Backup.

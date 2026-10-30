@@ -1,5 +1,10 @@
 # Development notes
 
+## Open File button styling — 2026-10-29
+
+Fixed Open File visual mismatch using scoped menu CSS: shared soft border plus matching hover shadow/lift and active press. Isolated Chrome compared computed border, background, shadow and transform against Backup Library at rest and on hover in Light, Soft Light and Dark; all matched. Clicking Open File still raised the native file chooser. Diff whitespace passes. No application JavaScript, storage or MIDI change; normal-browser acceptance remains pending.
+
+
 ## Profile transfer grouping — 2026-10-29
 
 Moved standalone profile import/export into an initially collapsed Transfer sync profiles only section with a note that Scores → Backup Library already includes saved profiles. Manage all profiles and Delete profile remain outside the transfer section. No runtime or storage changes; app preferences remain excluded from backups. Verification: isolated Chrome confirmed collapsed controls, the backup note, actual profile download/file-chooser import and duplicate handling. The full library backup round-trip browser check also passes. Diff whitespace and browser test syntax checks pass; no application JavaScript changed. Owner normal-browser review remains pending; physical MIDI testing is not applicable to this markup-only change.

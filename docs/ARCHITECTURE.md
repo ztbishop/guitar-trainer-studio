@@ -1,5 +1,10 @@
 # Guitar Trainer Studio Architecture
 
+## Open File button styling — 2026-10-29
+
+The Scores Open File control remains a label wrapping the native file input. menu-controls.css gives its button-like span the same soft border, hover shadow/lift and active press styles as neighboring buttons. This scoped override resolves the menu sizing rule suppressing the span hover shadow; theme rules still apply. No runtime or file-loading changes.
+
+
 ## Profile transfer grouping — 2026-10-29
 
 index.html groups the existing media-export-profile, media-import-profile and media-profile-file controls in the initially closed media-profile-transfer details element, separate from Manage all profiles. Existing IDs, media-controls.js handlers, profile JSON format and library backup contents are unchanged. Preferences remain excluded.
