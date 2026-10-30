@@ -323,11 +323,8 @@
 .library-search-row input { min-width: 0; width: 100%; min-height: 42px; padding: 8px 10px; border: 1px solid var(--menu-input-border); border-radius: 8px; background: #fff; color: inherit; color-scheme: light; box-sizing: border-box; }
 .library-search-row > button { min-height: 42px; padding: 7px 12px; border-radius: 8px; box-shadow: none; white-space: nowrap; }
 .library-empty-state { margin: 4px; padding: 24px 16px; color: var(--muted); font-size: .9rem; }
-.current-score-card { display: grid; gap: 8px; margin-top: 12px; padding: 10px 12px; border-top: 1px solid var(--section-rule); }
 .current-score-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 10px; color: var(--muted); font-size: .8rem; }
 .current-score-heading strong { color: var(--text); font-size: .9rem; overflow-wrap: anywhere; }
-.current-score-card .menu-track-details { margin: 0; }
-.current-score-card .menu-track-details summary { min-height: 40px; }
 .library-action-dialog { width: min(420px,calc(100vw - 40px)); max-height: min(80vh,620px); padding: 20px; border: 1px solid #c6d0db; border-radius: 14px; background: #f5f7f9; color: #364152; box-shadow: 0 16px 48px rgba(30,45,60,.25); }
 .library-action-dialog::backdrop { background: rgba(20,30,40,.42); backdrop-filter: blur(2px); }
 .library-action-dialog h2 { margin: 0 0 14px; font-size: 1.08rem; overflow-wrap: anywhere; }
@@ -412,4 +409,11 @@
 @media (max-width: 600px) {
  .library-scores-actions { width: 100%; margin-left: 0; }
  .library-scores-actions .library-search-row { flex-basis: 100%; width: 100%; }
+}
+
+/* Give the desktop library the space previously occupied by the track summary. */
+#scores-panel > .panel-header { align-items: baseline; flex-wrap: wrap; }
+#scores-panel > .panel-header .current-score-heading { margin-left: auto; min-width: 0; max-width: 80%; }
+@media (min-width: 761px) {
+ .library-folder-list, .library-score-list { max-height: min(55vh,620px); min-height: min(40vh,360px); }
 }

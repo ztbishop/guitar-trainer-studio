@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+## Backup verification and library space — 2026-10-29
+
+- [x] Verify Backup Library / Import Library round-trip and document existing-library conflict behavior.
+- [x] Move Current score to the Scores header, remove duplicate tracks summary and expand desktop list space.
+- [x] Verify real IndexedDB backup/import controls, reload, duplicates and distinct sync edits in isolated Chrome; desktop/phone checks and 485 Node tests pass.
+- [ ] Owner checks the revised header and list space in their normal browser.
+
+
 ## Scores library refinement — 2026-10-29
 
 - [x] Compact library search, fixed Demo Scores view and alphabetical user folders.

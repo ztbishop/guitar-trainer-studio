@@ -1,5 +1,12 @@
 # Development notes
 
+## Backup verification and library space — 2026-10-29
+
+Verified backup/import using the actual UI controls and isolated browser databases: three folders (including empty), three renamed scores (including Unfiled), and six saved sync profiles round-trip exactly for meaningful data and survive reload. Identical scores retain newer local names/folders on merge; changed sync versions coexist, and a repeated import adds no duplicates. This is verification of existing merge behavior, not a promise to overwrite an existing library with backup metadata. Recordings and preferences remain excluded.
+
+Moved Current score to the Scores header, removed Tracks in current score and increased desktop list space. Isolated Chrome demo/library checks and desktop/phone screenshots pass; 485 Node tests pass. Normal owner profile and physical MIDI were not touched. Owner visual acceptance remains pending.
+
+
 ## Scores library refinement — 2026-10-29
 
 Moved demos into the third fixed library view, retained alphabetical user folders, moved search into the action header, and removed routine open messages. Empty/Untitled/Untitled song titles use the filename on initial Save to Library. No storage migration, native rendering, MIDI, grading or transport changes. Verification: all 485 Node regression tests pass; changed JavaScript syntax and diff whitespace checks pass. Isolated Chrome verified fixed navigation and alphabetical user folders, demo filename search, disabled demo management/import, all three native demo loads, explicit save/reopen, recoverable load errors, and desktop 1440px / phone 390px fit. Screenshots were inspected. The normal browser/server/profile was untouched; owner acceptance with their library remains pending. No physical MIDI test was needed for these library-only changes.

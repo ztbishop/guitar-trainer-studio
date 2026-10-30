@@ -1,5 +1,12 @@
 # Guitar Trainer Studio Architecture
 
+## Backup verification and library space — 2026-10-29
+
+The Scores header now contains the existing score-title element; the duplicate track-list DOM and bottom current-score card are removed. Native host track-list rendering already guards absent elements, so practice track selection and native behavior require no changes. Desktop folder/score list height limits reclaim the former footer space; narrow-screen rules remain in place.
+
+run-library-backup-browser.cjs exercises the actual backup download and import file input in separate isolated Chrome contexts with real IndexedDB. It compares normalized backups (excluding generated IDs/timestamps), including empty folders, memberships, unfiled scores, renamed titles, exact binary bytes, local/YouTube source identity and repeated-bar/fractional sync points. It verifies reload persistence, existing-name/folder precedence, distinct sync edits and duplicate reimport. Merge semantics and storage format are unchanged.
+
+
 ## Scores library refinement — 2026-10-29
 
 score-library.js owns the fixed All Scores / Unfiled / Demo Scores navigation followed by sorted stored folders. Demo Scores is a virtual view, never an IndexedDB folder or backup entry. Existing demo-scores.js loading remains injected through the host; its static buttons now occupy the scores pane and search matches their title/filename. Add Files and score management are disabled in this view; Save to Library routes to Unfiled. libraryTitle applies the filename fallback only when initially saving an empty or exact case-insensitive Untitled/Untitled song title; existing names and original score bytes remain unchanged. Routine load status clears; errors and action confirmations remain. The compact accessible search wraps on narrow screens.
