@@ -12,6 +12,8 @@ Owner decision, 2026-10-29: the Chrome extension is private and maintained in th
 - `js/media-controls.js` owns importLesson, recording retention, shared timeline-ready initialization, stale-source guards and unsaved alignment. It calls the existing host to apply validated imported points before completing a recording replacement. Merely updating editor points leaves native playback on provisional timing: preserve this nonzero-start regression fix. Timing-only updates and manual paste use the existing edit/Undo path.
 - `js/alphatab-host.js` remains the only runtime alphaTab integration owner. Receiver changes must not alter native transport, MIDI matching, Wait progression or feedback rules.
 
+An optional GPIF note property carries an explicit ghost pull-off release inside the score bytes. The bundled reader and MIDI generator support it. The sender can verify read/write and playback support before posting the ordinary offer. No receiver payload field, permission, timing validation or review behavior changes. Refresh an already-open trainer tab after updating the bundles.
+
 ## Message contract
 
 The sender targets the already open trainer window and posts to its exact origin:

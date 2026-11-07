@@ -1,5 +1,10 @@
 # Guitar Trainer Studio: status and to-do
 
+## Explicit GP ghost pull-off release
+
+- [x] Preserve the opt-in release instruction across the pinned GP reader, writer, worker codec and MIDI generation.
+- [ ] Refresh the running trainer and review a compatible score in the normal import dialog. Listen through a marked pull-off and verify recording alignment separately where timing is provided.
+
 The owner authorized including all pending Guitar Trainer updates in a routine commit and push to `main` on 2026-11-07. Earlier local-only bullets record the original task scope. The pending owner checks below still apply.
 
 ## Per-note Guitar Pro right-hand tapping — 2026-11-07

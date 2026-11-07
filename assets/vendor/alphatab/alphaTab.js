@@ -5986,6 +5986,7 @@
 		* Gets or sets whether this note has a let-ring effect.
 		*/
 		isLetRing = false;
+		ghostReleaseAtBeatEnd = false;
 		/**
 		* Gets or sets the destination note for the let-ring effect.
 		* @clone_ignore
@@ -7814,6 +7815,7 @@
 			clone.trillValue = original.trillValue;
 			clone.trillSpeed = original.trillSpeed;
 			clone.durationPercent = original.durationPercent;
+			clone.ghostReleaseAtBeatEnd = original.ghostReleaseAtBeatEnd;
 			clone.accidentalMode = original.accidentalMode;
 			clone.dynamics = original.dynamics;
 			clone.ornament = original.ornament;
@@ -21152,6 +21154,9 @@
 						case "Variation":
 							variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
 							break;
+						case "GtsGhostReleaseAtBeatEnd":
+							note.ghostReleaseAtBeatEnd = !!c.findChildElement("Enable");
+							break;
 						case "Tapped":
 							note.isRightHandTapped = true;
 							break;
@@ -31160,6 +31165,7 @@
 			o.set("trillvalue", obj.trillValue);
 			o.set("trillspeed", obj.trillSpeed);
 			o.set("durationpercent", obj.durationPercent);
+			if (obj.ghostReleaseAtBeatEnd) o.set("ghostreleaseatbeatend", true);
 			o.set("accidentalmode", obj.accidentalMode);
 			o.set("dynamics", obj.dynamics);
 			o.set("ornament", obj.ornament);
@@ -31271,6 +31277,9 @@
 					return true;
 				case "trillspeed":
 					obj.trillSpeed = JsonHelper.parseEnum(v, Duration);
+					return true;
+				case "ghostreleaseatbeatend":
+					obj.ghostReleaseAtBeatEnd = v === true;
 					return true;
 				case "durationpercent":
 					obj.durationPercent = v;
@@ -43592,7 +43601,11 @@
 					durationWithEffects.untilTieOrSlideEnd = endNote.beat.absolutePlaybackStart + slideTargetDuration.untilTieOrSlideEnd - startTick;
 				}
 			}
-			if (note.isLetRing && this._settings.notation.notationMode === NotationMode.GuitarPro) {
+			const origin = note.hammerPullOrigin;
+			const limitGhostRelease = note.ghostReleaseAtBeatEnd && note.isGhost && note.isStringed && note.fret === 0 &&
+				origin && origin.fret > 0 && origin.beat.voice.bar === note.beat.voice.bar &&
+				!note.isTieOrigin && !note.isTieDestination && note.slideOutType === SlideOutType.None;
+			if (note.isLetRing && !limitGhostRelease && this._settings.notation.notationMode === NotationMode.GuitarPro) {
 				let lastLetRingBeat = note.beat;
 				let letRingEnd = 0;
 				const maxDuration = note.beat.voice.bar.masterBar.calculateDuration();
@@ -66709,6 +66722,7 @@
 				this._writeSimplePropertyNode(properties, "Midi", "Number", note.realValue.toString());
 			}
 			if (note.isRightHandTapped || note.beat.tap) this._writeSimplePropertyNode(properties, "Tapped", "Enable", null);
+			if (note.ghostReleaseAtBeatEnd) this._writeSimplePropertyNode(properties, "GtsGhostReleaseAtBeatEnd", "Enable", null);
 			if (note.harmonicType !== HarmonicType.None) {
 				switch (note.harmonicType) {
 					case HarmonicType.Natural:

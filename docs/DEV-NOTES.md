@@ -1,5 +1,9 @@
 # Development notes
 
+## Preserve explicit ghost pull-off releases in imported GP
+
+The pinned alphaTab reader and playback bundles now honor an explicit note property that limits a qualified ghost pull-off to its written duration while retaining the let-ring marking. Synthetic tests verify GP read and re-export, worker score serialization, classic and module playback, and unchanged unmarked notes. Two saved scores were replayed locally against the prior reader: twelve releases per score changed from 1,200 to 240 ticks. Other MIDI events and repeat visits stayed the same. This does not change recording validation. The app version and lesson payload versions stay the same.
+
 ## Combined GitHub update — 2026-11-07
 
 Owner authorized committing and pushing all pending Guitar Trainer changes to the configured `main` branch. This combines the local recording picker, import timeline rebuild fix, custom track visibility, Realtime recording seeks and intro/outro handling, score text spacing, and per-note right-hand tapping. The local-only notes in the entries below describe their original implementation checkpoints. The app version stays 1.0.1; no tag, release or separate deployment is part of this update. Lesson Bridge and private test artifacts are outside the commit.

@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Explicit GP ghost pull-off release
+
+The pinned alphaTab classic and core bundles retain the optional note property `GtsGhostReleaseAtBeatEnd` through GPIF, note cloning and the score codec used by the worker. The property preserves ghost, pull-off and let-ring notation. Native playback skips the extra let-ring sustain only on an explicitly marked ghost pull-off to an open string with a same-bar fretted origin and no outgoing tie or slide. Unmarked GP files and other notation use the existing rules. See the bundled [source patch](licenses/alphaTab-ghost-release.patch).
+
 ## Note-specific Guitar Pro right-hand tapping — 2026-11-07
 
 The pinned alphaTab 1.8.4 classic and module bundles carry a bounded dependency patch. The GPIF reader stores `Tapped` on `Note.isRightHandTapped`, rather than reducing it to `Beat.tap`. Note/beat cloning and the native score codec preserve the flag, including worker structured-clone transport. `Gp7Exporter` writes a note's own `Tapped` property; legacy `Beat.tap` still writes the whole beat. `LeftHandTapped` and its connection lookup and symbols are independent. GP3–5 legacy beat effects, AlphaTex and MusicXML import behavior are unchanged.

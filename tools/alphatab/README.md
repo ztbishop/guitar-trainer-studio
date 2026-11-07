@@ -18,6 +18,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\alphatab\update-
 
 The script downloads one official versioned npm package, verifies its SHA-512 digest against registry metadata, checks its version and required files, and stages everything before replacing `assets/vendor/alphatab`. It installs the UMD browser library, matching core/worker/worklet modules, Bravura fonts and Sonivox soundfont, plus LICENSE, LICENSE.header, Bravura OFL/FAQ/font log and Sonivox LICENSE/README. Missing or empty notices fail verification just like missing runtime files. `vendor-manifest.json` records the version, package integrity and individual runtime/notice hashes. No CDN is used by the running app. An integrity/download/extraction failure leaves the installed bundle untouched; a failed installation move attempts to restore the previous directory.
 
+The updater installs upstream bundles. Before accepting an update, review and port the local patches listed in the existing vendor manifest, including the [ghost release patch](../../docs/licenses/alphaTab-ghost-release.patch). Run the receiver regressions on both classic and core bundles, then refresh their hashes and patch notes in the manifest.
+
 Previous assets are retained in `tools/alphatab/.backups`, excluded from Git. Temporary downloads are cleaned up. Backups can be large and are kept until you remove them after acceptance. To restore one, close playback, move the current `assets/vendor/alphatab` folder somewhere safe, then copy the chosen complete backup folder to `assets/vendor/alphatab`. Alternatively, use Git to restore a committed vendor checkpoint, taking care to preserve any wanted local changes.
 
 After an update:
