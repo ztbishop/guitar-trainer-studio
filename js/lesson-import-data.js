@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Untrusted bridge payload and timing conversion only; no native/player calls.
+// Bridge payload, timing conversion and import snapshots; no native/player calls.
 import {mediaUrl,validatePoints} from './media-sync.js';
 export function validateLesson(data) {
-  if(data?.format!=='gts-lesson' || ![1,2].includes(data.version) || typeof data.title!=='string' || data.title.length>240)
+  if(data?.format!=='gts-lesson' || ![1,2,3].includes(data.version) || typeof data.title!=='string' || data.title.length>240)
     throw new Error('Unsupported Lesson Bridge payload.');
-  if(data.version===2 && data.keepRecording!==undefined && typeof data.keepRecording!=='boolean')throw new Error('Invalid recording retention choice.');
+  if(data.version>=2 && data.keepRecording!==undefined && typeof data.keepRecording!=='boolean')throw new Error('Invalid recording retention choice.');
   let score=null;
   if(data.score) {
     const fileName=data.score?.fileName,encoded=data.score?.base64;
@@ -18,11 +18,17 @@ export function validateLesson(data) {
   } else if(data.version===1)throw new Error('A version-1 lesson needs a score.');
   const lessonUrl=mediaUrl(data.lessonUrl);
   let recording=null;
-  if(data.recording)recording={url:mediaUrl(data.recording.url),label:String(data.recording.label || data.title).slice(0,240)};
+  if(data.recording?.kind==='local-choice') {
+    if(data.version!==3 || data.keepRecording===true || Object.keys(data.recording).some(key=>key!=='kind'))throw new Error('Invalid local recording request.');
+    recording={kind:'local-choice'};
+  } else if(data.recording) {
+    if(data.recording.kind!==undefined)throw new Error('Unsupported recording kind.');
+    recording={url:mediaUrl(data.recording.url),label:String(data.recording.label || data.title).slice(0,240)};
+  }
   const syncPoints=data.syncPoints===null || data.syncPoints===undefined?null:validateSoundslice(data.syncPoints);
   if(data.version===1 && syncPoints && !recording)throw new Error('Timing needs a selected recording.');
-  const keepRecording=data.version===2 && (data.keepRecording===true || (!score && !recording));
-  if(data.version===2 && !score && !recording && !syncPoints)throw new Error('Select a score, recording or timing update.');
+  const keepRecording=data.version>=2 && (data.keepRecording===true || (!score && !recording));
+  if(data.version>=2 && !score && !recording && !syncPoints)throw new Error('Select a score, recording or timing update.');
   return {title:data.title,lessonUrl,score,recording,syncPoints,keepRecording};
 }
 export function validateSoundslice(data) {
@@ -53,4 +59,23 @@ export function soundslicePoints(data,timeline,durationMs=null) {
     return {barIndex:measure.measureNumber-1,barOccurence:measure.occurrence-1,barPosition:end?1:position/480,millisecondOffset:seconds*1000};
   });
   return validatePoints(points,timeline,durationMs);
+}
+
+// A file picked in this trainer window, never a path/byte payload from the sender.
+export function validateRecordingFile(file) {
+  if(!(file instanceof Blob) || typeof file.name!=='string' || !file.name || file.name.length>500 || !file.size)throw new Error('Choose a nonempty audio or video file.');
+  if(!/^(audio|video)\//i.test(file.type) && !/\.(mp3|wav|ogg|oga|ogv|m4a|aac|flac|opus|mp4|m4v|webm|mov|avi)$/i.test(file.name))throw new Error('Choose an audio or video file. Browser playback support varies.');
+  return file;
+}
+
+// Snapshot the timing semantics, not native object identity. MIDI reloads may
+// rebuild an equivalent timeline while the same score/recording is loading.
+// Snapshot before awaiting so in-place mutations are detected as well.
+export function lessonTimelineKey(timeline) {
+  if(!timeline || !Number.isFinite(timeline.endTick) || timeline.endTick<=0 || !Number.isFinite(timeline.ticksPerQuarter) || timeline.ticksPerQuarter<=0 ||
+    !Array.isArray(timeline.measures) || !timeline.measures.length || !Array.isArray(timeline.tempoMap) || !timeline.tempoMap.length)return null;
+  const measures=timeline.measures.map(m=>[m.measureNumber,m.occurrence,m.playbackMeasureIndex,m.startTick,m.endTick]);
+  const tempos=timeline.tempoMap.map(t=>[t.tick,t.bpm,t.timeMs]);
+  if(measures.some(row=>row.some(value=>!Number.isFinite(value))) || tempos.some(row=>row.some(value=>!Number.isFinite(value))))return null;
+  return JSON.stringify([timeline.ticksPerQuarter,timeline.endTick,measures,tempos]);
 }

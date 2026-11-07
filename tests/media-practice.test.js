@@ -52,3 +52,22 @@ test('completion while paused cannot finalize missed notes from an earlier playb
   const before=structuredClone(AppState.trainer.results);finishRealtimeSession();
   assert.deepEqual(AppState.trainer.results,before);
 });
+
+test('outside-recording MIDI cannot grade; outro Pause/Resume retains completion and score reentry resets normally',()=>{
+  setup();handlePlaybackState();
+  AppState.media.clock={timeMs:0,at:1000,playing:true};
+  const before=structuredClone(AppState.trainer.results);
+  handleMidiEvent({type:'note-on',midi:1,channel:1,at:1000});advanceRealtimeClock(1000);
+  assert.deepEqual(AppState.trainer.results,before);
+  AppState.media.clock={timeMs:11000,at:2000,playing:true};
+  finishRealtimeSession({expectRewind:false});
+  const final=structuredClone(AppState.trainer.results);
+  assert(AppState.trainer.sessionCompleted);
+  AppState.isPlaying=false;handlePlaybackState();AppState.isPlaying=true;handlePlaybackState();
+  handleMidiEvent({type:'note-on',midi:1,channel:1,at:2100});
+  assert.deepEqual(AppState.trainer.results,final);assert(AppState.trainer.sessionCompleted);
+  AppState.media.clock={timeMs:1000,at:2200,playing:true};
+  handlePlaybackPosition({currentTick:0,at:2200,isSeek:true});
+  assert.equal(AppState.trainer.sessionCompleted,false);
+  assert.equal(AppState.trainer.sessionReason,'seek-or-speed-change');
+});

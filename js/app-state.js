@@ -14,6 +14,8 @@ export const AppState = {
   playSelectedTrack: true,
   playOtherTracks: true,
   viewMode: 'practice-only',
+  customTrackIds: [],
+  customTrackSelectionSet: false,
   mode: 'realtime',
   waitTrainer: null,
   waitChord: { mode: 'collect', windowMs: 200 },

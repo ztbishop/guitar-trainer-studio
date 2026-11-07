@@ -1,4 +1,5 @@
 // Pure display projection on score metadata. No native API, timing or grading.
+import {selectedScoreTracks} from './track-visibility.js';
 const visibilityKeys=['showStandardNotation','showTablature','showSlashNotation','showNumberedNotation'];
 export function hasWrittenTab(staff) {
   if(staff.isPercussion || !staff.tuning?.length)return false;
@@ -27,7 +28,7 @@ export class ScoreDisplayProjection {
   }
 }
 export function visibleScoreTracks(state) {
-  return state.viewMode==='all-tracks'?state.tracks:state.tracks.filter((track,index)=>String(track.index??index)===String(state.practiceTrackId));
+  return selectedScoreTracks(state);
 }
 export function visibleTab(state) {
   return visibleScoreTracks(state).some(track=>track.staves?.some(staff=>staff.showTablature));

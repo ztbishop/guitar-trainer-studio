@@ -1,3 +1,5 @@
+import {initTrackVisibilityControls} from './track-visibility-controls.js';
+import {applyVisibleTracks} from './alphatab-host.js';
 import {applyAppearance} from './appearance.js';
 import {initBriefErrorControls} from './brief-error-controls.js';
 import {syncPracticeMenuSummary} from './practice-menu.js';
@@ -161,6 +163,9 @@ function syncTrainerFoundation() {
 
 function wireScoreStageUi() {
   const displayControls=initDisplayControls(applyScoreDisplay);
+  const trackVisibilityControls=initTrackVisibilityControls((mode,ids)=>{
+    if(applyVisibleTracks(mode,ids)){saveDisplayPreferences(AppState);renderTrainerUi();}
+  });
   const fullscreenButton = document.getElementById('btn-score-fullscreen');
   const scoreStage = document.querySelector('.score-stage.viewer-panel');
   const fretboardContainer = document.getElementById('fretboard-container');
@@ -215,7 +220,7 @@ function wireScoreStageUi() {
 
   document.addEventListener('fullscreenchange', syncFullscreenButton);
   syncFullscreenButton();
-  return displayControls;
+  return {sync(){displayControls.sync();trackVisibilityControls.sync();}};
 }
 
 function wireFilePicker() {
@@ -320,18 +325,14 @@ function wirePracticeControls() {
   const practiceTrackSelect = document.getElementById('practice-track-select');
   const playSelectedTrackToggle = document.getElementById('play-selected-track-toggle');
   const playOtherTracksToggle = document.getElementById('play-other-tracks-toggle');
-  const viewModes = [...document.querySelectorAll('input[name="view-mode"]')];
 
   function applyFromUi() {
     const previousTrack = AppState.practiceTrackId;
-    const previousView = AppState.viewMode;
     applyPlaybackTrackState({
       practiceTrackId: practiceTrackSelect?.value || AppState.practiceTrackId,
       playSelectedTrack: Boolean(playSelectedTrackToggle?.checked),
       playOtherTracks: Boolean(playOtherTracksToggle?.checked),
-      viewMode: viewModes.find(mode=>mode.checked)?.value || AppState.viewMode,
     });
-    if(previousView!==AppState.viewMode)saveDisplayPreferences(AppState);
     if (previousTrack !== AppState.practiceTrackId) syncTrainerFoundation();
     else renderTrainerUi();
   }
@@ -339,7 +340,6 @@ function wirePracticeControls() {
   practiceTrackSelect?.addEventListener('change', applyFromUi);
   playSelectedTrackToggle?.addEventListener('change', applyFromUi);
   playOtherTracksToggle?.addEventListener('change', applyFromUi);
-  for(const mode of viewModes)mode.addEventListener('change', applyFromUi);
 }
 
 function populateMidiChannelOptions(selectElement, { includeAny = false, min = 1, max = 16 } = {}) {
@@ -786,6 +786,7 @@ async function bootstrap() {
         else handlePlaybackPosition(position);
         renderTrainerUi();
       },
+      onMediaScoreFinished: () => {finishRealtimeSession({expectRewind:false});renderTrainerUi();},
       onPlayerFinished: () => {
         transportControls?.clearPulse();
         if(!AppState.media.editing && AppState.isPlaying && AppState.mode==='realtime')finishRealtimeSession();
@@ -797,7 +798,7 @@ async function bootstrap() {
       },
       onScoreDisplayChanged: () => displayControls.sync(),
       onPlayerReady: () => {printControls.sync();audioControls?.sync();pitchControls?.sync({enabled:true,value:AppState.pitchOffsetSemitones});renderTrainerUi();},
-      onScoreLoading: () => {printControls.loading(true);lessonImport.scoreLoading();mediaControls?.scoreLoading();scoreLibrary?.sync();audioControls?.sync();pitchControls?.sync({enabled:false,value:AppState.pitchOffsetSemitones});},
+      onScoreLoading: () => {displayControls.sync();printControls.loading(true);lessonImport.scoreLoading();mediaControls?.scoreLoading();scoreLibrary?.sync();audioControls?.sync();pitchControls?.sync({enabled:false,value:AppState.pitchOffsetSemitones});},
       onScoreLoadError: () => {printControls.loading(true);scoreLibrary?.sync();},
       onMetronomeTick: () => transportControls?.pulse(),
       onMetronomeError: () => renderTrainerUi(),

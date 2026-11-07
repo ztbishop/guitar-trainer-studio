@@ -4,8 +4,8 @@
   "source": "https://registry.npmjs.org/@coderline/alphatab/-/alphatab-1.8.4.tgz",
   "integrity": "sha512-VN5rfTZZWgA63Ny1aDKCp02k3Qm9CHhg4Q9AnK0kHm7G+fNDNZo36TeToPDFoJ6VpB9+AHcCrHwHFUP1tKqdsw==",
   "files": {
-    "alphaTab.js": "8f0ef8e742fbfe81ca7fab08bea35ec2462b794867259632a8091c76b07c1a66",
-    "alphaTab.core.mjs": "7330a805eab246bd329927e895ac46eb8eae1da4d27375c66e223c91dd1a5817",
+    "alphaTab.js": "b01490611be66b22c4f66bd2a4da1854510a07e7631a42d41e08366b08464495",
+    "alphaTab.core.mjs": "8fcf7f7a070b81d4bf022251c8b9c488684dc4f25e5091672e639b1dfa2d18a0",
     "alphaTab.worker.mjs": "ee641e30ed405f5488605784190248083680b6414439528e5013ef6c98ac3f4a",
     "alphaTab.worklet.mjs": "161c647adbad901f293f59a4c3d0f5c596b9ea7f4d657c93818ad32d71418e86",
     "font/Bravura.eot": "67f0f9985e14d3c8b50886cbf02bc33c39e41f44ed93ae4f830d99776bff15f3",
@@ -23,9 +23,11 @@
     "soundfont/README.md": "ca9d6da8f8861658f8aff476ce138b236bd4fb44a1731523475eda64f5a760c7"
   },
   "upstreamFiles": {
-    "alphaTab.js": "e1a395dd116dcd7e940729c4b970e1efa8d9221e82f878551689ce6778eb144b"
+    "alphaTab.js": "e1a395dd116dcd7e940729c4b970e1efa8d9221e82f878551689ce6778eb144b",
+    "alphaTab.core.mjs": "7330a805eab246bd329927e895ac46eb8eae1da4d27375c66e223c91dd1a5817"
   },
   "modifications": {
-    "alphaTab.js": "Existing TabBarRenderer.collectSpaces string-line guard; MPL-2.0 source patch: docs/licenses/alphaTab-tab-gap.patch"
+    "alphaTab.js": "Existing TabBarRenderer.collectSpaces guard (docs/licenses/alphaTab-tab-gap.patch) plus per-note GP right-hand tapping (docs/licenses/alphaTab-note-tap.patch), MPL-2.0.",
+    "alphaTab.core.mjs": "Per-note GP right-hand tapping, MPL-2.0 source patch: docs/licenses/alphaTab-note-tap.patch."
   }
 }

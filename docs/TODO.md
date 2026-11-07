@@ -1,5 +1,72 @@
 # Guitar Trainer Studio: status and to-do
 
+The owner authorized including all pending Guitar Trainer updates in a routine commit and push to `main` on 2026-11-07. Earlier local-only bullets record the original task scope. The pending owner checks below still apply.
+
+## Per-note Guitar Pro right-hand tapping — 2026-11-07
+
+- [x] Keep individual GPIF `Tapped` flags through native model, clones, serialization, renderer worker, staff/TAB, print and GP re-export. Keep legacy beat-wide and left-hand tapping separate.
+- [x] Validate synthetic repeat/connection witnesses and the six saved examples read-only: all 45 source mixed chords match the existing raw evidence, with 56 selected notes marked and 62 untapped partners preserved. Exact native attacks, releases, velocities, pitches and connections remain unchanged.
+- [ ] Optional owner check in Live Server: hard-refresh, open one original GPX and compare the selected T marks in staff/TAB/print. Isolated Chrome does not establish physical MIDI or audible playback acceptance.
+- [ ] Separately authorize Lesson Bridge's writer to emit the exact source-selected per-note flags, inspect raw GPIF and qualify corrected receiver playback/marks before narrowing the mixed-tap guard. Keep other notation, grace and timing guards in force. No new conversion or sync claim from the receiver work.
+- Local only; no Lesson Bridge edits, acquisition, timing work or publication.
+
+## Annotation, section-heading and chord-name spacing — 2026-11-05
+
+- [x] Reuse the private read-only rendering investigation; reproduce label overlaps in the actual trainer with the adapter disabled.
+- [x] Add a guarded, display-only host adapter: measured wrapping, 1.35 font-size line spacing, separate effect areas and native minimum label spacing. Keep vendor files, source labels/notes and synchronization unchanged.
+- [x] Verify saved GPX, Soundslice-derived GP and an original synthetic two-track fixture in isolated Chrome: 108 screen cases (390/600/1600px, 75/100/150/200%, staff/TAB/both) plus three native print previews, zero detected target-label intersections. Compare exact generated MIDI, playback timelines and source text; validate supplied timing anchors/interpolated mappings and exercise native playback.
+- [x] Pass 498 Node tests and existing display, sync/practice, Realtime, full-recording and import-timeline browser runners. Preserve all pre-existing local work.
+- [x] Owner confirms the text layout “looks fine now” (2026-11-06). No remaining annotation, section-heading or chord-name overlap reported; exact score/view/zoom coverage was not specified.
+- [ ] Owner confirms actual print destination, audible recording sync and physical Fishman feedback. These are separate from visual acceptance. At narrow/high zoom, scroll horizontally inside the score panel.
+- Remaining title/credit, tuning-label and footer intersections are outside this focused fix. Composite chord diagrams retain native layout. Rendering uses the main thread; native audio workers remain enabled. Large-score responsiveness and other fonts/browsers still need real-use acceptance.
+- Local only under the explicit task instruction: no commit, staging, push, version change or publication.
+
+## Trimmed lesson import lifecycle — 2026-11-02
+
+- [x] Reproduce the supersession failure with an equivalent playback timeline rebuilt during media load, using the private trimmed GP read-only.
+- [x] Replace timeline reference comparison with a timing-structure snapshot while preserving score/source cancellation and final point validation.
+- [x] Test equivalent rebuild acceptance, changed mapping/tempo/score rejection, exact anchors and no autoplay/save. Pass 496 Node tests and four browser runners, including native nonzero playback with the private trimmed GP and synthetic recording.
+- [ ] Owner refreshes the trainer and retries trimmed Acoustic Jimi with the actual provider recording; audible sync remains live acceptance.
+- Authorized coordinated fix, local only: no commit, push, version bump, release or deployment.
+
+## Full recording playback and outside-music shading — 2026-11-02
+
+- [x] Continue non-looping Realtime recording playback after score completion; finalize results once without stopping the outro.
+- [x] Allow introduction/outro seeking and Pause/Resume without grading those sections or snapping video back to the score.
+- [x] Shade before/after-score ranges and show region notices; retain Wait, explicit loops, score bytes and sync points.
+- [x] Pass 495 Node tests and isolated installed-Chrome full-recording/sync-practice checks with generated audio and synthetic input; inspect waveform shading screenshots.
+- [ ] Owner checks their actual TrueFire GP + synced video: automatic outro continuation, Pause/Resume, seek back to music, audible sync and Fishman feedback. Real video/YouTube/provider/hardware acceptance is separate.
+- Local-only update; no commit, push, deployment or publication.
+
+
+## Realtime recording timeline seeks — 2026-11-02
+
+- [x] Keep playing after a recording timeline seek during active Realtime practice; paused seeks stay paused.
+- [x] Preserve Wait silence, sync-preview behavior and existing explicit-seek grading rules.
+- [x] Reproduce failure before the fix in installed Chrome; pass forward/backward and paused seek regression afterward, plus sync editing/Wait checks and all 492 Node tests.
+- [ ] Owner verifies actual synced video/YouTube and audible playback with the normal Live Server/browser/Fishman workflow.
+- Local only; no commit or push.
+
+
+## Custom visible tracks — 2026-11-02
+
+- [x] Add Custom checklist with at least one track, source-order native aligned layout, friendly provider labels and retained original names/bytes.
+- [x] Keep visibility independent of the practice track, audio and partial Wait/results; remember mode/selection by original-file fingerprint.
+- [x] Verify 492 Node tests and isolated installed-Chrome checks with synthetic MIDI, completed native two-track measure bounds, keyboard focus, hidden practice track, reload, print regression and phone overflow.
+- [x] Read-only installed-Chrome smoke with the supplied Sultans of Swing GP: Lead Guitar + Chords, friendly labels, retained original name, switching to a demo and restoring the song selection. Private file/screenshots are not repository fixtures.
+- [ ] Owner acceptance in normal Live Server/browser/Fishman workflow: Wait and Realtime, chord placement, scrolling, audible mute/playback independence, and practice-track changes under Custom.
+- Chord-source overlay remains deferred. This update stays local: no commit, push, version or release.
+
+
+## Choose a local recording during lesson review — 2026-10-30
+
+- [x] Add version-3 local-recording request and trainer review picker, keeping versions 1/2 compatible.
+- [x] Reuse local media loader and nonzero timing repair; preserve cancellation/no-autoplay/no-automatic-save.
+- [x] Verify 488 Node tests and expanded native receiver browser checks.
+- [ ] Owner tests an actual local audio/video file and audible alignment with the updated local trainer.
+- Publication/push is not authorized for this coordinated change.
+
+
 ## v1.0.1 backup guidance and tall lists — 2026-10-30
 
 - [x] Add Scores backup reminder and explain automatic browser cleanup in README/Help.

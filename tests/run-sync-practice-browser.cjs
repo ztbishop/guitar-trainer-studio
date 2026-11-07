@@ -162,6 +162,30 @@ function recording() {
       assert.equal(await page.evaluate(()=>syncState.media.preview),!returnToSynth,'finish preserves selected source');
       assert.equal(await page.locator('#media-point-list').textContent(),points,'alignment retained');
       await grade();
+      if(!returnToSynth) {
+        await change('practice-loop-enabled',false);
+        // The player's seek slider shares the waveform/triangle seekRecording path.
+        await page.evaluate(()=>{const slider=document.querySelector('#media-seek');slider.value='2';slider.dispatchEvent(new Event('input'));});
+        await page.waitForFunction(()=>Math.abs(document.querySelector('#media-audio').currentTime-2)<0.02);
+        assert(await page.evaluate(()=>!syncState.isPlaying && document.querySelector('#media-audio').paused),'paused Realtime seek stays paused');
+        await page.locator('#play-pause-button').click();
+        await page.waitForFunction(()=>syncState.isPlaying && !syncState.countInActive && !document.querySelector('#media-audio').paused);
+        for(const seconds of [4,2]) {
+          await page.evaluate(seconds=>{const slider=document.querySelector('#media-seek');slider.value=String(seconds);slider.dispatchEvent(new Event('input'));},seconds);
+          await page.waitForTimeout(300);
+          assert(await page.evaluate(()=>syncState.isPlaying && !document.querySelector('#media-audio').paused),'playing Realtime seek must keep playing');
+          const time=await page.locator('#media-audio').evaluate(e=>e.currentTime);
+          assert(time>=seconds && time<seconds+1,'requested forward/backward seek applied');
+          await page.waitForFunction(time=>document.querySelector('#media-audio').currentTime>time+0.15,time);
+        }
+        await page.locator('#play-pause-button').click();
+        await page.waitForFunction(()=>!syncState.isPlaying);
+        await page.evaluate(()=>{const slider=document.querySelector('#media-seek');slider.value='3';slider.dispatchEvent(new Event('input'));});
+        await page.waitForFunction(()=>Math.abs(document.querySelector('#media-audio').currentTime-3)<0.02);
+        assert(await page.locator('#media-audio').evaluate(e=>e.paused),'paused seek never autoplays');
+        await change('practice-loop-enabled',true);
+        console.log('PASS Realtime forward/backward recording seeks keep playing; paused seeks stay paused');
+      }
       console.log(`PASS editor exit: ${returnToSynth?'Synth':'Recording'}; cursor, loop shading, targets and synthetic MIDI feedback restored`);
     }
     // Wait still requires MIDI after leaving editing; the recording stays silent.
@@ -172,6 +196,9 @@ function recording() {
     await page.locator('#play-pause-button').click();
     await page.waitForFunction(()=>syncState.isPlaying);
     await page.waitForFunction(()=>!document.querySelector('#media-audio').paused && document.querySelector('#media-audio').currentTime>0.1);
+    await page.evaluate(()=>syncHost.seekMediaTime(2000));
+    await page.waitForFunction(()=>document.querySelector('#media-audio').currentTime>2.1);
+    assert(await page.evaluate(()=>syncState.isPlaying && !document.querySelector('#media-audio').paused),'playing sync editor seek keeps playing even in Wait mode');
     await page.locator('#media-finish-editing').click();await restored();
     await page.locator('#play-pause-button').click();
     await page.waitForFunction(()=>syncState.waitTrainer.active && syncState.waitTrainer.phase==='waiting');

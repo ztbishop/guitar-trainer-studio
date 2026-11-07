@@ -2,6 +2,7 @@
 // Owns: correctness logic, mode behavior (realtime / wait), scoring
 // WARNING: Do not couple directly to UI or alphaTab internals
 
+import {outsideRecordingScore} from './media-score-range.js';
 import { AppState } from './app-state.js';
 import { midiToNoteName } from './note-utils.js';
 import { getPracticeEvents, tickToTimeMs } from './score-playback.js';
@@ -54,7 +55,7 @@ export function newRealtimeAttemptHere(at = performance.now()) {
 }
 
 export function handlePlaybackPosition({currentTick, at = performance.now(), speed = 1, isSeek = false, isPauseSnap = false}) {
-  if(AppState.media.editing)return;
+  if(AppState.media.editing || (outsideRecordingScore(AppState) && !isSeek))return;
   const scoreMs = mediaPracticeTime(AppState,at,timeAtTick(currentTick));
   if (scoreMs === null) return;
   if (!realtime) resetRealtimeSession('playback-ready', currentTick);
@@ -82,7 +83,7 @@ export function handlePlaybackPosition({currentTick, at = performance.now(), spe
   }
   lastPositionTick = currentTick;
   realtime.anchorPosition(scoreMs,at,speed);
-  if (AppState.isPlaying) {
+  if (AppState.isPlaying && !outsideRecordingScore(AppState)) {
     realtime.started = true;
     realtime.advance(scoreMs-(AppState.trainer.latencyMs||0)*speed,speed,realtime.eventTime(at));
   }
@@ -94,7 +95,7 @@ export function handlePlaybackState() {
   if(AppState.media.editing)return;
   if (!realtime) resetRealtimeSession('transport');
   if (AppState.isPlaying) {
-    if (realtime.completed) resetRealtimeSession('restart');
+    if (realtime.completed && !outsideRecordingScore(AppState)) resetRealtimeSession('restart');
     realtime.started = true;
   }
   const at=performance.now();
@@ -105,7 +106,7 @@ export function handlePlaybackState() {
 }
 
 export function advanceRealtimeClock(at = performance.now()) {
-  if(AppState.media.editing)return;
+  if(AppState.media.editing || outsideRecordingScore(AppState))return;
   if (!realtime?.started || !AppState.isPlaying || realtime.completed) return;
   const scoreMs = mediaPracticeTime(AppState,at,realtime.scoreTime(at));
   if (scoreMs === null) return;
@@ -114,14 +115,14 @@ export function advanceRealtimeClock(at = performance.now()) {
   refreshTrainerMatchState();
 }
 
-export function finishRealtimeSession() {
+export function finishRealtimeSession({expectRewind=true}={}) {
   if(AppState.media.editing || !AppState.isPlaying)return;
   realtime?.finish();
   if(realtime?.pendingErrors.size){
     const session=realtime,at=session.clockAt;
     finishTimer=setTimeout(()=>{if(realtime!==session)return;session.flushPendingErrors(at+session.minErrorMs);session.advance(Infinity);publishRealtimeStats();refreshTrainerMatchState();},session.minErrorMs);
   }
-  finishedAwaitingRewind=Boolean(realtime?.finishRequested) && !AppState.practiceLoop.enabled;
+  finishedAwaitingRewind=expectRewind && Boolean(realtime?.finishRequested) && !AppState.practiceLoop.enabled;
   publishRealtimeStats();
   refreshTrainerMatchState();
 }
@@ -375,12 +376,12 @@ export function handleMidiEvent(midiEvent) {
   AppState.midi.lastEvent = midiEvent;
   if(AppState.media.editing)return null;
   if(midiEvent?.type==='note-off' && realtime?.noteOff({...midiEvent,at:realtime.eventTime(midiEvent.at??performance.now())}))publishRealtimeStats();
-  if (midiEvent?.type === 'note-on' && AppState.isPlaying && realtime?.started) {
+  if (midiEvent?.type === 'note-on' && AppState.isPlaying && realtime?.started && !outsideRecordingScore(AppState)) {
     const at = Number.isFinite(midiEvent.at) ? midiEvent.at : performance.now();
     outcome=realtime.noteOn({...midiEvent,at:realtime.eventTime(at)},mediaPracticeTime(AppState,at,realtime.scoreTime(at)),realtime.anchor?.speed || 1);
     publishRealtimeStats();
   }
-  if(midiEvent?.type==='pitch-bend' && realtime){outcome=realtime.pitchBend(midiEvent,realtime.eventTime(midiEvent.at??performance.now()),null,AppState.isPlaying);if(outcome)publishRealtimeStats();}
+  if(midiEvent?.type==='pitch-bend' && realtime && !outsideRecordingScore(AppState)){outcome=realtime.pitchBend(midiEvent,realtime.eventTime(midiEvent.at??performance.now()),null,AppState.isPlaying);if(outcome)publishRealtimeStats();}
   refreshTrainerMatchState(AppState.tickPosition);
   return outcome;
 }

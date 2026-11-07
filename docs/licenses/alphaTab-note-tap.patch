@@ -1,0 +1,442 @@
+diff --git a/assets/vendor/alphatab/alphaTab.core.mjs b/assets/vendor/alphatab/alphaTab.core.mjs
+index b6203da..49d8b9e 100644
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -5923,6 +5923,8 @@ class Note {
+ 	* Gets a value indicating whether the note is left hand tapped.
+ 	*/
+ 	isLeftHandTapped = false;
++	/** Note-specific right-hand tapping. Legacy beat-wide taps use Beat.tap. */
++	isRightHandTapped = false;
+ 	/**
+ 	* Gets or sets whether this note starts a hammeron or pulloff.
+ 	*/
+@@ -7789,6 +7791,7 @@ class NoteCloner {
+ 		clone.percussionArticulation = original.percussionArticulation;
+ 		clone.isVisible = original.isVisible;
+ 		clone.isLeftHandTapped = original.isLeftHandTapped;
++		clone.isRightHandTapped = original.isRightHandTapped;
+ 		clone.isHammerPullOrigin = original.isHammerPullOrigin;
+ 		clone.isSlurDestination = original.isSlurDestination;
+ 		clone.harmonicType = original.harmonicType;
+@@ -19427,7 +19430,6 @@ class GpifParser {
+ 	_rhythmById;
+ 	_noteById;
+ 	_notesOfBeat;
+-	_tappedNotes;
+ 	_lyricsByTrack;
+ 	_soundsByTrack;
+ 	_hasAnacrusis = false;
+@@ -19454,7 +19456,6 @@ class GpifParser {
+ 		this._rhythmById = /* @__PURE__ */ new Map();
+ 		this._notesOfBeat = /* @__PURE__ */ new Map();
+ 		this._noteById = /* @__PURE__ */ new Map();
+-		this._tappedNotes = /* @__PURE__ */ new Map();
+ 		this._lyricsByTrack = /* @__PURE__ */ new Map();
+ 		this._soundsByTrack = /* @__PURE__ */ new Map();
+ 		this._skipApplyLyrics = false;
+@@ -21027,7 +21028,7 @@ class GpifParser {
+ 		const noteId = node.getAttribute("id");
+ 		for (const c of node.childElements()) switch (c.localName) {
+ 			case "Properties":
+-				this._parseNoteProperties(c, note, noteId);
++				this._parseNoteProperties(c, note);
+ 				break;
+ 			case "AntiAccent":
+ 				if (c.innerText.toLowerCase() === "normal") note.isGhost = true;
+@@ -21119,7 +21120,7 @@ class GpifParser {
+ 		}
+ 		this._noteById.set(noteId, note);
+ 	}
+-	_parseNoteProperties(node, note, noteId) {
++	_parseNoteProperties(node, note) {
+ 		let isBended = false;
+ 		let bendOrigin = null;
+ 		let bendMiddleValue = null;
+@@ -21148,7 +21149,7 @@ class GpifParser {
+ 						variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
+ 						break;
+ 					case "Tapped":
+-						this._tappedNotes.set(noteId, true);
++						note.isRightHandTapped = true;
+ 						break;
+ 					case "HarmonicType":
+ 						const htype = c.findChildElement("HType");
+@@ -21409,7 +21410,6 @@ class GpifParser {
+ 											note.string = -1;
+ 										} else note.percussionArticulation = -1;
+ 										beat.addNote(note);
+-										if (this._tappedNotes.has(noteId)) beat.tap = true;
+ 									}
+ 								}
+ 							}
+@@ -31137,6 +31137,7 @@ class NoteSerializer {
+ 		o.set("percussionarticulation", obj.percussionArticulation);
+ 		o.set("isvisible", obj.isVisible);
+ 		o.set("islefthandtapped", obj.isLeftHandTapped);
++		if (obj.isRightHandTapped) o.set("isrighthandtapped", true);
+ 		o.set("ishammerpullorigin", obj.isHammerPullOrigin);
+ 		o.set("isslurdestination", obj.isSlurDestination);
+ 		o.set("harmonictype", obj.harmonicType);
+@@ -31213,6 +31214,9 @@ class NoteSerializer {
+ 			case "islefthandtapped":
+ 				obj.isLeftHandTapped = v;
+ 				return true;
++			case "isrighthandtapped":
++				obj.isRightHandTapped = v === true;
++				return true;
+ 			case "ishammerpullorigin":
+ 				obj.isHammerPullOrigin = v;
+ 				return true;
+@@ -55578,6 +55582,11 @@ class TabWhammyEffectInfo extends EffectInfo {
+ 	}
+ }
+ //#endregion
++// A legacy whole-beat tap, or an explicit tap on every note, can use the
++// familiar T above the beat. A mixed beat must never use that shorthand.
++function usesBeatRightHandTap(beat) {
++	return beat.tap || (!beat.slap && !beat.pop && beat.notes.length > 0 && beat.notes.every(n => n.isRightHandTapped));
++}
+ //#region src/rendering/effects/TapEffectInfo.ts
+ /**
+ * @internal
+@@ -55596,7 +55605,7 @@ class TapEffectInfo extends EffectInfo {
+ 		return EffectBarGlyphSizing.SingleOnBeat;
+ 	}
+ 	shouldCreateGlyph(_settings, beat) {
+-		return beat.slap || beat.pop || beat.tap;
++		return beat.slap || beat.pop || usesBeatRightHandTap(beat);
+ 	}
+ 	createNewGlyph(renderer, beat) {
+ 		const res = renderer.resources;
+@@ -58856,6 +58865,64 @@ class BeatGlyphBase extends GlyphGroup {
+ 	}
+ }
+ //#endregion
++// Native on-note effect: a T in a reserved column at the selected note's
++// height. No beat text, fret substitution, or note/connection changes.
++var RightHandTapGlyph = class extends Glyph {
++	marks = [];
++	constructor(parent, notes, view) {
++		super(0, 0);
++		this.parent = parent;
++		this.notes = notes;
++		this.view = view;
++	}
++	static addTo(parent, view, hasHead) {
++		const beat = parent.container.beat;
++		if (!parent.renderer.settings.notation.isNotationElementVisible(NotationElement.EffectTap) ||
++			beat.deadSlapped || usesBeatRightHandTap(beat)) return;
++		const notes = beat.notes.filter(n => n.isRightHandTapped && n.isVisible && hasHead(n));
++		if (notes.length === 0) return;
++		const glyph = new RightHandTapGlyph(parent, notes, view);
++		parent.addEffect(glyph);
++		return glyph;
++	}
++	doLayout() {
++		const canvas = this.renderer.scoreRenderer.canvas;
++		const font = this.renderer.resources.elementFonts.get(NotationElement.EffectTap);
++		this.font = font.withSize(Math.min(font.size, 10));
++		const oldFont = canvas.font;
++		canvas.font = this.font;
++		this.width = 0;
++		this.marks = [];
++		for (const note of this.notes) {
++			const y = this.parent.getNoteY(note, NoteYPosition.Center);
++			const tuning = note.beat.voice.bar.staff.tuning;
++			// Add a string number only when two written noteheads share a row.
++			const sameRow = this.view === "score" && note.isStringed && note.beat.notes.some(other =>
++				other !== note && other.isVisible && this.parent.getNoteY(other, NoteYPosition.Center) === y);
++			const label = sameRow ? `T${tuning.length - note.string + 1}` : "T";
++			const width = canvas.measureText(label).width;
++			let x = 3;
++			for (const mark of this.marks) if (Math.abs(mark.y - y) < this.font.size * 1.25) x = Math.max(x, mark.x + mark.width + 3);
++			this.marks.push({ note, label, x, y, width });
++			this.width = Math.max(this.width, x + width + 2);
++		}
++		canvas.font = oldFont;
++	}
++	paint(cx, cy, canvas) {
++		const oldFont = canvas.font, oldAlign = canvas.textAlign, oldBaseline = canvas.textBaseline;
++		canvas.font = this.font;
++		canvas.textAlign = TextAlign.Left;
++		canvas.textBaseline = TextBaseline.Middle;
++		for (const mark of this.marks) {
++			canvas.beginGroup(`at-right-hand-tap at-right-hand-tap-${this.view} at-right-hand-tap-note-${mark.note.id}`);
++			canvas.fillText(mark.label, cx + this.x + mark.x, cy + this.y + mark.y);
++			canvas.endGroup();
++		}
++		canvas.font = oldFont;
++		canvas.textAlign = oldAlign;
++		canvas.textBaseline = oldBaseline;
++	}
++};
+ //#region src/rendering/glyphs/BeatOnNoteGlyphBase.ts
+ /**
+ * @internal
+@@ -62069,6 +62136,7 @@ class ScoreBeatGlyph extends BeatOnNoteGlyphBase {
+ 			}
+ 			this.addEffect(group);
+ 		}
++		if (!this.container.beat.slashed) RightHandTapGlyph.addTo(this, "score", n => noteHeads._noteGlyphLookup.has(n.id));
+ 		if (this.renderer.bar.isMultiVoice) {
+ 			let highestNotePosition = 0;
+ 			let lowestNotePosition = 0;
+@@ -63985,6 +64053,7 @@ class TabRestGlyph extends MusicFontGlyph {
+ class TabBeatGlyph extends BeatOnNoteGlyphBase {
+ 	slash = null;
+ 	noteNumbers = null;
++	rightHandTap = null;
+ 	restGlyph = null;
+ 	get effectElement() {
+ 		return BeatSubElement.GuitarTabEffects;
+@@ -64072,6 +64141,7 @@ class TabBeatGlyph extends BeatOnNoteGlyphBase {
+ 			this.addNormal(restGlyph);
+ 			if (this.container.beat.dots > 0 && tabRenderer.showRests) for (let i = 0; i < this.container.beat.dots; i++) this.addEffect(new AugmentationDotGlyph(0, y));
+ 		}
++		this.rightHandTap = this.noteNumbers ? RightHandTapGlyph.addTo(this, "tab", n => this.noteNumbers.notesPerString.has(n.string)) : null;
+ 		if (this.isEmpty) return;
+ 		let w = 0;
+ 		for (let i = 0, j = this.glyphs.length; i < j; i++) {
+@@ -64510,6 +64580,11 @@ class TabBarRenderer extends LineBarRenderer {
+ 			if (noteNumbers) {
+ 				for (const [str, noteNumber] of noteNumbers.notesPerString) if (!noteNumber.isEmpty) spaces[tuning.length - str].push(new Float32Array([this.beatGlyphsStart + bg.x + notes.x + noteNumbers.x - padding, noteNumbers.width + padding * 2]));
+ 			}
++			const tap = notes.rightHandTap;
++			if (tap) for (const mark of tap.marks) {
++				const line = spaces[tuning.length - mark.note.string];
++				if (line) line.push(new Float32Array([this.beatGlyphsStart + bg.x + notes.x + tap.x + mark.x - padding, mark.width + padding * 2]));
++			}
+ 		}
+ 	}
+ 	doLayout() {
+@@ -66629,7 +66704,7 @@ class GpifWriter {
+ 			this._writeSimplePropertyNode(properties, "Tone", "Step", note.tone.toString());
+ 			this._writeSimplePropertyNode(properties, "Midi", "Number", note.realValue.toString());
+ 		}
+-		if (note.beat.tap) this._writeSimplePropertyNode(properties, "Tapped", "Enable", null);
++		if (note.isRightHandTapped || note.beat.tap) this._writeSimplePropertyNode(properties, "Tapped", "Enable", null);
+ 		if (note.harmonicType !== HarmonicType.None) {
+ 			switch (note.harmonicType) {
+ 				case HarmonicType.Natural:
+diff --git a/assets/vendor/alphatab/alphaTab.js b/assets/vendor/alphatab/alphaTab.js
+index 534b496..b934204 100644
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -5927,6 +5927,8 @@
+ 		* Gets a value indicating whether the note is left hand tapped.
+ 		*/
+ 		isLeftHandTapped = false;
++		/** Note-specific right-hand tapping. Legacy beat-wide taps use Beat.tap. */
++		isRightHandTapped = false;
+ 		/**
+ 		* Gets or sets whether this note starts a hammeron or pulloff.
+ 		*/
+@@ -7793,6 +7795,7 @@
+ 			clone.percussionArticulation = original.percussionArticulation;
+ 			clone.isVisible = original.isVisible;
+ 			clone.isLeftHandTapped = original.isLeftHandTapped;
++			clone.isRightHandTapped = original.isRightHandTapped;
+ 			clone.isHammerPullOrigin = original.isHammerPullOrigin;
+ 			clone.isSlurDestination = original.isSlurDestination;
+ 			clone.harmonicType = original.harmonicType;
+@@ -19431,7 +19434,6 @@
+ 		_rhythmById;
+ 		_noteById;
+ 		_notesOfBeat;
+-		_tappedNotes;
+ 		_lyricsByTrack;
+ 		_soundsByTrack;
+ 		_hasAnacrusis = false;
+@@ -19458,7 +19460,6 @@
+ 			this._rhythmById = /* @__PURE__ */ new Map();
+ 			this._notesOfBeat = /* @__PURE__ */ new Map();
+ 			this._noteById = /* @__PURE__ */ new Map();
+-			this._tappedNotes = /* @__PURE__ */ new Map();
+ 			this._lyricsByTrack = /* @__PURE__ */ new Map();
+ 			this._soundsByTrack = /* @__PURE__ */ new Map();
+ 			this._skipApplyLyrics = false;
+@@ -21031,7 +21032,7 @@
+ 			const noteId = node.getAttribute("id");
+ 			for (const c of node.childElements()) switch (c.localName) {
+ 				case "Properties":
+-					this._parseNoteProperties(c, note, noteId);
++					this._parseNoteProperties(c, note);
+ 					break;
+ 				case "AntiAccent":
+ 					if (c.innerText.toLowerCase() === "normal") note.isGhost = true;
+@@ -21123,7 +21124,7 @@
+ 			}
+ 			this._noteById.set(noteId, note);
+ 		}
+-		_parseNoteProperties(node, note, noteId) {
++		_parseNoteProperties(node, note) {
+ 			let isBended = false;
+ 			let bendOrigin = null;
+ 			let bendMiddleValue = null;
+@@ -21152,7 +21153,7 @@
+ 							variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
+ 							break;
+ 						case "Tapped":
+-							this._tappedNotes.set(noteId, true);
++							note.isRightHandTapped = true;
+ 							break;
+ 						case "HarmonicType":
+ 							const htype = c.findChildElement("HType");
+@@ -21413,7 +21414,6 @@
+ 												note.string = -1;
+ 											} else note.percussionArticulation = -1;
+ 											beat.addNote(note);
+-											if (this._tappedNotes.has(noteId)) beat.tap = true;
+ 										}
+ 									}
+ 								}
+@@ -31141,6 +31141,7 @@
+ 			o.set("percussionarticulation", obj.percussionArticulation);
+ 			o.set("isvisible", obj.isVisible);
+ 			o.set("islefthandtapped", obj.isLeftHandTapped);
++			if (obj.isRightHandTapped) o.set("isrighthandtapped", true);
+ 			o.set("ishammerpullorigin", obj.isHammerPullOrigin);
+ 			o.set("isslurdestination", obj.isSlurDestination);
+ 			o.set("harmonictype", obj.harmonicType);
+@@ -31217,6 +31218,9 @@
+ 				case "islefthandtapped":
+ 					obj.isLeftHandTapped = v;
+ 					return true;
++				case "isrighthandtapped":
++					obj.isRightHandTapped = v === true;
++					return true;
+ 				case "ishammerpullorigin":
+ 					obj.isHammerPullOrigin = v;
+ 					return true;
+@@ -55582,6 +55586,11 @@
+ 		}
+ 	};
+ 	//#endregion
++	// A legacy whole-beat tap, or an explicit tap on every note, can use the
++	// familiar T above the beat. A mixed beat must never use that shorthand.
++	function usesBeatRightHandTap(beat) {
++		return beat.tap || (!beat.slap && !beat.pop && beat.notes.length > 0 && beat.notes.every(n => n.isRightHandTapped));
++	}
+ 	//#region src/rendering/effects/TapEffectInfo.ts
+ 	/**
+ 	* @internal
+@@ -55600,7 +55609,7 @@
+ 			return EffectBarGlyphSizing.SingleOnBeat;
+ 		}
+ 		shouldCreateGlyph(_settings, beat) {
+-			return beat.slap || beat.pop || beat.tap;
++			return beat.slap || beat.pop || usesBeatRightHandTap(beat);
+ 		}
+ 		createNewGlyph(renderer, beat) {
+ 			const res = renderer.resources;
+@@ -58860,6 +58869,64 @@
+ 		}
+ 	};
+ 	//#endregion
++	// Native on-note effect: a T in a reserved column at the selected note's
++	// height. No beat text, fret substitution, or note/connection changes.
++	var RightHandTapGlyph = class extends Glyph {
++		marks = [];
++		constructor(parent, notes, view) {
++			super(0, 0);
++			this.parent = parent;
++			this.notes = notes;
++			this.view = view;
++		}
++		static addTo(parent, view, hasHead) {
++			const beat = parent.container.beat;
++			if (!parent.renderer.settings.notation.isNotationElementVisible(NotationElement.EffectTap) ||
++				beat.deadSlapped || usesBeatRightHandTap(beat)) return;
++			const notes = beat.notes.filter(n => n.isRightHandTapped && n.isVisible && hasHead(n));
++			if (notes.length === 0) return;
++			const glyph = new RightHandTapGlyph(parent, notes, view);
++			parent.addEffect(glyph);
++			return glyph;
++		}
++		doLayout() {
++			const canvas = this.renderer.scoreRenderer.canvas;
++			const font = this.renderer.resources.elementFonts.get(NotationElement.EffectTap);
++			this.font = font.withSize(Math.min(font.size, 10));
++			const oldFont = canvas.font;
++			canvas.font = this.font;
++			this.width = 0;
++			this.marks = [];
++			for (const note of this.notes) {
++				const y = this.parent.getNoteY(note, NoteYPosition.Center);
++				const tuning = note.beat.voice.bar.staff.tuning;
++				// Add a string number only when two written noteheads share a row.
++				const sameRow = this.view === "score" && note.isStringed && note.beat.notes.some(other =>
++					other !== note && other.isVisible && this.parent.getNoteY(other, NoteYPosition.Center) === y);
++				const label = sameRow ? `T${tuning.length - note.string + 1}` : "T";
++				const width = canvas.measureText(label).width;
++				let x = 3;
++				for (const mark of this.marks) if (Math.abs(mark.y - y) < this.font.size * 1.25) x = Math.max(x, mark.x + mark.width + 3);
++				this.marks.push({ note, label, x, y, width });
++				this.width = Math.max(this.width, x + width + 2);
++			}
++			canvas.font = oldFont;
++		}
++		paint(cx, cy, canvas) {
++			const oldFont = canvas.font, oldAlign = canvas.textAlign, oldBaseline = canvas.textBaseline;
++			canvas.font = this.font;
++			canvas.textAlign = TextAlign.Left;
++			canvas.textBaseline = TextBaseline.Middle;
++			for (const mark of this.marks) {
++				canvas.beginGroup(`at-right-hand-tap at-right-hand-tap-${this.view} at-right-hand-tap-note-${mark.note.id}`);
++				canvas.fillText(mark.label, cx + this.x + mark.x, cy + this.y + mark.y);
++				canvas.endGroup();
++			}
++			canvas.font = oldFont;
++			canvas.textAlign = oldAlign;
++			canvas.textBaseline = oldBaseline;
++		}
++	};
+ 	//#region src/rendering/glyphs/BeatOnNoteGlyphBase.ts
+ 	/**
+ 	* @internal
+@@ -62073,6 +62140,7 @@
+ 				}
+ 				this.addEffect(group);
+ 			}
++			if (!this.container.beat.slashed) RightHandTapGlyph.addTo(this, "score", n => noteHeads._noteGlyphLookup.has(n.id));
+ 			if (this.renderer.bar.isMultiVoice) {
+ 				let highestNotePosition = 0;
+ 				let lowestNotePosition = 0;
+@@ -63989,6 +64057,7 @@
+ 	var TabBeatGlyph = class extends BeatOnNoteGlyphBase {
+ 		slash = null;
+ 		noteNumbers = null;
++		rightHandTap = null;
+ 		restGlyph = null;
+ 		get effectElement() {
+ 			return BeatSubElement.GuitarTabEffects;
+@@ -64076,6 +64145,7 @@
+ 				this.addNormal(restGlyph);
+ 				if (this.container.beat.dots > 0 && tabRenderer.showRests) for (let i = 0; i < this.container.beat.dots; i++) this.addEffect(new AugmentationDotGlyph(0, y));
+ 			}
++			this.rightHandTap = this.noteNumbers ? RightHandTapGlyph.addTo(this, "tab", n => this.noteNumbers.notesPerString.has(n.string)) : null;
+ 			if (this.isEmpty) return;
+ 			let w = 0;
+ 			for (let i = 0, j = this.glyphs.length; i < j; i++) {
+@@ -64514,6 +64584,11 @@
+ 				if (noteNumbers) {
+ 					for (const [str, noteNumber] of noteNumbers.notesPerString) if (!noteNumber.isEmpty && spaces[tuning.length - str]) spaces[tuning.length - str].push(new Float32Array([this.beatGlyphsStart + bg.x + notes.x + noteNumbers.x - padding, noteNumbers.width + padding * 2]));
+ 				}
++				const tap = notes.rightHandTap;
++				if (tap) for (const mark of tap.marks) {
++					const line = spaces[tuning.length - mark.note.string];
++					if (line) line.push(new Float32Array([this.beatGlyphsStart + bg.x + notes.x + tap.x + mark.x - padding, mark.width + padding * 2]));
++				}
+ 			}
+ 		}
+ 		doLayout() {
+@@ -66633,7 +66708,7 @@
+ 				this._writeSimplePropertyNode(properties, "Tone", "Step", note.tone.toString());
+ 				this._writeSimplePropertyNode(properties, "Midi", "Number", note.realValue.toString());
+ 			}
+-			if (note.beat.tap) this._writeSimplePropertyNode(properties, "Tapped", "Enable", null);
++			if (note.isRightHandTapped || note.beat.tap) this._writeSimplePropertyNode(properties, "Tapped", "Enable", null);
+ 			if (note.harmonicType !== HarmonicType.None) {
+ 				switch (note.harmonicType) {
+ 					case HarmonicType.Natural:

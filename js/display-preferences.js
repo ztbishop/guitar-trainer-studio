@@ -38,7 +38,7 @@ export function saveDisplayPreferences(state, storage) {
   try {
     storage ??= globalThis.window?.localStorage;
     storage?.setItem(DISPLAY_PREFERENCES_KEY, JSON.stringify({
-      viewMode: state.viewMode,
+      viewMode: state.viewMode==='all-tracks'?'all-tracks':'practice-only',
       ui: Object.fromEntries(['zoomPercent', 'chordDiagramPlacement', ...DISPLAY_BOOLEAN_KEYS].map(key => [key, key==='showAlternatePositions'?state.ui[key]===true:state.ui[key]]).concat([
         ['appearance',normalizeAppearance(state.ui.appearance)],
         ['scoreDisplay',SCORE_DISPLAYS.includes(state.ui.scoreDisplay)?state.ui.scoreDisplay:'score-default'],

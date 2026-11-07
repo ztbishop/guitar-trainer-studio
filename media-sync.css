@@ -25,6 +25,13 @@
 .media-actions select { width:auto; }
 .media-scrub { display:flex; align-items:center; gap:8px; font-variant-numeric:tabular-nums; }
 .media-scrub input { min-width:50px; flex:1; }
+#media-seek { appearance:none; height:8px; border-radius:4px; cursor:pointer; }
+#media-seek::-webkit-slider-thumb { appearance:none; width:16px; height:16px; border-radius:50%; background:#2563eb; border:2px solid white; }
+#media-seek::-moz-range-thumb { width:12px; height:12px; border-radius:50%; background:#2563eb; border:2px solid white; }
+#media-seek:focus-visible { outline:2px solid #2563eb; outline-offset:4px; }
+.media-outside-score { fill:#64748b; fill-opacity:.18; }
+.media-outside-label { fill:currentColor; }
+:root[data-appearance='dark'] { --media-outside-color:#64748b; --media-music-color:#334155; }
 .media-player-panel .field-help { margin:0; font-size:12px; }
 body.media-editor-visible .app-main { grid-template-rows:minmax(220px,1fr) auto; }
 body.media-editor-visible.fretboard-visible .app-main { grid-template-rows:minmax(220px,1fr) auto auto; }

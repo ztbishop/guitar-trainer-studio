@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Review one same-window offer, then orchestrate injected existing app loaders.
-import {validateLesson} from './lesson-import-data.js';
+import {validateLesson,validateRecordingFile} from './lesson-import-data.js';
 export function initLessonImport({loadFile,mediaControls,state}) {
-  let pending=null,busy=false,generation=0,ownLoad=false;
+  let pending=null,busy=false,generation=0,ownLoad=false,recordingFile=null;
   const dialog=document.createElement('dialog');dialog.id='lesson-import-dialog';dialog.className='lesson-import-dialog';
   const heading=document.createElement('h2');heading.textContent='Import lesson from Lesson Bridge?';
   heading.id='lesson-import-heading';dialog.setAttribute('aria-labelledby',heading.id);
@@ -10,13 +10,28 @@ export function initLessonImport({loadFile,mediaControls,state}) {
   const note=document.createElement('p');note.textContent='Import replaces the open score. Unsaved alignment and practice results will be cleared. Nothing is saved to the library automatically.';
   const cancel=document.createElement('button');cancel.textContent='Cancel';cancel.type='button';
   const accept=document.createElement('button');accept.textContent='Import lesson';accept.type='button';
+  const localRecording=document.createElement('div');localRecording.id='lesson-local-recording';localRecording.hidden=true;
+  const choose=document.createElement('button');choose.type='button';choose.textContent='Choose recording…';choose.id='lesson-choose-recording';
+  const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='audio/*,video/*';fileInput.hidden=true;fileInput.id='lesson-recording-file';
+  const fileLabel=document.createElement('p');fileLabel.id='lesson-recording-name';fileLabel.setAttribute('role','status');
+  const fileHelp=document.createElement('p');fileHelp.textContent='Choose a recording from your computer, then Import lesson. Nothing changes until you import. The file stays in this trainer; it is not sent through Lesson Bridge.';
+  localRecording.append(choose,fileInput,fileLabel,fileHelp);
+  function resetRecording(){recordingFile=null;fileInput.value='';fileLabel.textContent='No recording selected.';choose.disabled=false;localRecording.hidden=true;}
+  choose.addEventListener('click',()=>{if(!busy && pending?.recording?.kind==='local-choice')fileInput.click();});
+  fileInput.addEventListener('change',()=>{
+    if(busy || pending?.recording?.kind!=='local-choice')return;
+    const file=fileInput.files[0];if(!file)return;
+    try{recordingFile=validateRecordingFile(file);fileLabel.textContent=recordingFile.name+' · '+(recordingFile.size/1024/1024).toFixed(2)+' MB';status.textContent='Recording selected. Import lesson to continue.';}
+    catch(error){status.textContent=error.message;}
+    finally{fileInput.value='';accept.disabled=!recordingFile;}
+  });
   const actions=document.createElement('div');actions.className='lesson-import-actions';actions.append(cancel,accept);
-  dialog.append(heading,description,note,status,actions);document.body.append(dialog);
+  dialog.append(heading,description,note,localRecording,status,actions);document.body.append(dialog);
   const notice=document.createElement('p');notice.id='lesson-import-notice';notice.className='lesson-import-notice';notice.setAttribute('role','status');notice.hidden=true;document.body.append(notice);
   let noticeTimer;
   const hideNotice=()=>{clearTimeout(noticeTimer);notice.hidden=true;};
   const notify=text=>{hideNotice();notice.textContent=text;notice.hidden=false;noticeTimer=setTimeout(hideNotice,6000);};
-  const clear=()=>{pending=null;generation++;dialog.close();};
+  const clear=()=>{pending=null;generation++;resetRecording();dialog.close();};
   cancel.addEventListener('click',()=>{if(!busy)clear();});
   dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();else clear();});
   const current=token=>{if(token!==generation)throw new Error('Import cancelled because another score was opened.');};
@@ -33,8 +48,9 @@ export function initLessonImport({loadFile,mediaControls,state}) {
   }
   accept.addEventListener('click',async()=>{
     if(busy || !pending)return;
-    const lesson=pending,token=++generation;let success=false;
-    busy=true;accept.disabled=cancel.disabled=true;status.textContent='Opening score…';
+    if(pending.recording?.kind==='local-choice' && !recordingFile){status.textContent='Choose a recording before importing.';return;}
+    const lesson=pending,recording=lesson.recording?.kind==='local-choice'?{kind:'local',file:recordingFile,label:recordingFile.name}:lesson.recording,token=++generation;let success=false;
+    busy=true;accept.disabled=cancel.disabled=choose.disabled=true;status.textContent=lesson.score?'Opening score…':'Loading recording…';
     try {
       const retained=lesson.score && !lesson.recording && lesson.keepRecording?mediaControls.captureRecording():null;
       if(lesson.keepRecording && lesson.score && !lesson.recording && !retained)throw new Error('There is no current recording to retain. Choose no recording or provide a link.');
@@ -48,13 +64,13 @@ export function initLessonImport({loadFile,mediaControls,state}) {
       let readyToPractice=true;
       if(lesson.recording || lesson.syncPoints || retained) {
         status.textContent='Applying selected recording and alignment…';
-        ({readyToPractice}=await mediaControls.importLesson(lesson.recording,lesson.syncPoints,{retained}));current(token);
+        ({readyToPractice}=await mediaControls.importLesson(recording,lesson.syncPoints,{retained}));current(token);
       } else mediaControls.finishEditing();
       notify(readyToPractice?'Lesson ready. Press Play to practice. Saving is optional.':'Recording loaded. Add alignment in Media Sync, then Finish editing to practice.');
       success=true;
     } catch(error) {heading.textContent='Import needs attention';status.textContent=error.message+' The import did not finish; any successfully opened score remains available.';}
     finally {
-      pending=null;busy=false;note.hidden=true;accept.hidden=true;cancel.disabled=false;cancel.textContent='Close';
+      pending=null;resetRecording();busy=false;note.hidden=true;accept.hidden=true;cancel.disabled=false;cancel.textContent='Close';
       if(success){dialog.close();document.getElementById('play-pause-button')?.focus();}else cancel.focus();
     }
   });
@@ -63,15 +79,16 @@ export function initLessonImport({loadFile,mediaControls,state}) {
     const reply=(ok,message)=>window.postMessage({type:'gts-lesson-reply',id:event.data.id,ok,message},location.origin);
     if(busy || dialog.open){reply(false,'An import review is already open. Finish or close it first.');return;}
     try {
-      pending=validateLesson(event.data.payload);
+      resetRecording();pending=validateLesson(event.data.payload);
       hideNotice();
       heading.textContent='Import lesson from Lesson Bridge?';note.hidden=false;
       if(!pending.score && (!state.currentScoreFile || !state.playerReady))throw new Error('Load a score in Guitar Trainer before sending recording/timing alone.');
-      description.textContent=`${pending.title} · ${pending.score?pending.score.fileName:'keep current score: '+state.currentScoreFile.fileName} · from ${new URL(pending.lessonUrl).origin} · ${pending.recording?'recording from '+new URL(pending.recording.url).origin:pending.keepRecording?'keep current recording':'no recording'} · ${pending.syncPoints?pending.syncPoints.length+' timing points':'no new timing'}`;
+      description.textContent=`${pending.title} · ${pending.score?pending.score.fileName:'keep current score: '+state.currentScoreFile.fileName} · from ${new URL(pending.lessonUrl).origin} · ${pending.recording?.kind==='local-choice'?'choose a local recording here':pending.recording?'recording from '+new URL(pending.recording.url).origin:pending.keepRecording?'keep current recording':'no recording'} · ${pending.syncPoints?pending.syncPoints.length+' timing points':'no new timing'}`;
       note.textContent=pending.score?'The score will be replaced. Changing score or recording discards incompatible alignment; supply matching timing or align manually. Nothing saves automatically.':'Only selected components will be updated. Replacing a recording clears its previous alignment; timing-only updates keep the current score and recording. Saving remains optional.';
-      status.textContent='';cancel.textContent='Cancel';accept.hidden=false;accept.disabled=false;
+      status.textContent='';cancel.textContent='Cancel';accept.hidden=false;
+      localRecording.hidden=pending.recording?.kind!=='local-choice';accept.disabled=!localRecording.hidden;
       dialog.showModal();cancel.focus();reply(true,'Review the lesson in Guitar Trainer.');
-    } catch(error) {pending=null;reply(false,error.message.includes('Load a score')?error.message:'The lesson payload is invalid or unsupported. Rescan and select supported resources.');}
+    } catch(error) {pending=null;resetRecording();reply(false,error.message.includes('Load a score')?error.message:'The lesson payload is invalid or unsupported. Rescan and select supported resources.');}
   });
-  return {scoreLoading(){hideNotice();if(!ownLoad){generation++;pending=null;if(dialog.open && !busy)dialog.close();}}};
+  return {scoreLoading(){hideNotice();if(!ownLoad){generation++;pending=null;resetRecording();if(dialog.open && !busy)dialog.close();}}};
 }

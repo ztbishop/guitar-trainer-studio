@@ -1,10 +1,11 @@
 // Media UI, browser players and profile intents. Native calls stay in the host.
 import {AppState} from './app-state.js';
+import {recordingScoreRange,recordingRegion} from './media-score-range.js';
 import {LibraryStore,fingerprint} from './library-store.js';
 import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport,pointTick,mediaTimeAtTick} from './media-sync.js';
 import {htmlMediaPlayer,youtubeMediaPlayer,waveformPeaks} from './media-player.js';
 import {timelineGuides,boundedAnchorTime,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel,timelineRuler} from './media-timeline.js';
-import {soundslicePoints} from './lesson-import-data.js';
+import {soundslicePoints,lessonTimelineKey} from './lesson-import-data.js';
 
 const svg=(tag,attrs={},text)=>{const node=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,String(value));if(text!==undefined)node.textContent=text;return node;};
 const clock=ms=>{const seconds=Math.max(0,ms/1000);return `${Math.floor(seconds/60)}:${(seconds%60).toFixed(1).padStart(4,'0')}`;};
@@ -76,7 +77,20 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('float-status').hidden=!floatingReason || source?.kind!=='youtube';get('float-status').textContent=floatingReason;
     get('float-help').textContent=floatingReason || 'Float video opens a separate browser window while synchronization continues.';
     document.body.classList.toggle('media-preview',AppState.media.preview);
-    get('listening-notice').textContent=AppState.media.editing?'Preview only · Grading and loops paused. Choose Finish editing to practice.':'Use main Play/Pause and Tempo. Wait mode keeps playback silent.';
+    syncRecordingRegion();
+  }
+  function syncRecordingRegion() {
+    const duration=player?.backingTrackDuration,range=recordingScoreRange(points,AppState.playbackTimeline,duration);
+    const region=range && AppState.media.preview?recordingRegion(points,AppState.playbackTimeline,player.currentTime):'music';
+    get('listening-notice').textContent=AppState.media.editing?'Preview only · Grading and loops paused. Choose Finish editing to practice.':
+      AppState.mode==='wait'?'Use main Play/Pause and Tempo. Wait mode keeps playback silent.':
+      region==='before'?'Before synced music · No grading':region==='after'?'After synced music · No grading':'Use main Play/Pause and Tempo.';
+    const seek=get('seek');
+    if(range && duration>0) {
+      const start=range.start/duration*100,end=range.end/duration*100;
+      seek.style.background=`linear-gradient(to right, var(--media-outside-color, #a7adb8) 0% ${start}%, var(--media-music-color, #dce8f7) ${start}% ${end}%, var(--media-outside-color, #a7adb8) ${end}% 100%)`;
+      seek.title='Shaded sections are before or after the synced score. They remain seekable.';
+    } else {seek.style.background='';seek.title='';}
   }
   function sourceControls() {
     const kind=get('source-kind').value;
@@ -114,7 +128,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
         // Provider notifications report state; only explicit controls start playback.
         if(state==='playing' && !AppState.isPlaying){player.pause();return;}
         // Buffering must not pause the media element: that aborts its pending play.
-        if(['ended','paused'].includes(state))host.pauseMediaPlayback();
+        if(['ended','paused'].includes(state))host.pauseMediaPlayback({ended:state==='ended'});
         sync();
       },onError(error){if(token!==generation)return;host.pauseMediaPlayback();message(error.message || 'Browser playback was blocked. Try Listen again.');sync();}};
       if(source.kind==='youtube') {
@@ -323,6 +337,14 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     timeline.replaceChildren();get('timeline-zoom').textContent=`${Math.round(zoom*100)}%`;
     timeline.append(svg('line',{class:'media-lane-divider',x1:-12,x2:1012,y1:32,y2:32,'pointer-events':'none'}));
     const unit=1024/width;
+    const range=recordingScoreRange(points,AppState.playbackTimeline,duration);
+    if(range)for(const [start,end,label] of [[0,range.start,'Before synced music'],[range.end,duration,'After synced music']]) {
+      if(end<=start)continue;
+      const x=start/duration*1000,w=(end-start)/duration*1000;
+      const shade=svg('rect',{class:'media-outside-score',x,y:33,width:w,height:51,'pointer-events':'none'});
+      shade.append(svg('title',{},label));timeline.append(shade);
+      if(w>110*unit)timeline.append(svg('text',{class:'media-outside-label',transform:`translate(${x+4*unit} 47) scale(${unit} 1)`,'font-size':11,'pointer-events':'none'},label));
+    }
     for(const tick of timelineRuler(duration,width,scroll.scrollLeft,scroll.clientWidth).ticks) {
       const x=tick.time/duration*1000;
       timeline.append(svg('line',{class:'media-ruler-tick',x1:x,x2:x,y1:79,y2:84}),svg('text',{class:'media-ruler-label',transform:`translate(${x} 96) scale(${unit} 1)`,'font-size':12,'text-anchor':x-left<40*unit?'start':left+span-x<40*unit?'end':'middle'},tick.label));
@@ -511,6 +533,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   setInterval(()=>{
     if(!player)return;const duration=player.backingTrackDuration,time=player.currentTime;
     get('clock').textContent=`${clock(time)} / ${clock(duration)}`;
+    syncRecordingRegion();
     renderTarget(time);
     if(document.activeElement!==get('seek'))get('seek').value=String(time/1000);
     const x=duration>0?time/duration*1000:0;playhead?.setAttribute('x1',x);playhead?.setAttribute('x2',x);
@@ -544,12 +567,16 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       const score=AppState.currentScoreFile,initialGeneration=generation;
       await timelineReady();
       if(score!==AppState.currentScoreFile || initialGeneration!==generation)throw new Error('Lesson import was superseded by a score/source change.');
-      const expectedTimeline=AppState.playbackTimeline;
+      const expectedTimeline=AppState.playbackTimeline,expectedTimelineKey=lessonTimelineKey(expectedTimeline);
+      if(expectedTimelineKey===null)throw new Error('The score playback timeline is not ready.');
       // Check score structure before loading a recording or applying any imported anchors.
       const imported=syncPoints?soundslicePoints(syncPoints,expectedTimeline):null;
       if(!recording && !retained && !player)throw new Error('Load a recording before sending timing alone.');
       const replacing=Boolean(recording || retained),loadGeneration=generation+(replacing?1:0);
-      if(recording) {
+      if(recording?.kind==='local') {
+        const file=recording.file;
+        await loadRecording({kind:'local',label:file.name,fileName:file.name,size:file.size,lastModified:file.lastModified},file);
+      } else if(recording) {
         const url=mediaUrl(recording.url),hostName=new URL(url).hostname;
         const isYoutube=['youtube.com','www.youtube.com','youtu.be','www.youtube-nocookie.com'].includes(hostName);
         await loadRecording(isYoutube?{kind:'youtube',videoId:youtubeId(url),label:recording.label}:{kind:'url',url,label:recording.label});
@@ -557,8 +584,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
         if(retained.source.kind==='embedded')throw new Error('Embedded backing audio cannot be retained across a score replacement. Choose a recording link instead.');
         await loadRecording(retained.source,retained.file);
       }
-      if(generation!==loadGeneration || score!==AppState.currentScoreFile || expectedTimeline!==AppState.playbackTimeline || !player)throw new Error('Lesson import was superseded by a score/source change.');
-      const checked=imported?validatePoints(imported,expectedTimeline,player.backingTrackDuration):null;
+      const checkImport=()=>{
+        if(generation!==loadGeneration || score!==AppState.currentScoreFile || !player)throw new Error('Lesson import was superseded by a score/source change.');
+        if(lessonTimelineKey(AppState.playbackTimeline)!==expectedTimelineKey)throw new Error('Lesson import stopped because the score playback timeline changed. Prepare and send the lesson again.');
+      };
+      checkImport();
+      const checked=imported?validatePoints(imported,AppState.playbackTimeline,player.backingTrackDuration):null;
       openEditor();
       if(checked && !replacing)edit(checked);
       else if(imported) {
@@ -569,7 +600,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
         get('profile-name').value=recording?.label || retained?.source.label || 'Imported alignment';renderPoints();sync();
       }
       if(replacing)await selectRecording();
-      if(generation!==loadGeneration || score!==AppState.currentScoreFile)throw new Error('Lesson import was superseded by a score/source change.');
+      checkImport();
       if(imported)finishEditing();
       message(imported?'Lesson ready. Press Play to practice. Save profile to keep the imported alignment.':'Recording loaded. Align it manually, then Save profile.');
       return {readyToPractice:Boolean(imported)};

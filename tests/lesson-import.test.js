@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateLesson,soundslicePoints} from '../js/lesson-import-data.js';
+import {validateLesson,soundslicePoints,validateRecordingFile,lessonTimelineKey} from '../js/lesson-import-data.js';
 import {repeatFixture,repeatCases} from './media-repeat-fixtures.js';
 import {pointTick} from '../js/media-sync.js';
 const payload=()=>({format:'gts-lesson',version:1,title:'Lesson',lessonUrl:'https://truefire.com/lesson/v32684',score:{fileName:'test.gp5',base64:btoa('test score')},recording:null,syncPoints:null});
@@ -44,4 +44,28 @@ test('Blue Nova timing preserves its nonzero start and terminal anchor across 64
   const result=soundslicePoints([[0,7.932401116538729,0,0],[63,133.861,0,0],[64,135.97788300000013,0,0]],timeline,140000);
   for(const [i,time] of [7932.401116538729,133861,135977.883].entries())assert(Math.abs(result[i].millisecondOffset-time)<0.000001);
   assert.equal(pointTick(result[0],timeline),0);assert.equal(pointTick(result.at(-1),timeline),timeline.endTick);
+});
+
+
+test('version 3 local-choice requests carry no path/bytes and preserve older receiver contracts',()=>{
+  const local={...payload(),version:3,score:null,recording:{kind:'local-choice'},syncPoints:[[0,1],[4,10]],keepRecording:false};
+  assert.deepEqual(validateLesson(local).recording,{kind:'local-choice'});assert.equal(validateLesson(local).keepRecording,false);
+  for(const edit of [p=>p.version=2,p=>p.keepRecording=true,p=>p.recording.url='file:///private.wav',p=>p.recording.base64='data',p=>p.recording.kind='local']){
+    const p=structuredClone(local);edit(p);assert.throws(()=>validateLesson(p));
+  }
+  assert.equal(validateLesson(payload()).score.fileName,'test.gp5');
+  assert.throws(()=>validateLesson({...local,recording:null,syncPoints:null}));
+});
+test('review accepts nonempty local media files while rejecting missing/empty/nonmedia choices',()=>{
+  const file=new File(['wave'],'recording.wav',{type:'audio/wav',lastModified:1234});assert.equal(validateRecordingFile(file),file);
+  assert.equal(validateRecordingFile(new File(['media'],'recording.mp4')).name,'recording.mp4');
+  for(const file of [null,{name:'fake.wav',size:10},new File([],'empty.wav'),new File(['text'],'notes.txt',{type:'text/plain'})])assert.throws(()=>validateRecordingFile(file));
+});
+
+test('lesson timeline snapshots accept equivalent rebuilds but detect changed repeat mapping, ticks and tempo',()=>{
+ const {timeline}=repeatFixture(),key=lessonTimelineKey(timeline);assert.notEqual(key,null);
+ assert.equal(lessonTimelineKey(structuredClone(timeline)),key);
+ for(const mutate of [t=>t.endTick++,t=>t.ticksPerQuarter++,t=>t.measures[0].measureNumber++,t=>t.measures[0].occurrence++,t=>t.measures[0].playbackMeasureIndex++,t=>t.measures[0].startTick++,t=>t.measures[0].endTick++,t=>t.tempoMap[0].tick++,t=>t.tempoMap[0].bpm++,t=>t.tempoMap[0].timeMs++,t=>t.measures.reverse()]){const changed=structuredClone(timeline);mutate(changed);assert.notEqual(lessonTimelineKey(changed),key);}
+ timeline.measures[0].endTick++;assert.notEqual(lessonTimelineKey(timeline),key,'snapshot also catches in-place changes');
+ for(const invalid of [null,{}, {...timeline,measures:[]},{...timeline,tempoMap:[]},{...timeline,endTick:NaN}])assert.equal(lessonTimelineKey(invalid),null);
 });

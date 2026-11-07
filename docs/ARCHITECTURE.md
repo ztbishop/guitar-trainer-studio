@@ -1,5 +1,61 @@
 # Guitar Trainer Studio Architecture
 
+## Note-specific Guitar Pro right-hand tapping — 2026-11-07
+
+The pinned alphaTab 1.8.4 classic and module bundles carry a bounded dependency patch. The GPIF reader stores `Tapped` on `Note.isRightHandTapped`, rather than reducing it to `Beat.tap`. Note/beat cloning and the native score codec preserve the flag, including worker structured-clone transport. `Gp7Exporter` writes a note's own `Tapped` property; legacy `Beat.tap` still writes the whole beat. `LeftHandTapped` and its connection lookup and symbols are independent. GP3–5 legacy beat effects, AlphaTex and MusicXML import behavior are unchanged.
+
+An entirely tapped beat retains the familiar T above the chord. A mixed chord gets a native on-note T beside each selected visible staff notehead and TAB fret, with no whole-beat T. The glyph reserves horizontal space and clears the selected TAB string line under the mark. On the staff, close labels stagger and same-row stringed notes add a string number. Printing uses the same native layout. Slash/numbered views that do not display individual noteheads are outside the mixed-chord rendering scope. No note text, source file, playback, grading, synchronization or application integration changes.
+
+See the bundled [source patch](licenses/alphaTab-note-tap.patch) and manifest for provenance. The receiver supports an already-correct GPX/GP mask; it does not enable Lesson Bridge's current whole-beat writer or relax any source or timing guard.
+
+## Display-only text layout adapter — 2026-11-05
+
+All runtime integration remains in `alphatab-host.js`. `installAlphaTabTextLayout` checks alphaTab 1.8.4 and the three effect factory shapes, patches each factory once, and registers `gts-text-svg` as a native SVG canvas engine without renderer-worker support. The standard SVG factory is retained. Native synth/audio worker settings are unchanged; the native print API inherits the custom engine and therefore uses the same effect factories. Unknown versions fall back to native behavior; requalify the adapter on a vendor upgrade.
+
+WeakMaps retain original glyph lines/native layout functions, never score-field replacements. Initial glyph layout measures wrapping against a bounded preferred width and registers text size with native beat springs. `onAlignGlyphs` rewraps to actual positions/measure edges and updates native effect-band heights, including already-registered shared slots after horizontal stretching. Text, marker and chord-name bands cannot share a vertical slot. Centered chord names use adjacent-onset midpoints as cell boundaries. Native composite chord diagrams are excluded from wrapping. `wrapScoreText` is the pure measured-word/oversized-token helper; explicit newline boundaries are retained.
+
+`applyTextLayoutWidth` caches whether a score contains labels and applies a 480 × native-scale pixel minimum to the existing score container on score load/zoom changes. Its existing scroll parent absorbs overflow; page width/preferences are unaffected. This prevents native single-measure fitting from defeating readable text spacing at narrow/high zoom. Unlabeled scores remove the minimum. No score bytes, source text, musical clocks, MIDI generation, grading, sync mapping, export format, visibility preference or transport policy changes. Native header/footer/tuning layout remains outside this adapter.
+
+Evidence: `text-layout.test.js`, `run-text-layout-browser.cjs` and the display/sync/practice regressions described in DEVELOPMENT/DEV-NOTES. Optional external GPX/GP/timing are read only; tracked fixtures are generated original material. Native glyph internals are intentionally confined to the host and version-guarded. No vendor files, runtime dependency or build step are added.
+
+## Full recording outside the synced score — 2026-11-02
+
+media-score-range.js owns pure score-to-recording boundary projection, region classification (before/music/after), and the fullRecordingPractice gate. It uses the existing repeat-aware sync mapping at score tick zero/endTick; it does not infer spoken content, label internal gaps, add blank measures or alter anchors/bytes. Full-recording practice applies only to non-looping Realtime on the selected recording. Wait, explicit practice loops, synth playback and editor preview retain their prior transport policies.
+
+alphatab-host.js keeps external provider time authoritative but clamps native output position to the score boundaries (endTick minus four ticks for native rounding). The recording itself is never clamped. A per-pass mediaScoreFinished latch emits onMediaScoreFinished once at the mapped score end; bootstrap finalizes Realtime results with expectRewind:false because this completion does not rewind or stop native transport. Entering the music again rearms completion; normal explicit seek/reset rules remain. Provider ended notifications also finalize when the file and score end coincide between 50 ms samples.
+
+Outside-score Pause snapshots recording time. A narrow handler Proxy intercepts native asynchronous Pause beat-snap seekTo calls while that position is protected, preserving the actual video position. Resume, explicit timeline/score seeks, Reset, loop changes, source/alignment changes, editor changes and Wait acquisition clear protection. The provider handler retains ownership of decoding, play/pause and rate/volume; no vendor API is patched. Stop retains existing score-start semantics.
+
+practice-engine.js uses the pure outsideRecordingScore predicate to withhold grading advances, note-on and pitch-bend scoring before/after the mapped score. Note-off cleanup and pending-error finalization remain available. Completed results survive outside-score Resume; returning into the music follows existing seek/reset behavior. finishRealtimeSession defaults to its old rewind expectation for native completion; only the new host boundary callback opts out. All matching/tolerance/feedback rules inside the music remain unchanged.
+
+media-controls.js shades before/after ranges in its waveform and recording seek control and displays a region notice. Shading follows current sync mapping and recording duration, including zoom, and does not mark internal rests/gaps. media-sync.css supplies theme-aware slider colors and waveform shading. No new preferences, profile schema, dependency, import protocol or score-format conversion.
+
+
+## Preserve Realtime playback on recording seeks — 2026-11-02
+
+alphatab-host.js:seekMediaTime now preserves an active transport when either Realtime practice or sync editing is running. Previously only editing qualified, so the shared seekRecording path (media slider, waveform and target/anchor clicks) explicitly paused Realtime. The host continues to map recording time to native ticks, seek the provider, update the media clock and reveal the score cursor. Already-paused seeks remain paused; Wait outside editing remains silent. Explicit-seek grading/reset semantics, loops, MIDI matching and sync-anchor editing are unchanged. No new module or provider API change.
+
+
+## Custom visible tracks — 2026-11-02
+
+Visible tracks now supports practice-only/all-tracks/custom independently of practiceTrackId and audio gates/mixer state. track-visibility.js owns pure selectedScoreTracks/validTrackIds projections in source order, narrow provider-label normalization, retained original names in a WeakMap (originalTrackNames), and per-song localStorage under gts.trackVisibility.<SHA-256>. Only mode and selected track IDs are saved. Names/short names on the parsed display model are projected once; original byte paths and original-name metadata remain intact. No chord, note, rhythm, timing or MIDI data is copied between tracks.
+
+alphatab-host.js computes the existing library-store fingerprint from original bytes before native load, with scoreLoadGeneration checks after hashing and before load. Hash failure permits session-only display. Successful scoreLoaded restores validated visibility after default practice-track initialization, before playerReady applies the native track render. A saved Custom set does not select the practice track. Missing/invalid IDs fall back to the practice track; first Custom use starts with the current practice track. Global gts.displayPreferences retains the legacy practice-only/all-tracks fallback for unseen songs; Custom itself is song-specific. Browser storage errors do not break score loading. Preferences are browser-origin-local and excluded from library backup/export.
+
+track-visibility-controls.js owns Custom radios/checklist, readiness, the practice marker, keyboard focus retention, and the at-least-one constraint. Bootstrap injects applyVisibleTracks and composes its sync with existing display controls. This dedicated host intent saves preferences and calls native renderTracks without invoking mixer, transport or trainer foundation resets. Practice changes retain existing grading reset rules and leave Custom membership alone. score-display.js delegates its visible-track lookup to the same pure projection so tab-rhythm availability agrees with rendering; native printing uses the same selected native tracks. Native alphaTab supplies shared measure layout and feedback bounds. menu-controls.css bounds checklist height and wraps labels.
+
+Chord diagram placement remains the existing independent stylesheet preference. The Chords staff is rendered alongside selected guitar staffs; a cross-track chord overlay remains deferred. No new runtime dependency, vendor modification or build step. Tests: track-visibility.test.js and expanded run-score-display-browser.cjs; see DEVELOPMENT.md and DEV-NOTES.md for evidence and remaining hardware acceptance.
+
+
+## Choose a local recording during lesson review — 2026-10-30
+
+lesson-import-data.js supports protocol versions 1/2/3. Only version 3 accepts recording:{kind:'local-choice'}, with no additional fields or keepRecording:true. validateRecordingFile checks a trainer-selected nonempty media Blob/File; the receiver never accepts local recording bytes or filesystem paths from a sender.
+
+lesson-import.js owns the review-local File, Choose recording button and Import readiness. A user gesture opens the native picker; selecting a file does not call loaders. The accepted local request becomes an internal {kind:'local',file,label} recording. Cancel, unrelated score changes and final completion clear pending selection. media-controls.importLesson routes that internal object to existing loadRecording({kind:'local',label,fileName,size,lastModified},file), preserving local identity and all timing/native-host ownership. Protocol acknowledgement still only means review queued.
+
+Versions 1/2 remain compatible; older trainers reject version 3 before applying it. No native alphaTab, MIDI, Wait, grading, library schema or app version change. This coordinated implementation is local-only under the owner's explicit no-push/no-publication instruction.
+
+
 ## v1.0.1 backup guidance and tall lists — 2026-10-30
 
 index.html adds a persistent, non-modal backup reminder below the library actions. README.md supplies both Markdown and rendered Help guidance about browser cleanup and external JSON backups. menu-controls.css increases only the list max-height at viewport widths >=761px and heights >=1000px, reserving toolbar plus 300px for menu controls/margins. Existing list minimums and laptop/narrow rules remain unchanged; long lists scroll independently. No runtime modules, preference/storage changes, native rendering or MIDI behavior changes.
@@ -954,3 +1010,8 @@ Library, mixer/output and Media & Sync were future destinations and are now impl
 - LED hardware integration
 - Deeper alphaTab preference persistence
 - More advanced track practice combinations
+
+
+## Equivalent timeline rebuilds during import (2026-11-02)
+
+The receiver snapshots alignment semantics with lessonTimelineKey before awaiting recording load. It compares played measure order/occurrences/indices/tick bounds, tick resolution, total ticks and tempo map instead of native timeline object identity. Equal rebuilds retain imported timing; changed semantics reject. Score-file identity, recording-load generation and player availability remain independent cancellation checks. Points are revalidated against the current timeline and recording duration before native application, with another lifecycle/snapshot check after selection. This receiver repair is local and preserves review, no autoplay/save, protocol versions 1/2/3 and source-byte ownership.

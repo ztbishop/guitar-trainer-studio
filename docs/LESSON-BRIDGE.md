@@ -2,7 +2,7 @@
 
 ## Ownership and distribution
 
-Owner decision, 2026-10-29: the Chrome extension is private and maintained in the separate **Music File Chrome Extension** project. This repository ships no extension source, ZIP builder, store listing assets or extension installation guide. Historical commits/releases are unchanged. Do not restore those files or promote the extension in README/Help. Developer references and trainer-side compatibility are intentionally retained. Do not publish or push the separate copied project to this repository.
+Owner decision, 2026-10-29: the Chrome extension is private and maintained in the separate **Lesson Bridge** project. This repository ships no extension source, ZIP builder, store listing assets or extension installation guide. Historical commits/releases are unchanged. Do not restore those files or promote the extension in README/Help. Developer references and trainer-side compatibility are intentionally retained. Do not publish or push the separate copied project to this repository.
 
 ## Modules retained here
 
@@ -41,3 +41,16 @@ After acceptance, scores go through the existing loadScoreFile(File) path. A sub
 Run `node --test tests/*.test.js` and `node tests/run-lesson-import-browser.cjs` with the existing Playwright setup (GTS_PLAYWRIGHT_MODULE when needed). The receiver browser test uses an independent test-only postMessage peer, real trainer/native demo score and synthetic seekable WAV. It covers review/origin/schema gates, nonzero playback timing, partial imports, no autoplay/save, manual paste and stale-load cancellation. It does not test the private extension’s permissions or authenticated providers.
 
 The owner must load the unpacked extension from the separate project folder if Chrome previously pointed into this repository; deleting the old source does not redirect Chrome automatically. Keep the existing hosted/local trainer address, normal browser and Live Server/Fishman workflow. Check one Send/review, timing near beginning/middle/end, optional saving and normal Wait/Realtime. Actual permission prompts, provider access, audible alignment and physical MIDI remain separate acceptance work.
+
+## Version 3: choose recording in this trainer
+
+A version-3 offer may use recording:{kind:'local-choice'} instead of a recording URL. No additional recording fields, file paths, base64 or keepRecording:true are accepted with this choice. A score may be supplied; otherwise a ready score is required. Optional timing retains the existing Soundslice validation.
+
+The review displays Choose recording… and disables Import until the user selects a nonempty audio/video file. File validation checks MIME/extension for an audio/video candidate; actual codec/duration validation remains with the existing player. No media file content passes through the sender. The selected File remains in review memory until explicit approval. Cancel leaves the current session unchanged. After approval, the same local loader used by Media Sync attaches the file and applies timing. Profile identity uses the original filename, size and lastModified; profile saving does not store the recording itself.
+
+Ordinary version-1/2 requests remain unchanged. Unsupported older trainers reject version 3 without importing; the private sender must explain that a receiver with version-3 support is needed. Failed imports after approval may leave a successfully loaded score/recording; errors do not promise rollback.
+
+
+## Equivalent timeline rebuilds during import (2026-11-02)
+
+The receiver snapshots alignment semantics with lessonTimelineKey before awaiting recording load. It compares played measure order/occurrences/indices/tick bounds, tick resolution, total ticks and tempo map instead of native timeline object identity. Equal rebuilds retain imported timing; changed semantics reject. Score-file identity, recording-load generation and player availability remain independent cancellation checks. Points are revalidated against the current timeline and recording duration before native application, with another lifecycle/snapshot check after selection. The receiver still requires review, avoids autoplay and automatic saving, accepts protocol versions 1/2/3, and preserves the original score bytes.

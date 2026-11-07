@@ -198,7 +198,11 @@ The menus keep controls compact; this guide provides the detailed explanations. 
 
 Choose **Display → Appearance** for **Light** (the default white page), **Soft Light** (a very light gray page) or **Dark** (soft-white notation on charcoal). Your choice returns across visits and score loads. After updating the app, reload the browser to load the latest appearance styles; the local launcher can keep running. Practice feedback keeps the same meanings in each appearance. Printing and Save as PDF use black notation on white regardless of your screen choice.
 
-Display controls zoom, auto-scroll, full screen on Play, chord diagrams, visible tracks and fretboard visibility. Showing all tracks does not change which single track is graded.
+Display controls zoom, auto-scroll, full screen on Play, chord diagrams, visible tracks and fretboard visibility. Under **Visible tracks**, choose **Practice track only**, **All tracks**, or **Custom**. Custom opens a checkbox list: select your guitar track and **Chords**, for example, to see them together with aligned measures. At least one track must remain selected. The practice track is marked in the list, but you can hide it without changing which track is graded. Visible tracks do not change audio mute or playback settings.
+
+The app remembers your viewing mode and custom choices for each song in this browser and website address, even if you rename the same file. An edited or different file is treated as another song. These choices are display preferences and are not included in library backups. Changing your practice track does not change a saved Custom selection.
+
+Some scores put all chord diagrams in a separate **Chords** track. Showing it alongside your guitar displays its own staff; it does not move diagrams onto the guitar staff. Use **Chord diagrams → Above Chord** or **Top of Score** for the existing placement choices. Friendly names such as Chords and Strumming are shown without provider markers; your original downloaded file stays unchanged.
 
 **Score display** offers Score Default, Notation + Tab, Tab Only and Notation Only. Score Default follows the file's original layout. A guitar tab score can also show notation using its written pitches and rhythms. Tracks without usable string/fret information keep notation instead of showing empty or guessed tab.
 
@@ -235,6 +239,10 @@ Clicking notation or tab also chooses that score target in the sync editor while
 Opening Media Sync also opens **Load / options** when no recording is loaded. Once a recording is attached, reopening takes you straight to the editor. Detailed instructions are available under **Load / options → Alignment help & waveform**. The compact editor keeps errors and action confirmations below the timeline; repeated editing reminders are hidden. Your saved panel height is preserved: double-click its top divider to reset it to the smaller default.
 
 Video starts **Left of score** on first use. Change it in Media Sync → Load / options → Video placement; your saved choice is remembered, and a saved sync profile can restore its own placement. Narrow screens stack the panels. See the [media guide](docs/MEDIA-SYNC.md) for detailed alignment instructions. Local recordings can work offline; linked online sources need a connection.
+
+While practicing in **Realtime**, clicking or scrubbing the recording timeline keeps playback running if it was already playing. If you are paused, seeking leaves it paused. Seeking still follows the usual practice-result reset rules. Wait mode stays silent.
+
+With **Loop off**, Realtime lets the entire recording play, including material before and after the synced score. Practice results finish at the last measure while the video continues. Shaded sections of the recording timeline mark **Before synced music** and **After synced music**; those sections are not graded. Pause and resume there without losing your video position or completed result. Seeking back into the music follows the usual practice-reset rules. Enabled practice loops still repeat their selected measures, and Wait behavior is unchanged. These boundaries follow your saved alignment; the app does not automatically detect spoken introductions or endings. Original Guitar Pro files and sync points are not modified.
 
 Sync follows the score's playback order, including repeats, alternate endings and recognized D.C./D.S./Coda/Fine markings. Each return to a written measure has its own position on the recording timeline. Your recording must follow the same musical order; add sync points at the appropriate passes when alignment needs adjustment.
 

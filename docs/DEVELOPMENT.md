@@ -1,5 +1,47 @@
 # Development setup and checks
 
+## Per-note Guitar Pro tapping checks
+
+Run `node --test tests/right-hand-tap.test.js` and `node tests/run-right-hand-tap-browser.cjs`. The browser runner uses the existing Playwright/Chrome options, a temporary local server and an isolated browser profile. Set `GTS_TAP_REFERENCE` to the existing read-only Lesson Bridge root to include its six saved GPX cases and original-mask evidence. Set `GTS_TAP_BASELINE` to the pre-patch `alphaTab.js` to compare the old native connections and full MIDI event stream and reproduce the old loss on the same synthetic witness. Neither input is needed for the self-contained tests. `GTS_SCREENSHOT_DIR` optionally stores private screen/print evidence under an ignored output directory.
+
+The tests inspect the actual GP archive's raw note masks independently of the importer, then reopen it and check note addresses, flags, musical connections, MIDI and repeated visits. The browser checks the rendered T against its notehead/fret bounds, native printing, and the real renderer worker. No test runs Lesson Bridge's converter or changes its saved inputs. An owner can hard-refresh Live Server and open a saved GPX to check the T beside the intended notes; legacy whole-beat T and left-hand marks still have their familiar forms. Physical MIDI, actual print destinations and audible playback are separate checks.
+
+## Score text spacing checks
+
+Run `node --test tests/*.test.js` and `node tests/run-text-layout-browser.cjs`, using the existing `GTS_PLAYWRIGHT_MODULE` and optional `GTS_BROWSER_CHANNEL` settings. The runner creates an original dense two-track GP fixture in memory and uses an isolated browser/profile and temporary loopback server. `GTS_TEXT_GPX` and `GTS_TEXT_GP` optionally point to existing external saved GPX/converted GP files; `GTS_TEXT_TIMING` optionally points to the GP's matching Soundslice timing JSON. These files are read only and are not copied into the repository. `GTS_SCREENSHOT_DIR` selects artifact output; the default is ignored `dist/text-layout-2026-11-05`. Outputs from external scores are private visual evidence, not redistributable fixtures.
+
+The matrix covers 390/600/1600px, 75/100/150/200% zoom, notation/TAB/both, all source tracks, native clean printing and synth Play/Pause. Assertions compare original source/native MIDI and playback timelines, exact model labels/pitches/frets/ties/clocks across renders, nonlinear tick/time mappings and optional supplied timing. Text bounding boxes classify target-label intersections separately from unrelated header/footer/tuning intersections. Screenshots need visual review. `GTS_TEXT_BASELINE=1` disables installation through a test-only route response, running three screen controls at 600px/100%; it never edits production source and deliberately excludes printing. Keep existing display, sync/practice, Realtime, full-recording and import-timeline browser regressions applicable.
+
+Owner acceptance: hard-refresh the normal Live Server/browser, open both affected scores, and check usual zoom/window sizes plus staff/TAB/combined and multiple visible tracks. At high zoom in a narrow window, use the score panel's horizontal scroll. Check Print / Save PDF with the actual destination, audible score/recording alignment, seeking/loops and Fishman feedback. Record this separately from automated synthetic input/audio. Header/footer/tuning collisions, composite chord diagrams and a general engraving rewrite remain outside this fix; large-score responsiveness should be assessed during ordinary use. This update is local only, without commit or publication.
+
+## Full recording boundary acceptance
+
+Run node --test tests/*.test.js, node tests/run-full-recording-browser.cjs and node tests/run-sync-practice-browser.cjs with the existing GTS_PLAYWRIGHT_MODULE/GTS_BROWSER_CHANNEL settings. The full-recording runner owns an isolated Chrome profile/server and generates an in-memory WAV; GTS_SCREENSHOT_DIR optionally saves waveform/outro screenshots outside the repository. It checks introduction/outro classification, grading suppression, natural score completion without media stop, Pause/Resume position/result retention, music reentry, exact file-end completion and explicit loops. No private lesson files are fixtures.
+
+Owner acceptance: load the actual GP and matching synced video; verify Start/End anchors describe the music rather than the full video. In Realtime with Loop off, watch from before Start through End and the remaining outro. Check shaded ranges and Before/After synced music notices. Play MIDI outside the music: no new grading should occur. Pause/resume in both outside sections; the video position and completed result must remain. Seek back into music and verify normal seek-reset/grading. Enable a practice loop and verify it loops rather than entering the outro. Confirm Wait remains silent and advances by its existing rules. Repeat with real video/YouTube as applicable; audible/provider/hardware checks are distinct from automated audio fixtures. Missing or inaccurate sync boundaries require alignment correction; shaded regions do not detect instructional speech automatically.
+
+
+## Realtime recording seek acceptance
+
+Run node tests/run-sync-practice-browser.cjs with the existing GTS_PLAYWRIGHT_MODULE/GTS_BROWSER_CHANNEL options. The shared seek path is exercised through recording-slider input using a generated in-memory WAV: active Realtime seeks forward/backward must keep playing and advancing; paused seeks must remain paused. Existing sync-editor and silent Wait checks remain included. The Realtime regression fails against the old host condition.
+
+Owner check: in the usual Live Server/browser, select a synced recording/video and start Realtime. Seek forward and backward on its timeline; playback should continue from each chosen point. Pause and seek again; it should stay paused. Verify actual video/YouTube behavior, audible sync, existing loop/seek result resets and Fishman feedback separately. Wait mode and editing sync points retain their previous behavior.
+
+
+## Custom track selection acceptance
+
+Run node --test tests/*.test.js and node tests/run-score-display-browser.cjs (GTS_PLAYWRIGHT_MODULE may point to the existing local Playwright installation; GTS_BROWSER_CHANNEL defaults to installed Chrome). track-visibility.test.js covers labels/source-name retention, source-order selection independent of practice/audio, byte-fingerprint identity, rename, invalid membership and unavailable storage. The browser runner uses a generated private-free score, isolated profile/server and synthetic MIDI to verify native measure alignment and partial Wait result retention under Custom, plus existing print/display regression checks. It never uses the owner's browser profile or Fishman.
+
+For manual acceptance in the normal Live Server/browser/Fishman setup:
+
+1. Load a score with separate guitar and Chords tracks. Select the intended guitar under Practice, then Display → Visible tracks → Custom; check guitar and Chords. Verify aligned bars and readable diagrams under Score Default, Above Chord and Top of Score. The diagrams stay on their own track.
+2. In Wait, collect part of a chord, toggle visible tracks, then complete it. Check that partial credit/results survive, and that hiding the practice staff does not change grading. Repeat display changes during Realtime and verify feedback, scrolling, loop and Pause/Resume.
+3. Set audio mutes/volumes and listen while changing visibility. Only the display should change. Change the active practice track deliberately and confirm Custom membership stays fixed while existing practice-reset behavior remains.
+4. Try keyboard Space on checkboxes and the final selected checkbox, then a narrow window. Reopen/reload the same file, switch to another song and back, and try a renamed byte-identical copy. Mode/membership should return per song. Practice-track selection is independent and is not newly persisted by this feature.
+
+Browser-origin storage and library backup exclusions remain unchanged. A score with different bytes gets a new identity. Cross-track chord overlays remain deferred. Record physical MIDI/audible/user acceptance separately from automated native/browser results.
+
+
 The root README is the player guide, shared by GitHub and README.html. Implementation history belongs in DEV-NOTES.md and TODO.md; module contracts belong in ARCHITECTURE.md. Read AGENTS.md before editing. Current beta is 0.0.4, explicitly authorized on 2026-10-24 after documentation/licensing work. The owner authorizes agents to commit and push completed, verified updates with descriptive messages; AGENTS.md defines the separate version/release workflow. The previous release hold is lifted for this beta. Routine pushes do not create new releases. [PUBLISHING.md](PUBLISHING.md) covers license verification and owner-controlled public visibility/Pages activation.
 
 ## Licensing maintenance
@@ -55,3 +97,8 @@ Automated native/browser checks do not establish audible balance, physical Fishm
 ## Realtime written-span checks
 
 Run node --test tests/realtime-windows.test.js for timing boundaries, tempo/speed, rests/repeats/ties and recording/loop projections. Run node tests/run-realtime-windows-browser.cjs with GTS_PLAYWRIGHT_MODULE set to an installed Playwright module when needed. The browser runner starts/closes an ephemeral local server and isolated headless Chrome profile, imports an original generated score and supplies synthetic Poly/Hex MIDI. It checks delayed notation misses and late spread-chord green feedback without accessing the owner's normal browser or devices. Real Fishman/listening acceptance remains separate.
+
+
+## Lesson import timeline rebuild regression
+
+Run node tests/run-import-timeline-browser.cjs with GTS_PLAYWRIGHT_MODULE. GTS_TRIMMED_SCORE optionally points to an external private converted GP; otherwise the bundled first-notes demo is used. The isolated browser serves a synthetic WAV and deliberately replaces timeline identity during its response to test equivalent rebuilds and changed structure/tempo/score cancellation. It checks exact anchors, native nonzero playback start and no autoplay/save. Run the retained lesson-import, sync-practice and full-recording browser runners plus all Node tests for receiver changes. No provider login, owner browser or hardware is used.

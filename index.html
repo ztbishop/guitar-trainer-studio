@@ -377,7 +377,12 @@
           <fieldset class="menu-radio-group"><legend>Visible tracks</legend>
             <label><input id="view-practice-only" type="radio" name="view-mode" value="practice-only" checked disabled /><span>Practice track only</span></label>
             <label><input id="view-all-tracks" type="radio" name="view-mode" value="all-tracks" disabled /><span>All tracks</span></label>
+            <label><input id="view-custom-tracks" type="radio" name="view-mode" value="custom" disabled /><span>Custom</span></label>
           </fieldset>
+          <div id="custom-track-selection" hidden>
+            <p class="field-help">Choose at least one track to show. This does not change your practice track or audio. Choices are remembered for this song.</p>
+            <div id="custom-track-list" role="group" aria-label="Custom visible tracks"></div>
+          </div>
           <div class="popup-card-title">Virtual fretboard</div>
           <label class="toggle-row" for="show-fretboard"><input id="show-fretboard" type="checkbox" /><span>Show virtual fretboard</span></label>
         </div>

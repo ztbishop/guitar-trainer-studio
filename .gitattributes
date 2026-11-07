@@ -6,3 +6,5 @@ assets/vendor/alphatab/LICENSE.header text eol=lf -whitespace
 assets/vendor/alphatab/font/*.txt text eol=lf -whitespace
 assets/vendor/alphatab/soundfont/LICENSE text eol=lf -whitespace
 assets/vendor/alphatab/soundfont/README.md text eol=lf -whitespace
+# Unified diff context prefixes precede the upstream source's tab indentation.
+docs/licenses/alphaTab-note-tap.patch text eol=lf whitespace=-space-before-tab

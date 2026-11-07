@@ -421,6 +421,10 @@
 }
 
 .library-backup-warning { margin: 8px 2px; }
+
+#custom-track-list { max-height: 20rem; overflow-y: auto; }
+#custom-track-list .toggle-row { min-height: 44px; }
+#custom-track-list .toggle-row span { min-width: 0; overflow-wrap: anywhere; }
 /* Grow only the content ceiling on tall desktops; short lists and laptops keep
    their existing minimums. Reserve room for the toolbar and menu controls. */
 @media (min-width: 761px) and (min-height: 1000px) {

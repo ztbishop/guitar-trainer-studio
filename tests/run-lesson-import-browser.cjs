@@ -152,6 +152,58 @@ function wav() {
     await page.locator('#lesson-import-notice').filter({hasText:'Lesson ready.'}).waitFor({timeout:35000});
     assert.equal(await page.locator('#media-audio').getAttribute('src'),'https://recording.test/replacement.wav','explicit retention reattaches recording to new score');
     assert.equal(await page.evaluate(()=>lessonState.media.editing),false);
+    // Choose local recording inside the trainer review: no media bytes in the offer.
+    const localOffer={...payload,version:3,recording:{kind:'local-choice'},keepRecording:false};
+    await page.evaluate(()=>{window.beforeLocal={score:lessonState.currentScoreFile,points:JSON.stringify(lessonState.media.points),src:document.querySelector('#media-audio').src};});
+    const beforeLocalRequests=mediaRequests;
+    await offer(localOffer);
+    assert.equal(await page.getByRole('button',{name:'Import lesson',exact:true}).isDisabled(),true);
+    assert.equal(await page.locator('#lesson-local-recording').isVisible(),true);
+    const picker=page.waitForEvent('filechooser');await page.locator('#lesson-choose-recording').click();
+    await (await picker).setFiles({name:'local-take.wav',mimeType:'audio/wav',buffer:wav()});
+    await page.locator('#lesson-recording-name').filter({hasText:'local-take.wav'}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Import lesson',exact:true}).isDisabled(),false);
+    await page.locator('#lesson-recording-file').setInputFiles([]);
+    assert.match(await page.locator('#lesson-recording-name').innerText(),/local-take.wav/,'canceling replacement picker retains selection');
+    await page.locator('#lesson-recording-file').setInputFiles({name:'notes.txt',mimeType:'text/plain',buffer:Buffer.from('not media')});
+    await page.locator('#lesson-import-dialog [role=status]').filter({hasText:'Choose an audio or video file'}).waitFor();
+    assert.match(await page.locator('#lesson-recording-name').innerText(),/local-take.wav/);
+    assert.equal(await page.evaluate(()=>lessonState.currentScoreFile===beforeLocal.score && JSON.stringify(lessonState.media.points)===beforeLocal.points && document.querySelector('#media-audio').src===beforeLocal.src),true,'selection alone leaves current lesson unchanged');
+    await page.getByRole('button',{name:'Cancel',exact:true}).click();
+    assert.equal(await page.evaluate(()=>lessonState.currentScoreFile===beforeLocal.score && document.querySelector('#media-audio').src===beforeLocal.src),true,'cancel review preserves current lesson');
+    await offer(localOffer);assert.equal(await page.getByRole('button',{name:'Import lesson',exact:true}).isDisabled(),true,'canceled local file is not reused');
+    await page.locator('#lesson-recording-file').setInputFiles({name:'local-take.wav',mimeType:'audio/wav',buffer:wav()});
+    if(process.env.GTS_LOCAL_IMPORT_SCREENSHOT)await page.screenshot({path:process.env.GTS_LOCAL_IMPORT_SCREENSHOT});
+    await page.getByRole('button',{name:'Import lesson',exact:true}).click();
+    await page.locator('#lesson-import-notice').filter({hasText:'Lesson ready.'}).waitFor({timeout:35000});
+    assert.equal(mediaRequests,beforeLocalRequests,'local recording does not contact a provider');
+    assert.match(await page.locator('#media-audio').getAttribute('src'),/^blob:/);
+    assert.equal(await page.locator('#media-recording-label').innerText(),'local-take.wav');
+    assert.deepEqual(await page.evaluate(()=>lessonState.media.points.map(p=>p.millisecondOffset)),[1000,8000,11000]);
+    assert.equal(await page.evaluate(()=>lessonState.isPlaying),false);
+    assert.equal(await page.locator('#media-audio').evaluate(el=>el.paused && el.muted),true,'local import retains silent Wait');
+    assert.equal(await page.evaluate(async()=>{const {LibraryStore}=await import('./js/library-store.js');const store=new LibraryStore();return (await store.list()).scores.length+(await store.listProfiles()).length;}),0,'local import never saves automatically');
+    await page.evaluate(()=>{const input=document.querySelector('input[name="practice-mode"][value="realtime"]');input.checked=true;input.dispatchEvent(new Event('change'));});
+    await page.locator('#play-pause-button').click();await page.waitForFunction(()=>!document.querySelector('#media-audio').paused,{timeout:15000});
+    const localStart=await page.locator('#media-audio').evaluate(el=>el.currentTime);assert(localStart>=0.95 && localStart<3,'local recording uses imported nonzero start');
+    await page.locator('#play-pause-button').click();
+    // Recording-only requests reuse the ready score; no timing leaves manual alignment.
+    await page.evaluate(()=>{window.localScore=lessonState.currentScoreFile;});
+    await offer({...localOffer,score:null,syncPoints:null});
+    await page.locator('#lesson-recording-file').setInputFiles({name:'second-take.wav',mimeType:'audio/wav',buffer:wav()});
+    await page.getByRole('button',{name:'Import lesson',exact:true}).click();
+    await page.locator('#lesson-import-notice').filter({hasText:'Add alignment'}).waitFor();
+    assert.equal(await page.evaluate(()=>lessonState.currentScoreFile===localScore && lessonState.media.editing),true);
+    await offer({...localOffer,score:null,syncPoints:[[0,1],[4,13]]});
+    await page.locator('#lesson-recording-file').setInputFiles({name:'short-take.wav',mimeType:'audio/wav',buffer:wav()});
+    await page.getByRole('button',{name:'Import lesson',exact:true}).click();
+    await page.locator('#lesson-import-dialog [role=status]').filter({hasText:'did not finish'}).waitFor();
+    await page.getByRole('button',{name:'Close',exact:true}).click();
+    // New score selection invalidates a pending local-file review.
+    await offer(localOffer);await page.locator('#lesson-recording-file').setInputFiles({name:'obsolete.wav',mimeType:'audio/wav',buffer:wav()});
+    await page.locator('#score-file-input').setInputFiles(scorePath);
+    await page.waitForFunction(()=>lessonState.currentScoreFile?.fileName==='first-notes.gp' && lessonState.playerReady);
+    assert.equal(await page.locator('#lesson-import-dialog').isVisible(),false);
     // A later file selection cancels a pending media load; its anchors cannot leak.
     let started;
     const requested=new Promise(resolve=>{started=resolve;});

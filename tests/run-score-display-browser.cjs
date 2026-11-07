@@ -82,6 +82,38 @@ const {createAppServer}=require('../local-web-server.cjs');
       const frets=await page.locator('.notation-feedback-overlay .tab-correct-highlight').count();
       assert.equal(notes>0,view!=='tab');assert.equal(frets>0,view!=='notation');
     }
+    // Custom display must retain partial Wait results and never invoke mixer/transport.
+    const customSnapshot=await page.evaluate(()=>{
+      window.customCalls=[];
+      for(const name of ['pause','play','stop','changeTrackMute','changeTrackVolume']) {
+        const original=displayApi[name].bind(displayApi);
+        displayApi[name]=(...args)=>{customCalls.push(name);return original(...args);};
+      }
+      return {practice:displayState.practiceTrackId,tick:displayApi.tickPosition,audio:JSON.stringify(displayState.audio)};
+    });
+    await page.evaluate(()=>document.querySelector('[data-launch-panel="display-popup"]').click());
+    await page.locator('#view-custom-tracks').check();
+    const beforeCustomRender=await page.evaluate(()=>displayRenders);
+    await page.locator('#custom-track-list input[value="1"]').check();
+    await page.waitForFunction(before=>displayRenders>before,beforeCustomRender);
+    await page.waitForFunction(()=>displayApi.tracks.length===2 && displayApi.boundsLookup?.isFinished);
+    assert.deepEqual(await page.evaluate(()=>displayApi.tracks.map(t=>t.index)),[0,1]);
+    assert(await page.evaluate(()=>displayApi.boundsLookup.staffSystems.every(system=>system.bars.every(master=>
+      new Set(master.bars.flatMap(bar=>bar.beats.map(b=>b.beat.voice.bar.staff.track.index))).size===2 && master.bars.every(bar=>Math.abs(bar.realBounds.x-master.bars[0].realBounds.x)<0.01 && Math.abs(bar.realBounds.w-master.bars[0].realBounds.w)<0.01)))),'selected staves share aligned measure bounds');
+    await page.locator('#custom-track-list input[value="0"]').uncheck();
+    await page.waitForFunction(()=>displayApi.tracks.length===1 && displayApi.tracks[0].index===1 && displayApi.boundsLookup?.isFinished);
+    // The final checkbox stays selected, and keyboard focus survives rebuilding.
+    await page.locator('#custom-track-list input[value="1"]').click();
+    assert(await page.locator('#custom-track-list input[value="1"]').isChecked());
+    await page.locator('#custom-track-list input[value="0"]').focus();
+    await page.keyboard.press('Space');
+    assert.equal(await page.evaluate(()=>document.activeElement.value),'0');
+    assert.deepEqual(await page.evaluate(()=>({practice:displayState.practiceTrackId,tick:displayApi.tickPosition,audio:JSON.stringify(displayState.audio)})),customSnapshot);
+    assert.equal(await page.evaluate(()=>JSON.stringify(displayState.waitTrainer.results)),result);
+    assert.deepEqual(await page.evaluate(()=>customCalls),[]);
+    // Song fingerprint restoration is covered below after the existing print checks.
+    await page.locator('#view-practice-only').check();
+    await page.evaluate(()=>document.querySelector('[data-launch-panel="display-popup"]').click());
     // Native print is fully rendered, but suppress the OS dialog in automation.
     await page.evaluate(()=>{
       window.originalPrintOpen=window.open;
@@ -122,7 +154,11 @@ const {createAppServer}=require('../local-web-server.cjs');
     await page.evaluate(()=>{window.open=originalPrintOpen;});
     await page.locator('#stop-button').click();
     await change('score-display','tab');await change('tab-rhythm','show');
+    await page.evaluate(()=>{const c=document.querySelector('#view-custom-tracks');c.checked=true;c.dispatchEvent(new Event('change'));});
     await page.reload();await load();
+    assert.equal(await page.evaluate(()=>displayState.viewMode),'custom');
+    assert.deepEqual(await page.evaluate(()=>displayApi.tracks.map(t=>t.index)),[0,1]);
+    await page.evaluate(()=>{const c=document.querySelector('#view-practice-only');c.checked=true;c.dispatchEvent(new Event('change'));});
     assert.equal(await page.locator('#appearance').inputValue(),'dark');
     assert.equal(await page.evaluate(()=>document.documentElement.dataset.appearance),'dark');
     assert.deepEqual(await flags(),[[false,true]]);assert.equal(await page.locator('#tab-rhythm').inputValue(),'show');
@@ -139,6 +175,6 @@ const {createAppServer}=require('../local-web-server.cjs');
     if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:require('node:path').join(process.env.GTS_SCREENSHOT_DIR,'appearance-phone.png')});
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal page overflow');
     assert.deepEqual(errors,[]);
-    console.log('PASS themes, feedback contrast, black print ink, saved appearance, native score views, rhythm modes, independent diagrams, Wait feedback, clean print popup, blocked-popup message, saved reload and notation-only fallback.');
+    console.log('PASS custom visibility, aligned measures, independent practice/audio, retained Wait credit, keyboard and song reload; themes, feedback contrast, black print ink, saved appearance, native score views, rhythm modes, independent diagrams, Wait feedback, clean print popup, blocked-popup message, saved reload and notation-only fallback.');
   } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});

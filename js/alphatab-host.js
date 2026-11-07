@@ -7,6 +7,9 @@
 // Owns: all alphaTab integration (loading, rendering, playback, events)
 // Do NOT: put trainer logic here
 
+import {fullRecordingPractice,recordingRegion,recordingScoreRange} from './media-score-range.js';
+import {fingerprint} from './library-store.js';
+import {TRACK_VIEW_MODES,selectedScoreTracks,validTrackIds,restoreTrackVisibility,saveTrackVisibility,rememberTrackNames} from './track-visibility.js';
 import {scoreColors} from './appearance.js';
 import { AppState } from './app-state.js';
 import { buildPlaybackTimeline, tickToTimeMs } from './score-playback.js';
@@ -25,6 +28,120 @@ import {scoreTargetForBeat} from './media-timeline.js';
 import {ScoreDisplayProjection} from './score-display.js';
 
 const scoreDisplayProjection=new ScoreDisplayProjection();
+
+// Display-only adaptation for the bundled 1.8.4 renderer. Keep original model
+// strings and musical clocks intact; wrap after native beat positions are known.
+const textLayoutEngines=new WeakMap();
+export function installAlphaTabTextLayout(at) {
+  if(textLayoutEngines.has(at))return textLayoutEngines.get(at);
+  if(at?.meta?.version!=='1.8.4')return null;
+  const environment=at.Environment,svg=environment?.renderEngines?.get?.('svg');
+  if(!Array.isArray(environment?.defaultRenderers))return null;
+  const names=new Set(['TextEffectInfo','MarkerEffectInfo','ChordsEffectInfo']);
+  const effects=[...new Set((environment?.defaultRenderers ?? []).flatMap(f=>
+    (f.effectBands ?? []).map(e=>e.effect).filter(e=>names.has(e?.constructor?.name))))];
+  // Fail back to native rendering on an incompatible library update.
+  if(!svg?.createCanvas || !at.RenderEngineFactory || names.size!==new Set(effects.map(e=>e.constructor.name)).size ||
+    effects.some(e=>typeof e.createNewGlyph!=='function' || typeof e.onAlignGlyphs!=='function'))return null;
+  const sources=new WeakMap(),layouts=new WeakMap();
+  function layout(glyph,lines) {
+    glyph._lines=lines;glyph.width=0;glyph.height=0;
+    layouts.get(glyph).call(glyph);
+    glyph._lineHeights=glyph._lineHeights.map(h=>Math.max(h,glyph.font.size*1.35));
+    glyph.height=glyph._lineHeights.reduce((a,b)=>a+b,0);
+  }
+  for(const effect of effects) {
+    Object.defineProperty(effect,'canShareBand',{get:()=>false});
+    const create=effect.createNewGlyph,align=effect.onAlignGlyphs;
+    effect.createNewGlyph=function(...args) {
+      const glyph=create.apply(this,args);
+      // Chord diagrams are native composite glyphs, not wrappable text.
+      if(Array.isArray(glyph._lines) && glyph.font && typeof glyph.doLayout==='function') {
+        sources.set(glyph,glyph._lines.slice());layouts.set(glyph,glyph.doLayout);
+        glyph.doLayout=function() {
+          const renderer=this.renderer,canvas=renderer.scoreRenderer.canvas;
+          canvas.font=this.font;
+          const available=renderer.scoreRenderer.width/renderer.settings.display.scale;
+          const preferred=Math.min(150,Math.max(70,available/4));
+          layout(this,wrapScoreText(sources.get(this),preferred,text=>canvas.measureText(text).width));
+          // Ask native springs to make room for a readable wrapped label, rather
+          // than collapsing dense instructions into one-character columns.
+          const centered=effect.constructor.name==='ChordsEffectInfo';
+          renderer.layoutingInfo.addBeatSpring(this.beat,centered?this.width/2:0,this.width+6);
+        };
+      }
+      return glyph;
+    };
+    effect.onAlignGlyphs=function(band) {
+      align.call(this,band);
+      if(typeof band.iterateAllGlyphs!=='function')return;
+      const glyphs=[...band.iterateAllGlyphs()].sort((a,b)=>a.x-b.x);
+      const positions=glyphs.map(g=>g.x);
+      const canvas=band.renderer.scoreRenderer.canvas,padding=6;
+      for(let i=0;i<glyphs.length;i++) {
+        const glyph=glyphs[i],source=sources.get(glyph);
+        if(!source)continue;
+        canvas.font=glyph.font;
+        const next=glyphs[i+1];
+        // Each annotation/heading ends inside its own measure. Chord names
+        // keep their native centering within midpoint-delimited cells.
+        let left=positions[i],right=next ? positions[i+1] : band.renderer.width;
+        if(effect.constructor.name==='ChordsEffectInfo') {
+          left=i ? (positions[i-1]+positions[i])/2 : 0;
+          right=next ? (positions[i]+positions[i+1])/2 : band.renderer.width;
+        }
+        const width=Math.max(1,right-left-padding);
+        const lines=wrapScoreText(source,width,text=>canvas.measureText(text).width);
+        layout(glyph,lines);
+        if(effect.constructor.name==='ChordsEffectInfo') {
+          // Keep the centered name inside its cell.
+          const center=Math.max(left+glyph.width/2,Math.min(glyph.x,right-padding-glyph.width/2));
+          glyph.x=center;
+        }
+      }
+      band.height=band.originalHeight=Math.max(0,...glyphs.map(g=>g.height));
+      // Native horizontal stretching can call this again after slots register.
+      if(band.slot)band.slot.shared.height=Math.max(...band.slot.bands.map(b=>b.originalHeight));
+    };
+  }
+  // Only rendering moves to the main thread. Native synth/audio workers stay on.
+  const engine='gts-text-svg';
+  environment.renderEngines.set(engine,new at.RenderEngineFactory(false,()=>svg.createCanvas()));
+  textLayoutEngines.set(at,engine);
+  return engine;
+}
+
+export function wrapScoreText(source,width,measure) {
+  const result=[];
+  for(const line of source) {
+    let row='';
+    for(const word of line.split(/\s+/).filter(Boolean)) {
+      if(row && measure(row+' '+word)<=width){row+=' '+word;continue;}
+      if(row){result.push(row);row='';}
+      // Split oversized words too, retaining every character (no truncation).
+      for(const character of word) {
+        if(row && measure(row+character)>width){result.push(row);row='';}
+        row+=character;
+      }
+    }
+    result.push(row);
+  }
+  return result;
+}
+
+const scoresWithLabels=new WeakMap();
+function applyTextLayoutWidth() {
+  const score=AppState.score,element=alphaTabApi?.container?.element;
+  if(!element || !score)return;
+  if(!scoresWithLabels.has(score))scoresWithLabels.set(score,
+    score.masterBars.some(b=>b.section) || score.tracks.some(t=>t.staves.some(s=>s.bars.some(b=>
+      b.voices.some(v=>v.beats.some(e=>e.text || e.hasChord))))));
+  // At extreme zoom/narrow widths native fitting can squash even a single
+  // measure below its text springs. Keep a readable canvas and let the existing
+  // score scroller handle the extra width, without widening the page.
+  element.style.minWidth=alphaTabApi.settings.core.engine==='gts-text-svg' && scoresWithLabels.get(score)
+    ? `${Math.ceil(480*alphaTabApi.settings.display.scale)}px` : '';
+}
 function applyNotationDisplay() {
   let colorsChanged=false;
   for(const [key,value] of Object.entries(scoreColors(AppState.ui.appearance))) {
@@ -40,6 +157,34 @@ function applyNotationDisplay() {
 }
 
 let mediaSnapshot=null,mediaHandler=null,mediaPoints=[],mediaRestoreTick=null;
+let mediaScoreFinished=false;
+let mediaPausePosition=null;
+function nativeMediaHandler(handler) {
+  // The native Pause callback can seek asynchronously to its last score beat.
+  // While paused outside the score, keep that seek on the recording playhead.
+  return new Proxy(handler,{get(target,key){
+    if(key==='seekTo')return time=>target.seekTo(mediaPausePosition??time);
+    return Reflect.get(target,key,target);
+  }});
+}
+function fullRecordingRegion() {
+  return fullRecordingPractice(AppState)?recordingRegion(mediaPoints,AppState.playbackTimeline,mediaHandler?.currentTime):'music';
+}
+function finishMediaScore() {
+  if(!mediaScoreFinished && AppState.isPlaying) {
+    mediaScoreFinished=true;
+    hostCallbacks.onMediaScoreFinished?.();
+  }
+}
+// Native Pause snaps the score cursor to a beat. Keep an outside recording
+// position independent of that snap, including delayed provider notifications.
+function pauseOutsideRecording() {
+  const time=mediaHandler.currentTime;
+  mediaPausePosition=time;
+  beginManualPause();alphaTabApi.pause();
+  mediaHandler.seekTo(time);
+  AppState.media.clock={timeMs:time,at:performance.now(),playing:false};
+}
 let cursorRevealTick=null,cursorRevealGeneration=0;
 let cursorRevealFollowOnly=false;
 let editingCountIn=null;
@@ -59,6 +204,7 @@ export function revealMediaScoreTarget(point) {
   return true;
 }
 export function setMediaEditing(enabled) {
+  mediaPausePosition=null;
   enabled=Boolean(enabled);
   if(AppState.media.editing===enabled)return;
   cancelCountIn();alphaTabApi?.pause();mediaHandler?.pause();
@@ -154,15 +300,17 @@ export function installAlphaTabAudioStartupCompatibility(at) {
 // Select external playback while retaining the original score timeline and
 // source data. Grading consumes a separate recording-time projection.
 export function beginMediaPlayback(handler,points) {
+  mediaPausePosition=null;
   if(!alphaTabApi || !AppState.score || !AppState.playerReady || AppState.media.returning)return false;
   const validated=validatePoints(points,AppState.playbackTimeline,handler.backingTrackDuration);
   if(validated.length<2)throw new Error('Add a start and end sync point first.');
   handler.playbackRate=AppState.playbackSpeed;
-  if(AppState.media.preview) {mediaHandler=handler;mediaPoints=validated;alphaTabApi.player.output.handler=handler;applyMediaSyncPoints(validated);return true;}
+  if(AppState.media.preview) {mediaHandler=handler;mediaPoints=validated;alphaTabApi.player.output.handler=nativeMediaHandler(handler);applyMediaSyncPoints(validated);return true;}
   const pausedWait=savedWaitTransport;
   cancelCountIn();releaseWaitTransport();alphaTabApi.pause();
   waitMetronome?.stop();waitMetronome=null;nativeClickBuffer=null;
   mediaSnapshot={tick:AppState.tickPosition,points:AppState.score.exportFlatSyncPoints(),wait:pausedWait};
+  mediaScoreFinished=false;
   mediaHandler=handler;mediaPoints=validated;
   AppState.media.preview=true;
   AppState.media.points=validated;
@@ -172,23 +320,26 @@ export function beginMediaPlayback(handler,points) {
   alphaTabApi.settings.player.playerMode=window.alphaTab.PlayerMode.EnabledExternalMedia;
   alphaTabApi.updateSettings();
   // The wrapper exposes the new output immediately; playerReady may fire later.
-  alphaTabApi.player.output.handler=handler;
+  alphaTabApi.player.output.handler=nativeMediaHandler(handler);
   alphaTabApi.playbackSpeed=AppState.playbackSpeed;
   applyMasterVolume();
   hostCallbacks.onMediaChanged?.();
   return true;
 }
 export function applyMediaSyncPoints(points,{preservePlayback=false}={}) {
+  mediaPausePosition=null;
   if(!AppState.media.preview)return;
   const resume=preservePlayback && AppState.isPlaying;
   if(!preservePlayback)alphaTabApi.pause();
   mediaPoints=validatePoints(points,AppState.playbackTimeline,mediaHandler.backingTrackDuration);
+  mediaScoreFinished=false;
   AppState.media.points=mediaPoints;
   AppState.score.applyFlatSyncPoints(mediaPoints);alphaTabApi.updateSyncPoints();
   if(resume){applyMasterVolume();alphaTabApi.play();}
   hostCallbacks.onMediaChanged?.();
 }
 export function endMediaPlayback() {
+  mediaPausePosition=null;
   if(!AppState.media.preview || AppState.media.returning)return;
   cursorRevealTick=null;cursorRevealGeneration++;alphaTabApi.pause();mediaHandler?.pause();
   AppState.media.returning=true;AppState.playerReady=false;
@@ -199,10 +350,23 @@ export function endMediaPlayback() {
 export function toggleMediaPlayback() {
   if(!AppState.media.preview || AppState.media.returning || !AppState.playerReady)return false;
   if(AppState.mode==='wait' && !AppState.media.editing)return false;
+  if(fullRecordingRegion()!=='music') {
+    if(AppState.isPlaying)pauseOutsideRecording();
+    else {mediaPausePosition=null;cancelCountIn();applyMasterVolume();alphaTabApi.play();}
+    return true;
+  }
   applyMasterVolume();
   alphaTabApi.playPause();return true;
 }
-export function pauseMediaPlayback() {if(AppState.media.preview || AppState.media.editing)alphaTabApi?.pause();}
+export function pauseMediaPlayback({ended=false}={}) {
+  // A provider can end between samples, including when music ends with the file.
+  if(ended && fullRecordingPractice(AppState)) {
+    const range=recordingScoreRange(mediaPoints,AppState.playbackTimeline);
+    if(range && mediaHandler.currentTime>=range.end-1)finishMediaScore();
+  }
+  if(AppState.isPlaying && fullRecordingRegion()!=='music')pauseOutsideRecording();
+  else if(AppState.media.preview || AppState.media.editing)alphaTabApi?.pause();
+}
 export function updateMediaPosition(timeMs,playing=mediaHandler?.playing ?? AppState.isPlaying) {
   if(AppState.media.preview && !AppState.media.returning && Number.isFinite(timeMs)) {
     AppState.media.clock={timeMs,at:performance.now(),playing:Boolean(playing)};
@@ -211,19 +375,28 @@ export function updateMediaPosition(timeMs,playing=mediaHandler?.playing ?? AppS
       // Editing may audition an outro beyond the mapped score end. Keep the
       // native cursor inside the score (with a margin for native tick rounding)
       // so it cannot stop the recording.
-      const cursorTime=AppState.media.editing?Math.min(timeMs,mediaTimeAtTick(mediaPoints,AppState.playbackTimeline,Math.max(0,AppState.playbackTimeline.endTick-4))):timeMs;
+      const full=fullRecordingPractice(AppState);
+      const range=full?recordingScoreRange(mediaPoints,AppState.playbackTimeline):null;
+      if(full && range && timeMs<range.end)mediaScoreFinished=false;
+      if(full && range && timeMs>=range.end)finishMediaScore();
+      const cursorTime=AppState.media.editing || full
+        ? Math.max(range?.start??0,Math.min(timeMs,mediaTimeAtTick(mediaPoints,AppState.playbackTimeline,Math.max(0,AppState.playbackTimeline.endTick-4)))) : timeMs;
       alphaTabApi.player.output.updatePosition(cursorTime);
     }
   }
 }
 export function seekMediaTime(timeMs) {
   if(!AppState.media.preview || AppState.media.returning || !Number.isFinite(timeMs))return false;
-  const resume=Boolean(AppState.media.editing && AppState.isPlaying);
+  mediaPausePosition=null;
+  // Preserve running Realtime practice as well as sync preview; Wait remains silent.
+  const resume=Boolean(AppState.isPlaying && (AppState.media.editing || AppState.mode==='realtime'));
   if(!resume)alphaTabApi.pause();
   const time=Math.max(0,Math.min(mediaHandler.backingTrackDuration,timeMs));
   AppState.media.clock={timeMs:time,at:performance.now(),playing:resume};
   cursorRevealFollowOnly=false;cursorRevealTick=tickAtMediaTime(mediaPoints,AppState.playbackTimeline,time);
-  if(AppState.media.editing)cursorRevealTick=Math.min(cursorRevealTick,Math.max(0,AppState.playbackTimeline.endTick-4));
+  const full=fullRecordingPractice(AppState);
+  if(full)mediaScoreFinished=false;
+  if(AppState.media.editing || full)cursorRevealTick=Math.min(cursorRevealTick,Math.max(0,AppState.playbackTimeline.endTick-4));
   alphaTabApi.tickPosition=cursorRevealTick;
   // The native tick setter also seeks the provider. The requested recording
   // time takes precedence, including intros/outros beyond mapped endpoints.
@@ -233,7 +406,7 @@ export function seekMediaTime(timeMs) {
   if(resume){applyMasterVolume();alphaTabApi.play();}
   return true;
 }
-export function seekMediaTick(tick) {if(AppState.media.preview && !AppState.media.returning)alphaTabApi.tickPosition=tick;}
+export function seekMediaTick(tick) {mediaPausePosition=null;if(AppState.media.preview && !AppState.media.returning)alphaTabApi.tickPosition=tick;}
 export function embeddedMedia() {
   const bytes=AppState.score?.backingTrack?.rawAudioFile;
   return bytes?.length?{bytes,points:AppState.score.exportFlatSyncPoints()}:null;
@@ -594,9 +767,7 @@ function renderTrackList() {
       playState = 'Backing track playback enabled';
     }
 
-    const visibility = AppState.viewMode === 'all-tracks'
-      ? 'Visible in all-tracks view'
-      : (isPractice ? 'Visible now' : 'Hidden in practice-only view');
+    const visibility = selectedScoreTracks(AppState).includes(track) ? 'Visible now' : 'Hidden in this view';
 
     item.innerHTML = `
       <div class="track-name">${index + 1}. ${escapeHtml(getTrackDisplayName(track, index))}</div>
@@ -644,11 +815,7 @@ function setDefaultTrackState() {
 }
 
 function getRenderedTracks() {
-  if (AppState.viewMode === 'all-tracks') {
-    return AppState.tracks.slice();
-  }
-  const practiceTrack = getTrackById(AppState.practiceTrackId);
-  return practiceTrack ? [practiceTrack] : [];
+  return selectedScoreTracks(AppState);
 }
 
 function applyTrackRenderState() {
@@ -695,6 +862,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     onScoreDisplayChanged: callbacks.onScoreDisplayChanged || null,
     onPlaybackTimelineChanged: callbacks.onPlaybackTimelineChanged || null,
     onPlayerFinished: callbacks.onPlayerFinished || null,
+    onMediaScoreFinished: callbacks.onMediaScoreFinished || null,
     onPlayerPositionChanged: callbacks.onPlayerPositionChanged || null,
     onPlayerReady: callbacks.onPlayerReady || null,
     onPlayerStateChanged: callbacks.onPlayerStateChanged || null,
@@ -717,7 +885,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     practiceTrackSelectEl: document.getElementById('practice-track-select'),
     playSelectedTrackToggleEl: document.getElementById('play-selected-track-toggle'),
     playOtherTracksToggleEl: document.getElementById('play-other-tracks-toggle'),
-    viewModeRadios: ['view-practice-only','view-all-tracks'].map(id=>document.getElementById(id)).filter(Boolean),
+    viewModeRadios: ['view-practice-only','view-all-tracks','view-custom-tracks'].map(id=>document.getElementById(id)).filter(Boolean),
     scoreEmptyStateEl: document.getElementById('score-empty-state'),
     toolbarScoreValueEl: document.getElementById('toolbar-score-value'),
   };
@@ -741,6 +909,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     return null;
   }
   installAlphaTabCompatibility(alphaTabGlobal);
+  const textLayoutEngine=installAlphaTabTextLayout(alphaTabGlobal);
 
   const wrapperEl = document.getElementById('alphatab-wrapper');
 
@@ -774,6 +943,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 
   alphaTabApi = new alphaTabGlobal.AlphaTabApi(containerEl, {
     core: {
+      engine: textLayoutEngine ?? 'svg',
       includeNoteBounds: true,
       scriptFile: getAssetUrl('./assets/vendor/alphatab/alphaTab.js'),
     },
@@ -828,6 +998,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     rememberScoreChordDiagramDefaults(loadedScore);
     AppState.playbackTimeline = null;
     AppState.score = loadedScore;
+    applyTextLayoutWidth();
     AppState.scoreHasChordDiagrams=loadedScore ? hasChordDiagramData(loadedScore) : null;
     // alphaTab raises scoreLoaded before MIDI generation and initial rendering,
     // so apply a saved placement override before the native render begins.
@@ -848,6 +1019,8 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     AppState.pitchOffsetSemitones = 0;
 
     setDefaultTrackState();
+    rememberTrackNames(AppState.tracks);
+    restoreTrackVisibility(AppState);
     syncPracticeTrackSelect();
     syncViewModeSelect();
     renderTrackList();
@@ -894,7 +1067,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
         if(savedWaitTransport){alphaTabApi.isLooping=false;alphaTabApi.countInVolume=0;alphaTabApi.playbackRange=null;}
         mediaRestoreTick=mediaSnapshot.tick;
         alphaTabApi.tickPosition=mediaRestoreTick;
-      } else {alphaTabApi.player.output.handler=mediaHandler;alphaTabApi.updateSyncPoints();}
+      } else {alphaTabApi.player.output.handler=nativeMediaHandler(mediaHandler);alphaTabApi.updateSyncPoints();}
       hostCallbacks.onMediaChanged?.();
     }
     hostCallbacks.onPlayerReady?.();
@@ -963,7 +1136,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   // A score click/drag is an intentional seek, even when paused and no native
   // Pause snap was emitted. Do not let an unused pause acknowledgement mask it.
   let scoreDragging=false,scoreMouseDown=null;
-  alphaTabApi.beatMouseDown?.on(beat => {pauseSeekPending=false;if(AppState.mode!=='wait')cancelCountIn();scoreMouseDown=beat.id;});
+  alphaTabApi.beatMouseDown?.on(beat => {mediaPausePosition=null;pauseSeekPending=false;if(AppState.mode!=='wait')cancelCountIn();scoreMouseDown=beat.id;});
   alphaTabApi.beatMouseMove?.on(beat => {if(scoreMouseDown!==null && scoreMouseDown!==beat.id)scoreDragging=true;});
   alphaTabApi.beatMouseUp?.on(beat => {
     const clicked=scoreMouseDown!==null && !scoreDragging;
@@ -1035,6 +1208,9 @@ export async function loadScoreFile(file) {
   const buffer = await readFileAsArrayBuffer(file);
   if(generation!==scoreLoadGeneration)return false;
   const bytes = new Uint8Array(buffer);
+  let hash=null;
+  try {hash=await fingerprint(bytes);} catch { /* Display still works without persistence. */ }
+  if(generation!==scoreLoadGeneration)return false;
   const wrapperEl = document.getElementById('alphatab-wrapper');
   if (wrapperEl) wrapperEl.scrollTop = 0;
   let input=bytes;
@@ -1084,10 +1260,24 @@ export async function loadScoreFile(file) {
       }
     }
   }
-  pendingScoreFile={fileName:file.name,bytes};
+  if(generation!==scoreLoadGeneration)return false;
+  pendingScoreFile={fileName:file.name,bytes,hash};
   const accepted=alphaTabApi.load(input);
   if(!accepted)pendingScoreFile=null;
   return accepted;
+}
+
+// Display-only intent: no mixer calls, trainer synchronization, seek or pause.
+export function applyVisibleTracks(mode,ids=AppState.customTrackIds) {
+  if(!alphaTabApi || !AppState.playerReady || !TRACK_VIEW_MODES.includes(mode))return false;
+  if(mode==='custom' && ids===AppState.customTrackIds && !AppState.customTrackSelectionSet)ids=[String(AppState.practiceTrackId)];
+  const selected=validTrackIds(ids,AppState.tracks);
+  if(mode==='custom' && !selected.length)return false;
+  AppState.viewMode=mode;AppState.customTrackIds=selected;
+  if(mode==='custom')AppState.customTrackSelectionSet=true;
+  saveTrackVisibility(AppState);
+  syncViewModeSelect();
+  return applyTrackRenderState();
 }
 
 export function setRenderedTracks(trackIds) {
@@ -1122,7 +1312,7 @@ export function applyPlaybackTrackState({ practiceTrackId, playSelectedTrack = A
   }
   AppState.playSelectedTrack = Boolean(playSelectedTrack);
   AppState.playOtherTracks = Boolean(playOtherTracks);
-  AppState.viewMode = viewMode === 'all-tracks' ? 'all-tracks' : 'practice-only';
+  AppState.viewMode = TRACK_VIEW_MODES.includes(viewMode) ? viewMode : 'practice-only';
   AppState.playbackTrackIds = AppState.tracks
     .map((track, index) => getTrackId(track, index))
     .filter((trackId) => trackId !== String(AppState.practiceTrackId));
@@ -1145,6 +1335,7 @@ export function applyScoreDisplay() {
   const chordDiagramsChanged=applyChordDiagramPlacement();
   const notationChanged=applyNotationDisplay();
   alphaTabApi.settings.display.scale=scale;
+  applyTextLayoutWidth();
   alphaTabApi.settings.player.scrollMode=AppState.ui.autoScroll ? window.alphaTab.ScrollMode.Continuous : window.alphaTab.ScrollMode.Off;
   alphaTabApi.updateSettings();
   if(zoomChanged || chordDiagramsChanged || notationChanged)alphaTabApi.render();
@@ -1316,6 +1507,7 @@ export function setMetronomeVolume(volume, options = {}) {
 }
 
 export function applyPracticeLoop(range) {
+  mediaPausePosition=null;
   if (!alphaTabApi) return false;
   if(AppState.media.editing){alphaTabApi.isLooping=false;alphaTabApi.playbackRange=null;drawLoopShading();return true;}
   if (range && (!Number.isFinite(range.startTick) || !(range.endTick > range.startTick) ||
@@ -1336,6 +1528,7 @@ export function applyPracticeLoop(range) {
 }
 
 export function pause() {
+  if(AppState.isPlaying && fullRecordingRegion()!=='music'){pauseOutsideRecording();return true;}
   if(AppState.countInActive){cancelCountIn();return true;}
   if (!alphaTabApi || !AppState.playerReady || !AppState.isPlaying) return false;
   beginManualPause();
@@ -1348,6 +1541,7 @@ export function pause() {
 
 // Explicit paused browsing, shared by fretboard arrows. Never starts playback.
 export function seekPausedTick(tick) {
+  mediaPausePosition=null;
   if(!alphaTabApi || !AppState.playerReady || AppState.media.editing || !Number.isFinite(tick))return false;
   cancelCountIn();alphaTabApi.pause();
   pauseSeekPending=false;
@@ -1360,8 +1554,10 @@ export function seekPausedTick(tick) {
 }
 
 export function stop() {
+  mediaPausePosition=null;
   if (!alphaTabApi) return false;
   pauseSeekPending = false;
+  mediaScoreFinished=false;
   cancelCountIn();
   // Stop is asynchronous with the native worker. Reveal again when its reset
   // position arrives, after native cursor layout, without starting playback.
@@ -1383,6 +1579,7 @@ export function getAlphaTabApi() {
 let savedWaitTransport = null;
 let waitTransportGeneration = 0;
 export function acquireWaitTransport() {
+  mediaPausePosition=null;
   if (!alphaTabApi) return;
   waitTransportGeneration++;
   if (savedWaitTransport) return;

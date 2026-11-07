@@ -17,7 +17,7 @@
 
 ## Private extension boundary
 
-- The owner maintains the Chrome extension separately in the private Music File Chrome Extension project. Do not restore extension source, ZIP packaging, store assets or installation/promotion instructions to this distribution or customer-facing README/Help.
+- The owner maintains the Chrome extension separately in the private Lesson Bridge project. Do not restore extension source, ZIP packaging, store assets or installation/promotion instructions to this distribution or customer-facing README/Help.
 - Preserve the trainer-side lesson receiver, review dialog, message compatibility and timing handling. Developer documentation and receiver tests remain here; see docs/LESSON-BRIDGE.md. This separation does not authorize changes or pushes in the private project.
 
 ## Implementation boundaries
