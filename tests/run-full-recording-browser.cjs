@@ -34,6 +34,28 @@ function wav() {
       await page.evaluate(seconds=>{const c=document.querySelector('#media-seek');c.value=String(seconds);c.dispatchEvent(new Event('input'));},seconds);
       await page.waitForFunction(seconds=>Math.abs(document.querySelector('#media-audio').currentTime-seconds)<0.25,seconds);
     };
+    // Opening/closing the editor pauses at the recording playhead, including
+    // intro/outro positions that have no corresponding native score beat.
+    const anchors=await page.evaluate(()=>JSON.stringify(s.media.points));
+    for(const seconds of [0.3,3,5.2]) {
+      await seek(seconds);
+      await page.locator('#play-pause-button').click();
+      await page.waitForFunction(t=>document.querySelector('#media-audio').currentTime>t+0.1,seconds);
+      const entered=await page.locator('#media-audio').evaluate(e=>e.currentTime);
+      await page.evaluate(()=>document.querySelector('#media-edit-sync').click());
+      await page.waitForFunction(()=>s.media.editing && !s.isPlaying && !document.querySelector('#media-audio').seeking);
+      await page.waitForTimeout(150);
+      const held=await page.locator('#media-audio').evaluate(e=>e.currentTime);
+      assert(Math.abs(held-entered)<0.25,`opening editor preserves recording time at ${seconds}: ${entered} -> ${held}`);
+      await page.evaluate(()=>h.setMediaEditing(true));
+      await page.locator('#media-finish-editing').click();
+      await page.waitForTimeout(150);
+      assert(Math.abs(await page.locator('#media-audio').evaluate(e=>e.currentTime)-held)<0.05,'closing editor preserves paused time');
+      assert.equal(await page.evaluate(()=>JSON.stringify(s.media.points)),anchors,'editor visibility never edits anchors');
+      await page.locator('#play-pause-button').click();
+      await page.waitForFunction(t=>document.querySelector('#media-audio').currentTime>t+0.15,held);
+      await page.locator('#play-pause-button').click();
+    }
     await seek(0.3);
     const before=await page.evaluate(()=>JSON.stringify(s.trainer.results));
     await page.locator('#play-pause-button').click();

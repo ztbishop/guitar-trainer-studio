@@ -1,5 +1,9 @@
 # Guitar Trainer Studio Architecture
 
+## Recording editor transitions — 2026-11-10
+
+Opening Edit sync delegates Realtime pausing to `setMediaEditing`, not the Wait transport callback. Before native Pause, the host's existing `nativeMediaHandler` guard captures the recording playhead and redirects delayed beat-snap seeks to it. Closing without an active practice range retains the same protection through loop-setting restoration; restoring an explicit loop still seeks its start. No-op editor updates retain the guard; explicit Play and seek intents release it. This changes transport only, never score or alignment data. See [adapter inventory and evidence](RECORDING-PLAYBACK.md).
+
 ## Explicit GP ghost pull-off release
 
 The pinned alphaTab classic and core bundles retain the optional note property `GtsGhostReleaseAtBeatEnd` through GPIF, note cloning and the score codec used by the worker. The property preserves ghost, pull-off and let-ring notation. Native playback skips the extra let-ring sustain only on an explicitly marked ghost pull-off to an open string with a same-bar fretted origin and no outgoing tie or slide. Unmarked GP files and other notation use the existing rules. See the bundled [source patch](licenses/alphaTab-ghost-release.patch).

@@ -161,7 +161,7 @@ let mediaScoreFinished=false;
 let mediaPausePosition=null;
 function nativeMediaHandler(handler) {
   // The native Pause callback can seek asynchronously to its last score beat.
-  // While paused outside the score, keep that seek on the recording playhead.
+  // Outside-score Pause and editor transitions retain the recording playhead.
   return new Proxy(handler,{get(target,key){
     if(key==='seekTo')return time=>target.seekTo(mediaPausePosition??time);
     return Reflect.get(target,key,target);
@@ -204,14 +204,17 @@ export function revealMediaScoreTarget(point) {
   return true;
 }
 export function setMediaEditing(enabled) {
-  mediaPausePosition=null;
   enabled=Boolean(enabled);
   if(AppState.media.editing===enabled)return;
+  // Editor visibility is not a seek. Protect against both immediate and delayed
+  // native Pause snaps, including recording material outside the score.
+  const retainPosition=AppState.media.preview && (enabled || !AppState.practiceLoop.range);
+  mediaPausePosition=retainPosition?mediaHandler?.currentTime??null:null;
   cancelCountIn();alphaTabApi?.pause();mediaHandler?.pause();
   AppState.isPlaying=false;AppState.media.editing=enabled;
   if(alphaTabApi) {
     if(enabled){releaseWaitTransport();editingCountIn=alphaTabApi.countInVolume;alphaTabApi.countInVolume=0;alphaTabApi.isLooping=false;alphaTabApi.playbackRange=null;}
-    else {if(editingCountIn!==null)alphaTabApi.countInVolume=editingCountIn;editingCountIn=null;applyPracticeLoop(AppState.practiceLoop.range);}
+    else {if(editingCountIn!==null)alphaTabApi.countInVolume=editingCountIn;editingCountIn=null;applyPracticeLoop(AppState.practiceLoop.range,{retainMediaPosition:retainPosition});}
     applyMasterVolume();drawLoopShading();updatePlayPauseLabel();
   }
   hostCallbacks.onMediaChanged?.();
@@ -350,6 +353,7 @@ export function endMediaPlayback() {
 export function toggleMediaPlayback() {
   if(!AppState.media.preview || AppState.media.returning || !AppState.playerReady)return false;
   if(AppState.mode==='wait' && !AppState.media.editing)return false;
+  if(!AppState.isPlaying)mediaPausePosition=null;
   if(fullRecordingRegion()!=='music') {
     if(AppState.isPlaying)pauseOutsideRecording();
     else {mediaPausePosition=null;cancelCountIn();applyMasterVolume();alphaTabApi.play();}
@@ -1506,8 +1510,8 @@ export function setMetronomeVolume(volume, options = {}) {
   return true;
 }
 
-export function applyPracticeLoop(range) {
-  mediaPausePosition=null;
+export function applyPracticeLoop(range,{retainMediaPosition=false}={}) {
+  if(!retainMediaPosition)mediaPausePosition=null;
   if (!alphaTabApi) return false;
   if(AppState.media.editing){alphaTabApi.isLooping=false;alphaTabApi.playbackRange=null;drawLoopShading();return true;}
   if (range && (!Number.isFinite(range.startTick) || !(range.endTick > range.startTick) ||

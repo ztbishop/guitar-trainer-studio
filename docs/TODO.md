@@ -1,5 +1,10 @@
 # Guitar Trainer Studio: status and to-do
 
+## Recording editor playhead — 2026-11-10
+
+- [x] Reproduce lesson 87750's outro rewind with unchanged anchors; protect editor transitions from native Pause seeks. All 563 Node tests and full-recording, sync-practice and loop/repeat browser checks pass.
+- [ ] After refresh/reimport, verify lesson 87750 past 9:42, open/close Edit sync, resume, and seek to bar 51. The exact intermittent Pause-with-frozen-clock state remains unconfirmed; a separate Chrome decoder/read failure was captured. See [investigation](RECORDING-PLAYBACK.md).
+
 ## Explicit GP ghost pull-off release
 
 - [x] Preserve the opt-in release instruction across the pinned GP reader, writer, worker codec and MIDI generation.

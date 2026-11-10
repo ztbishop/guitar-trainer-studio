@@ -1,5 +1,11 @@
 # Development notes
 
+## Recording editor playhead — 2026-11-10
+
+Live lesson 87750 inspection reproduced 592.809947 -> 569.236210 seconds when opening Edit sync, with identical anchors. Native Pause's score-beat seek caused the rewind. A separate seek produced Chrome's FFmpegDemuxer data-source error, readyState 1 and seeking=true; reloading the same video restored readiness. This does not establish every intermittent stall's cause.
+
+Realtime editor setup now leaves pausing to the host's position-protected transition. The existing native handler guard retains recording time on entry and on exit without a loop; explicit loop restoration and deliberate seeks retain their behavior. No score, anchors, media source, vendor bundle or version changes. The extended full-recording regression failed before the fix (0.42 -> 2 seconds) and passes afterward. All 563 Node tests, syntax checks, full-recording, sync-practice and loop/media-repeat Chrome checks pass. Real lesson post-refresh and Fishman acceptance remain pending. See [evidence and adapter inventory](RECORDING-PLAYBACK.md).
+
 ## Preserve explicit ghost pull-off releases in imported GP
 
 The pinned alphaTab reader and playback bundles now honor an explicit note property that limits a qualified ghost pull-off to its written duration while retaining the let-ring marking. Synthetic tests verify GP read and re-export, worker score serialization, classic and module playback, and unchanged unmarked notes. Two saved scores were replayed locally against the prior reader: twelve releases per score changed from 1,200 to 240 ticks. Other MIDI events and repeat visits stayed the same. This does not change recording validation. The app version and lesson payload versions stay the same.
