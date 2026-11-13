@@ -18,6 +18,7 @@ export class RealtimeSession extends WaitSession {
     this.records=this.events.map((event,index)=>({eventId:event.id,event,timeMs:event.startTimeMs,slots:attackSlots(event,this.hex,null),
       firstHitMs:null,wrong:0,wrongNotes:[],retries:0,burst:null,finalized:false,
       skipped:realtimeWindowExpired(this.window(index,speed),scoreMs)}));
+    this.recordsById=new Map(this.records.map(record=>[record.eventId,record]));
     this.orphanWrong=[];this.orphanRecord={wrong:0,wrongNotes:this.orphanWrong};this.liveWrong=new Map();this.lastFeedback=null;this.started=false;this.completed=false;
     this.anchor=null;this.finalizeIndex=0;this.lastClock=null;this.clockAt=0;this.finishRequested=false;this.pauseOffset=0;this.pausedAt=null;
   }
@@ -39,9 +40,14 @@ export class RealtimeSession extends WaitSession {
     for(let i=this.finalizeIndex;i<this.records.length;i++){
       const r=this.records[i];
       if(r.skipped || r.finalized)continue;
-      const support=supportedHeldTone(this.events,this.records,this.held,i,this.clockAt,{...this,realtime:true,chordWindowMs:this.timing.chordGroupingMs});
       const window=this.window(i,speed);
-      if(support && scoreMs>=window.start && !realtimeWindowExpired(window,scoreMs)){
+      // Events are in onset order. Future windows cannot settle held evidence;
+      // avoid revisiting the rest of a long score on every audio-clock update.
+      if(scoreMs<window.start)break;
+      if(realtimeWindowExpired(window,scoreMs))continue;
+      const support=supportedHeldTone(this.events,this.records,this.held,i,this.clockAt,{hex:this.hex,
+        heldNoteTolerance:this.heldNoteTolerance,realtime:true,chordWindowMs:this.timing.chordGroupingMs});
+      if(support){
         const noteIds=[];
         for(const {slot,source} of support.supports){slot.hit={at:this.clockAt,channel:source.channel};slot.channel=source.channel;slot.evidence='held';slot.originAt=source.originAt??source.hitAt;noteIds.push(...slot.noteIds);}
         this.lastFeedback={type:'supported-held-tone',eventId:r.eventId,noteIds,complete:true};
@@ -120,7 +126,7 @@ export class RealtimeSession extends WaitSession {
   }
   feedbackHistory(){return super.feedbackHistory().map(r=>({...r,wrongNotes:r.wrongNotes.filter(n=>n.wrongPitch),completed:this.recordFor(r.eventId).finalized}));}
   finish(){if(!this.started)return;this.finishRequested=true;this.advance(Infinity);}
-  recordFor(id){return this.records.find(r=>r.eventId===id);}
+  recordFor(id){return this.recordsById.get(id);}
   stats(){const slots=this.records.filter(r=>!r.skipped).flatMap(r=>r.slots),correct=slots.filter(s=>s.hit).length,missed=slots.filter(s=>s.missed).length,wrong=this.wrongNotes.length;
     return {correct,missed,wrong,pending:slots.length-correct-missed,total:slots.length,...(slots.some(s=>s.evidence==='held')?{supportedHeld:slots.filter(s=>s.evidence==='held').length}:{}),accuracy:correct+missed+wrong?Math.round(100*correct/(correct+missed+wrong)):null};}
 }

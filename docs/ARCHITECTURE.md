@@ -1023,3 +1023,8 @@ Library, mixer/output and Media & Sync were future destinations and are now impl
 ## Equivalent timeline rebuilds during import (2026-11-02)
 
 The receiver snapshots alignment semantics with lessonTimelineKey before awaiting recording load. It compares played measure order/occurrences/indices/tick bounds, tick resolution, total ticks and tempo map instead of native timeline object identity. Equal rebuilds retain imported timing; changed semantics reject. Score-file identity, recording-load generation and player availability remain independent cancellation checks. Points are revalidated against the current timeline and recording duration before native application, with another lifecycle/snapshot check after selection. This receiver repair is local and preserves review, no autoplay/save, protocol versions 1/2/3 and source-byte ownership.
+
+
+## Long-score audio delivery — 2026-11-13
+
+RealtimeSession rebuilds an event-ID record index on reset, so feedback history does not repeatedly search the entire score. Held-note settlement visits only windows that have opened and not expired; future onset windows stop the scan. Bootstrap processes every native playback-position update for grading but combines clock-driven visual projections into one browser-frame paint. MIDI, seeks, Wait and explicit controls retain immediate painting. No vendor or host-adapter changes; native audio/transport and pitch-grading rules remain intact. Run the long-score audio regression when qualifying alphaTab upgrades.

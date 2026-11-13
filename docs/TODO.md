@@ -1153,3 +1153,10 @@ Already addressed in Stages 1–7: MIDI normalization/held-note tracking, repeat
 ## Longer-term ideas
 
 Follow mode, scale/chord-tone overlays, bass/extended-range support, alternate-tuning depth, and LEDs remain ideas rather than committed stage work. Preserve the existing UI and native alphaTab capabilities; avoid broad refactoring for these additions.
+
+
+## Long-score clipped audio — 2026-11-13
+
+- [x] Reproduce native audio starvation, compare supplied exports against pristine/patched alphaTab, and remove repeated full-score Realtime searches and redundant clock paints.
+- [x] Add an isolated original 160-bar audio-delivery regression for initial playback and a late-score seek.
+- [ ] Owner hard-refreshes Live Server, opens each Arirang export, listens at the opening and after a later seek, and checks Pause/Resume and normal Fishman feedback. Automated audio delivery does not establish audible/hardware acceptance.

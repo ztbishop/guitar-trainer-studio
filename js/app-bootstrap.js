@@ -545,7 +545,16 @@ function renderPracticeFretboard(trainer) {
     }),liveWrongNotes:trainer.liveWrongNotes,inputMode:AppState.inputMode,leftHanded:AppState.ui.leftHanded,lastFeedback:trainer.lastFeedback}));
 }
 
+let trainerPaintFrame=null;
+function requestTrainerPaint() {
+  if(trainerPaintFrame!==null)return;
+  trainerPaintFrame=requestAnimationFrame(()=>{trainerPaintFrame=null;renderTrainerUi();});
+}
+
 function renderTrainerUi() {
+  // Input, seeks and controls still paint immediately. Cancel an older queued
+  // clock paint so it cannot repeat the same full-score visual projection.
+  if(trainerPaintFrame!==null){cancelAnimationFrame(trainerPaintFrame);trainerPaintFrame=null;}
   for(const id of ['practice-popup','tempo-popup','looper-popup']) {
     const panel=document.getElementById(id);if(panel)panel.inert=Boolean(AppState.media.returning);
   }
@@ -784,7 +793,10 @@ async function bootstrap() {
         if(position.isSeek && AppState.mode!=='wait')transportControls?.clearPulse();
         if(AppState.mode==='wait')waitController.positionChanged(position);
         else handlePlaybackPosition(position);
-        renderTrainerUi();
+        // Native worklet clocks arrive for each 128-sample audio block. Keep
+        // grading on every update, but project visuals once per browser frame.
+        if(AppState.mode==='wait' || position.isSeek)renderTrainerUi();
+        else requestTrainerPaint();
       },
       onMediaScoreFinished: () => {finishRealtimeSession({expectRewind:false});renderTrainerUi();},
       onPlayerFinished: () => {
