@@ -3,7 +3,8 @@
 param(
     [ValidatePattern('^\d+\.\d+\.\d+$')]
     [string]$Version,
-    [switch]$CheckOnly
+    [switch]$CheckOnly,
+    [switch]$PrepareOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -16,14 +17,17 @@ $vendorRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot 'assets\vendor\alphata
 $stageRoot = Join-Path $toolRoot ('.work\' + [Guid]::NewGuid().ToString('N'))
 $backupRoot = Join-Path $toolRoot ('.backups\' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N'))
 $exitCode = 0
+$retainStage = $false
+$bundles = @('alphaTab.js', 'alphaTab.core.mjs', 'alphaTab.worker.mjs', 'alphaTab.worklet.mjs')
 $requiredFiles = @(
-    'alphaTab.js', 'alphaTab.core.mjs', 'alphaTab.worker.mjs', 'alphaTab.worklet.mjs',
     'font/Bravura.eot', 'font/Bravura.otf', 'font/Bravura.svg',
     'font/Bravura.woff', 'font/Bravura.woff2', 'soundfont/sonivox.sf2',
     'font/Bravura-OFL.txt', 'font/Bravura-OFL-FAQ.txt', 'font/Bravura-FONTLOG.txt',
     'soundfont/LICENSE', 'soundfont/README.md'
 )
+$requiredFiles = $bundles + $requiredFiles
 $packageNotices = @('LICENSE', 'LICENSE.header')
+. (Join-Path $toolRoot 'local-patches.ps1')
 
 function Assert-ToolPath([string]$Path) {
     $resolved = [IO.Path]::GetFullPath($Path)
@@ -47,6 +51,8 @@ function Get-Download([string]$Url, [string]$Destination) {
 }
 
 try {
+    if ($CheckOnly -and $PrepareOnly) { throw 'Choose either -CheckOnly or -PrepareOnly.' }
+    $plan = Get-LocalAlphaTabPlan $toolRoot $bundles
     if (-not (Test-Path -LiteralPath (Join-Path $repoRoot 'js\alphatab-host.js') -PathType Leaf)) {
         throw 'Run this tool from its tools/alphatab folder inside GuitarTrainerStudio.'
     }
@@ -62,10 +68,11 @@ try {
         $latest = Invoke-RestMethod -Uri 'https://registry.npmjs.org/@coderline/alphatab/latest' -TimeoutSec 60
         $suggested = [string]$latest.version
         if ($suggested -notmatch '^\d+\.\d+\.\d+$') { throw 'The registry latest tag is not a stable version. Specify -Version explicitly.' }
-        if ($CheckOnly) { $Version = $suggested }
+        if ($CheckOnly -or $PrepareOnly) { $Version = $suggested }
         else {
-            $choice = Read-Host "Version to install [$suggested] (Enter selects latest stable; Ctrl+C cancels)"
-            $Version = if ([string]::IsNullOrWhiteSpace($choice)) { $suggested } else { $choice.Trim() }
+            Write-Host "Registry latest: $suggested. Only qualified version $($plan.qualifiedVersion) can be installed."
+            $choice = Read-Host "Version to install [$($plan.qualifiedVersion)] (Ctrl+C cancels)"
+            $Version = if ([string]::IsNullOrWhiteSpace($choice)) { $plan.qualifiedVersion } else { $choice.Trim() }
         }
     }
     if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw 'Use a stable version such as 1.8.4.' }
@@ -97,23 +104,31 @@ try {
     foreach ($notice in $packageNotices) {
         Copy-Item -LiteralPath (Join-Path (Join-Path $stageRoot 'package') $notice) -Destination (Join-Path $prepared $notice)
     }
-    $fileHashes = [ordered]@{}
     foreach ($file in ($requiredFiles + $packageNotices)) {
         $path = Join-Path $prepared $file
         if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-Item -LiteralPath $path).Length -eq 0) { throw "Missing or empty asset: $file" }
-        $fileHashes[$file] = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
     }
-    foreach ($file in @('alphaTab.js', 'alphaTab.core.mjs', 'alphaTab.worker.mjs', 'alphaTab.worklet.mjs')) {
+    foreach ($file in $bundles) {
         $header = (Get-Content -LiteralPath (Join-Path $prepared $file) -TotalCount 5) -join "`n"
         if ($header -notmatch ('alphaTab v' + [regex]::Escape($Version) + '(?:\s|\()')) { throw "Wrong version header in $file" }
     }
+    if ($PrepareOnly) { $retainStage = $true }
+    if (-not $PrepareOnly -and $Version -cne $plan.qualifiedVersion) {
+        throw "alphaTab $Version has not been qualified. Use -PrepareOnly and follow docs/ALPHATAB-UPGRADES.md before installing."
+    }
+    $patchResult = Invoke-LocalAlphaTabPatches $plan $prepared $stageRoot $repoRoot $Version
+    $fileHashes = [ordered]@{}
+    foreach ($file in ($requiredFiles + $packageNotices)) { $fileHashes[$file] = Get-AlphaTabHash (Join-Path $prepared $file) }
     $record = [ordered]@{
         package = '@coderline/alphatab'; version = $Version
         source = $packageUrl.AbsoluteUri; integrity = $integrity; files = $fileHashes
+        upstreamFiles = $patchResult.upstream; modifications = $patchResult.modifications
     }
     $record | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $prepared 'vendor-manifest.json') -Encoding UTF8
     Write-Host 'Package integrity, version, runtime assets and required license notices verified.'
-    if ($CheckOnly) {
+    if ($PrepareOnly) {
+        Write-Host 'Candidate only: patch application does not qualify a new release or change installed assets.'
+    } elseif ($CheckOnly) {
         Write-Host 'Check only: installed assets have not changed.'
     } else {
         # These absolute paths are fixed within this checkout before any directory move.
@@ -141,7 +156,9 @@ try {
     Write-Host "Update failed: $($_.Exception.Message)" -ForegroundColor Red
     $exitCode = 1
 } finally {
-    if (Test-Path -LiteralPath $stageRoot) {
+    if ($retainStage) {
+        Write-Host "Verified archive and staged candidate retained at: $stageRoot"
+    } elseif (Test-Path -LiteralPath $stageRoot) {
         Assert-ToolPath $stageRoot
         try { Remove-Item -LiteralPath $stageRoot -Recurse -Force }
         catch { Write-Warning "Temporary files could not be removed: $stageRoot" }

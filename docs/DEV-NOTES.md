@@ -1,10 +1,156 @@
 # Development notes
 
+## Publish pending alphaTab work — 2026-11-14
+
+Owner explicitly authorized committing and pushing the pending trainer-side alphaTab work so GitHub matches the local project. This checkpoint includes the existing classic/core adaptations, their 38 registered source patches, regression tests, exact hashes/source notices, upgrade inventory and patch-preserving updater. AlphaTab stays pinned at 1.8.4; Guitar Trainer stays at 1.0.1. No private Lesson Bridge files, version bump, tag or release.
+
+Publication checks: all 563 Node tests pass; all 17 vendor-manifest file hashes match; the complete registered patch chain reproduces both installed bundles byte-for-byte from the recorded pristine upstream hashes; offline updater tests pass the patch/context/version/hash gates and rollback scenarios. Previously recorded browser and supplied-export playback evidence remains applicable to these unchanged bundles. Pending audible lesson, recording and physical Fishman checks below remain pending.
+
 ## Recording editor playhead — 2026-11-10
 
 Live lesson 87750 inspection reproduced 592.809947 -> 569.236210 seconds when opening Edit sync, with identical anchors. Native Pause's score-beat seek caused the rewind. A separate seek produced Chrome's FFmpegDemuxer data-source error, readyState 1 and seeking=true; reloading the same video restored readiness. This does not establish every intermittent stall's cause.
 
 Realtime editor setup now leaves pausing to the host's position-protected transition. The existing native handler guard retains recording time on entry and on exit without a loop; explicit loop restoration and deliberate seeks retain their behavior. No score, anchors, media source, vendor bundle or version changes. The extended full-recording regression failed before the fix (0.42 -> 2 seconds) and passes afterward. All 563 Node tests, syntax checks, full-recording, sync-practice and loop/media-repeat Chrome checks pass. Real lesson post-refresh and Fishman acceptance remain pending. See [evidence and adapter inventory](RECORDING-PLAYBACK.md).
+
+## Preserve swung connected-grace targets
+
+The classic and core readers retain both written voices and correct the practice and tied release clocks around the marked graces in Hands-on Fingerstyle 95717. Lesson Bridge verifies the selected reader before offering the prepared GP.
+
+## Preserve the written 6/8 whole-note clock
+
+The matching classic and core reader case retains the written meter and complete 3,840-tick note in Hands-on Fingerstyle 95712. The saved score has 38 played bars. Its recording anchors extend to position 39, so it uses explicit Send without timing.
+
+## Preserve tapped harmonic practice pitch
+
+The pitch-only tap marker survives GP and worker score readback. Rock Sauce Lead 248 keeps node 7 on low-E fret 10 and exposes MIDI 57 to practice. Note duration and expressive playback follow native GP.
+
+## Preserve marked on-beat rock grace and written effects
+
+Prepared Rock Sauce Lead 254 preserves the written effects and the captured attacks, releases and bends across three passes. The marked whammy, vibrato and tied slide-out signs can stay visible without adding pitch changes. Classic and core keep the markers through GP and worker readback.
+
+## Preserve fractional rock slides and bends
+
+Prepared Rock Sauce Lead 221 keeps fractional slide approaches, separate hammer and pull-off attacks, both bend curves, and the silent repeat close. Classic and core preserve the fractional ticks and overlapping MIDI 52 events across the worker score and MIDI codecs.
+
+## Preserve sampled rock restart and releases
+
+Prepared Rock Sauce Lead 239 keeps the legato attacks, staccato, written tie and silent repeat close. The marked bend restarts with a 300 ms sample offset on all three passes. Classic and core readers preserve the profile through GP and worker readback.
+
+## Preserve compact blues bends and articulation
+
+Prepared Freestyle Blues 95570 keeps the short fine bend, separate legato and pull-off samples, swung hammer handoff and staccato releases. The classic and core readers preserve the profile through GP and worker readback. Standard MIDI retains native playback.
+
+## Preserve sampled blues slides and releases
+
+Prepared Freestyle Blues 95557 retains the written slides, exact sampled attacks and independent releases on both passes. The classic and core readers preserve the MIDI 59 overlap on separate channels. Standard MIDI retains native playback.
+
+## Preserve terminal falls and sampled triplets
+
+Prepared Pedal Steel 46659 keeps its 480-tick raised attack and 4,800-tick falling restart on each pass. The first ending and silent last bar both keep the exact release. Classic, core and worker transport have synthetic regression coverage.
+
+## Preserve straight paired bends and sampled legato
+
+Prepared Pedal Steel 46657 keeps the sampled slides, separate paired bend curves and written vibrato ties. Classic and core readers and worker transport have synthetic regression coverage.
+
+## Preserve long vibrato rises and swung quarter dyads
+
+Prepared Pedal Steel 46658 keeps both vibrato signs and the continuous bend through its tie. The plain partner releases at the barline. The four quarter-note dyads and the matching long 8va rise profile have classic, core and worker regression coverage.
+
+## Preserve swung dyad releases and sampled slides
+
+Prepared Pedal Steel 46665 keeps the two independent releases and fresh dyad attacks on both passes. It preserves the captured 300 ms falling restart, seven written 8va beats, and the long rise. The classic and core readers and the worker codec have synthetic regression coverage.
+
+## Preserve sampled approaches after a pre-bent release
+
+Prepared Pedal Steel 46638 releases through the written tie, plays the short approach and reattacks the destination separately. It preserves the other upward slide samples and independent paired releases. The classic/core and worker-score checks cover both passes and native MIDI.
+
+## Preserve swung reattacks and staccato dyads
+
+Prepared Pedal Steel 46647 keeps the 8va signs and written ties. The marked string releases before its zero-offset reattack and rises through the following bar; the independent hammer starts 200 ms into its sample. The classic/core and worker-score checks cover both repeat passes and native MIDI.
+
+## Preserve sampled hammer attacks and independent chord releases
+
+Prepared Pedal Steel 46651 keeps the four written hammer/pull pairs and both paired bends. The marked destinations attack on time with the captured 200 ms sample offset; the other strings retain their independent releases and pitch curves on each pass. The classic/core and worker-score checks passed.
+
+## Preserve captured tapped-harmonic pitch and release
+
+Prepared Pedal Steel 46662 keeps all 17 written taps, including the two vibrato signs. Both reader bundles and the worker score codec preserve the sounding notes and the exact releases on both repeat passes. Ordinary GP tap playback is unchanged.
+
+## Preserve a pre-bent release and fresh legato attack across a barline
+
+Prepared Pedal Steel 46654 plays the raised pre-bent attack and the separate legato target on both passes. Both local readers preserve the written ties, the full release curve and the final release in the silent bar.
+
+## Preserve a held rise through a terminal first ending
+
+Prepared Pedal Steel 46663 plays the full one-semitone rise through its written tie and vibrato signs. The release on the second pass falls inside the silent trailing bar. Classic and core playback verify both played successors.
+
+## Preserve sampled legato attacks and mixed swing clocks
+
+Prepared Soundslice scores can retain written legato and ties while reproducing fresh attacks, short palm-muted samples and two kinds of tied chord exits. The internal playback clock preserves the 640/1,280-tick eighth and dotted quarter. Both local bundles and worker readback preserve the written notation; native MIDI is unchanged.
+
+## Play marked short swing bends and cross-bar releases
+
+Internal playback uses the verified 320- and 640-tick rises, quarter-length staccato and continuous raised release into the played successor. The local classic and core readers preserve the written notation and standard MIDI behavior.
+
+## Preserve written vibrato on a held rise
+
+The qualified rise plays one continuous one-semitone ramp through two marked vibrato continuations. The chord partner releases at the end of the attack beat. Classic and core tests check both repeat visits and the native MIDI path.
+
+## Preserve rising and staggered bend restarts
+
+The reader plays the verified 300 ms restarts after the original rises and keeps the written continuations quiet. The focused control checks both repeat visits, GPIF, worker readback and native MIDI.
+
+## Preserve paired falling bends through their legato exits
+
+The reader carries both falling bend restarts through the written ties. A two-semitone exit plays an intermediate 200 ms sample, and a one-semitone exit attacks its target directly. Focused tests cover the note marker, worker readback, both repeats and native MIDI.
+
+## Play source staccato and sampled slide exits
+
+Both reader bundles preserve the written marks while playing the verified release and sampled exits. Focused checks exercise GPIF, worker readback, repeat visits, the fresh slide target and native MIDI. The upgrade inventory registers the patch.
+
+## Match the swung standalone chord bend
+
+Both reader bundles play the qualified standalone rise with the captured curve. The focused regression checks GP and worker readback, the chord partner, both repeats, the existing tied path and native MIDI. The upgrade inventory registers the patch.
+
+## Play a pre-bent release across the written tie
+
+The classic and core bundles use one raised sample and a continuous release for the qualified Lesson Bridge shape. The focused check exercises GP and worker readback, both repeat passes, swung playback, and native MIDI. The upgrade inventory registers the patch and regression.
+
+## Preserve written vibrato with captured playback
+
+The marked GP path keeps the vibrato signs on the held peak and steady dyad. Both reader bundles preserve the marks through GP and worker readback while keeping the source pitch curves, attacks and releases. The upgrade inventory registers the new patch and regression.
+
+## Restart the sample at a falling tied bend
+
+The marked GP path plays a separate 300 ms sample restart and a falling pitch curve while retaining the written tie. The two-pass test covers the worker codecs, the same-key release order, and the bundled SoundFont cursor. Both bundles are registered in the upgrade inventory.
+
+## Preserve sampled legato approaches
+
+The new marked profile schedules both approach strings and their fresh targets on each repeat. The internal NoteOn event carries an optional sample offset through the worker codec. TinySoundFont starts the approach notes inside the loaded sample loop. Ordinary notes keep the original sample start. Both bundles are covered by the upgrade inventory and a synthetic two-pass test.
+
+## Use performed swing for marked tied bends
+
+Both alphaTab bundles use the performed tail length for qualified swung releases and play a tied peak as one attack with a ramp in each direction. The existing GP marker and written hold are preserved. The upgrade inventory registers the clock and peak patch after the original tied-bend patch.
+
+## Play marked bends across their full tie
+
+The classic and core alphaTab bundles retain `GtsTiedBend` through GP import, re-export and worker transport. A verified rise extends across the sounded tie while written hold points remain in the score. Tests cover attacks, release, repeat visits, chord partners and native fallback. The [upgrade inventory](ALPHATAB-UPGRADES.md) registers the patch and its regressions.
+
+## Preserve the exact release of a marked repeat-ending tie
+
+The pinned alphaTab 1.8.4 classic and core bundles keep the written tie and pull-off while ending the marked second pass 30 ticks earlier. Both audited scores preserve every other MIDI event and practice bar clock. Synthetic checks cover GP re-export, worker score transport, both bundle paths, and the native fallback for unsupported clocks. The [upgrade inventory](ALPHATAB-UPGRADES.md) records the reapplicable patch and regression.
+
+## Preserve explicit directional-slide playback in imported GP
+
+The pinned alphaTab 1.8.4 classic and core bundles retain and honor two separately qualified slide playback profiles. Both saved scores match the provider's 17 changed note commands across the outgoing chord and tied slide-ins, preserve all 45 score visits, and leave other MIDI events and practice clocks unchanged. The regression exercises GP read/write, classic/core playback, worker transport, native unmarked playback and standard MIDI file export. The [upgrade inventory](ALPHATAB-UPGRADES.md) registers the source patch, search anchors and upgrade tests. The app version and timing validation are unchanged.
+
+## Preserve explicit fine-bend playback and internal GP bar lengths
+
+The receiver retains two separately gated GP properties through the native reader, writer and worker codec. A marked fine bend keeps the written quarter-tone and let-ring marks while its MIDI playback uses the verified full-semitone ramp and earlier release. The supported internal measure clock keeps the meter as printed and must match the decoded voices. Saved readback and synthetic repeat/codec regressions check the affected events and clocks. Ordinary GP playback and recording validation use their existing rules. Both dependency patches and exact bundle hashes are recorded in the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Preserve local alphaTab fixes during upgrades
+
+The [upgrade inventory](ALPHATAB-UPGRADES.md) records the three bundled patches and three host adaptations, their upstream search anchors, and regressions for future versions. The updater applies patches in staging, requires a qualified version and exact bundle hashes before installation, and retains uninstalled candidates for porting. The currently pinned alphaTab and application runtime are unchanged.
 
 ## Preserve explicit ghost pull-off releases in imported GP
 

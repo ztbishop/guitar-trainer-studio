@@ -4,6 +4,110 @@
 
 Opening Edit sync delegates Realtime pausing to `setMediaEditing`, not the Wait transport callback. Before native Pause, the host's existing `nativeMediaHandler` guard captures the recording playhead and redirects delayed beat-snap seeks to it. Closing without an active practice range retains the same protection through loop-setting restoration; restoring an explicit loop still seeks its start. No-op editor updates retain the guard; explicit Play and seek intents release it. This changes transport only, never score or alignment data. See [adapter inventory and evidence](RECORDING-PLAYBACK.md).
 
+## Swung connected graces
+
+Explicitly marked GP grace chords retain the native 120-tick grace duration and the qualified swung beat and tie clocks. Marker 32 survives GPIF and worker readback. Only the marked upper-voice neighborhood changes in the internal player. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Whole note in written 6/8
+
+An explicit `GtsPerformedBarTicks` marker keeps an internal written 6/8 bar at 3,840 ticks when its only sounding event is a fretted whole note. The GPIF and worker codecs already carry this value. The reader validates the marked bar at score finalization. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP tap practice pitch
+
+`GtsTappedHarmonicTicks` value `-2` uses the captured tap pitch and native GP duration. The written string, fret, node and ties stay in the score. Lesson Bridge checks the selected reader before sending the marked GP. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP tapped harmonics
+
+`GtsTappedHarmonicTicks` is limited to the prepared tapped-harmonic profile. It keeps the original tap type, fret, decimal node and vibrato signs. Its sounding interval is the integer part of the node, and its bounded duration comes from the performed repeat and swing clock. The tie tails stay silent. Unmarked tap notes still use alphaTab’s native harmonic mapping. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP on-beat rock grace
+
+`GtsSourceArticulation` kinds 28–31 select verified sampled attacks and bend curves, written-only whammy, written-only vibrato, and written-only tied slide-outs. Other notes and standard MIDI use native playback. The native grace sign remains visible and the marked playback uses the captured 76.8-tick attack. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP fractional rock slides
+
+`GtsSourceArticulation` kind 27 preserves the written slide and bend marks while scheduling fractional approaches, separate hammer and pull-off attacks, and the source bend curves. The approach crossing into bar 4 uses the secondary channel for the MIDI 52 that overlaps a sustained note. Standard MIDI retains native playback. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP sampled rock restart
+
+`GtsSourceArticulation` kind 26 preserves the written legato, staccato, tie and bend marks while scheduling the verified separate attacks, shortened releases and fresh 300 ms sample. The silent repeat close still occupies its whole bar on all three passes. Standard MIDI retains native playback. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP compact blues
+
+`GtsSourceArticulation` kind 25 retains the written notation and opts qualified Freestyle Blues events into sampled attacks, shortened releases and source-rate bends. The swung hammer correction also updates the beat lookup to the played boundary. Standard MIDI retains native playback. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP sampled blues
+
+`GtsSlidePlayback` kind 4 keeps the written slides and separately schedules the qualified samples, staccato and swung releases. The reader checks the played successor at the cross-bar shift. It uses the track’s second channel for the one sampled step that shares the plain partner’s MIDI pitch. Standard MIDI retains native playback. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP terminal falls
+
+`GtsSourceArticulation` kinds 23–24 preserve a qualified 300 ms falling restart at a skipped ending and the sampled triplet hammer and pull-off. The player checks the actual successor before letting the fall finish in the silent final bar. Standard MIDI retains native playback. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP straight paired bends
+
+`GtsSourceArticulation` kinds 20–22 preserve qualified straight legato samples and fresh targets into a written vibrato dyad. The tied bend player handles the marked cross-bar release and two independent short rises. Standard MIDI retains native playback. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP long vibrato rises
+
+A qualified `GtsWrittenVibrato` rise preserves both signs while the tied-bend player emits a single continuous rise. The swung full-bar profile also preserves the plain partner release. Four marked quarter-note dyads use the same rate curve. Standard MIDI retains native playback. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP swung dyad releases
+
+`GtsSourceArticulation` kinds 16–19 qualify a tied dyad with independent sampled slides and two marked swing clocks. The bent release and the overlapping sample use distinct channels. Written ties and 8va signs stay in the score. Standard MIDI retains native playback. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP pre-bent approaches
+
+`GtsSourceArticulation` kinds 14–15 preserve the short sampled approaches in the verified v2 straight-eighth profile. The marked pre-bent release follows the played successor and ends before its independent target attack. The two raised notes of a qualified 8va dyad can release independently through their written ties. Unmarked scores and standard MIDI retain native playback. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP swung reattacks
+
+`GtsSourceArticulation` kinds 11–13 preserve qualified short staccato dyads, the start of a fresh bend sample within a written tie, and an independent sampled hammer across the barline. The reader checks the actual played successor before applying either cross-bar technique. GP beat ottava keeps the 8va display separate from sounding pitch. Unmarked scores and standard MIDI retain native playback. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Captured GP hammer attacks and chord releases
+
+`GtsSourceArticulation` kind 10 starts the qualified hammer/pull destination 200 ms into the sample without changing its notated attack or release. The neighboring string can retain an independent pre-bent release across its written tie. Paired pre-bends can fall independently through a written dyad. Unmarked scores and standard MIDI retain native playback. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Marked GP tied bends
+
+`GtsTiedBend` marks a verified one- or two-semitone rise or peak. Playback validates the contiguous tie, played successors and swing clocks, then schedules the sample-rate curve through the performed release. Written hold points survive GP export and worker transport. Unmarked GP and standard MIDI use native bend generation. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+The terminal held rise extends through a written first ending on pass one and into the silent final bar on pass two. The marked GP keeps all three written vibrato continuations. The reader checks both permitted successors and uses the same 5,120-tick curve and release.
+
+A marked paired release sustains the pre-bent note through two written holds. The adjacent legato string attacks again at the barline. Both notes end at the same tick, which falls inside the silent final bar on the skipped-ending pass.
+
+`GtsFallingTie` keeps the written tie and reuses those performed-clock checks. It schedules the first attack and release, then starts a fresh note 300 ms into the sample and falls back to the base pitch. A prebent origin uses the raised sample key from the first attack. A same-key restart releases the first voice before starting the next.
+
+`GtsWrittenVibrato` preserves the native vibrato sign on a qualified steady dyad or held tail of a tied peak or rise. Internal MIDI follows the verified source curve without a separate vibrato oscillation. Unmarked scores and standard MIDI use native vibrato.
+
+A qualified `GtsTiedBend` pre-bent release uses one raised sample and a continuous note-level pitch ramp through its written tie in internal playback. The ordinary reader and standard MIDI paths retain native behavior. This is separate from the falling tie that needs a fresh sample.
+
+A marked triplet release can continue into a written whole-note tie. The reader requires the played bar successor. The existing markers also carry short sample-rate rises and the quarter-length staccato on qualified swing eighths.
+
+Qualified source articulation markers preserve fresh attacks under written legato, short palm-muted samples, paired exits with separate per-string behavior and a held bend over a mixed swing clock. The reader follows the played successor and leaves standard MIDI on the native path.
+
+The marked standalone one-semitone chord rise in swung 3/4 uses the captured sample-rate ramp over a half note. Its partner remains plain. The separate tied rise in swung 3/4 uses the existing marked tie path. Unmarked scores and standard MIDI keep native playback.
+
+Marked source articulation keeps the GP staccato, descending slide and legato tie notation. Internal playback uses the verified quarter-length swung staccato, 200 ms exit samples and a fresh attack at the tied slide target. The standard MIDI path uses native playback.
+
+The paired falling exit uses source articulation value 4 on each marked bend. The existing falling path schedules the 300 ms restart and the verified legato exit. Target attacks follow the performed order, including a verified next bar at a repeat boundary.
+
+Marked restarted bends can carry the captured rise across a written continuation or delay a fall until the performed restart point. The reader preserves the written chain and validates the played bar successor. The standalone chord controls use the captured sample-rate curve.
+
+`GtsSlidePlayback` profile 3 preserves the written legato chord. It carries the approach sample offset through internal worker MIDI into the SoundFont voice and allows a fresh attack on both slide targets. Native score playback and standard MIDI retain their existing paths outside the marked profile.
+
+## Explicit GP repeat-ending tie releases
+
+The pinned classic and core bundles retain the optional `GtsRepeatTieRelease` GPIF note property through import, export, cloning, and the worker score codec. A marked pull-off tie keeps its written destination and its first-ending release. The MIDI generator looks up the next bar that actually plays and scales the carry by that bar's duration when the verified second ending plays. It builds the successor map on demand for marked playback. The 1/8 carry gives 240 ticks in the first ending and 210 in the second. Standard MIDI and unmarked scores use native releases. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Explicit GP directional-slide playback
+
+The pinned classic and core bundles carry the optional GPIF note property `GtsSlidePlayback` through import, re-export, note cloning and the worker score codec. Value 1 plays a qualified staccato outgoing chord with discrete slide notes and the verified shortened plain partners. Value 2 adds two notes before a qualified tied slide-in and keeps the native target attack and held release. The fractional ticks run through alphaTab's internal MIDI transport. Unmarked notes and standard MIDI file export use native generation. The app's import, timing validation and score layout do not change. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+## Explicit GP fine bends and internal bar clocks
+
+The pinned classic and core bundles carry two optional GPIF properties across import, re-export and the worker score codec. `GtsFineBendMidpoint` keeps the exact written midpoint while ordinary half-semitone model endpoints still drive engraving. The MIDI generator uses the verified sampled playback-rate ramp and written release only for the marked, isolated eighth-note bend. `GtsPerformedBarTicks` sets a supported internal bar's playback length. `Score.finish` rejects a marker that disagrees with the written meter or actual voice lengths; the pickup and ordinary meter paths stay separate. The existing playback timeline, seek, repeat, loop and recording validation consume the corrected native clocks. See the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
 ## Explicit GP ghost pull-off release
 
 The pinned alphaTab classic and core bundles retain the optional note property `GtsGhostReleaseAtBeatEnd` through GPIF, note cloning and the score codec used by the worker. The property preserves ghost, pull-off and let-ring notation. Native playback skips the extra let-ring sustain only on an explicitly marked ghost pull-off to an open string with a same-bar fretted origin and no outgoing tie or slide. Unmarked GP files and other notation use the existing rules. See the bundled [source patch](licenses/alphaTab-ghost-release.patch).

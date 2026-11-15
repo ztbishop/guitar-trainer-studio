@@ -1,0 +1,124 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -43769,10 +43769,14 @@
+ 			const heldVibratoRise = !falling && !peak && !release && target === 2 && firstDuration === 480 &&
+ 				bar.timeSignatureNumerator === 4 && bar.timeSignatureDenominator === 4 && bar.tripletFeel === TripletFeel.NoTripletFeel &&
+ 				note.beat.playbackStart === 3360 && note.beat.notes.length === 2;
++			const terminalRise = !falling && !peak && !release && note.gtsTiedBend && target === 2 &&
++				firstDuration === 320 && note.beat.playbackStart === 3520 && note.beat.notes.length === 1 &&
++				bar.isRepeatStart && note.tieDestination?.gtsWrittenVibrato && note.beat.duration === Duration.Eighth &&
++				note.beat.tupletNumerator === 3 && note.beat.tupletDenominator === 2;
+ 			const plain = n => !n.isDead && !n.isGhost && !n.isStaccato && !n.isPalmMute &&
+ 				!n.isHammerPullOrigin && !n.isHammerPullDestination && !n.isLeftHandTapped && !n.isRightHandTapped &&
+ 				!n.isTrill && n.ornament === NoteOrnament.None && (n.vibrato === VibratoType.None ||
+-				!falling && (peak || heldVibratoRise) && n !== note && n.gtsWrittenVibrato && n.vibrato === VibratoType.Slight) &&
++				!falling && (peak || heldVibratoRise || terminalRise) && n !== note && n.gtsWrittenVibrato && n.vibrato === VibratoType.Slight) &&
+ 				n.harmonicType === HarmonicType.None && n.slideInType === SlideInType.None && (n.slideOutType === SlideOutType.None || ((sampledExit || pairedPeak) && n === note.tieDestination || fallingExit && n.isTieDestination && !n.isTieOrigin) && n.slideOutType === SlideOutType.Legato) &&
+ 				!n.gtsRepeatTieRelease && !n.gtsSlidePlayback && !n.gtsFineBendMidpoint &&
+ 				n.beat.graceType === GraceType.None && !n.beat.tap && !n.beat.isTremolo && !n.beat.hasWhammyBar &&
+@@ -43849,8 +43853,8 @@
+ 				tails.map(([n]) => timing(n.beat)[1]).join() !== "320,640,320,640" ||
+ 				tails.map(([n]) => n.beat.notes.length).join() !== "1,2,2,2")) return false;
+ 			if (tails.some(([tail]) => tail.gtsWrittenVibrato)) {
+-				if (falling || !(peak && target === 4 || heldVibratoRise) || note.beat.voice.bar.staff.track.playbackInfo.program !== 27 ||
+-					firstDuration !== 480 || elapsed !== 6240 || tails.length !== 2 ||
++				if (falling || !(peak && target === 4 || heldVibratoRise || terminalRise) || note.beat.voice.bar.staff.track.playbackInfo.program !== 27 ||
++					(terminalRise ? elapsed !== 5120 || tails.length !== 3 : firstDuration !== 480 || elapsed !== 6240 || tails.length !== 2) ||
+ 					!tails.every(([tail]) => tail.gtsWrittenVibrato && tail.vibrato === VibratoType.Slight && shape(tail, heldValue, heldValue))) return false;
+ 				if (heldVibratoRise) {
+ 					const partner = note.beat.notes.find(n => n !== note);
+@@ -43924,6 +43928,21 @@
+ 			duration = elapsed;
+ 			const originBar = note.beat.voice.bar.masterBar;
+ 			const endBar = previous.beat.voice.bar.masterBar;
++			const silentTail = this._score.masterBars[endBar.index + 1];
++			if (terminalRise) {
++				const score = this._score, track = note.beat.voice.bar.staff.track;
++				const staff = note.beat.voice.bar.staff, middle = score.masterBars[originBar.index + 1];
++				if (track.staves.length !== 1 || score.tracks.length !== 1 || note.isLetRing || elapsed !== 5120 ||
++					!silentTail || silentTail !== score.masterBars.at(-1) || endBar.index !== originBar.index + 2 ||
++					endBar.alternateEndings !== 1 || endBar.repeatCount !== 2 ||
++					![originBar, middle, endBar, silentTail].every(b => b.timeSignatureNumerator === 4 &&
++						b.timeSignatureDenominator === 4 && b.tripletFeel === TripletFeel.Triplet8th) ||
++					silentTail.isRepeatStart || silentTail.repeatCount || silentTail.alternateEndings ||
++					!staff.bars[silentTail.index].voices.every(v => v.beats.every(b => b.notes.length === 0)) ||
++					tails.some(([tail, offset], i) => offset !== [320, 2240, 4160][i] || tail.isLetRing ||
++						tail.beat.notes.length !== 1 || !tail.gtsWrittenVibrato || tail.vibrato !== VibratoType.Slight ||
++						!shape(tail, target, target))) return false;
++			}
+ 			const crossBarRelease = release && target === 2 && firstDuration === 320 && duration === 4160 &&
+ 				endBar.index === originBar.index + 1 && note.beat.playbackStart === 3520 && note.beat.notes.length === 2 &&
+ 				note.beat.duration === Duration.Eighth && note.beat.tupletNumerator === 3 && note.beat.tupletDenominator === 2 &&
+@@ -43940,7 +43959,9 @@
+ 				let tick = start - note.beat.playbackStart - shift;
+ 				for (let i = originBar.index; i < endBar.index; i++) {
+ 					const visit = successors.get(tick);
+-					if (visit?.from !== this._score.masterBars[i] || visit.to !== this._score.masterBars[i + 1]) return false;
++					if (visit?.from !== this._score.masterBars[i] ||
++						(visit.to !== this._score.masterBars[i + 1] &&
++						 !(terminalRise && i === endBar.index - 1 && visit.to === silentTail))) return false;
+ 					tick += visit.from.calculateDuration();
+ 				}
+ 			}
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -43765,10 +43765,14 @@ class MidiFileGenerator {
+ 		const heldVibratoRise = !falling && !peak && !release && target === 2 && firstDuration === 480 &&
+ 			bar.timeSignatureNumerator === 4 && bar.timeSignatureDenominator === 4 && bar.tripletFeel === TripletFeel.NoTripletFeel &&
+ 			note.beat.playbackStart === 3360 && note.beat.notes.length === 2;
++		const terminalRise = !falling && !peak && !release && note.gtsTiedBend && target === 2 &&
++			firstDuration === 320 && note.beat.playbackStart === 3520 && note.beat.notes.length === 1 &&
++			bar.isRepeatStart && note.tieDestination?.gtsWrittenVibrato && note.beat.duration === Duration.Eighth &&
++			note.beat.tupletNumerator === 3 && note.beat.tupletDenominator === 2;
+ 		const plain = n => !n.isDead && !n.isGhost && !n.isStaccato && !n.isPalmMute &&
+ 			!n.isHammerPullOrigin && !n.isHammerPullDestination && !n.isLeftHandTapped && !n.isRightHandTapped &&
+ 			!n.isTrill && n.ornament === NoteOrnament.None && (n.vibrato === VibratoType.None ||
+-			!falling && (peak || heldVibratoRise) && n !== note && n.gtsWrittenVibrato && n.vibrato === VibratoType.Slight) &&
++			!falling && (peak || heldVibratoRise || terminalRise) && n !== note && n.gtsWrittenVibrato && n.vibrato === VibratoType.Slight) &&
+ 			n.harmonicType === HarmonicType.None && n.slideInType === SlideInType.None && (n.slideOutType === SlideOutType.None || ((sampledExit || pairedPeak) && n === note.tieDestination || fallingExit && n.isTieDestination && !n.isTieOrigin) && n.slideOutType === SlideOutType.Legato) &&
+ 			!n.gtsRepeatTieRelease && !n.gtsSlidePlayback && !n.gtsFineBendMidpoint &&
+ 			n.beat.graceType === GraceType.None && !n.beat.tap && !n.beat.isTremolo && !n.beat.hasWhammyBar &&
+@@ -43845,8 +43849,8 @@ class MidiFileGenerator {
+ 			tails.map(([n]) => timing(n.beat)[1]).join() !== "320,640,320,640" ||
+ 			tails.map(([n]) => n.beat.notes.length).join() !== "1,2,2,2")) return false;
+ 		if (tails.some(([tail]) => tail.gtsWrittenVibrato)) {
+-			if (falling || !(peak && target === 4 || heldVibratoRise) || note.beat.voice.bar.staff.track.playbackInfo.program !== 27 ||
+-				firstDuration !== 480 || elapsed !== 6240 || tails.length !== 2 ||
++			if (falling || !(peak && target === 4 || heldVibratoRise || terminalRise) || note.beat.voice.bar.staff.track.playbackInfo.program !== 27 ||
++				(terminalRise ? elapsed !== 5120 || tails.length !== 3 : firstDuration !== 480 || elapsed !== 6240 || tails.length !== 2) ||
+ 				!tails.every(([tail]) => tail.gtsWrittenVibrato && tail.vibrato === VibratoType.Slight && shape(tail, heldValue, heldValue))) return false;
+ 			if (heldVibratoRise) {
+ 				const partner = note.beat.notes.find(n => n !== note);
+@@ -43920,6 +43924,21 @@ class MidiFileGenerator {
+ 		duration = elapsed;
+ 		const originBar = note.beat.voice.bar.masterBar;
+ 		const endBar = previous.beat.voice.bar.masterBar;
++		const silentTail = this._score.masterBars[endBar.index + 1];
++		if (terminalRise) {
++			const score = this._score, track = note.beat.voice.bar.staff.track;
++			const staff = note.beat.voice.bar.staff, middle = score.masterBars[originBar.index + 1];
++			if (track.staves.length !== 1 || score.tracks.length !== 1 || note.isLetRing || elapsed !== 5120 ||
++				!silentTail || silentTail !== score.masterBars.at(-1) || endBar.index !== originBar.index + 2 ||
++				endBar.alternateEndings !== 1 || endBar.repeatCount !== 2 ||
++				![originBar, middle, endBar, silentTail].every(b => b.timeSignatureNumerator === 4 &&
++					b.timeSignatureDenominator === 4 && b.tripletFeel === TripletFeel.Triplet8th) ||
++				silentTail.isRepeatStart || silentTail.repeatCount || silentTail.alternateEndings ||
++				!staff.bars[silentTail.index].voices.every(v => v.beats.every(b => b.notes.length === 0)) ||
++				tails.some(([tail, offset], i) => offset !== [320, 2240, 4160][i] || tail.isLetRing ||
++					tail.beat.notes.length !== 1 || !tail.gtsWrittenVibrato || tail.vibrato !== VibratoType.Slight ||
++					!shape(tail, target, target))) return false;
++		}
+ 		const crossBarRelease = release && target === 2 && firstDuration === 320 && duration === 4160 &&
+ 			endBar.index === originBar.index + 1 && note.beat.playbackStart === 3520 && note.beat.notes.length === 2 &&
+ 			note.beat.duration === Duration.Eighth && note.beat.tupletNumerator === 3 && note.beat.tupletDenominator === 2 &&
+@@ -43936,7 +43955,9 @@ class MidiFileGenerator {
+ 			let tick = start - note.beat.playbackStart - shift;
+ 			for (let i = originBar.index; i < endBar.index; i++) {
+ 				const visit = successors.get(tick);
+-				if (visit?.from !== this._score.masterBars[i] || visit.to !== this._score.masterBars[i + 1]) return false;
++				if (visit?.from !== this._score.masterBars[i] ||
++					(visit.to !== this._score.masterBars[i + 1] &&
++					 !(terminalRise && i === endBar.index - 1 && visit.to === silentTail))) return false;
+ 				tick += visit.from.calculateDuration();
+ 			}
+ 		}

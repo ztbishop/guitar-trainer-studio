@@ -1,0 +1,238 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -21211,7 +21211,7 @@
+ 							break;
+ 						case "GtsSourceArticulation": {
+ 							const value = Number(c.findChildElement("Number")?.innerText);
+-							note.gtsSourceArticulation = Number.isInteger(value) && value >= 1 && value <= 26 ? value : 0;
++							note.gtsSourceArticulation = Number.isInteger(value) && value >= 1 && value <= 27 ? value : 0;
+ 							break;
+ 						}
+ 						case "GtsSlidePlayback":
+@@ -31373,7 +31373,7 @@
+ 					obj.gtsRepeatTieRelease = v === true;
+ 					return true;
+ 				case "gtssourcearticulation":
+-					obj.gtsSourceArticulation = Number.isInteger(v) && v >= 1 && v <= 26 ? v : 0;
++					obj.gtsSourceArticulation = Number.isInteger(v) && v >= 1 && v <= 27 ? v : 0;
+ 					return true;
+ 				case "gtsslideplayback":
+ 					obj.gtsSlidePlayback = v === 1 || v === 2 || v === 3 || v === 4 ? v : 0;
+@@ -43690,6 +43690,81 @@
+ 			}
+ 			return false;
+ 		}
++		_tryGtsRockLead(note, noteStart, beatDuration, tempoOnBeatStart, brushOffset, noteKey, velocity, channel, noteDuration) {
++			const beat221 = note.beat, bar221 = beat221.voice.bar, {staff,masterBar} = bar221, track = staff.track;
++			if(!this._handler._smf1Mode && track.staves.length===1 && track.playbackInfo.program===30 && tempoOnBeatStart===128 &&
++				this._score.masterBars.length===9 && this._score.tracks.length===1 && !staff.capo &&
++				staff.tuning.join()==="64,59,55,50,45,40" && beat221.notes.length===1 && !brushOffset &&
++				beat221.graceType===GraceType.None && masterBar.tripletFeel===TripletFeel.NoTripletFeel &&
++				masterBar.timeSignatureNumerator===4 && masterBar.timeSignatureDenominator===4 &&
++				!note.isTieOrigin && !note.isTieDestination && !note.isDead && !note.isGhost &&
++				!note.isPalmMute && !note.isLetRing && !note.isStaccato && !note.isHarmonic) {
++				const add221=(tick,length,key,offset=200,lane=channel)=>{
++					this._handler.addNoteBend(track.index,noteStart+tick,lane,key,MidiFileGenerator.getPitchWheel(0));
++					this._handler.addNote(track.index,noteStart+tick,length,key,velocity,lane,offset);
++				};
++				const rate221=(length,peak,fall=false)=>{
++					const ramp=(tick,from,to)=>{
++						const startRate=2**(from/12),endRate=2**(to/12);
++						for(let i=0;i<=length;i+=5){
++							const wheel=Math.round(MidiFileGenerator.getPitchWheel(24*Math.log2(startRate+(endRate-startRate)*i/length)));
++							this._handler.addNoteBend(track.index,noteStart+tick+i,channel,noteKey,wheel);
++						}
++					};
++					ramp(0,0,peak);
++					if(fall)ramp(length,peak,0);
++				};
++				const i=beat221.playbackStart;
++				const slide=note.slideOutType===SlideOutType.Legato?note:note.slideOrigin;
++				const target=slide?.slideTarget;
++				if(target && [slide,target].includes(note) && slide.beat.nextBeat===target.beat && slide.hammerPullOrigin &&
++					[slide,target].every(n=>n.gtsSourceArticulation===27 && n.beat.voice===beat221.voice && !n.hasBend) &&
++					((bar221.index===1 && ((slide.beat.playbackStart===640 && slide.realValue===67 && target.realValue===66)||
++					  (slide.beat.playbackStart===2560 && slide.realValue===60 && target.realValue===59)) && beatDuration===160)||
++					 (bar221.index===2 && slide.beat.playbackStart===1760 && slide.realValue===48 && target.realValue===52))){
++					if(bar221.index===2 && note===slide){
++						add221(0,136,48);
++						for(let step=1;step<=3;step++)add221(128+8*step,8,48+step);
++					}else add221(0,beatDuration,noteKey);
++					return true;
++				}
++				if(note.slideInType===SlideInType.IntoFromBelow &&
++					(bar221.index===2 && i===2880 && noteKey===52 && beatDuration===960 ||
++					 bar221.index===3 && i===0 && noteKey===54 && beatDuration===1920 &&
++					 note.bendPoints?.map(p=>p.value).join()==="0,2")){
++					const needsSeparate=bar221.index===3;
++					if(needsSeparate){
++						const previous=beat221.previousBeat;
++						if(track.playbackInfo.primaryChannel===track.playbackInfo.secondaryChannel ||
++							previous?.voice.bar.index!==2 || previous.playbackStart!==2880 || previous.playbackDuration!==960 ||
++							previous.notes.length!==1 || previous.notes[0].realValue!==52 ||
++							previous.notes[0].gtsSourceArticulation!==27) return false;
++					}
++					add221(-204.8,102.4,noteKey-2,200,needsSeparate?track.playbackInfo.secondaryChannel:channel);
++					add221(-102.4,102.4,noteKey-1);
++					add221(0,beatDuration,noteKey,needsSeparate?0:200);
++					if(needsSeparate)rate221(1920,1);
++					return true;
++				}
++				if(bar221.index===7 && i===2880 && noteKey===52 && beatDuration===960 &&
++					note.bendPoints?.map(p=>p.value).join()==="0,6,6,0"){
++					add221(0,960,52,0);
++					rate221(480,3,true);
++					return true;
++				}
++			const origin = note.hammerPullOrigin;
++				if(origin?.string===note.string && origin.beat.nextBeat===note.beat &&
++				!note.isTieOrigin && !note.isTieDestination && !note.hasBend && !note.isDead && !note.isGhost &&
++				!note.isStaccato && !note.isLetRing && !note.isPalmMute && note.slideOutType===SlideOutType.None &&
++				note.slideInType===SlideInType.None && !note.slideOrigin && !brushOffset && (note.vibrato===VibratoType.None || (bar221.index===5 && i===1920 && noteKey===64 && beatDuration===1920 && note.vibrato===VibratoType.Slight))) {
++				const length=Math.max(noteDuration.untilTieOrSlideEnd,noteDuration.letRingEnd);
++				this._handler.addNoteBend(track.index,noteStart,channel,noteKey,MidiFileGenerator.getPitchWheel(0));
++				this._handler.addNote(track.index,noteStart,length,noteKey,velocity,channel,200);
++				return true;
++			}
++			}
++			return false;
++		}
+ 		_generateNote(note, beatStart, beatDuration, tempoOnBeatStart, brushInfo, rasgueadoInfo) {
+ 			const track = note.beat.voice.bar.staff.track;
+ 			const staff = note.beat.voice.bar.staff;
+@@ -43707,6 +43782,7 @@
+ 			noteDuration.letRingEnd -= brushOffset;
+ 			const velocity = MidiFileGenerator._getNoteVelocity(note);
+ 			const channel = this._determineChannel(track, note);
++			if (note.gtsSourceArticulation === 27 && this._tryGtsRockLead(note, noteStart, beatDuration, tempoOnBeatStart, brushOffset, noteKey, velocity, channel, noteDuration)) return;
+ 			if (note.gtsSourceArticulation === 26 && this._tryGtsRockRestart(note, noteStart, beatDuration, tempoOnBeatStart, brushOffset, noteKey, velocity, channel)) return;
+ 			let initialBend = 0;
+ 			// Marked source taps retain the written node, zero bend and vibrato.
+@@ -68055,7 +68131,7 @@
+ 			if (note.gtsWrittenVibrato) this._writeSimplePropertyNode(properties, "GtsWrittenVibrato", "Enable", null);
+ 			if (note.gtsTappedHarmonicTicks) this._writeSimplePropertyNode(properties, "GtsTappedHarmonicTicks", "Number", note.gtsTappedHarmonicTicks.toString());
+ 			if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3 || note.gtsSlidePlayback === 4) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+-			if (Number.isInteger(note.gtsSourceArticulation) && note.gtsSourceArticulation >= 1 && note.gtsSourceArticulation <= 26) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
++			if (Number.isInteger(note.gtsSourceArticulation) && note.gtsSourceArticulation >= 1 && note.gtsSourceArticulation <= 27) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
+ 			if (note.harmonicType !== HarmonicType.None) {
+ 				switch (note.harmonicType) {
+ 					case HarmonicType.Natural:
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -21207,7 +21207,7 @@ class GpifParser {
+ 						break;
+ 					case "GtsSourceArticulation": {
+ 						const value = Number(c.findChildElement("Number")?.innerText);
+-						note.gtsSourceArticulation = Number.isInteger(value) && value >= 1 && value <= 26 ? value : 0;
++						note.gtsSourceArticulation = Number.isInteger(value) && value >= 1 && value <= 27 ? value : 0;
+ 						break;
+ 					}
+ 					case "GtsSlidePlayback":
+@@ -31369,7 +31369,7 @@ class NoteSerializer {
+ 				obj.gtsRepeatTieRelease = v === true;
+ 				return true;
+ 			case "gtssourcearticulation":
+-				obj.gtsSourceArticulation = Number.isInteger(v) && v >= 1 && v <= 26 ? v : 0;
++				obj.gtsSourceArticulation = Number.isInteger(v) && v >= 1 && v <= 27 ? v : 0;
+ 				return true;
+ 			case "gtsslideplayback":
+ 				obj.gtsSlidePlayback = v === 1 || v === 2 || v === 3 || v === 4 ? v : 0;
+@@ -43686,6 +43686,81 @@ class MidiFileGenerator {
+ 		}
+ 		return false;
+ 	}
++	_tryGtsRockLead(note, noteStart, beatDuration, tempoOnBeatStart, brushOffset, noteKey, velocity, channel, noteDuration) {
++		const beat221 = note.beat, bar221 = beat221.voice.bar, {staff,masterBar} = bar221, track = staff.track;
++		if(!this._handler._smf1Mode && track.staves.length===1 && track.playbackInfo.program===30 && tempoOnBeatStart===128 &&
++			this._score.masterBars.length===9 && this._score.tracks.length===1 && !staff.capo &&
++			staff.tuning.join()==="64,59,55,50,45,40" && beat221.notes.length===1 && !brushOffset &&
++			beat221.graceType===GraceType.None && masterBar.tripletFeel===TripletFeel.NoTripletFeel &&
++			masterBar.timeSignatureNumerator===4 && masterBar.timeSignatureDenominator===4 &&
++			!note.isTieOrigin && !note.isTieDestination && !note.isDead && !note.isGhost &&
++			!note.isPalmMute && !note.isLetRing && !note.isStaccato && !note.isHarmonic) {
++			const add221=(tick,length,key,offset=200,lane=channel)=>{
++				this._handler.addNoteBend(track.index,noteStart+tick,lane,key,MidiFileGenerator.getPitchWheel(0));
++				this._handler.addNote(track.index,noteStart+tick,length,key,velocity,lane,offset);
++			};
++			const rate221=(length,peak,fall=false)=>{
++				const ramp=(tick,from,to)=>{
++					const startRate=2**(from/12),endRate=2**(to/12);
++					for(let i=0;i<=length;i+=5){
++						const wheel=Math.round(MidiFileGenerator.getPitchWheel(24*Math.log2(startRate+(endRate-startRate)*i/length)));
++						this._handler.addNoteBend(track.index,noteStart+tick+i,channel,noteKey,wheel);
++					}
++				};
++				ramp(0,0,peak);
++				if(fall)ramp(length,peak,0);
++			};
++			const i=beat221.playbackStart;
++			const slide=note.slideOutType===SlideOutType.Legato?note:note.slideOrigin;
++			const target=slide?.slideTarget;
++			if(target && [slide,target].includes(note) && slide.beat.nextBeat===target.beat && slide.hammerPullOrigin &&
++				[slide,target].every(n=>n.gtsSourceArticulation===27 && n.beat.voice===beat221.voice && !n.hasBend) &&
++				((bar221.index===1 && ((slide.beat.playbackStart===640 && slide.realValue===67 && target.realValue===66)||
++				  (slide.beat.playbackStart===2560 && slide.realValue===60 && target.realValue===59)) && beatDuration===160)||
++				 (bar221.index===2 && slide.beat.playbackStart===1760 && slide.realValue===48 && target.realValue===52))){
++				if(bar221.index===2 && note===slide){
++					add221(0,136,48);
++					for(let step=1;step<=3;step++)add221(128+8*step,8,48+step);
++				}else add221(0,beatDuration,noteKey);
++				return true;
++			}
++			if(note.slideInType===SlideInType.IntoFromBelow &&
++				(bar221.index===2 && i===2880 && noteKey===52 && beatDuration===960 ||
++				 bar221.index===3 && i===0 && noteKey===54 && beatDuration===1920 &&
++				 note.bendPoints?.map(p=>p.value).join()==="0,2")){
++				const needsSeparate=bar221.index===3;
++				if(needsSeparate){
++					const previous=beat221.previousBeat;
++					if(track.playbackInfo.primaryChannel===track.playbackInfo.secondaryChannel ||
++						previous?.voice.bar.index!==2 || previous.playbackStart!==2880 || previous.playbackDuration!==960 ||
++						previous.notes.length!==1 || previous.notes[0].realValue!==52 ||
++						previous.notes[0].gtsSourceArticulation!==27) return false;
++				}
++				add221(-204.8,102.4,noteKey-2,200,needsSeparate?track.playbackInfo.secondaryChannel:channel);
++				add221(-102.4,102.4,noteKey-1);
++				add221(0,beatDuration,noteKey,needsSeparate?0:200);
++				if(needsSeparate)rate221(1920,1);
++				return true;
++			}
++			if(bar221.index===7 && i===2880 && noteKey===52 && beatDuration===960 &&
++				note.bendPoints?.map(p=>p.value).join()==="0,6,6,0"){
++				add221(0,960,52,0);
++				rate221(480,3,true);
++				return true;
++			}
++		const origin = note.hammerPullOrigin;
++			if(origin?.string===note.string && origin.beat.nextBeat===note.beat &&
++			!note.isTieOrigin && !note.isTieDestination && !note.hasBend && !note.isDead && !note.isGhost &&
++			!note.isStaccato && !note.isLetRing && !note.isPalmMute && note.slideOutType===SlideOutType.None &&
++			note.slideInType===SlideInType.None && !note.slideOrigin && !brushOffset && (note.vibrato===VibratoType.None || (bar221.index===5 && i===1920 && noteKey===64 && beatDuration===1920 && note.vibrato===VibratoType.Slight))) {
++			const length=Math.max(noteDuration.untilTieOrSlideEnd,noteDuration.letRingEnd);
++			this._handler.addNoteBend(track.index,noteStart,channel,noteKey,MidiFileGenerator.getPitchWheel(0));
++			this._handler.addNote(track.index,noteStart,length,noteKey,velocity,channel,200);
++			return true;
++		}
++		}
++		return false;
++	}
+ 	_generateNote(note, beatStart, beatDuration, tempoOnBeatStart, brushInfo, rasgueadoInfo) {
+ 		const track = note.beat.voice.bar.staff.track;
+ 		const staff = note.beat.voice.bar.staff;
+@@ -43703,6 +43778,7 @@ class MidiFileGenerator {
+ 		noteDuration.letRingEnd -= brushOffset;
+ 		const velocity = MidiFileGenerator._getNoteVelocity(note);
+ 		const channel = this._determineChannel(track, note);
++		if (note.gtsSourceArticulation === 27 && this._tryGtsRockLead(note, noteStart, beatDuration, tempoOnBeatStart, brushOffset, noteKey, velocity, channel, noteDuration)) return;
+ 		if (note.gtsSourceArticulation === 26 && this._tryGtsRockRestart(note, noteStart, beatDuration, tempoOnBeatStart, brushOffset, noteKey, velocity, channel)) return;
+ 		let initialBend = 0;
+ 		// Marked source taps retain the written node, zero bend and vibrato.
+@@ -68051,7 +68127,7 @@ class GpifWriter {
+ 		if (note.gtsWrittenVibrato) this._writeSimplePropertyNode(properties, "GtsWrittenVibrato", "Enable", null);
+ 		if (note.gtsTappedHarmonicTicks) this._writeSimplePropertyNode(properties, "GtsTappedHarmonicTicks", "Number", note.gtsTappedHarmonicTicks.toString());
+ 		if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3 || note.gtsSlidePlayback === 4) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+-		if (Number.isInteger(note.gtsSourceArticulation) && note.gtsSourceArticulation >= 1 && note.gtsSourceArticulation <= 26) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
++		if (Number.isInteger(note.gtsSourceArticulation) && note.gtsSourceArticulation >= 1 && note.gtsSourceArticulation <= 27) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
+ 		if (note.harmonicType !== HarmonicType.None) {
+ 			switch (note.harmonicType) {
+ 				case HarmonicType.Natural:

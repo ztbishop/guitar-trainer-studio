@@ -19,9 +19,71 @@ The runtime files in `assets/vendor/alphatab` come from the official `@coderline
 
 alphaTab is copyright Daniel Kuschny and Contributors and licensed under **MPL-2.0**. Retain [its full license](../assets/vendor/alphatab/LICENSE) and [integrated-library header](../assets/vendor/alphatab/LICENSE.header). Preferred source and build instructions are available in the [matching upstream v1.8.4 source](https://github.com/CoderLine/alphaTab/tree/v1.8.4); [download that source](https://github.com/CoderLine/alphaTab/archive/refs/tags/v1.8.4.zip).
 
-The installed `alphaTab.js` includes the 2026-10-19 `TabBarRenderer.collectSpaces` guard, which skips a nonexistent string-line slot rather than aborting a system's render. The corresponding MPL-2.0 [TypeScript patch](licenses/alphaTab-tab-gap.patch) applies to the matching upstream source, followed by the upstream build instructions.
+The installed `alphaTab.js` includes the 2026-10-19 `TabBarRenderer.collectSpaces` guard, which skips a nonexistent string-line slot rather than aborting a system's render. See the corresponding MPL-2.0 [TypeScript patch](licenses/alphaTab-tab-gap.patch) and [bundle patch](licenses/alphaTab-tab-gap-bundle.patch).
 
-The 2026-11-07 per-note right-hand tapping fix adapts `alphaTab.js` and `alphaTab.core.mjs` in place. The readable modified files and [MPL-2.0 source patch](licenses/alphaTab-note-tap.patch) are included. The patch applies from this repository's root to the previously installed 1.8.4 bundles, including the existing tab guard in the classic bundle. Other runtime files and notices remain as supplied. `vendor-manifest.json` records the installed and original package hashes for each modified file. The updater installs upstream assets; requalify both local adaptations before replacing the pinned build.
+The per-note right-hand tapping and explicit ghost release fixes adapt `alphaTab.js` and `alphaTab.core.mjs`. The readable modified files and MPL-2.0 source patches for [tapping](licenses/alphaTab-note-tap.patch) and [ghost release](licenses/alphaTab-ghost-release.patch) are included. Other runtime files and notices remain as supplied. `vendor-manifest.json` records the installed and original package hashes for each modified file. The updater replays the patches in the order recorded in the [upgrade inventory](ALPHATAB-UPGRADES.md).
+
+The same MPL-2.0 bundles include the source patches for [fine-bend playback](licenses/alphaTab-fine-bend.patch) [internal GP bar clocks](licenses/alphaTab-bar-clock.patch), [explicit source slide playback](licenses/alphaTab-source-slide.patch), and [explicit repeat-ending tie release](licenses/alphaTab-repeat-tie-release.patch).
+
+The [whole note in written 6/8 patch](licenses/alphaTab-six-eight-clock.patch) extends the validated internal GP clock profiles in both bundles under MPL-2.0.
+
+The [swung connected-grace clock patch](licenses/alphaTab-swung-grace-clock.patch) extends the marked GP profiles in both bundles under MPL-2.0.
+
+The [sustained tied bend patch](licenses/alphaTab-tied-bend.patch) and [performed clock and peak patch](licenses/alphaTab-tied-bend-clock.patch) apply to both bundles under MPL-2.0.
+
+The [sampled legato approach patch](licenses/alphaTab-sample-legato.patch) applies to both bundles under MPL-2.0.
+
+The [falling tied bend patch](licenses/alphaTab-falling-tie.patch) applies to both bundles under MPL-2.0.
+
+The [written vibrato patch](licenses/alphaTab-written-vibrato.patch) applies to both bundles under MPL-2.0.
+
+The [pre-bent release patch](licenses/alphaTab-prebend-release.patch) applies to both bundles under MPL-2.0.
+
+The [swung chord rise patch](licenses/alphaTab-swung-chord-rise.patch) applies to both bundles under MPL-2.0.
+
+The [source articulation patch](licenses/alphaTab-source-articulation.patch) applies to both bundles under MPL-2.0.
+
+The [paired falling exit patch](licenses/alphaTab-paired-falling-exit.patch) applies to both bundles under MPL-2.0.
+
+The [continued bend restart patch](licenses/alphaTab-continued-bend-restart.patch) applies to both bundles under MPL-2.0.
+
+The [held rise vibrato patch](licenses/alphaTab-held-rise-vibrato.patch) applies to both bundles under MPL-2.0.
+
+The [short swing bends patch](licenses/alphaTab-short-swing-bends.patch) applies to both bundles under MPL-2.0.
+
+The [source legato and swing clock patch](licenses/alphaTab-source-legato-clock.patch) applies to both bundles under MPL-2.0.
+
+The [terminal held rise patch](licenses/alphaTab-terminal-held-rise.patch) applies to both bundles under MPL-2.0.
+
+The [paired terminal release patch](licenses/alphaTab-paired-terminal-release.patch) applies to both bundles under MPL-2.0.
+
+The [captured tapped harmonics patch](licenses/alphaTab-tapped-harmonic.patch) applies to both bundles under MPL-2.0.
+
+The [tap practice pitch patch](licenses/alphaTab-tap-practice-pitch.patch) applies to both bundles under MPL-2.0.
+
+The [captured hammer and chord release patch](licenses/alphaTab-held-hammer.patch) applies to both bundles under MPL-2.0.
+
+The [swung reattack and chord release patch](licenses/alphaTab-swung-reattack.patch) applies to both bundles under MPL-2.0.
+
+The [swung dyad release and sampled slide patch](licenses/alphaTab-swung-dyad-release.patch) applies to both bundles under MPL-2.0.
+
+The [long vibrato rise and swung quarter dyad patch](licenses/alphaTab-long-vibrato-rise.patch) applies to both bundles under MPL-2.0.
+
+The [straight paired bend and sampled legato patch](licenses/alphaTab-straight-paired-playback.patch) applies to both bundles under MPL-2.0.
+
+The [terminal fall and sampled triplet patch](licenses/alphaTab-terminal-fall.patch) applies to both bundles under MPL-2.0.
+
+The [sampled blues slides and releases patch](licenses/alphaTab-sampled-blues.patch) applies to both bundles under MPL-2.0.
+
+The [compact blues bend and articulation patch](licenses/alphaTab-compact-blues.patch) applies to both bundles under MPL-2.0.
+
+The [sampled rock restart and releases patch](licenses/alphaTab-rock-restart.patch) applies to both bundles under MPL-2.0.
+
+The [fractional rock slides and bends patch](licenses/alphaTab-rock-lead.patch) applies to both bundles under MPL-2.0.
+
+The [marked on-beat rock grace and written effects patch](licenses/alphaTab-rock-grace.patch) applies to both bundles under MPL-2.0.
+
+The [pre-bent approach and paired release patch](licenses/alphaTab-prebend-approach.patch) applies to both bundles under MPL-2.0.
 
 `js/alphatab-host.js` contains compatibility adaptations of native alphaTab methods as well as app integration. That file is explicitly MPL-2.0, with its modified source included in this repository. It owns native score loading, rendering, transport and compatibility integration; it interacts with separate application MIDI/session/visual modules. Its MPL coverage must survive future edits or extraction into other files. For the combined AGPL application, alphaTab covered code and this host file are additionally distributed under AGPL-3.0-or-later through MPL section 3.3, while their MPL source rights and notices remain available. This does not replace the licenses on fonts, sounds or other separately licensed assets.
 

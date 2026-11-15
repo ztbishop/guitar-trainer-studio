@@ -1,0 +1,168 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -6010,6 +6010,7 @@
+ 		gtsTiedBend = false;
+ 		gtsFallingTie = false;
+ 		gtsWrittenVibrato = false;
++		gtsTappedHarmonicTicks = 0;
+ 		/**
+ 		* Gets or sets the destination note for the let-ring effect.
+ 		* @clone_ignore
+@@ -6198,6 +6199,8 @@
+ 			return 0;
+ 		}
+ 		get harmonicPitch() {
++			if (this.gtsTappedHarmonicTicks && this.isStringed && this.harmonicType === HarmonicType.Tap &&
++				[3.2, 5, 7, 12].includes(this.harmonicValue)) return Math.trunc(this.harmonicValue);
+ 			if (this.harmonicType === HarmonicType.None || !this.isStringed) return 0;
+ 			const value = this.harmonicValue;
+ 			if (ModelUtils.isAlmostEqualTo(value, 2.4)) return 36;
+@@ -7846,6 +7849,7 @@
+ 			clone.gtsTiedBend = original.gtsTiedBend;
+ 			clone.gtsFallingTie = original.gtsFallingTie;
+ 			clone.gtsWrittenVibrato = original.gtsWrittenVibrato;
++			clone.gtsTappedHarmonicTicks = original.gtsTappedHarmonicTicks;
+ 			clone.accidentalMode = original.accidentalMode;
+ 			clone.dynamics = original.dynamics;
+ 			clone.ornament = original.ornament;
+@@ -21188,6 +21192,11 @@
+ 						case "Variation":
+ 							variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
+ 							break;
++						case "GtsTappedHarmonicTicks": {
++							const ticks = Number(c.findChildElement("Number")?.innerText);
++							note.gtsTappedHarmonicTicks = [-1, 320, 960, 1600, 5760].includes(ticks) ? ticks : 0;
++							break;
++						}
+ 						case "GtsWrittenVibrato":
+ 							note.gtsWrittenVibrato = c.findChildElement("Enable") !== null;
+ 							break;
+@@ -31235,6 +31244,7 @@
+ 			if (obj.gtsTiedBend) o.set("gtstiedbend", true);
+ 			if (obj.gtsFallingTie) o.set("gtsfallingtie", true);
+ 			if (obj.gtsWrittenVibrato) o.set("gtswrittenvibrato", true);
++			if (obj.gtsTappedHarmonicTicks) o.set("gtstappedharmonicticks", obj.gtsTappedHarmonicTicks);
+ 			o.set("accidentalmode", obj.accidentalMode);
+ 			o.set("dynamics", obj.dynamics);
+ 			o.set("ornament", obj.ornament);
+@@ -31347,6 +31357,9 @@
+ 				case "trillspeed":
+ 					obj.trillSpeed = JsonHelper.parseEnum(v, Duration);
+ 					return true;
++				case "gtstappedharmonicticks":
++					obj.gtsTappedHarmonicTicks = [-1, 320, 960, 1600, 5760].includes(v) ? v : 0;
++					return true;
+ 				case "gtswrittenvibrato":
+ 					obj.gtsWrittenVibrato = v === true;
+ 					return true;
+@@ -43560,6 +43573,18 @@
+ 			const velocity = MidiFileGenerator._getNoteVelocity(note);
+ 			const channel = this._determineChannel(track, note);
+ 			let initialBend = 0;
++			// Marked source taps retain the written node, zero bend and vibrato.
++			// Their provider command plays a steady note for the verified performed length.
++			const tapTicks = note.gtsTappedHarmonicTicks;
++			if (tapTicks && note.isStringed && note.harmonicType === HarmonicType.Tap &&
++				[3.2, 5, 7, 12].includes(note.harmonicValue) && note.beat.notes.length === 1) {
++				if (tapTicks === -1 && note.isTieDestination && note.tieOrigin?.gtsTappedHarmonicTicks) return;
++				if ([320, 960, 1600, 5760].includes(tapTicks) && !note.isTieDestination) {
++					this._handler.addNoteBend(track.index, noteStart, channel, noteKey, MidiFileGenerator.getPitchWheel(0));
++					this._handler.addNote(track.index, noteStart, tapTicks, noteKey, velocity, channel);
++					return;
++				}
++			}
+ 			const noteSoundDuration = Math.max(noteDuration.untilTieOrSlideEnd, noteDuration.letRingEnd);
+ 			if (this._gtsTiedBendTails?.get(note) === noteStart) {
+ 				this._gtsTiedBendTails.delete(note);
+@@ -67416,6 +67441,7 @@
+ 			if (note.gtsTiedBend) this._writeSimplePropertyNode(properties, "GtsTiedBend", "Enable", null);
+ 			if (note.gtsFallingTie) this._writeSimplePropertyNode(properties, "GtsFallingTie", "Enable", null);
+ 			if (note.gtsWrittenVibrato) this._writeSimplePropertyNode(properties, "GtsWrittenVibrato", "Enable", null);
++			if (note.gtsTappedHarmonicTicks) this._writeSimplePropertyNode(properties, "GtsTappedHarmonicTicks", "Number", note.gtsTappedHarmonicTicks.toString());
+ 			if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+ 			if ([1, 2, 3, 4, 5, 6, 7, 8, 9].includes(note.gtsSourceArticulation)) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
+ 			if (note.harmonicType !== HarmonicType.None) {
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -6006,6 +6006,7 @@ class Note {
+ 	gtsTiedBend = false;
+ 	gtsFallingTie = false;
+ 	gtsWrittenVibrato = false;
++	gtsTappedHarmonicTicks = 0;
+ 	/**
+ 	* Gets or sets the destination note for the let-ring effect.
+ 	* @clone_ignore
+@@ -6194,6 +6195,8 @@ class Note {
+ 		return 0;
+ 	}
+ 	get harmonicPitch() {
++		if (this.gtsTappedHarmonicTicks && this.isStringed && this.harmonicType === HarmonicType.Tap &&
++			[3.2, 5, 7, 12].includes(this.harmonicValue)) return Math.trunc(this.harmonicValue);
+ 		if (this.harmonicType === HarmonicType.None || !this.isStringed) return 0;
+ 		const value = this.harmonicValue;
+ 		if (ModelUtils.isAlmostEqualTo(value, 2.4)) return 36;
+@@ -7842,6 +7845,7 @@ class NoteCloner {
+ 		clone.gtsTiedBend = original.gtsTiedBend;
+ 		clone.gtsFallingTie = original.gtsFallingTie;
+ 		clone.gtsWrittenVibrato = original.gtsWrittenVibrato;
++		clone.gtsTappedHarmonicTicks = original.gtsTappedHarmonicTicks;
+ 		clone.accidentalMode = original.accidentalMode;
+ 		clone.dynamics = original.dynamics;
+ 		clone.ornament = original.ornament;
+@@ -21184,6 +21188,11 @@ class GpifParser {
+ 					case "Variation":
+ 						variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
+ 						break;
++					case "GtsTappedHarmonicTicks": {
++						const ticks = Number(c.findChildElement("Number")?.innerText);
++						note.gtsTappedHarmonicTicks = [-1, 320, 960, 1600, 5760].includes(ticks) ? ticks : 0;
++						break;
++					}
+ 					case "GtsWrittenVibrato":
+ 						note.gtsWrittenVibrato = c.findChildElement("Enable") !== null;
+ 						break;
+@@ -31231,6 +31240,7 @@ class NoteSerializer {
+ 		if (obj.gtsTiedBend) o.set("gtstiedbend", true);
+ 		if (obj.gtsFallingTie) o.set("gtsfallingtie", true);
+ 		if (obj.gtsWrittenVibrato) o.set("gtswrittenvibrato", true);
++		if (obj.gtsTappedHarmonicTicks) o.set("gtstappedharmonicticks", obj.gtsTappedHarmonicTicks);
+ 		o.set("accidentalmode", obj.accidentalMode);
+ 		o.set("dynamics", obj.dynamics);
+ 		o.set("ornament", obj.ornament);
+@@ -31343,6 +31353,9 @@ class NoteSerializer {
+ 			case "trillspeed":
+ 				obj.trillSpeed = JsonHelper.parseEnum(v, Duration);
+ 				return true;
++			case "gtstappedharmonicticks":
++				obj.gtsTappedHarmonicTicks = [-1, 320, 960, 1600, 5760].includes(v) ? v : 0;
++				return true;
+ 			case "gtswrittenvibrato":
+ 				obj.gtsWrittenVibrato = v === true;
+ 				return true;
+@@ -43556,6 +43569,18 @@ class MidiFileGenerator {
+ 		const velocity = MidiFileGenerator._getNoteVelocity(note);
+ 		const channel = this._determineChannel(track, note);
+ 		let initialBend = 0;
++		// Marked source taps retain the written node, zero bend and vibrato.
++		// Their provider command plays a steady note for the verified performed length.
++		const tapTicks = note.gtsTappedHarmonicTicks;
++		if (tapTicks && note.isStringed && note.harmonicType === HarmonicType.Tap &&
++			[3.2, 5, 7, 12].includes(note.harmonicValue) && note.beat.notes.length === 1) {
++			if (tapTicks === -1 && note.isTieDestination && note.tieOrigin?.gtsTappedHarmonicTicks) return;
++			if ([320, 960, 1600, 5760].includes(tapTicks) && !note.isTieDestination) {
++				this._handler.addNoteBend(track.index, noteStart, channel, noteKey, MidiFileGenerator.getPitchWheel(0));
++				this._handler.addNote(track.index, noteStart, tapTicks, noteKey, velocity, channel);
++				return;
++			}
++		}
+ 		const noteSoundDuration = Math.max(noteDuration.untilTieOrSlideEnd, noteDuration.letRingEnd);
+ 		if (this._gtsTiedBendTails?.get(note) === noteStart) {
+ 			this._gtsTiedBendTails.delete(note);
+@@ -67412,6 +67437,7 @@ class GpifWriter {
+ 		if (note.gtsTiedBend) this._writeSimplePropertyNode(properties, "GtsTiedBend", "Enable", null);
+ 		if (note.gtsFallingTie) this._writeSimplePropertyNode(properties, "GtsFallingTie", "Enable", null);
+ 		if (note.gtsWrittenVibrato) this._writeSimplePropertyNode(properties, "GtsWrittenVibrato", "Enable", null);
++		if (note.gtsTappedHarmonicTicks) this._writeSimplePropertyNode(properties, "GtsTappedHarmonicTicks", "Number", note.gtsTappedHarmonicTicks.toString());
+ 		if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+ 		if ([1, 2, 3, 4, 5, 6, 7, 8, 9].includes(note.gtsSourceArticulation)) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
+ 		if (note.harmonicType !== HarmonicType.None) {

@@ -1,0 +1,184 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -6008,6 +6008,7 @@
+ 		gtsRepeatTieRelease = false;
+ 		gtsTiedBend = false;
+ 		gtsFallingTie = false;
++		gtsWrittenVibrato = false;
+ 		/**
+ 		* Gets or sets the destination note for the let-ring effect.
+ 		* @clone_ignore
+@@ -7842,6 +7843,7 @@
+ 			clone.gtsRepeatTieRelease = original.gtsRepeatTieRelease;
+ 			clone.gtsTiedBend = original.gtsTiedBend;
+ 			clone.gtsFallingTie = original.gtsFallingTie;
++			clone.gtsWrittenVibrato = original.gtsWrittenVibrato;
+ 			clone.accidentalMode = original.accidentalMode;
+ 			clone.dynamics = original.dynamics;
+ 			clone.ornament = original.ornament;
+@@ -21184,6 +21186,9 @@
+ 						case "Variation":
+ 							variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
+ 							break;
++						case "GtsWrittenVibrato":
++							note.gtsWrittenVibrato = c.findChildElement("Enable") !== null;
++							break;
+ 						case "GtsFallingTie":
+ 								note.gtsFallingTie = c.findChildElement("Enable") !== null;
+ 								break;
+@@ -31221,6 +31226,7 @@
+ 			if (obj.gtsRepeatTieRelease) o.set("gtsrepeattierelease", true);
+ 			if (obj.gtsTiedBend) o.set("gtstiedbend", true);
+ 			if (obj.gtsFallingTie) o.set("gtsfallingtie", true);
++			if (obj.gtsWrittenVibrato) o.set("gtswrittenvibrato", true);
+ 			o.set("accidentalmode", obj.accidentalMode);
+ 			o.set("dynamics", obj.dynamics);
+ 			o.set("ornament", obj.ornament);
+@@ -31333,6 +31339,9 @@
+ 				case "trillspeed":
+ 					obj.trillSpeed = JsonHelper.parseEnum(v, Duration);
+ 					return true;
++				case "gtswrittenvibrato":
++					obj.gtsWrittenVibrato = v === true;
++					return true;
+ 				case "gtsfallingtie":
+ 					obj.gtsFallingTie = v === true;
+ 					return true;
+@@ -43539,6 +43548,8 @@
+ 				return;
+ 			}
+ 			if (note.gtsSlidePlayback && this._tryGtsSlidePlayback(note, beatDuration, noteStart, noteSoundDuration, noteKey, velocity, channel, tempoOnBeatStart)) return;
++			const writtenVibrato = !this._handler._smf1Mode && note.gtsWrittenVibrato && note.vibrato === VibratoType.Slight &&
++				track.playbackInfo.program === 27 && beatDuration === 3840 && note.beat.notes.length === 2 && !note.isTieOrigin && !note.isTieDestination;
+ 			if (note.hasBend) initialBend = MidiFileGenerator.getPitchWheel(note.bendPoints[0].value);
+ 			else if (note.beat.hasWhammyBar) initialBend = MidiFileGenerator.getPitchWheel(note.beat.whammyBarPoints[0].value);
+ 			else if (note.isTieDestination || !freshLegatoAttack && note.slideOrigin && note.slideOrigin.slideOutType === SlideOutType.Legato) initialBend = -1;
+@@ -43563,7 +43574,7 @@
+ 			if (note.hasBend) this._generateBend(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart);
+ 			else if (note.beat.hasWhammyBar && note.index === 0) this._generateWhammy(note.beat, noteStart, noteDuration, channel, tempoOnBeatStart);
+ 			else if (note.slideInType !== SlideInType.None || note.slideOutType !== SlideOutType.None) this._generateSlide(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart);
+-			else if (note.vibrato !== VibratoType.None || note.isTieDestination && note.tieOrigin.vibrato !== VibratoType.None) this._generateVibrato(note, noteStart, noteDuration, noteKey, channel);
++			else if (!writtenVibrato && (note.vibrato !== VibratoType.None || note.isTieDestination && note.tieOrigin.vibrato !== VibratoType.None)) this._generateVibrato(note, noteStart, noteDuration, noteKey, channel);
+ 			if (!note.isTieDestination && (freshLegatoAttack || !note.slideOrigin || note.slideOrigin.slideOutType !== SlideOutType.Legato)) this._handler.addNote(track.index, noteStart, noteSoundDuration, noteKey, velocity, channel);
+ 		}
+ 		/**
+@@ -43715,7 +43726,8 @@
+ 			const heldValue = peak ? 0 : target;
+ 			const plain = n => !n.isDead && !n.isGhost && !n.isStaccato && !n.isPalmMute &&
+ 				!n.isHammerPullOrigin && !n.isHammerPullDestination && !n.isLeftHandTapped && !n.isRightHandTapped &&
+-				!n.isTrill && n.ornament === NoteOrnament.None && n.vibrato === VibratoType.None &&
++				!n.isTrill && n.ornament === NoteOrnament.None && (n.vibrato === VibratoType.None ||
++				!falling && peak && n !== note && n.gtsWrittenVibrato && n.vibrato === VibratoType.Slight) &&
+ 				n.harmonicType === HarmonicType.None && n.slideInType === SlideInType.None && n.slideOutType === SlideOutType.None &&
+ 				!n.gtsRepeatTieRelease && !n.gtsSlidePlayback && !n.gtsFineBendMidpoint &&
+ 				n.beat.graceType === GraceType.None && !n.beat.tap && !n.beat.isTremolo && !n.beat.hasWhammyBar &&
+@@ -43754,6 +43766,9 @@
+ 				if (elapsed > 15360) return false;
+ 				previous = tail;
+ 			}
++			if (tails.some(([tail]) => tail.gtsWrittenVibrato) &&
++				(falling || !peak || target !== 4 || note.beat.voice.bar.staff.track.playbackInfo.program !== 27 || firstDuration !== 480 || elapsed !== 6240 || tails.length !== 2 ||
++				 !tails.every(([tail]) => tail.gtsWrittenVibrato && tail.vibrato === VibratoType.Slight && shape(tail, 0, 0)))) return false;
+ 			if (!tails.some(([tail]) => tail.hasBend) || falling && (tails.length > 2 || preBent && tails.length !== 1 ||
+ 				firstDuration > 3840 || elapsed - firstDuration > 7680 || key + target / 2 > 127)) return false;
+ 			if (elapsed !== duration) {
+@@ -67052,6 +67067,7 @@
+ 			if (note.gtsRepeatTieRelease) this._writeSimplePropertyNode(properties, "GtsRepeatTieRelease", "Enable", null);
+ 			if (note.gtsTiedBend) this._writeSimplePropertyNode(properties, "GtsTiedBend", "Enable", null);
+ 			if (note.gtsFallingTie) this._writeSimplePropertyNode(properties, "GtsFallingTie", "Enable", null);
++			if (note.gtsWrittenVibrato) this._writeSimplePropertyNode(properties, "GtsWrittenVibrato", "Enable", null);
+ 			if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+ 			if (note.harmonicType !== HarmonicType.None) {
+ 				switch (note.harmonicType) {
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -6004,6 +6004,7 @@ class Note {
+ 	gtsRepeatTieRelease = false;
+ 	gtsTiedBend = false;
+ 	gtsFallingTie = false;
++	gtsWrittenVibrato = false;
+ 	/**
+ 	* Gets or sets the destination note for the let-ring effect.
+ 	* @clone_ignore
+@@ -7838,6 +7839,7 @@ class NoteCloner {
+ 		clone.gtsRepeatTieRelease = original.gtsRepeatTieRelease;
+ 		clone.gtsTiedBend = original.gtsTiedBend;
+ 		clone.gtsFallingTie = original.gtsFallingTie;
++		clone.gtsWrittenVibrato = original.gtsWrittenVibrato;
+ 		clone.accidentalMode = original.accidentalMode;
+ 		clone.dynamics = original.dynamics;
+ 		clone.ornament = original.ornament;
+@@ -21180,6 +21182,9 @@ class GpifParser {
+ 					case "Variation":
+ 						variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
+ 						break;
++					case "GtsWrittenVibrato":
++						note.gtsWrittenVibrato = c.findChildElement("Enable") !== null;
++						break;
+ 					case "GtsFallingTie":
+ 							note.gtsFallingTie = c.findChildElement("Enable") !== null;
+ 							break;
+@@ -31217,6 +31222,7 @@ class NoteSerializer {
+ 		if (obj.gtsRepeatTieRelease) o.set("gtsrepeattierelease", true);
+ 		if (obj.gtsTiedBend) o.set("gtstiedbend", true);
+ 		if (obj.gtsFallingTie) o.set("gtsfallingtie", true);
++		if (obj.gtsWrittenVibrato) o.set("gtswrittenvibrato", true);
+ 		o.set("accidentalmode", obj.accidentalMode);
+ 		o.set("dynamics", obj.dynamics);
+ 		o.set("ornament", obj.ornament);
+@@ -31329,6 +31335,9 @@ class NoteSerializer {
+ 			case "trillspeed":
+ 				obj.trillSpeed = JsonHelper.parseEnum(v, Duration);
+ 				return true;
++			case "gtswrittenvibrato":
++				obj.gtsWrittenVibrato = v === true;
++				return true;
+ 			case "gtsfallingtie":
+ 				obj.gtsFallingTie = v === true;
+ 				return true;
+@@ -43535,6 +43544,8 @@ class MidiFileGenerator {
+ 			return;
+ 		}
+ 		if (note.gtsSlidePlayback && this._tryGtsSlidePlayback(note, beatDuration, noteStart, noteSoundDuration, noteKey, velocity, channel, tempoOnBeatStart)) return;
++		const writtenVibrato = !this._handler._smf1Mode && note.gtsWrittenVibrato && note.vibrato === VibratoType.Slight &&
++			track.playbackInfo.program === 27 && beatDuration === 3840 && note.beat.notes.length === 2 && !note.isTieOrigin && !note.isTieDestination;
+ 		if (note.hasBend) initialBend = MidiFileGenerator.getPitchWheel(note.bendPoints[0].value);
+ 		else if (note.beat.hasWhammyBar) initialBend = MidiFileGenerator.getPitchWheel(note.beat.whammyBarPoints[0].value);
+ 		else if (note.isTieDestination || !freshLegatoAttack && note.slideOrigin && note.slideOrigin.slideOutType === SlideOutType.Legato) initialBend = -1;
+@@ -43559,7 +43570,7 @@ class MidiFileGenerator {
+ 		if (note.hasBend) this._generateBend(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart);
+ 		else if (note.beat.hasWhammyBar && note.index === 0) this._generateWhammy(note.beat, noteStart, noteDuration, channel, tempoOnBeatStart);
+ 		else if (note.slideInType !== SlideInType.None || note.slideOutType !== SlideOutType.None) this._generateSlide(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart);
+-		else if (note.vibrato !== VibratoType.None || note.isTieDestination && note.tieOrigin.vibrato !== VibratoType.None) this._generateVibrato(note, noteStart, noteDuration, noteKey, channel);
++		else if (!writtenVibrato && (note.vibrato !== VibratoType.None || note.isTieDestination && note.tieOrigin.vibrato !== VibratoType.None)) this._generateVibrato(note, noteStart, noteDuration, noteKey, channel);
+ 		if (!note.isTieDestination && (freshLegatoAttack || !note.slideOrigin || note.slideOrigin.slideOutType !== SlideOutType.Legato)) this._handler.addNote(track.index, noteStart, noteSoundDuration, noteKey, velocity, channel);
+ 	}
+ 	/**
+@@ -43711,7 +43722,8 @@ class MidiFileGenerator {
+ 		const heldValue = peak ? 0 : target;
+ 		const plain = n => !n.isDead && !n.isGhost && !n.isStaccato && !n.isPalmMute &&
+ 			!n.isHammerPullOrigin && !n.isHammerPullDestination && !n.isLeftHandTapped && !n.isRightHandTapped &&
+-			!n.isTrill && n.ornament === NoteOrnament.None && n.vibrato === VibratoType.None &&
++			!n.isTrill && n.ornament === NoteOrnament.None && (n.vibrato === VibratoType.None ||
++			!falling && peak && n !== note && n.gtsWrittenVibrato && n.vibrato === VibratoType.Slight) &&
+ 			n.harmonicType === HarmonicType.None && n.slideInType === SlideInType.None && n.slideOutType === SlideOutType.None &&
+ 			!n.gtsRepeatTieRelease && !n.gtsSlidePlayback && !n.gtsFineBendMidpoint &&
+ 			n.beat.graceType === GraceType.None && !n.beat.tap && !n.beat.isTremolo && !n.beat.hasWhammyBar &&
+@@ -43750,6 +43762,9 @@ class MidiFileGenerator {
+ 			if (elapsed > 15360) return false;
+ 			previous = tail;
+ 		}
++		if (tails.some(([tail]) => tail.gtsWrittenVibrato) &&
++			(falling || !peak || target !== 4 || note.beat.voice.bar.staff.track.playbackInfo.program !== 27 || firstDuration !== 480 || elapsed !== 6240 || tails.length !== 2 ||
++			 !tails.every(([tail]) => tail.gtsWrittenVibrato && tail.vibrato === VibratoType.Slight && shape(tail, 0, 0)))) return false;
+ 		if (!tails.some(([tail]) => tail.hasBend) || falling && (tails.length > 2 || preBent && tails.length !== 1 ||
+ 			firstDuration > 3840 || elapsed - firstDuration > 7680 || key + target / 2 > 127)) return false;
+ 		if (elapsed !== duration) {
+@@ -67048,6 +67063,7 @@ class GpifWriter {
+ 		if (note.gtsRepeatTieRelease) this._writeSimplePropertyNode(properties, "GtsRepeatTieRelease", "Enable", null);
+ 		if (note.gtsTiedBend) this._writeSimplePropertyNode(properties, "GtsTiedBend", "Enable", null);
+ 		if (note.gtsFallingTie) this._writeSimplePropertyNode(properties, "GtsFallingTie", "Enable", null);
++		if (note.gtsWrittenVibrato) this._writeSimplePropertyNode(properties, "GtsWrittenVibrato", "Enable", null);
+ 		if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+ 		if (note.harmonicType !== HarmonicType.None) {
+ 			switch (note.harmonicType) {

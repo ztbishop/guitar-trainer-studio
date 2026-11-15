@@ -1,0 +1,366 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -6006,6 +6006,7 @@
+ 		gtsFineBendMidpoint = 0;
+ 		gtsSlidePlayback = 0;
+ 		gtsRepeatTieRelease = false;
++		gtsTiedBend = false;
+ 		/**
+ 		* Gets or sets the destination note for the let-ring effect.
+ 		* @clone_ignore
+@@ -7838,6 +7839,7 @@
+ 			clone.gtsFineBendMidpoint = original.gtsFineBendMidpoint;
+ 			clone.gtsSlidePlayback = original.gtsSlidePlayback;
+ 			clone.gtsRepeatTieRelease = original.gtsRepeatTieRelease;
++			clone.gtsTiedBend = original.gtsTiedBend;
+ 			clone.accidentalMode = original.accidentalMode;
+ 			clone.dynamics = original.dynamics;
+ 			clone.ornament = original.ornament;
+@@ -21180,6 +21182,9 @@
+ 						case "Variation":
+ 							variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
+ 							break;
++						case "GtsTiedBend":
++							note.gtsTiedBend = c.findChildElement("Enable") !== null;
++							break;
+ 						case "GtsRepeatTieRelease":
+ 							note.gtsRepeatTieRelease = c.findChildElement("Enable") !== null;
+ 							break;
+@@ -31209,6 +31214,7 @@
+ 			if (obj.gtsFineBendMidpoint === 12) o.set("gtsfinebendmidpoint", 12);
+ 			if (obj.gtsSlidePlayback) o.set("gtsslideplayback", obj.gtsSlidePlayback);
+ 			if (obj.gtsRepeatTieRelease) o.set("gtsrepeattierelease", true);
++			if (obj.gtsTiedBend) o.set("gtstiedbend", true);
+ 			o.set("accidentalmode", obj.accidentalMode);
+ 			o.set("dynamics", obj.dynamics);
+ 			o.set("ornament", obj.ornament);
+@@ -31321,6 +31327,9 @@
+ 				case "trillspeed":
+ 					obj.trillSpeed = JsonHelper.parseEnum(v, Duration);
+ 					return true;
++				case "gtstiedbend":
++					obj.gtsTiedBend = v === true;
++					return true;
+ 				case "gtsrepeattierelease":
+ 					obj.gtsRepeatTieRelease = v === true;
+ 					return true;
+@@ -43039,6 +43048,7 @@
+ 			this.transpositionPitches.clear();
+ 			this._calculatedBeatTimers.clear();
+ 			this._gtsRepeatTieSuccessors = undefined;
++			this._gtsTiedBendTails = undefined;
+ 			this._currentTime = 0;
+ 			for (const track of this._score.tracks) this._generateTrack(track);
+ 			Logger.debug("Midi", "Begin midi generation");
+@@ -43054,6 +43064,7 @@
+ 			Logger.debug("Midi", "Midi generation done");
+ 		}
+ 		_gtsRepeatTieSuccessors;
++		_gtsTiedBendTails;
+ 		_detectTickShift() {
+ 			let tickShift = 0;
+ 			for (const track of this._score.tracks) for (const staff of track.staves) for (const voice of staff.bars[0].voices) if (!voice.isEmpty) {
+@@ -43496,6 +43507,14 @@
+ 			const channel = this._determineChannel(track, note);
+ 			let initialBend = 0;
+ 			const noteSoundDuration = Math.max(noteDuration.untilTieOrSlideEnd, noteDuration.letRingEnd);
++			if (this._gtsTiedBendTails?.get(note) === noteStart) {
++				this._gtsTiedBendTails.delete(note);
++				return;
++			}
++			if (note.gtsTiedBend && this._tryGtsTiedBend(note, noteStart, beatDuration, noteSoundDuration, noteKey, channel, tempoOnBeatStart)) {
++				this._handler.addNote(track.index, noteStart, noteSoundDuration, noteKey, velocity, channel);
++				return;
++			}
+ 			if (note.gtsSlidePlayback && this._tryGtsSlidePlayback(note, beatDuration, noteStart, noteSoundDuration, noteKey, velocity, channel, tempoOnBeatStart)) return;
+ 			if (note.hasBend) initialBend = MidiFileGenerator.getPitchWheel(note.bendPoints[0].value);
+ 			else if (note.beat.hasWhammyBar) initialBend = MidiFileGenerator.getPitchWheel(note.beat.whammyBarPoints[0].value);
+@@ -43637,6 +43656,13 @@
+ 			const start = beatStart - beat.playbackStart;
+ 			if (start < 0) return false;
+ 			// Resolve the next bar that actually plays. Skipped endings are not successors.
++			const visit = this._getGtsRepeatTieSuccessors().get(start);
++			if (visit?.from !== origin || visit.to !== second) return false;
++			const carry = target.beat.playbackDuration / first.calculateDuration() * second.calculateDuration();
++			duration.untilTieOrSlideEnd = duration.letRingEnd = beatDuration + carry;
++			return true;
++		}
++		_getGtsRepeatTieSuccessors() {
+ 			if (!this._gtsRepeatTieSuccessors) {
+ 				this._gtsRepeatTieSuccessors = new Map();
+ 				const playback = new MidiPlaybackController(this._score);
+@@ -43651,10 +43677,79 @@
+ 					playback.moveNext();
+ 				}
+ 			}
+-			const visit = this._gtsRepeatTieSuccessors.get(start);
+-			if (visit?.from !== origin || visit.to !== second) return false;
+-			const carry = target.beat.playbackDuration / first.calculateDuration() * second.calculateDuration();
+-			duration.untilTieOrSlideEnd = duration.letRingEnd = beatDuration + carry;
++			return this._gtsRepeatTieSuccessors;
++		}
++		_tryGtsTiedBend(note, start, firstDuration, duration, key, channel, tempo) {
++			if (this._handler._smf1Mode || note.isTieDestination || !note.isTieOrigin ||
++				!note.isStringed || ![2, 4].includes(note.bendPoints?.[1]?.value)) return false;
++			const target = note.bendPoints[1].value;
++			const plain = n => !n.isDead && !n.isGhost && !n.isStaccato && !n.isPalmMute &&
++				!n.isHammerPullOrigin && !n.isHammerPullDestination && !n.isLeftHandTapped && !n.isRightHandTapped &&
++				!n.isTrill && n.ornament === NoteOrnament.None && n.vibrato === VibratoType.None &&
++				n.harmonicType === HarmonicType.None && n.slideInType === SlideInType.None && n.slideOutType === SlideOutType.None &&
++				!n.gtsRepeatTieRelease && !n.gtsSlidePlayback && !n.gtsFineBendMidpoint &&
++				n.beat.graceType === GraceType.None && !n.beat.tap && !n.beat.isTremolo && !n.beat.hasWhammyBar &&
++				!n.beat.hasRasgueado && n.beat.brushType === BrushType.None;
++			const shape = (n, initial) => n.bendPoints?.length === 2 && n.bendPoints[0].offset === 0 &&
++				n.bendPoints[0].value === initial && n.bendPoints[1].offset === BendPoint.MaxPosition && n.bendPoints[1].value === target;
++			if (!plain(note) || !shape(note, 0) || duration <= firstDuration || duration > 15360) return false;
++			const timing = beat => {
++				if (this._settings.player.playTripletFeel && beat.voice.bar.masterBar.tripletFeel !== TripletFeel.NoTripletFeel) {
++					const before = beat.previousBeat;
++					const swing = b => MidiFileGenerator._calculateTripletFeelInfo(b.playbackStart, b.playbackDuration, b);
++					const pair = before?.voice === beat.voice ? swing(before) : null;
++					if (pair) return [-pair.secondBeatStartOffset, pair.secondBeatDuration];
++					const first = swing(beat);
++					if (first) return [0, first.firstBeatDuration];
++				}
++				return [0, beat.playbackDuration];
++			};
++			const [shift, playedFirst] = timing(note.beat);
++			if (playedFirst !== firstDuration) return false;
++			const tails = [];
++			let previous = note, elapsed = firstDuration;
++			while (previous.isTieOrigin) {
++				const tail = previous.tieDestination;
++				if (!tail || tail.tieOrigin !== previous || tail.beat !== previous.beat.nextBeat ||
++					tail.string !== note.string || tail.fret !== note.fret || !plain(tail) ||
++					tail.beat.playbackDuration <= 0 || (tail.hasBend && !shape(tail, target))) return false;
++				const [tailShift, tailDuration] = timing(tail.beat);
++				if (tail.beat.absolutePlaybackStart + tailShift - note.beat.absolutePlaybackStart - shift !== elapsed) return false;
++				tails.push([tail, elapsed]);
++				elapsed += tailDuration;
++				if (elapsed > duration) return false;
++				previous = tail;
++			}
++			if (elapsed !== duration || !tails.some(([tail]) => tail.hasBend)) return false;
++			const originBar = note.beat.voice.bar.masterBar;
++			const endBar = previous.beat.voice.bar.masterBar;
++			// Use played successors, since written ties may cross a repeat branch.
++			if (originBar !== endBar) {
++				const successors = this._getGtsRepeatTieSuccessors();
++				let tick = start - note.beat.playbackStart - shift;
++				for (let i = originBar.index; i < endBar.index; i++) {
++					const visit = successors.get(tick);
++					if (visit?.from !== this._score.masterBars[i] || visit.to !== this._score.masterBars[i + 1]) return false;
++					tick += visit.from.calculateDuration();
++				}
++			}
++			for (const [member] of [[note, 0], ...tails]) {
++				const bar = member.beat.voice.bar.masterBar;
++				if (bar.tempoAutomations.some(mark => mark.ratioPosition > 0 || mark.value !== tempo)) return false;
++			}
++			this._gtsTiedBendTails ??= new Map();
++			for (const [tail, offset] of tails) this._gtsTiedBendTails.set(tail, start + offset);
++			const track = note.beat.voice.bar.staff.track.index;
++			// Soundslice interpolates sample rate, which is logarithmic in semitones.
++			const ratio = Math.pow(2, target / 24) - 1;
++			const finalWheel = MidiFileGenerator.getPitchWheel(target);
++			const positions = new Set([duration, ...tails.map(([, offset]) => offset)]);
++			for (let tick = 0; tick < duration; tick += 5) positions.add(tick);
++			for (const tick of [...positions].sort((a, b) => a - b)) {
++				const wheel = Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(1 + ratio * tick / duration)));
++				const value = tick === duration ? finalWheel : Math.min(wheel, finalWheel - 1);
++				this._handler.addNoteBend(track, start + tick, channel, key, value);
++			}
+ 			return true;
+ 		}
+ 		_getNoteDuration(note, beatPlayDuration, tempoOnBeatStart) {
+@@ -66871,6 +66966,7 @@
+ 			if (note.isRightHandTapped || note.beat.tap) this._writeSimplePropertyNode(properties, "Tapped", "Enable", null);
+ 			if (note.ghostReleaseAtBeatEnd) this._writeSimplePropertyNode(properties, "GtsGhostReleaseAtBeatEnd", "Enable", null);
+ 			if (note.gtsRepeatTieRelease) this._writeSimplePropertyNode(properties, "GtsRepeatTieRelease", "Enable", null);
++			if (note.gtsTiedBend) this._writeSimplePropertyNode(properties, "GtsTiedBend", "Enable", null);
+ 			if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+ 			if (note.harmonicType !== HarmonicType.None) {
+ 				switch (note.harmonicType) {
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -6002,6 +6002,7 @@ class Note {
+ 	gtsFineBendMidpoint = 0;
+ 	gtsSlidePlayback = 0;
+ 	gtsRepeatTieRelease = false;
++	gtsTiedBend = false;
+ 	/**
+ 	* Gets or sets the destination note for the let-ring effect.
+ 	* @clone_ignore
+@@ -7834,6 +7835,7 @@ class NoteCloner {
+ 		clone.gtsFineBendMidpoint = original.gtsFineBendMidpoint;
+ 		clone.gtsSlidePlayback = original.gtsSlidePlayback;
+ 		clone.gtsRepeatTieRelease = original.gtsRepeatTieRelease;
++		clone.gtsTiedBend = original.gtsTiedBend;
+ 		clone.accidentalMode = original.accidentalMode;
+ 		clone.dynamics = original.dynamics;
+ 		clone.ornament = original.ornament;
+@@ -21176,6 +21178,9 @@ class GpifParser {
+ 					case "Variation":
+ 						variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
+ 						break;
++					case "GtsTiedBend":
++						note.gtsTiedBend = c.findChildElement("Enable") !== null;
++						break;
+ 					case "GtsRepeatTieRelease":
+ 						note.gtsRepeatTieRelease = c.findChildElement("Enable") !== null;
+ 						break;
+@@ -31205,6 +31210,7 @@ class NoteSerializer {
+ 		if (obj.gtsFineBendMidpoint === 12) o.set("gtsfinebendmidpoint", 12);
+ 		if (obj.gtsSlidePlayback) o.set("gtsslideplayback", obj.gtsSlidePlayback);
+ 		if (obj.gtsRepeatTieRelease) o.set("gtsrepeattierelease", true);
++		if (obj.gtsTiedBend) o.set("gtstiedbend", true);
+ 		o.set("accidentalmode", obj.accidentalMode);
+ 		o.set("dynamics", obj.dynamics);
+ 		o.set("ornament", obj.ornament);
+@@ -31317,6 +31323,9 @@ class NoteSerializer {
+ 			case "trillspeed":
+ 				obj.trillSpeed = JsonHelper.parseEnum(v, Duration);
+ 				return true;
++			case "gtstiedbend":
++				obj.gtsTiedBend = v === true;
++				return true;
+ 			case "gtsrepeattierelease":
+ 				obj.gtsRepeatTieRelease = v === true;
+ 				return true;
+@@ -43035,6 +43044,7 @@ class MidiFileGenerator {
+ 		this.transpositionPitches.clear();
+ 		this._calculatedBeatTimers.clear();
+ 		this._gtsRepeatTieSuccessors = undefined;
++		this._gtsTiedBendTails = undefined;
+ 		this._currentTime = 0;
+ 		for (const track of this._score.tracks) this._generateTrack(track);
+ 		Logger.debug("Midi", "Begin midi generation");
+@@ -43050,6 +43060,7 @@ class MidiFileGenerator {
+ 		Logger.debug("Midi", "Midi generation done");
+ 	}
+ 	_gtsRepeatTieSuccessors;
++	_gtsTiedBendTails;
+ 	_detectTickShift() {
+ 		let tickShift = 0;
+ 		for (const track of this._score.tracks) for (const staff of track.staves) for (const voice of staff.bars[0].voices) if (!voice.isEmpty) {
+@@ -43492,6 +43503,14 @@ class MidiFileGenerator {
+ 		const channel = this._determineChannel(track, note);
+ 		let initialBend = 0;
+ 		const noteSoundDuration = Math.max(noteDuration.untilTieOrSlideEnd, noteDuration.letRingEnd);
++		if (this._gtsTiedBendTails?.get(note) === noteStart) {
++			this._gtsTiedBendTails.delete(note);
++			return;
++		}
++		if (note.gtsTiedBend && this._tryGtsTiedBend(note, noteStart, beatDuration, noteSoundDuration, noteKey, channel, tempoOnBeatStart)) {
++			this._handler.addNote(track.index, noteStart, noteSoundDuration, noteKey, velocity, channel);
++			return;
++		}
+ 		if (note.gtsSlidePlayback && this._tryGtsSlidePlayback(note, beatDuration, noteStart, noteSoundDuration, noteKey, velocity, channel, tempoOnBeatStart)) return;
+ 		if (note.hasBend) initialBend = MidiFileGenerator.getPitchWheel(note.bendPoints[0].value);
+ 		else if (note.beat.hasWhammyBar) initialBend = MidiFileGenerator.getPitchWheel(note.beat.whammyBarPoints[0].value);
+@@ -43633,6 +43652,13 @@ class MidiFileGenerator {
+ 		const start = beatStart - beat.playbackStart;
+ 		if (start < 0) return false;
+ 		// Resolve the next bar that actually plays. Skipped endings are not successors.
++		const visit = this._getGtsRepeatTieSuccessors().get(start);
++		if (visit?.from !== origin || visit.to !== second) return false;
++		const carry = target.beat.playbackDuration / first.calculateDuration() * second.calculateDuration();
++		duration.untilTieOrSlideEnd = duration.letRingEnd = beatDuration + carry;
++		return true;
++	}
++	_getGtsRepeatTieSuccessors() {
+ 		if (!this._gtsRepeatTieSuccessors) {
+ 			this._gtsRepeatTieSuccessors = new Map();
+ 			const playback = new MidiPlaybackController(this._score);
+@@ -43647,10 +43673,79 @@ class MidiFileGenerator {
+ 				playback.moveNext();
+ 			}
+ 		}
+-		const visit = this._gtsRepeatTieSuccessors.get(start);
+-		if (visit?.from !== origin || visit.to !== second) return false;
+-		const carry = target.beat.playbackDuration / first.calculateDuration() * second.calculateDuration();
+-		duration.untilTieOrSlideEnd = duration.letRingEnd = beatDuration + carry;
++		return this._gtsRepeatTieSuccessors;
++	}
++	_tryGtsTiedBend(note, start, firstDuration, duration, key, channel, tempo) {
++		if (this._handler._smf1Mode || note.isTieDestination || !note.isTieOrigin ||
++			!note.isStringed || ![2, 4].includes(note.bendPoints?.[1]?.value)) return false;
++		const target = note.bendPoints[1].value;
++		const plain = n => !n.isDead && !n.isGhost && !n.isStaccato && !n.isPalmMute &&
++			!n.isHammerPullOrigin && !n.isHammerPullDestination && !n.isLeftHandTapped && !n.isRightHandTapped &&
++			!n.isTrill && n.ornament === NoteOrnament.None && n.vibrato === VibratoType.None &&
++			n.harmonicType === HarmonicType.None && n.slideInType === SlideInType.None && n.slideOutType === SlideOutType.None &&
++			!n.gtsRepeatTieRelease && !n.gtsSlidePlayback && !n.gtsFineBendMidpoint &&
++			n.beat.graceType === GraceType.None && !n.beat.tap && !n.beat.isTremolo && !n.beat.hasWhammyBar &&
++			!n.beat.hasRasgueado && n.beat.brushType === BrushType.None;
++		const shape = (n, initial) => n.bendPoints?.length === 2 && n.bendPoints[0].offset === 0 &&
++			n.bendPoints[0].value === initial && n.bendPoints[1].offset === BendPoint.MaxPosition && n.bendPoints[1].value === target;
++		if (!plain(note) || !shape(note, 0) || duration <= firstDuration || duration > 15360) return false;
++		const timing = beat => {
++			if (this._settings.player.playTripletFeel && beat.voice.bar.masterBar.tripletFeel !== TripletFeel.NoTripletFeel) {
++				const before = beat.previousBeat;
++				const swing = b => MidiFileGenerator._calculateTripletFeelInfo(b.playbackStart, b.playbackDuration, b);
++				const pair = before?.voice === beat.voice ? swing(before) : null;
++				if (pair) return [-pair.secondBeatStartOffset, pair.secondBeatDuration];
++				const first = swing(beat);
++				if (first) return [0, first.firstBeatDuration];
++			}
++			return [0, beat.playbackDuration];
++		};
++		const [shift, playedFirst] = timing(note.beat);
++		if (playedFirst !== firstDuration) return false;
++		const tails = [];
++		let previous = note, elapsed = firstDuration;
++		while (previous.isTieOrigin) {
++			const tail = previous.tieDestination;
++			if (!tail || tail.tieOrigin !== previous || tail.beat !== previous.beat.nextBeat ||
++				tail.string !== note.string || tail.fret !== note.fret || !plain(tail) ||
++				tail.beat.playbackDuration <= 0 || (tail.hasBend && !shape(tail, target))) return false;
++			const [tailShift, tailDuration] = timing(tail.beat);
++			if (tail.beat.absolutePlaybackStart + tailShift - note.beat.absolutePlaybackStart - shift !== elapsed) return false;
++			tails.push([tail, elapsed]);
++			elapsed += tailDuration;
++			if (elapsed > duration) return false;
++			previous = tail;
++		}
++		if (elapsed !== duration || !tails.some(([tail]) => tail.hasBend)) return false;
++		const originBar = note.beat.voice.bar.masterBar;
++		const endBar = previous.beat.voice.bar.masterBar;
++		// Use played successors, since written ties may cross a repeat branch.
++		if (originBar !== endBar) {
++			const successors = this._getGtsRepeatTieSuccessors();
++			let tick = start - note.beat.playbackStart - shift;
++			for (let i = originBar.index; i < endBar.index; i++) {
++				const visit = successors.get(tick);
++				if (visit?.from !== this._score.masterBars[i] || visit.to !== this._score.masterBars[i + 1]) return false;
++				tick += visit.from.calculateDuration();
++			}
++		}
++		for (const [member] of [[note, 0], ...tails]) {
++			const bar = member.beat.voice.bar.masterBar;
++			if (bar.tempoAutomations.some(mark => mark.ratioPosition > 0 || mark.value !== tempo)) return false;
++		}
++		this._gtsTiedBendTails ??= new Map();
++		for (const [tail, offset] of tails) this._gtsTiedBendTails.set(tail, start + offset);
++		const track = note.beat.voice.bar.staff.track.index;
++		// Soundslice interpolates sample rate, which is logarithmic in semitones.
++		const ratio = Math.pow(2, target / 24) - 1;
++		const finalWheel = MidiFileGenerator.getPitchWheel(target);
++		const positions = new Set([duration, ...tails.map(([, offset]) => offset)]);
++		for (let tick = 0; tick < duration; tick += 5) positions.add(tick);
++		for (const tick of [...positions].sort((a, b) => a - b)) {
++			const wheel = Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(1 + ratio * tick / duration)));
++			const value = tick === duration ? finalWheel : Math.min(wheel, finalWheel - 1);
++			this._handler.addNoteBend(track, start + tick, channel, key, value);
++		}
+ 		return true;
+ 	}
+ 	_getNoteDuration(note, beatPlayDuration, tempoOnBeatStart) {
+@@ -66867,6 +66962,7 @@ class GpifWriter {
+ 		if (note.isRightHandTapped || note.beat.tap) this._writeSimplePropertyNode(properties, "Tapped", "Enable", null);
+ 		if (note.ghostReleaseAtBeatEnd) this._writeSimplePropertyNode(properties, "GtsGhostReleaseAtBeatEnd", "Enable", null);
+ 		if (note.gtsRepeatTieRelease) this._writeSimplePropertyNode(properties, "GtsRepeatTieRelease", "Enable", null);
++		if (note.gtsTiedBend) this._writeSimplePropertyNode(properties, "GtsTiedBend", "Enable", null);
+ 		if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+ 		if (note.harmonicType !== HarmonicType.None) {
+ 			switch (note.harmonicType) {

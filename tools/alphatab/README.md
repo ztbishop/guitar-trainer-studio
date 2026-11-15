@@ -1,8 +1,8 @@
 # Update the bundled alphaTab assets
 
-Maintenance verification: run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\alphatab\test-updater.ps1` from the repository root. It uses a temporary fixture and simulated downloads to check latest-version selection, check-only, installation/backup, corrupt downloads, missing assets and rollback; it never edits the real vendor bundle.
+Read the [upgrade inventory](../../docs/ALPHATAB-UPGRADES.md) before changing versions. The updater uses Windows PowerShell 5.1, Git and Windows `tar.exe`. The app still needs no build step or runtime internet access.
 
-In the repository, open `tools/alphatab` and double-click **update-alphatab.cmd**. It shows the installed version and asks which stable version to install. Press Enter to select the official npm registry's latest stable release, or type an exact version such as `1.8.4`. Internet access is needed only while updating. Windows PowerShell 5.1 and Windows' built-in `tar.exe` are required; no Node/npm installation or app build is needed for the updater.
+Double-click **update-alphatab.cmd** to see the installed, latest and qualified versions. Enter selects the qualified version. A new upstream version is blocked until it passes the upgrade checklist.
 
 From PowerShell at the repository root:
 
@@ -10,15 +10,17 @@ From PowerShell at the repository root:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\alphatab\update-alphatab.ps1 -Version 1.8.4
 ```
 
-Verify the download without installing:
+Verify the qualified version without installing:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\alphatab\update-alphatab.ps1 -Version 1.8.4 -CheckOnly
 ```
 
-The script downloads one official versioned npm package, verifies its SHA-512 digest against registry metadata, checks its version and required files, and stages everything before replacing `assets/vendor/alphatab`. It installs the UMD browser library, matching core/worker/worklet modules, Bravura fonts and Sonivox soundfont, plus LICENSE, LICENSE.header, Bravura OFL/FAQ/font log and Sonivox LICENSE/README. Missing or empty notices fail verification just like missing runtime files. `vendor-manifest.json` records the version, package integrity and individual runtime/notice hashes. No CDN is used by the running app. An integrity/download/extraction failure leaves the installed bundle untouched; a failed installation move attempts to restore the previous directory.
+To evaluate a new release, pass its exact version with `-PrepareOnly`. This retains the verified archive and staged candidate under `tools/alphatab/.work`, including when a patch fails. Follow the inventory to locate upstream changes and run behavioral checks. `-PrepareOnly` without a version uses the registry's latest stable release. It never installs.
 
-The updater installs upstream bundles. Before accepting an update, review and port the local patches listed in the existing vendor manifest, including the [ghost release patch](../../docs/licenses/alphaTab-ghost-release.patch). Run the receiver regressions on both classic and core bundles, then refresh their hashes and patch notes in the manifest.
+The updater verifies the archive SHA-512, version, required runtime assets and licenses. It searches for each patch's context with `git apply --check`, replays the patches on staged files, and verifies the qualified upstream and final bundle hashes. Only then does it replace `assets/vendor/alphatab` and write a manifest with patch provenance and runtime/notice hashes. A conflict or mismatch leaves installed files untouched. A failed installation move attempts to restore the previous directory.
+
+Run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\alphatab\test-updater.ps1` for the offline maintenance tests. They cover staged patch application, changed contexts, the version and hash gates, downloads simulated locally, and rollback.
 
 Previous assets are retained in `tools/alphatab/.backups`, excluded from Git. Temporary downloads are cleaned up. Backups can be large and are kept until you remove them after acceptance. To restore one, close playback, move the current `assets/vendor/alphatab` folder somewhere safe, then copy the chosen complete backup folder to `assets/vendor/alphatab`. Alternatively, use Git to restore a committed vendor checkpoint, taking care to preserve any wanted local changes.
 

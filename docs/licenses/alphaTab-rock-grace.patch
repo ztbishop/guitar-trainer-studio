@@ -1,0 +1,312 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -21211,7 +21211,7 @@
+ 							break;
+ 						case "GtsSourceArticulation": {
+ 							const value = Number(c.findChildElement("Number")?.innerText);
+-							note.gtsSourceArticulation = Number.isInteger(value) && value >= 1 && value <= 27 ? value : 0;
++							note.gtsSourceArticulation = Number.isInteger(value) && value >= 1 && value <= 31 ? value : 0;
+ 							break;
+ 						}
+ 						case "GtsSlidePlayback":
+@@ -31373,7 +31373,7 @@
+ 					obj.gtsRepeatTieRelease = v === true;
+ 					return true;
+ 				case "gtssourcearticulation":
+-					obj.gtsSourceArticulation = Number.isInteger(v) && v >= 1 && v <= 27 ? v : 0;
++					obj.gtsSourceArticulation = Number.isInteger(v) && v >= 1 && v <= 31 ? v : 0;
+ 					return true;
+ 				case "gtsslideplayback":
+ 					obj.gtsSlidePlayback = v === 1 || v === 2 || v === 3 || v === 4 ? v : 0;
+@@ -43055,6 +43055,33 @@
+ 	* This generator creates a midi file using a score.
+ 	* @public
+ 	*/
++
++	// Written positions and bounded event schedules for the explicitly marked on-beat grace profile.
++	const GtsRockGraceBends = {
++		"2,0": [5, 74, 1440, 1440, 2, true, "0,4,4,0", false],
++		"2,1440": [5, 74, 960, 3360, 2, false, "0,4", true],
++		"17,1440": [6, 81, 480, 480, 3, false, "0,6", false],
++		"17,1920": [6, 81, 1920, 1920, 3, true, "0,6,6,0", false],
++		"18,1920": [5, 74, 640, 160, 2, false, "0,4", false],
++		"19,0": [5, 74, 640, 160, 2, false, "0,4", false],
++		"20,2880": [6, 77, 960, 1920, 2, false, "0,4", true],
++		"21,960": [6, 76, 720, 720, 1, false, "0,2", false],
++		"21,2880": [6, 76, 960, 240, 1, false, "0,2", false]
++	};
++	const GtsRockGraceStaccato = {"3,960": [6, 76, 960], "18,2560": [5, 74, 640], "19,640": [5, 74, 640]};
++	const GtsRockGraceSlideIn = {
++		"9,960": [4, 65, 960, 1], "10,480": [4, 71, 480, -1], "10,1920": [4, 67, 480, -1], "24,0": [2, 57, 2880, -1]
++	};
++	const GtsRockGraceAttacks = {
++		"8,1920": [2, 57, true, "", [[0, 76.8, 57, 0]], 120],
++		"8,2040": [2, 59, false, "", [[-43.2, 243.2, 59, 0]], 200],
++		"19,2640": [4, 71, true, "", [[0, 76.8, 71, 0]], 120],
++		"19,2760": [4, 69, false, "donor", [[-43.2, 138.72, 69, 0], [95.52, 24.48, 68, 200]], 120],
++		"19,2880": [4, 67, false, "target", [[0, 720, 67, 200]], 720],
++		"19,3600": [4, 69, true, "", [[0, 76.8, 69, 0]], 120],
++		"19,3720": [4, 67, false, "donor", [[-43.2, 138.72, 67, 0], [95.52, 24.48, 66, 200]], 120],
++		"20,0": [4, 65, false, "target", [[0, 1440, 65, 200]], 1440]
++	};
+ 	var MidiFileGenerator = class MidiFileGenerator {
+ 		static _defaultDurationDead = 30;
+ 		static _defaultDurationPalmMute = 80;
+@@ -43765,6 +43792,56 @@
+ 			}
+ 			return false;
+ 		}
++
++		_tryGtsRockGrace(note, start, ticks, tempo, brushOffset, key, velocity, channel, duration) {
++			const beat = note.beat, bar = beat.voice.bar, staff = bar.staff, track = staff.track;
++			if (this._handler._smf1Mode || brushOffset || beat.notes.length !== 1 || tempo !== 150 ||
++				track.playbackInfo.program !== 30 || staff.capo || staff.tuning.join() !== "64,59,55,50,45,40" ||
++				bar.masterBar.timeSignatureNumerator !== 4 || bar.masterBar.timeSignatureDenominator !== 4 ||
++				bar.masterBar.tripletFeel !== TripletFeel.NoTripletFeel || note.isTieDestination) return false;
++			const position = [bar.index, beat.playbackStart].join();
++			const bend = GtsRockGraceBends[position];
++			if (bend) {
++				const [string, pitch, written, length, peak, fall, points, tied] = bend;
++				if (note.string !== string || key !== pitch || ticks !== written || !note.hasBend ||
++					note.isTieOrigin !== tied || tied && duration.untilTieOrSlideEnd !== length ||
++					note.bendPoints.map(p => p.value).join() !== points) return false;
++				this._handler.addNote(track.index, start, length, key, velocity, channel, 0);
++				const top = 2 ** (peak / 12), segment = fall ? length / 2 : length;
++				for (let i = 0; i <= length; i += 5) {
++					const rate = i <= segment ? 1 + (top - 1) * i / segment : top + (1 - top) * (i - segment) / segment;
++					const wheel = Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(rate)));
++					this._handler.addNoteBend(track.index, start + i, channel, key, wheel);
++				}
++				return true;
++			}
++			if (note.hasBend) return false;
++			const short = GtsRockGraceStaccato[position];
++			if (short && note.isStaccato && note.string === short[0] && key === short[1] && ticks === short[2] && !note.isTieOrigin) {
++				this._handler.addNote(track.index, start, ticks / 4, key, velocity, channel, 0);
++				return true;
++			}
++			const slide = GtsRockGraceSlideIn[position];
++			if (slide && note.string === slide[0] && key === slide[1] && duration.untilTieOrSlideEnd === slide[2] &&
++				note.slideInType === (slide[3] > 0 ? SlideInType.IntoFromAbove : SlideInType.IntoFromBelow)) {
++				for (const [delta, length, pitch] of [[-240, 120, key + 2 * slide[3]], [-120, 120, key + slide[3]], [0, slide[2], key]]) {
++					this._handler.addNoteBend(track.index, start + delta, channel, pitch, MidiFileGenerator.getPitchWheel(0));
++					this._handler.addNote(track.index, start + delta, length, pitch, velocity, channel, 200);
++				}
++				return true;
++			}
++			const grace = GtsRockGraceAttacks[position];
++			if (!grace || note.string !== grace[0] || key !== grace[1] || ticks !== grace[5] || note.isTieOrigin ||
++				beat.graceType !== (grace[2] ? GraceType.OnBeat : GraceType.None)) return false;
++			if (grace[2] && beat.nextBeat?.notes[0]?.gtsSourceArticulation !== 28 ||
++				grace[3] === "donor" && (note.slideOutType !== SlideOutType.Legato || note.slideTarget?.gtsSourceArticulation !== 28) ||
++				grace[3] === "target" && (note.slideOrigin?.slideOutType !== SlideOutType.Legato || note.slideOrigin.gtsSourceArticulation !== 28)) return false;
++			for (const [delta, length, pitch, offset] of grace[4]) {
++				this._handler.addNoteBend(track.index, start + delta, channel, pitch, MidiFileGenerator.getPitchWheel(0));
++				this._handler.addNote(track.index, start + delta, length, pitch, velocity, channel, offset);
++			}
++			return true;
++		}
+ 		_generateNote(note, beatStart, beatDuration, tempoOnBeatStart, brushInfo, rasgueadoInfo) {
+ 			const track = note.beat.voice.bar.staff.track;
+ 			const staff = note.beat.voice.bar.staff;
+@@ -43782,6 +43859,13 @@
+ 			noteDuration.letRingEnd -= brushOffset;
+ 			const velocity = MidiFileGenerator._getNoteVelocity(note);
+ 			const channel = this._determineChannel(track, note);
++			if (note.gtsSourceArticulation === 28 && this._tryGtsRockGrace(note, noteStart, beatDuration, tempoOnBeatStart, brushOffset, noteKey, velocity, channel, noteDuration)) return;
++			const sourceEffects = !this._handler._smf1Mode ? note.gtsSourceArticulation : 0;
++			const writtenWhammy = sourceEffects === 29;
++			const writtenSlideOut = sourceEffects === 31 && note.isTieDestination && note.slideOutType === SlideOutType.OutDown;
++			const sourceVibrato = sourceEffects === 30 || writtenSlideOut ||
++				(!this._handler._smf1Mode && note.isTieDestination && note.tieOrigin?.gtsSourceArticulation === 30);
++
+ 			if (note.gtsSourceArticulation === 27 && this._tryGtsRockLead(note, noteStart, beatDuration, tempoOnBeatStart, brushOffset, noteKey, velocity, channel, noteDuration)) return;
+ 			if (note.gtsSourceArticulation === 26 && this._tryGtsRockRestart(note, noteStart, beatDuration, tempoOnBeatStart, brushOffset, noteKey, velocity, channel)) return;
+ 			let initialBend = 0;
+@@ -43829,7 +43913,7 @@
+ 			const writtenVibrato = !this._handler._smf1Mode && note.gtsWrittenVibrato && note.vibrato === VibratoType.Slight &&
+ 				track.playbackInfo.program === 27 && beatDuration === 3840 && note.beat.notes.length === 2 && !note.isTieOrigin && !note.isTieDestination;
+ 			if (note.hasBend) initialBend = MidiFileGenerator.getPitchWheel(note.bendPoints[0].value);
+-			else if (note.beat.hasWhammyBar) initialBend = MidiFileGenerator.getPitchWheel(note.beat.whammyBarPoints[0].value);
++			else if (!writtenWhammy && note.beat.hasWhammyBar) initialBend = MidiFileGenerator.getPitchWheel(note.beat.whammyBarPoints[0].value);
+ 			else if (note.isTieDestination || !freshLegatoAttack && note.slideOrigin && note.slideOrigin.slideOutType === SlideOutType.Legato) initialBend = -1;
+ 			else initialBend = MidiFileGenerator.getPitchWheel(0);
+ 			if (initialBend >= 0) this._handler.addNoteBend(track.index, noteStart, channel, noteKey, initialBend);
+@@ -43850,9 +43934,9 @@
+ 				return;
+ 			}
+ 			if (note.hasBend) this._generateBend(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart);
+-			else if (note.beat.hasWhammyBar && note.index === 0) this._generateWhammy(note.beat, noteStart, noteDuration, channel, tempoOnBeatStart);
+-			else if (note.slideInType !== SlideInType.None || note.slideOutType !== SlideOutType.None) this._generateSlide(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart);
+-			else if (!writtenVibrato && (note.vibrato !== VibratoType.None || note.isTieDestination && note.tieOrigin.vibrato !== VibratoType.None)) this._generateVibrato(note, noteStart, noteDuration, noteKey, channel);
++			else if (!writtenWhammy && note.beat.hasWhammyBar && note.index === 0) this._generateWhammy(note.beat, noteStart, noteDuration, channel, tempoOnBeatStart);
++			else if (note.slideInType !== SlideInType.None || !writtenSlideOut && note.slideOutType !== SlideOutType.None) this._generateSlide(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart);
++			else if (!sourceVibrato && !writtenVibrato && (note.vibrato !== VibratoType.None || note.isTieDestination && note.tieOrigin.vibrato !== VibratoType.None)) this._generateVibrato(note, noteStart, noteDuration, noteKey, channel);
+ 			if (!note.isTieDestination && (freshLegatoAttack || !note.slideOrigin || note.slideOrigin.slideOutType !== SlideOutType.Legato)) this._handler.addNote(track.index, noteStart, noteSoundDuration, noteKey, velocity, channel);
+ 		}
+ 		/**
+@@ -68131,7 +68215,7 @@
+ 			if (note.gtsWrittenVibrato) this._writeSimplePropertyNode(properties, "GtsWrittenVibrato", "Enable", null);
+ 			if (note.gtsTappedHarmonicTicks) this._writeSimplePropertyNode(properties, "GtsTappedHarmonicTicks", "Number", note.gtsTappedHarmonicTicks.toString());
+ 			if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3 || note.gtsSlidePlayback === 4) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+-			if (Number.isInteger(note.gtsSourceArticulation) && note.gtsSourceArticulation >= 1 && note.gtsSourceArticulation <= 27) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
++			if (Number.isInteger(note.gtsSourceArticulation) && note.gtsSourceArticulation >= 1 && note.gtsSourceArticulation <= 31) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
+ 			if (note.harmonicType !== HarmonicType.None) {
+ 				switch (note.harmonicType) {
+ 					case HarmonicType.Natural:
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -21207,7 +21207,7 @@ class GpifParser {
+ 						break;
+ 					case "GtsSourceArticulation": {
+ 						const value = Number(c.findChildElement("Number")?.innerText);
+-						note.gtsSourceArticulation = Number.isInteger(value) && value >= 1 && value <= 27 ? value : 0;
++						note.gtsSourceArticulation = Number.isInteger(value) && value >= 1 && value <= 31 ? value : 0;
+ 						break;
+ 					}
+ 					case "GtsSlidePlayback":
+@@ -31369,7 +31369,7 @@ class NoteSerializer {
+ 				obj.gtsRepeatTieRelease = v === true;
+ 				return true;
+ 			case "gtssourcearticulation":
+-				obj.gtsSourceArticulation = Number.isInteger(v) && v >= 1 && v <= 27 ? v : 0;
++				obj.gtsSourceArticulation = Number.isInteger(v) && v >= 1 && v <= 31 ? v : 0;
+ 				return true;
+ 			case "gtsslideplayback":
+ 				obj.gtsSlidePlayback = v === 1 || v === 2 || v === 3 || v === 4 ? v : 0;
+@@ -43051,6 +43051,33 @@ class PlayThroughContext {
+ * This generator creates a midi file using a score.
+ * @public
+ */
++
++// Written positions and bounded event schedules for the explicitly marked on-beat grace profile.
++const GtsRockGraceBends = {
++	"2,0": [5, 74, 1440, 1440, 2, true, "0,4,4,0", false],
++	"2,1440": [5, 74, 960, 3360, 2, false, "0,4", true],
++	"17,1440": [6, 81, 480, 480, 3, false, "0,6", false],
++	"17,1920": [6, 81, 1920, 1920, 3, true, "0,6,6,0", false],
++	"18,1920": [5, 74, 640, 160, 2, false, "0,4", false],
++	"19,0": [5, 74, 640, 160, 2, false, "0,4", false],
++	"20,2880": [6, 77, 960, 1920, 2, false, "0,4", true],
++	"21,960": [6, 76, 720, 720, 1, false, "0,2", false],
++	"21,2880": [6, 76, 960, 240, 1, false, "0,2", false]
++};
++const GtsRockGraceStaccato = {"3,960": [6, 76, 960], "18,2560": [5, 74, 640], "19,640": [5, 74, 640]};
++const GtsRockGraceSlideIn = {
++	"9,960": [4, 65, 960, 1], "10,480": [4, 71, 480, -1], "10,1920": [4, 67, 480, -1], "24,0": [2, 57, 2880, -1]
++};
++const GtsRockGraceAttacks = {
++	"8,1920": [2, 57, true, "", [[0, 76.8, 57, 0]], 120],
++	"8,2040": [2, 59, false, "", [[-43.2, 243.2, 59, 0]], 200],
++	"19,2640": [4, 71, true, "", [[0, 76.8, 71, 0]], 120],
++	"19,2760": [4, 69, false, "donor", [[-43.2, 138.72, 69, 0], [95.52, 24.48, 68, 200]], 120],
++	"19,2880": [4, 67, false, "target", [[0, 720, 67, 200]], 720],
++	"19,3600": [4, 69, true, "", [[0, 76.8, 69, 0]], 120],
++	"19,3720": [4, 67, false, "donor", [[-43.2, 138.72, 67, 0], [95.52, 24.48, 66, 200]], 120],
++	"20,0": [4, 65, false, "target", [[0, 1440, 65, 200]], 1440]
++};
+ class MidiFileGenerator {
+ 	static _defaultDurationDead = 30;
+ 	static _defaultDurationPalmMute = 80;
+@@ -43761,6 +43788,56 @@ class MidiFileGenerator {
+ 		}
+ 		return false;
+ 	}
++
++	_tryGtsRockGrace(note, start, ticks, tempo, brushOffset, key, velocity, channel, duration) {
++		const beat = note.beat, bar = beat.voice.bar, staff = bar.staff, track = staff.track;
++		if (this._handler._smf1Mode || brushOffset || beat.notes.length !== 1 || tempo !== 150 ||
++			track.playbackInfo.program !== 30 || staff.capo || staff.tuning.join() !== "64,59,55,50,45,40" ||
++			bar.masterBar.timeSignatureNumerator !== 4 || bar.masterBar.timeSignatureDenominator !== 4 ||
++			bar.masterBar.tripletFeel !== TripletFeel.NoTripletFeel || note.isTieDestination) return false;
++		const position = [bar.index, beat.playbackStart].join();
++		const bend = GtsRockGraceBends[position];
++		if (bend) {
++			const [string, pitch, written, length, peak, fall, points, tied] = bend;
++			if (note.string !== string || key !== pitch || ticks !== written || !note.hasBend ||
++				note.isTieOrigin !== tied || tied && duration.untilTieOrSlideEnd !== length ||
++				note.bendPoints.map(p => p.value).join() !== points) return false;
++			this._handler.addNote(track.index, start, length, key, velocity, channel, 0);
++			const top = 2 ** (peak / 12), segment = fall ? length / 2 : length;
++			for (let i = 0; i <= length; i += 5) {
++				const rate = i <= segment ? 1 + (top - 1) * i / segment : top + (1 - top) * (i - segment) / segment;
++				const wheel = Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(rate)));
++				this._handler.addNoteBend(track.index, start + i, channel, key, wheel);
++			}
++			return true;
++		}
++		if (note.hasBend) return false;
++		const short = GtsRockGraceStaccato[position];
++		if (short && note.isStaccato && note.string === short[0] && key === short[1] && ticks === short[2] && !note.isTieOrigin) {
++			this._handler.addNote(track.index, start, ticks / 4, key, velocity, channel, 0);
++			return true;
++		}
++		const slide = GtsRockGraceSlideIn[position];
++		if (slide && note.string === slide[0] && key === slide[1] && duration.untilTieOrSlideEnd === slide[2] &&
++			note.slideInType === (slide[3] > 0 ? SlideInType.IntoFromAbove : SlideInType.IntoFromBelow)) {
++			for (const [delta, length, pitch] of [[-240, 120, key + 2 * slide[3]], [-120, 120, key + slide[3]], [0, slide[2], key]]) {
++				this._handler.addNoteBend(track.index, start + delta, channel, pitch, MidiFileGenerator.getPitchWheel(0));
++				this._handler.addNote(track.index, start + delta, length, pitch, velocity, channel, 200);
++			}
++			return true;
++		}
++		const grace = GtsRockGraceAttacks[position];
++		if (!grace || note.string !== grace[0] || key !== grace[1] || ticks !== grace[5] || note.isTieOrigin ||
++			beat.graceType !== (grace[2] ? GraceType.OnBeat : GraceType.None)) return false;
++		if (grace[2] && beat.nextBeat?.notes[0]?.gtsSourceArticulation !== 28 ||
++			grace[3] === "donor" && (note.slideOutType !== SlideOutType.Legato || note.slideTarget?.gtsSourceArticulation !== 28) ||
++			grace[3] === "target" && (note.slideOrigin?.slideOutType !== SlideOutType.Legato || note.slideOrigin.gtsSourceArticulation !== 28)) return false;
++		for (const [delta, length, pitch, offset] of grace[4]) {
++			this._handler.addNoteBend(track.index, start + delta, channel, pitch, MidiFileGenerator.getPitchWheel(0));
++			this._handler.addNote(track.index, start + delta, length, pitch, velocity, channel, offset);
++		}
++		return true;
++	}
+ 	_generateNote(note, beatStart, beatDuration, tempoOnBeatStart, brushInfo, rasgueadoInfo) {
+ 		const track = note.beat.voice.bar.staff.track;
+ 		const staff = note.beat.voice.bar.staff;
+@@ -43778,6 +43855,13 @@ class MidiFileGenerator {
+ 		noteDuration.letRingEnd -= brushOffset;
+ 		const velocity = MidiFileGenerator._getNoteVelocity(note);
+ 		const channel = this._determineChannel(track, note);
++		if (note.gtsSourceArticulation === 28 && this._tryGtsRockGrace(note, noteStart, beatDuration, tempoOnBeatStart, brushOffset, noteKey, velocity, channel, noteDuration)) return;
++		const sourceEffects = !this._handler._smf1Mode ? note.gtsSourceArticulation : 0;
++		const writtenWhammy = sourceEffects === 29;
++		const writtenSlideOut = sourceEffects === 31 && note.isTieDestination && note.slideOutType === SlideOutType.OutDown;
++		const sourceVibrato = sourceEffects === 30 || writtenSlideOut ||
++			(!this._handler._smf1Mode && note.isTieDestination && note.tieOrigin?.gtsSourceArticulation === 30);
++
+ 		if (note.gtsSourceArticulation === 27 && this._tryGtsRockLead(note, noteStart, beatDuration, tempoOnBeatStart, brushOffset, noteKey, velocity, channel, noteDuration)) return;
+ 		if (note.gtsSourceArticulation === 26 && this._tryGtsRockRestart(note, noteStart, beatDuration, tempoOnBeatStart, brushOffset, noteKey, velocity, channel)) return;
+ 		let initialBend = 0;
+@@ -43825,7 +43909,7 @@ class MidiFileGenerator {
+ 		const writtenVibrato = !this._handler._smf1Mode && note.gtsWrittenVibrato && note.vibrato === VibratoType.Slight &&
+ 			track.playbackInfo.program === 27 && beatDuration === 3840 && note.beat.notes.length === 2 && !note.isTieOrigin && !note.isTieDestination;
+ 		if (note.hasBend) initialBend = MidiFileGenerator.getPitchWheel(note.bendPoints[0].value);
+-		else if (note.beat.hasWhammyBar) initialBend = MidiFileGenerator.getPitchWheel(note.beat.whammyBarPoints[0].value);
++		else if (!writtenWhammy && note.beat.hasWhammyBar) initialBend = MidiFileGenerator.getPitchWheel(note.beat.whammyBarPoints[0].value);
+ 		else if (note.isTieDestination || !freshLegatoAttack && note.slideOrigin && note.slideOrigin.slideOutType === SlideOutType.Legato) initialBend = -1;
+ 		else initialBend = MidiFileGenerator.getPitchWheel(0);
+ 		if (initialBend >= 0) this._handler.addNoteBend(track.index, noteStart, channel, noteKey, initialBend);
+@@ -43846,9 +43930,9 @@ class MidiFileGenerator {
+ 			return;
+ 		}
+ 		if (note.hasBend) this._generateBend(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart);
+-		else if (note.beat.hasWhammyBar && note.index === 0) this._generateWhammy(note.beat, noteStart, noteDuration, channel, tempoOnBeatStart);
+-		else if (note.slideInType !== SlideInType.None || note.slideOutType !== SlideOutType.None) this._generateSlide(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart);
+-		else if (!writtenVibrato && (note.vibrato !== VibratoType.None || note.isTieDestination && note.tieOrigin.vibrato !== VibratoType.None)) this._generateVibrato(note, noteStart, noteDuration, noteKey, channel);
++		else if (!writtenWhammy && note.beat.hasWhammyBar && note.index === 0) this._generateWhammy(note.beat, noteStart, noteDuration, channel, tempoOnBeatStart);
++		else if (note.slideInType !== SlideInType.None || !writtenSlideOut && note.slideOutType !== SlideOutType.None) this._generateSlide(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart);
++		else if (!sourceVibrato && !writtenVibrato && (note.vibrato !== VibratoType.None || note.isTieDestination && note.tieOrigin.vibrato !== VibratoType.None)) this._generateVibrato(note, noteStart, noteDuration, noteKey, channel);
+ 		if (!note.isTieDestination && (freshLegatoAttack || !note.slideOrigin || note.slideOrigin.slideOutType !== SlideOutType.Legato)) this._handler.addNote(track.index, noteStart, noteSoundDuration, noteKey, velocity, channel);
+ 	}
+ 	/**
+@@ -68127,7 +68211,7 @@ class GpifWriter {
+ 		if (note.gtsWrittenVibrato) this._writeSimplePropertyNode(properties, "GtsWrittenVibrato", "Enable", null);
+ 		if (note.gtsTappedHarmonicTicks) this._writeSimplePropertyNode(properties, "GtsTappedHarmonicTicks", "Number", note.gtsTappedHarmonicTicks.toString());
+ 		if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3 || note.gtsSlidePlayback === 4) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+-		if (Number.isInteger(note.gtsSourceArticulation) && note.gtsSourceArticulation >= 1 && note.gtsSourceArticulation <= 27) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
++		if (Number.isInteger(note.gtsSourceArticulation) && note.gtsSourceArticulation >= 1 && note.gtsSourceArticulation <= 31) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
+ 		if (note.harmonicType !== HarmonicType.None) {
+ 			switch (note.harmonicType) {
+ 				case HarmonicType.Natural:

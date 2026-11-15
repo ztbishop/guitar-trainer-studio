@@ -1,0 +1,321 @@
+{
+  "qualifiedVersion": "1.8.4",
+  "referencePatches": [
+    "alphaTab-tab-gap.patch"
+  ],
+  "patches": [
+    {
+      "file": "alphaTab-tab-gap-bundle.patch",
+      "targets": [
+        "alphaTab.js"
+      ],
+      "description": "Tab string-line gap guard"
+    },
+    {
+      "file": "alphaTab-note-tap.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Note-specific GP right-hand tapping"
+    },
+    {
+      "file": "alphaTab-ghost-release.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Explicit GP ghost pull-off release"
+    },
+    {
+      "file": "alphaTab-fine-bend.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Fine bend notation and playback"
+    },
+    {
+      "file": "alphaTab-bar-clock.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Explicit internal GP bar clocks"
+    },
+    {
+      "file": "alphaTab-source-slide.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Explicit source slide playback"
+    },
+    {
+      "file": "alphaTab-repeat-tie-release.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Explicit repeat-ending tie release"
+    },
+    {
+      "file": "alphaTab-tied-bend.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Full-chain playback for marked sustained tied bends"
+    },
+    {
+      "file": "alphaTab-tied-bend-clock.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Performed swing clocks and peak curves for marked tied bends"
+    },
+    {
+      "file": "alphaTab-sample-legato.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Sample-offset approach notes and fresh targets for a marked legato chord"
+    },
+    {
+      "file": "alphaTab-falling-tie.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Sample restart for a qualified falling tied bend"
+    },
+    {
+      "file": "alphaTab-written-vibrato.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Written vibrato with verified source playback"
+    },
+    {
+      "file": "alphaTab-prebend-release.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Continuous release from a raised sample across a written tie"
+    },
+    {
+      "file": "alphaTab-swung-chord-rise.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Source rate for a marked swung standalone chord bend"
+    },
+    {
+      "file": "alphaTab-source-articulation.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Source staccato and sampled slide exits"
+    },
+    {
+      "file": "alphaTab-paired-falling-exit.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Paired falling bends with legato exits"
+    },
+    {
+      "file": "alphaTab-continued-bend-restart.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Rising and staggered bend restarts"
+    },
+    {
+      "file": "alphaTab-held-rise-vibrato.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Written vibrato on a held rise"
+    },
+    {
+      "file": "alphaTab-short-swing-bends.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Short swing bends and cross-bar release"
+    },
+    {
+      "file": "alphaTab-source-legato-clock.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Source legato, palm mute and mixed swing"
+    },
+    {
+      "file": "alphaTab-terminal-held-rise.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Terminal held rise"
+    },
+    {
+      "file": "alphaTab-paired-terminal-release.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Paired terminal release"
+    },
+    {
+      "file": "alphaTab-tapped-harmonic.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Captured tapped harmonics"
+    },
+    {
+      "file": "alphaTab-held-hammer.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Captured hammer attacks and chord releases"
+    },
+    {
+      "file": "alphaTab-swung-reattack.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Swung tie reattacks and chord releases"
+    },
+    {
+      "file": "alphaTab-prebend-approach.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Pre-bent approaches and short paired releases"
+    },
+    {
+      "file": "alphaTab-swung-dyad-release.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Swung dyad releases and sampled slides"
+    },
+    {
+      "file": "alphaTab-long-vibrato-rise.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Long vibrato rises and swung quarter dyads"
+    },
+    {
+      "file": "alphaTab-straight-paired-playback.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Straight paired bends and sampled legato"
+    },
+    {
+      "file": "alphaTab-terminal-fall.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Terminal falling bend and sampled triplets"
+    },
+    {
+      "file": "alphaTab-sampled-blues.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Sampled blues slides and releases"
+    },
+    {
+      "file": "alphaTab-compact-blues.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Compact blues bends, attacks and swing"
+    },
+    {
+      "file": "alphaTab-rock-restart.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Sampled rock restart and releases"
+    },
+    {
+      "file": "alphaTab-rock-lead.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Fractional rock slides and bends"
+    },
+    {
+      "file": "alphaTab-rock-grace.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Marked on-beat rock grace and written effects"
+    },
+    {
+      "file": "alphaTab-tap-practice-pitch.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Tapped harmonic practice pitch with native duration"
+    },
+    {
+      "file": "alphaTab-six-eight-clock.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Whole-note clock in written 6/8"
+    },
+    {
+      "file": "alphaTab-swung-grace-clock.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Swung connected-grace clock"
+    }
+  ],
+  "bundles": {
+    "alphaTab.js": {
+      "upstream": "e1a395dd116dcd7e940729c4b970e1efa8d9221e82f878551689ce6778eb144b",
+      "patched": "5e9b27d1e268db94e8dd3b9eb39b32b7a06627a6beb7c66377bc622abd3b7843"
+    },
+    "alphaTab.core.mjs": {
+      "upstream": "7330a805eab246bd329927e895ac46eb8eae1da4d27375c66e223c91dd1a5817",
+      "patched": "a87be3c03c79b2f0343d0cc97a8883d54d066aaa49daf9f52a6593d24b208e75"
+    }
+  }
+}

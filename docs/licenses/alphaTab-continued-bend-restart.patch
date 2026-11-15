@@ -1,0 +1,198 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -43742,6 +43742,14 @@
+ 			const heldValue = peak || release ? 0 : target;
+ 			const sampledExit = !falling && peak && note.gtsSourceArticulation === 3;
+ 			const fallingExit = falling && note.gtsSourceArticulation === 4;
++			const bar = note.beat.voice.bar.masterBar;
++			const restartRise = falling && !preBent && target === 2 && firstDuration === 480 &&
++				bar.timeSignatureNumerator === 4 && bar.timeSignatureDenominator === 4 && bar.tripletFeel === TripletFeel.NoTripletFeel &&
++				note.beat.playbackStart === 2880 && note.beat.notes.length === 2 &&
++				note.tieDestination?.bendPoints?.at(-1)?.value === 4;
++			const staggered = falling && !preBent && target === 2 && firstDuration === 640 &&
++				bar.timeSignatureNumerator === 4 && bar.timeSignatureDenominator === 4 && bar.tripletFeel === TripletFeel.Triplet8th &&
++				note.beat.notes.length === 1 && note.tieDestination?.bendPoints?.at(-1)?.value === 2;
+ 			const plain = n => !n.isDead && !n.isGhost && !n.isStaccato && !n.isPalmMute &&
+ 				!n.isHammerPullOrigin && !n.isHammerPullDestination && !n.isLeftHandTapped && !n.isRightHandTapped &&
+ 				!n.isTrill && n.ornament === NoteOrnament.None && (n.vibrato === VibratoType.None ||
+@@ -43754,13 +43762,16 @@
+ 				n.bendPoints[0].value === initial && n.bendPoints[1].offset === BendPoint.MaxPosition && n.bendPoints[1].value === end;
+ 			if (!note.isTieOrigin) {
+ 				const {beat} = note, bar = beat.voice.bar.masterBar, track = beat.voice.bar.staff.track;
+-				if (falling || !shape(note, 0, 2) || track.playbackInfo.program !== 27 ||
+-					bar.timeSignatureNumerator !== 3 || bar.timeSignatureDenominator !== 4 || bar.tripletFeel !== TripletFeel.Triplet8th ||
+-					beat.playbackStart !== 0 || firstDuration !== 1920 || duration !== firstDuration || beat.notes.length !== 2 ||
++				const swungChord = target === 2 && firstDuration === 1920 && beat.playbackStart === 0 &&
++					bar.timeSignatureNumerator === 3 && bar.tripletFeel === TripletFeel.Triplet8th;
++				const straightChord = target === 4 && [480,1440].includes(firstDuration) &&
++					bar.timeSignatureNumerator === 4 && bar.tripletFeel === TripletFeel.NoTripletFeel;
++				if (falling || !shape(note, 0, target) || track.playbackInfo.program !== 27 ||
++					bar.timeSignatureDenominator !== 4 || !(swungChord || straightChord) || duration !== firstDuration || beat.notes.length !== 2 ||
+ 					bar.tempoAutomations.some(mark => mark.ratioPosition > 0 || mark.value !== tempo) ||
+ 					beat.notes.some(n => !plain(n) || n.isLetRing || n.slideOrigin || (n !== note &&
+ 					 (!n.isStringed || n.hasBend || n.isTieOrigin || n.isTieDestination || n.realValue === key)))) return false;
+-				const ratio = Math.pow(2, 1 / 12) - 1;
++				const ratio = Math.pow(2, target / 24) - 1;
+ 				for (let offset = 0; offset <= duration; offset += 5)
+ 					this._handler.addNoteBend(track.index, start + offset, channel, key,
+ 						Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(1 + ratio * offset / duration))));
+@@ -43784,13 +43795,20 @@
+ 			let previous = note, elapsed = firstDuration;
+ 			while (previous.isTieOrigin) {
+ 				const tail = previous.tieDestination;
+-				const firstFall = falling && tails.length === 0, tailPoints = tail?.bendPoints;
++				const firstFall = falling && tails.length === (staggered ? 2 : 0), tailPoints = tail?.bendPoints;
+ 				const fallShape = tailPoints?.length >= 2 && tailPoints[0].offset === 0 && tailPoints[0].value === target &&
+ 					tailPoints.at(-1).offset === BendPoint.MaxPosition && tailPoints.at(-1).value === 0 &&
+ 					tailPoints.slice(1, -1).every(p => p.offset === BendPoint.MaxPosition / 2 && p.value === target);
++				const acceptedRestartTail = restartRise ? tails.length === 0
++					? tailPoints?.length >= 2 && tailPoints[0].offset === 0 && tailPoints[0].value === 2 &&
++						tailPoints.at(-1).offset === BendPoint.MaxPosition && tailPoints.at(-1).value === 4 &&
++						tailPoints.slice(1,-1).every(point => point.offset === BendPoint.MaxPosition / 2 && point.value === 4)
++					: tails.length === 1 && tail?.hasBend && shape(tail,4,4)
++					: staggered && tails.length < 2 ? tails.length === 0 ? tail?.hasBend && shape(tail,2,2) : !tail?.hasBend
++					: firstFall ? fallShape : !tail?.hasBend || shape(tail,0,0);
+ 				if (!tail || tail.tieOrigin !== previous || tail.beat !== previous.beat.nextBeat ||
+ 					tail.string !== note.string || tail.fret !== note.fret || !plain(tail) ||
+-					tail.beat.playbackDuration <= 0 || (falling ? tail.isLetRing || tail.gtsFallingTie || (firstFall ? !fallShape : tail.hasBend && !shape(tail, 0, 0)) : tail.hasBend && !shape(tail, heldValue, heldValue))) return false;
++					tail.beat.playbackDuration <= 0 || (falling ? tail.isLetRing || tail.gtsFallingTie || !acceptedRestartTail : tail.hasBend && !shape(tail, heldValue, heldValue))) return false;
+ 				const [tailShift, tailDuration] = timing(tail.beat);
+ 				if (tail.beat.absolutePlaybackStart + tailShift - note.beat.absolutePlaybackStart - shift !== elapsed) return false;
+ 				tails.push([tail, elapsed]);
+@@ -43798,10 +43816,18 @@
+ 				if (elapsed > 15360) return false;
+ 				previous = tail;
+ 			}
++			if (restartRise && (tails.length !== 2 || elapsed !== 4800 ||
++				tails[0][0].beat.voice !== note.beat.voice || timing(tails[0][0].beat)[1] !== 480 ||
++				previous.beat.voice.bar.index !== note.beat.voice.bar.index + 1 || timing(previous.beat)[1] !== 3840 ||
++				tails.some(([n]) => n.beat.notes.length !== 1))) return false;
++			if (staggered && (tails.length !== 4 || elapsed !== 2560 ||
++				tails.slice(0,3).some(([n]) => n.beat.voice !== note.beat.voice) ||
++				tails.map(([n]) => timing(n.beat)[1]).join() !== "320,640,320,640" ||
++				tails.map(([n]) => n.beat.notes.length).join() !== "1,2,2,2")) return false;
+ 			if (tails.some(([tail]) => tail.gtsWrittenVibrato) &&
+ 				(falling || !peak || target !== 4 || note.beat.voice.bar.staff.track.playbackInfo.program !== 27 || firstDuration !== 480 || elapsed !== 6240 || tails.length !== 2 ||
+ 				 !tails.every(([tail]) => tail.gtsWrittenVibrato && tail.vibrato === VibratoType.Slight && shape(tail, 0, 0)))) return false;
+-			if (!tails.some(([tail]) => tail.hasBend) || falling && (tails.length > 2 || preBent && tails.length !== 1 ||
++			if (!tails.some(([tail]) => tail.hasBend) || falling && (tails.length > (staggered ? 4 : 2) || preBent && tails.length !== 1 ||
+ 				firstDuration > 3840 || elapsed - firstDuration > 7680 || key + target / 2 > 127)) return false;
+ 			let exitTarget;
+ 			if (sampledExit) {
+@@ -43897,11 +43923,12 @@
+ 					bend(ticks);
+ 				};
+ 				if (preBent) this._handler.addNoteBend(track, start, channel, raisedKey, MidiFileGenerator.getPitchWheel(0));
+-				else ramp(start, firstDuration, key, 1, ratio);
+-				this._handler.addNote(track, start, firstDuration, preBent ? raisedKey : key, velocity, channel);
+-				const release = duration - firstDuration;
+-				ramp(start + firstDuration, release, raisedKey, 1, 1 / ratio);
+-				this._handler.addNote(track, start + firstDuration, release, raisedKey, velocity, channel, 300);
++				else ramp(start, staggered ? 1600 : firstDuration, key, 1, ratio);
++				const restartAt = staggered ? 1600 : firstDuration;
++				this._handler.addNote(track, start, restartAt, preBent ? raisedKey : key, velocity, channel);
++				const release = duration - restartAt;
++				ramp(start + restartAt, release, raisedKey, 1, restartRise ? ratio : 1 / ratio);
++				this._handler.addNote(track, start + restartAt, release, raisedKey, velocity, channel, 300);
+ 				if (fallingExit) {
+ 					this._gtsLegatoAttacks ??= new Map();
+ 					this._gtsLegatoAttacks.set(exitTarget, start + duration);
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -43738,6 +43738,14 @@ class MidiFileGenerator {
+ 		const heldValue = peak || release ? 0 : target;
+ 		const sampledExit = !falling && peak && note.gtsSourceArticulation === 3;
+ 		const fallingExit = falling && note.gtsSourceArticulation === 4;
++		const bar = note.beat.voice.bar.masterBar;
++		const restartRise = falling && !preBent && target === 2 && firstDuration === 480 &&
++			bar.timeSignatureNumerator === 4 && bar.timeSignatureDenominator === 4 && bar.tripletFeel === TripletFeel.NoTripletFeel &&
++			note.beat.playbackStart === 2880 && note.beat.notes.length === 2 &&
++			note.tieDestination?.bendPoints?.at(-1)?.value === 4;
++		const staggered = falling && !preBent && target === 2 && firstDuration === 640 &&
++			bar.timeSignatureNumerator === 4 && bar.timeSignatureDenominator === 4 && bar.tripletFeel === TripletFeel.Triplet8th &&
++			note.beat.notes.length === 1 && note.tieDestination?.bendPoints?.at(-1)?.value === 2;
+ 		const plain = n => !n.isDead && !n.isGhost && !n.isStaccato && !n.isPalmMute &&
+ 			!n.isHammerPullOrigin && !n.isHammerPullDestination && !n.isLeftHandTapped && !n.isRightHandTapped &&
+ 			!n.isTrill && n.ornament === NoteOrnament.None && (n.vibrato === VibratoType.None ||
+@@ -43750,13 +43758,16 @@ class MidiFileGenerator {
+ 			n.bendPoints[0].value === initial && n.bendPoints[1].offset === BendPoint.MaxPosition && n.bendPoints[1].value === end;
+ 		if (!note.isTieOrigin) {
+ 			const {beat} = note, bar = beat.voice.bar.masterBar, track = beat.voice.bar.staff.track;
+-			if (falling || !shape(note, 0, 2) || track.playbackInfo.program !== 27 ||
+-				bar.timeSignatureNumerator !== 3 || bar.timeSignatureDenominator !== 4 || bar.tripletFeel !== TripletFeel.Triplet8th ||
+-				beat.playbackStart !== 0 || firstDuration !== 1920 || duration !== firstDuration || beat.notes.length !== 2 ||
++			const swungChord = target === 2 && firstDuration === 1920 && beat.playbackStart === 0 &&
++				bar.timeSignatureNumerator === 3 && bar.tripletFeel === TripletFeel.Triplet8th;
++			const straightChord = target === 4 && [480,1440].includes(firstDuration) &&
++				bar.timeSignatureNumerator === 4 && bar.tripletFeel === TripletFeel.NoTripletFeel;
++			if (falling || !shape(note, 0, target) || track.playbackInfo.program !== 27 ||
++				bar.timeSignatureDenominator !== 4 || !(swungChord || straightChord) || duration !== firstDuration || beat.notes.length !== 2 ||
+ 				bar.tempoAutomations.some(mark => mark.ratioPosition > 0 || mark.value !== tempo) ||
+ 				beat.notes.some(n => !plain(n) || n.isLetRing || n.slideOrigin || (n !== note &&
+ 				 (!n.isStringed || n.hasBend || n.isTieOrigin || n.isTieDestination || n.realValue === key)))) return false;
+-			const ratio = Math.pow(2, 1 / 12) - 1;
++			const ratio = Math.pow(2, target / 24) - 1;
+ 			for (let offset = 0; offset <= duration; offset += 5)
+ 				this._handler.addNoteBend(track.index, start + offset, channel, key,
+ 					Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(1 + ratio * offset / duration))));
+@@ -43780,13 +43791,20 @@ class MidiFileGenerator {
+ 		let previous = note, elapsed = firstDuration;
+ 		while (previous.isTieOrigin) {
+ 			const tail = previous.tieDestination;
+-			const firstFall = falling && tails.length === 0, tailPoints = tail?.bendPoints;
++			const firstFall = falling && tails.length === (staggered ? 2 : 0), tailPoints = tail?.bendPoints;
+ 			const fallShape = tailPoints?.length >= 2 && tailPoints[0].offset === 0 && tailPoints[0].value === target &&
+ 				tailPoints.at(-1).offset === BendPoint.MaxPosition && tailPoints.at(-1).value === 0 &&
+ 				tailPoints.slice(1, -1).every(p => p.offset === BendPoint.MaxPosition / 2 && p.value === target);
++			const acceptedRestartTail = restartRise ? tails.length === 0
++				? tailPoints?.length >= 2 && tailPoints[0].offset === 0 && tailPoints[0].value === 2 &&
++					tailPoints.at(-1).offset === BendPoint.MaxPosition && tailPoints.at(-1).value === 4 &&
++					tailPoints.slice(1,-1).every(point => point.offset === BendPoint.MaxPosition / 2 && point.value === 4)
++				: tails.length === 1 && tail?.hasBend && shape(tail,4,4)
++				: staggered && tails.length < 2 ? tails.length === 0 ? tail?.hasBend && shape(tail,2,2) : !tail?.hasBend
++				: firstFall ? fallShape : !tail?.hasBend || shape(tail,0,0);
+ 			if (!tail || tail.tieOrigin !== previous || tail.beat !== previous.beat.nextBeat ||
+ 				tail.string !== note.string || tail.fret !== note.fret || !plain(tail) ||
+-				tail.beat.playbackDuration <= 0 || (falling ? tail.isLetRing || tail.gtsFallingTie || (firstFall ? !fallShape : tail.hasBend && !shape(tail, 0, 0)) : tail.hasBend && !shape(tail, heldValue, heldValue))) return false;
++				tail.beat.playbackDuration <= 0 || (falling ? tail.isLetRing || tail.gtsFallingTie || !acceptedRestartTail : tail.hasBend && !shape(tail, heldValue, heldValue))) return false;
+ 			const [tailShift, tailDuration] = timing(tail.beat);
+ 			if (tail.beat.absolutePlaybackStart + tailShift - note.beat.absolutePlaybackStart - shift !== elapsed) return false;
+ 			tails.push([tail, elapsed]);
+@@ -43794,10 +43812,18 @@ class MidiFileGenerator {
+ 			if (elapsed > 15360) return false;
+ 			previous = tail;
+ 		}
++		if (restartRise && (tails.length !== 2 || elapsed !== 4800 ||
++			tails[0][0].beat.voice !== note.beat.voice || timing(tails[0][0].beat)[1] !== 480 ||
++			previous.beat.voice.bar.index !== note.beat.voice.bar.index + 1 || timing(previous.beat)[1] !== 3840 ||
++			tails.some(([n]) => n.beat.notes.length !== 1))) return false;
++		if (staggered && (tails.length !== 4 || elapsed !== 2560 ||
++			tails.slice(0,3).some(([n]) => n.beat.voice !== note.beat.voice) ||
++			tails.map(([n]) => timing(n.beat)[1]).join() !== "320,640,320,640" ||
++			tails.map(([n]) => n.beat.notes.length).join() !== "1,2,2,2")) return false;
+ 		if (tails.some(([tail]) => tail.gtsWrittenVibrato) &&
+ 			(falling || !peak || target !== 4 || note.beat.voice.bar.staff.track.playbackInfo.program !== 27 || firstDuration !== 480 || elapsed !== 6240 || tails.length !== 2 ||
+ 			 !tails.every(([tail]) => tail.gtsWrittenVibrato && tail.vibrato === VibratoType.Slight && shape(tail, 0, 0)))) return false;
+-		if (!tails.some(([tail]) => tail.hasBend) || falling && (tails.length > 2 || preBent && tails.length !== 1 ||
++		if (!tails.some(([tail]) => tail.hasBend) || falling && (tails.length > (staggered ? 4 : 2) || preBent && tails.length !== 1 ||
+ 			firstDuration > 3840 || elapsed - firstDuration > 7680 || key + target / 2 > 127)) return false;
+ 		let exitTarget;
+ 		if (sampledExit) {
+@@ -43893,11 +43919,12 @@ class MidiFileGenerator {
+ 				bend(ticks);
+ 			};
+ 			if (preBent) this._handler.addNoteBend(track, start, channel, raisedKey, MidiFileGenerator.getPitchWheel(0));
+-			else ramp(start, firstDuration, key, 1, ratio);
+-			this._handler.addNote(track, start, firstDuration, preBent ? raisedKey : key, velocity, channel);
+-			const release = duration - firstDuration;
+-			ramp(start + firstDuration, release, raisedKey, 1, 1 / ratio);
+-			this._handler.addNote(track, start + firstDuration, release, raisedKey, velocity, channel, 300);
++			else ramp(start, staggered ? 1600 : firstDuration, key, 1, ratio);
++			const restartAt = staggered ? 1600 : firstDuration;
++			this._handler.addNote(track, start, restartAt, preBent ? raisedKey : key, velocity, channel);
++			const release = duration - restartAt;
++			ramp(start + restartAt, release, raisedKey, 1, restartRise ? ratio : 1 / ratio);
++			this._handler.addNote(track, start + restartAt, release, raisedKey, velocity, channel, 300);
+ 			if (fallingExit) {
+ 				this._gtsLegatoAttacks ??= new Map();
+ 				this._gtsLegatoAttacks.set(exitTarget, start + duration);

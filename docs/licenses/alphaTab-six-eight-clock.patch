@@ -1,0 +1,28 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -3580,7 +3580,10 @@
+ 				const meter = `${mb.timeSignatureNumerator}/${mb.timeSignatureDenominator}`;
+ 				const short = meter === "4/4" && mb.gtsPerformedBarTicks === 3360 && voices?.length === 1 && voices[0] === 3360;
+ 				const long = meter === "7/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 2 && voices[0] === 3360 && voices[1] === 3840;
+-				if ((!short && !long) || mb.index === 0 || !mb.nextMasterBar || mb.isAnacrusis || mb.isFreeTime ||
++				const wholeVoice = meter === "6/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 1 && voices[0] === 3840 ? bar.voices.find(v => !v.isEmpty) : null;
++				const wholeBeat = wholeVoice?.beats.length === 1 ? wholeVoice.beats[0] : null;
++				const wholeInSix = wholeBeat?.duration === Duration.Whole && wholeBeat.dots === 0 && wholeBeat.graceType === GraceType.None && wholeBeat.notes.length === 1 && wholeBeat.notes[0].isStringed;
++				if ((!short && !long && !wholeInSix) || mb.index === 0 || !mb.nextMasterBar || mb.isAnacrusis || mb.isFreeTime ||
+ 					mb.tripletFeel !== TripletFeel.NoTripletFeel || mb.directions?.size || bar.simileMark !== SimileMark.None) {
+ 					throw new FormatError("Invalid explicit GP measure playback length.");
+ 				}
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -3576,7 +3576,10 @@ class Score {
+ 			const meter = `${mb.timeSignatureNumerator}/${mb.timeSignatureDenominator}`;
+ 			const short = meter === "4/4" && mb.gtsPerformedBarTicks === 3360 && voices?.length === 1 && voices[0] === 3360;
+ 			const long = meter === "7/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 2 && voices[0] === 3360 && voices[1] === 3840;
+-			if ((!short && !long) || mb.index === 0 || !mb.nextMasterBar || mb.isAnacrusis || mb.isFreeTime ||
++			const wholeVoice = meter === "6/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 1 && voices[0] === 3840 ? bar.voices.find(v => !v.isEmpty) : null;
++			const wholeBeat = wholeVoice?.beats.length === 1 ? wholeVoice.beats[0] : null;
++			const wholeInSix = wholeBeat?.duration === Duration.Whole && wholeBeat.dots === 0 && wholeBeat.graceType === GraceType.None && wholeBeat.notes.length === 1 && wholeBeat.notes[0].isStringed;
++			if ((!short && !long && !wholeInSix) || mb.index === 0 || !mb.nextMasterBar || mb.isAnacrusis || mb.isFreeTime ||
+ 				mb.tripletFeel !== TripletFeel.NoTripletFeel || mb.directions?.size || bar.simileMark !== SimileMark.None) {
+ 				throw new FormatError("Invalid explicit GP measure playback length.");
+ 			}

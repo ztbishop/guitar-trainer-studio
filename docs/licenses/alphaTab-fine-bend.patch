@@ -1,0 +1,214 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -5987,6 +5987,8 @@
+ 		*/
+ 		isLetRing = false;
+ 		ghostReleaseAtBeatEnd = false;
++		// Exact GPIF midpoint for the qualified written quarter-tone ramp.
++		gtsFineBendMidpoint = 0;
+ 		/**
+ 		* Gets or sets the destination note for the let-ring effect.
+ 		* @clone_ignore
+@@ -7816,6 +7818,7 @@
+ 			clone.trillSpeed = original.trillSpeed;
+ 			clone.durationPercent = original.durationPercent;
+ 			clone.ghostReleaseAtBeatEnd = original.ghostReleaseAtBeatEnd;
++			clone.gtsFineBendMidpoint = original.gtsFineBendMidpoint;
+ 			clone.accidentalMode = original.accidentalMode;
+ 			clone.dynamics = original.dynamics;
+ 			clone.ornament = original.ornament;
+@@ -21153,6 +21156,9 @@
+ 							break;
+ 						case "Variation":
+ 							variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
++							break;
++						case "GtsFineBendMidpoint":
++							note.gtsFineBendMidpoint = c.findChildElement("Number")?.innerText === "12" ? 12 : 0;
+ 							break;
+ 						case "GtsGhostReleaseAtBeatEnd":
+ 							note.ghostReleaseAtBeatEnd = !!c.findChildElement("Enable");
+@@ -31166,6 +31172,7 @@
+ 			o.set("trillspeed", obj.trillSpeed);
+ 			o.set("durationpercent", obj.durationPercent);
+ 			if (obj.ghostReleaseAtBeatEnd) o.set("ghostreleaseatbeatend", true);
++			if (obj.gtsFineBendMidpoint === 12) o.set("gtsfinebendmidpoint", 12);
+ 			o.set("accidentalmode", obj.accidentalMode);
+ 			o.set("dynamics", obj.dynamics);
+ 			o.set("ornament", obj.ornament);
+@@ -31277,6 +31284,9 @@
+ 					return true;
+ 				case "trillspeed":
+ 					obj.trillSpeed = JsonHelper.parseEnum(v, Duration);
++					return true;
++				case "gtsfinebendmidpoint":
++					obj.gtsFineBendMidpoint = v === 12 ? 12 : 0;
+ 					return true;
+ 				case "ghostreleaseatbeatend":
+ 					obj.ghostReleaseAtBeatEnd = v === true;
+@@ -43605,7 +43615,7 @@
+ 			const limitGhostRelease = note.ghostReleaseAtBeatEnd && note.isGhost && note.isStringed && note.fret === 0 &&
+ 				origin && origin.fret > 0 && origin.beat.voice.bar === note.beat.voice.bar &&
+ 				!note.isTieOrigin && !note.isTieDestination && note.slideOutType === SlideOutType.None;
+-			if (note.isLetRing && !limitGhostRelease && this._settings.notation.notationMode === NotationMode.GuitarPro) {
++			if (note.isLetRing && !limitGhostRelease && !this._hasGtsFineBendPlayback(note, beatPlayDuration) && this._settings.notation.notationMode === NotationMode.GuitarPro) {
+ 				let lastLetRingBeat = note.beat;
+ 				let letRingEnd = 0;
+ 				const maxDuration = note.beat.voice.bar.masterBar.calculateDuration();
+@@ -43774,7 +43784,27 @@
+ 				this._handler.addNoteBend(track.index, tick, channel, noteKey, value);
+ 			});
+ 		}
++		_hasGtsFineBendPlayback(note, ticks) {
++			return note.gtsFineBendMidpoint === 12 && ticks === 480 && note.isStringed && note.isLetRing &&
++				note.beat.notes.length === 1 && note.beat.graceType === GraceType.None &&
++				!note.isTieOrigin && !note.isTieDestination && !note.isHammerPullOrigin && !note.isHammerPullDestination &&
++				!note.isGhost && !note.isDead && !note.isPalmMute && !note.isStaccato && !note.isLeftHandTapped && !note.isRightHandTapped && !note.beat.tap &&
++				note.vibrato === VibratoType.None && !note.isTrill && note.harmonicType === HarmonicType.None &&
++				note.slideInType === SlideInType.None && note.slideOutType === SlideOutType.None &&
++				note.bendPoints?.length === 2 && note.bendPoints[0].offset === 0 && note.bendPoints[0].value === 0 &&
++				note.bendPoints[1].offset === BendPoint.MaxPosition && note.bendPoints[1].value === 1;
++		}
+ 		_generateBend(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart) {
++			if (this._hasGtsFineBendPlayback(note, noteDuration.noteOnly)) {
++				// The source ramps sample rate linearly, rather than pitch in cents.
++				const track = note.beat.voice.bar.staff.track.index;
++				const ratio = Math.pow(2, 1 / 12) - 1;
++				for (let tick = 0; tick <= 480; tick += 5) {
++					const value = Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(1 + ratio * tick / 480)));
++					this._handler.addNoteBend(track, noteStart + tick, channel, noteKey, value);
++				}
++				return;
++			}
+ 			const bendPoints = note.bendPoints;
+ 			const track = note.beat.voice.bar.staff.track;
+ 			const addBend = (tick, value) => {
+@@ -66878,9 +66908,10 @@
+ 			pitch.addElement("Octave").innerText = octave;
+ 		}
+ 		_writeBend(properties, note) {
+-			if (note.hasBend && note.bendPoints.length <= 4) this._writeStandardBend(properties, note.bendPoints);
+-		}
+-		_writeStandardBend(properties, bendPoints) {
++			if (note.hasBend && note.bendPoints.length <= 4) this._writeStandardBend(properties, note.bendPoints, note.gtsFineBendMidpoint);
++		}
++		_writeStandardBend(properties, bendPoints, gtsFineBendMidpoint = 0) {
++			if (gtsFineBendMidpoint === 12) this._writeSimplePropertyNode(properties, "GtsFineBendMidpoint", "Number", "12");
+ 			this._writeSimplePropertyNode(properties, "Bended", "Enable", null);
+ 			const bendOrigin = bendPoints[0];
+ 			const bendDestination = bendPoints[bendPoints.length - 1];
+@@ -66904,7 +66935,7 @@
+ 			this._writeSimplePropertyNode(properties, "BendDestinationValue", "Float", this._toBendValue(bendDestination.value).toString());
+ 			this._writeSimplePropertyNode(properties, "BendMiddleOffset1", "Float", this._toBendOffset(bendMiddle1.offset).toString());
+ 			this._writeSimplePropertyNode(properties, "BendMiddleOffset2", "Float", this._toBendOffset(bendMiddle2.offset).toString());
+-			this._writeSimplePropertyNode(properties, "BendMiddleValue", "Float", this._toBendValue(bendMiddle1.value).toString());
++			this._writeSimplePropertyNode(properties, "BendMiddleValue", "Float", (gtsFineBendMidpoint === 12 ? 12 : this._toBendValue(bendMiddle1.value)).toString());
+ 			this._writeSimplePropertyNode(properties, "BendOriginOffset", "Float", this._toBendOffset(bendOrigin.offset).toString());
+ 			this._writeSimplePropertyNode(properties, "BendOriginValue", "Float", this._toBendValue(bendOrigin.value).toString());
+ 		}
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -5983,6 +5983,8 @@
+ 	*/
+ 	isLetRing = false;
+ 	ghostReleaseAtBeatEnd = false;
++	// Exact GPIF midpoint for the qualified written quarter-tone ramp.
++	gtsFineBendMidpoint = 0;
+ 	/**
+ 	* Gets or sets the destination note for the let-ring effect.
+ 	* @clone_ignore
+@@ -7812,6 +7814,7 @@
+ 		clone.trillSpeed = original.trillSpeed;
+ 		clone.durationPercent = original.durationPercent;
+ 		clone.ghostReleaseAtBeatEnd = original.ghostReleaseAtBeatEnd;
++		clone.gtsFineBendMidpoint = original.gtsFineBendMidpoint;
+ 		clone.accidentalMode = original.accidentalMode;
+ 		clone.dynamics = original.dynamics;
+ 		clone.ornament = original.ornament;
+@@ -21149,6 +21152,9 @@
+ 						break;
+ 					case "Variation":
+ 						variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
++						break;
++					case "GtsFineBendMidpoint":
++						note.gtsFineBendMidpoint = c.findChildElement("Number")?.innerText === "12" ? 12 : 0;
+ 						break;
+ 					case "GtsGhostReleaseAtBeatEnd":
+ 						note.ghostReleaseAtBeatEnd = !!c.findChildElement("Enable");
+@@ -31162,6 +31168,7 @@
+ 		o.set("trillspeed", obj.trillSpeed);
+ 		o.set("durationpercent", obj.durationPercent);
+ 		if (obj.ghostReleaseAtBeatEnd) o.set("ghostreleaseatbeatend", true);
++		if (obj.gtsFineBendMidpoint === 12) o.set("gtsfinebendmidpoint", 12);
+ 		o.set("accidentalmode", obj.accidentalMode);
+ 		o.set("dynamics", obj.dynamics);
+ 		o.set("ornament", obj.ornament);
+@@ -31273,6 +31280,9 @@
+ 				return true;
+ 			case "trillspeed":
+ 				obj.trillSpeed = JsonHelper.parseEnum(v, Duration);
++				return true;
++			case "gtsfinebendmidpoint":
++				obj.gtsFineBendMidpoint = v === 12 ? 12 : 0;
+ 				return true;
+ 			case "ghostreleaseatbeatend":
+ 				obj.ghostReleaseAtBeatEnd = v === true;
+@@ -43601,7 +43611,7 @@
+ 		const limitGhostRelease = note.ghostReleaseAtBeatEnd && note.isGhost && note.isStringed && note.fret === 0 &&
+ 			origin && origin.fret > 0 && origin.beat.voice.bar === note.beat.voice.bar &&
+ 			!note.isTieOrigin && !note.isTieDestination && note.slideOutType === SlideOutType.None;
+-		if (note.isLetRing && !limitGhostRelease && this._settings.notation.notationMode === NotationMode.GuitarPro) {
++		if (note.isLetRing && !limitGhostRelease && !this._hasGtsFineBendPlayback(note, beatPlayDuration) && this._settings.notation.notationMode === NotationMode.GuitarPro) {
+ 			let lastLetRingBeat = note.beat;
+ 			let letRingEnd = 0;
+ 			const maxDuration = note.beat.voice.bar.masterBar.calculateDuration();
+@@ -43770,7 +43780,27 @@
+ 			this._handler.addNoteBend(track.index, tick, channel, noteKey, value);
+ 		});
+ 	}
++	_hasGtsFineBendPlayback(note, ticks) {
++		return note.gtsFineBendMidpoint === 12 && ticks === 480 && note.isStringed && note.isLetRing &&
++			note.beat.notes.length === 1 && note.beat.graceType === GraceType.None &&
++			!note.isTieOrigin && !note.isTieDestination && !note.isHammerPullOrigin && !note.isHammerPullDestination &&
++			!note.isGhost && !note.isDead && !note.isPalmMute && !note.isStaccato && !note.isLeftHandTapped && !note.isRightHandTapped && !note.beat.tap &&
++			note.vibrato === VibratoType.None && !note.isTrill && note.harmonicType === HarmonicType.None &&
++			note.slideInType === SlideInType.None && note.slideOutType === SlideOutType.None &&
++			note.bendPoints?.length === 2 && note.bendPoints[0].offset === 0 && note.bendPoints[0].value === 0 &&
++			note.bendPoints[1].offset === BendPoint.MaxPosition && note.bendPoints[1].value === 1;
++	}
+ 	_generateBend(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart) {
++		if (this._hasGtsFineBendPlayback(note, noteDuration.noteOnly)) {
++			// The source ramps sample rate linearly, rather than pitch in cents.
++			const track = note.beat.voice.bar.staff.track.index;
++			const ratio = Math.pow(2, 1 / 12) - 1;
++			for (let tick = 0; tick <= 480; tick += 5) {
++				const value = Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(1 + ratio * tick / 480)));
++				this._handler.addNoteBend(track, noteStart + tick, channel, noteKey, value);
++			}
++			return;
++		}
+ 		const bendPoints = note.bendPoints;
+ 		const track = note.beat.voice.bar.staff.track;
+ 		const addBend = (tick, value) => {
+@@ -66874,9 +66904,10 @@
+ 		pitch.addElement("Octave").innerText = octave;
+ 	}
+ 	_writeBend(properties, note) {
+-		if (note.hasBend && note.bendPoints.length <= 4) this._writeStandardBend(properties, note.bendPoints);
+-	}
+-	_writeStandardBend(properties, bendPoints) {
++		if (note.hasBend && note.bendPoints.length <= 4) this._writeStandardBend(properties, note.bendPoints, note.gtsFineBendMidpoint);
++	}
++	_writeStandardBend(properties, bendPoints, gtsFineBendMidpoint = 0) {
++		if (gtsFineBendMidpoint === 12) this._writeSimplePropertyNode(properties, "GtsFineBendMidpoint", "Number", "12");
+ 		this._writeSimplePropertyNode(properties, "Bended", "Enable", null);
+ 		const bendOrigin = bendPoints[0];
+ 		const bendDestination = bendPoints[bendPoints.length - 1];
+@@ -66900,7 +66931,7 @@
+ 		this._writeSimplePropertyNode(properties, "BendDestinationValue", "Float", this._toBendValue(bendDestination.value).toString());
+ 		this._writeSimplePropertyNode(properties, "BendMiddleOffset1", "Float", this._toBendOffset(bendMiddle1.offset).toString());
+ 		this._writeSimplePropertyNode(properties, "BendMiddleOffset2", "Float", this._toBendOffset(bendMiddle2.offset).toString());
+-		this._writeSimplePropertyNode(properties, "BendMiddleValue", "Float", this._toBendValue(bendMiddle1.value).toString());
++		this._writeSimplePropertyNode(properties, "BendMiddleValue", "Float", (gtsFineBendMidpoint === 12 ? 12 : this._toBendValue(bendMiddle1.value)).toString());
+ 		this._writeSimplePropertyNode(properties, "BendOriginOffset", "Float", this._toBendOffset(bendOrigin.offset).toString());
+ 		this._writeSimplePropertyNode(properties, "BendOriginValue", "Float", this._toBendValue(bendOrigin.value).toString());
+ 	}

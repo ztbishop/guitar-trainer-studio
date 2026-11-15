@@ -30,6 +30,11 @@
 - Display preferences persist across sessions/score loads: zoom, auto-scroll, fullscreen-on-Play, visible tracks, fretboard visibility and orientation. First-use defaults are 100%, auto-scroll on, practice-only, fretboard on, left-handed off and fullscreen-on-Play off. Saved choices, including fretboard off, override defaults. Disabling orientation while fretboard is hidden must retain its choice; restoring fullscreen preference must not request fullscreen outside the existing Play gesture.
 - Virtual fretboard first-use defaults (owner decision 2026-10-24): Beat + Bar, note-name labels, alternate positions off and automatic panel sizing. Persist all fretboard display choices and manual sizing across score loads/sessions; retain hidden-panel choices and valid previously saved Beat/Next/Bar modes. Temporary targets, played markers and browsing/session state are not display preferences.
 
+## alphaTab dependency changes
+
+- Before updating alphaTab, read [the upgrade inventory](docs/ALPHATAB-UPGRADES.md). Stage the official candidate with `tools/alphatab/update-alphatab.ps1 -PrepareOnly`. Do not replace the pinned bundle directly, bypass the patch checks or qualify a version before running the listed regressions.
+- Every new or changed vendor patch or host adapter must update that inventory, the relevant regression tests, and (for vendor edits) the patch plan, bundle hashes, manifest and source notices in the same task. Reapply a patch or prove that upstream preserves its behavior before retiring it. Check both classic and core/worker behavior where relevant.
+
 ## Verification and handoff
 
 - Update relevant TODO, development notes, and architecture documentation as changes are made. Distinguish implemented behavior, automated evidence, user-confirmed behavior, and pending hardware/browser acceptance.

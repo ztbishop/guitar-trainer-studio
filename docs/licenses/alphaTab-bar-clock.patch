@@ -1,0 +1,154 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -2610,6 +2610,7 @@
+ 		* Gets or sets a value indicating whether the master bar is an anacrusis (aka. pickup bar)
+ 		*/
+ 		isAnacrusis = false;
++		gtsPerformedBarTicks = 0;
+ 		/**
+ 		* Gets a percentual scale for the size of the bars when displayed in a multi-track layout.
+ 		*/
+@@ -2627,6 +2628,7 @@
+ 		* Calculates the time spent in this bar. (unit: midi ticks)
+ 		*/
+ 		calculateDuration(respectAnacrusis = true) {
++			if (respectAnacrusis && this.gtsPerformedBarTicks) return this.gtsPerformedBarTicks;
+ 			if (this.isAnacrusis && respectAnacrusis) {
+ 				let duration = 0;
+ 				for (const track of this.score.tracks) for (const staff of track.staves) {
+@@ -3569,7 +3571,20 @@
+ 		finish(settings) {
+ 			const sharedDataBag = /* @__PURE__ */ new Map();
+ 			for (let i = 0, j = this.tracks.length; i < j; i++) this.tracks[i].finish(settings, sharedDataBag);
+-			for (const mb of this.masterBars) mb.finish(sharedDataBag);
++			for (const mb of this.masterBars) {
++				mb.finish(sharedDataBag);
++				if (!mb.gtsPerformedBarTicks) continue;
++				const staves = this.tracks.length === 1 ? this.tracks[0].staves : [];
++				const bar = staves.length === 1 ? staves[0].bars[mb.index] : null;
++				const voices = bar?.voices.filter(v => !v.isEmpty).map(v => v.calculateDuration());
++				const meter = `${mb.timeSignatureNumerator}/${mb.timeSignatureDenominator}`;
++				const short = meter === "4/4" && mb.gtsPerformedBarTicks === 3360 && voices?.length === 1 && voices[0] === 3360;
++				const long = meter === "7/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 2 && voices[0] === 3360 && voices[1] === 3840;
++				if ((!short && !long) || mb.index === 0 || !mb.nextMasterBar || mb.isAnacrusis || mb.isFreeTime ||
++					mb.tripletFeel !== TripletFeel.NoTripletFeel || mb.directions?.size || bar.simileMark !== SimileMark.None) {
++					throw new FormatError("Invalid explicit GP measure playback length.");
++				}
++			}
+ 		}
+ 		/**
+ 		* Applies the given list of {@link FlatSyncPoint} to this song.
+@@ -20319,6 +20334,10 @@
+ 					const timeParts = c.innerText.split("/");
+ 					masterBar.timeSignatureNumerator = GpifParser._parseIntSafe(timeParts[0], 4);
+ 					masterBar.timeSignatureDenominator = GpifParser._parseIntSafe(timeParts[1], 4);
++					break;
++				case "GtsPerformedBarTicks":
++					if (c.innerText !== "3360" && c.innerText !== "3840") throw new FormatError("Invalid explicit GP measure playback length.");
++					masterBar.gtsPerformedBarTicks = Number(c.innerText);
+ 					break;
+ 				case "FreeTime":
+ 					masterBar.isFreeTime = true;
+@@ -30961,6 +30980,7 @@
+ 			}
+ 			o.set("start", obj.start);
+ 			o.set("isanacrusis", obj.isAnacrusis);
++			if (obj.gtsPerformedBarTicks) o.set("gtsperformedbarticks", obj.gtsPerformedBarTicks);
+ 			o.set("displayscale", obj.displayScale);
+ 			o.set("displaywidth", obj.displayWidth);
+ 			if (obj.directions !== null) {
+@@ -31039,6 +31059,9 @@
+ 					return true;
+ 				case "start":
+ 					obj.start = v;
++					return true;
++				case "gtsperformedbarticks":
++					obj.gtsPerformedBarTicks = v === 3360 || v === 3840 ? v : 0;
+ 					return true;
+ 				case "isanacrusis":
+ 					obj.isAnacrusis = v;
+@@ -67644,6 +67667,7 @@
+ 			masterBarNode.addElement("Time").innerText = `${masterBar.timeSignatureNumerator}/${masterBar.timeSignatureDenominator}`;
+ 			if (masterBar.actualBeamingRules) this._writeBarXProperties(masterBarNode, masterBar);
+ 			if (masterBar.isFreeTime) masterBarNode.addElement("FreeTime");
++			if (masterBar.gtsPerformedBarTicks) masterBarNode.addElement("GtsPerformedBarTicks").innerText = masterBar.gtsPerformedBarTicks.toString();
+ 			const bars = [];
+ 			for (const tracks of masterBar.score.tracks) for (const staves of tracks.staves) bars.push(staves.bars[masterBar.index].id.toString());
+ 			masterBarNode.addElement("Bars").innerText = bars.join(" ");
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -2606,6 +2606,7 @@
+ 	* Gets or sets a value indicating whether the master bar is an anacrusis (aka. pickup bar)
+ 	*/
+ 	isAnacrusis = false;
++	gtsPerformedBarTicks = 0;
+ 	/**
+ 	* Gets a percentual scale for the size of the bars when displayed in a multi-track layout.
+ 	*/
+@@ -2623,6 +2624,7 @@
+ 	* Calculates the time spent in this bar. (unit: midi ticks)
+ 	*/
+ 	calculateDuration(respectAnacrusis = true) {
++		if (respectAnacrusis && this.gtsPerformedBarTicks) return this.gtsPerformedBarTicks;
+ 		if (this.isAnacrusis && respectAnacrusis) {
+ 			let duration = 0;
+ 			for (const track of this.score.tracks) for (const staff of track.staves) {
+@@ -3565,7 +3567,20 @@
+ 	finish(settings) {
+ 		const sharedDataBag = /* @__PURE__ */ new Map();
+ 		for (let i = 0, j = this.tracks.length; i < j; i++) this.tracks[i].finish(settings, sharedDataBag);
+-		for (const mb of this.masterBars) mb.finish(sharedDataBag);
++		for (const mb of this.masterBars) {
++			mb.finish(sharedDataBag);
++			if (!mb.gtsPerformedBarTicks) continue;
++			const staves = this.tracks.length === 1 ? this.tracks[0].staves : [];
++			const bar = staves.length === 1 ? staves[0].bars[mb.index] : null;
++			const voices = bar?.voices.filter(v => !v.isEmpty).map(v => v.calculateDuration());
++			const meter = `${mb.timeSignatureNumerator}/${mb.timeSignatureDenominator}`;
++			const short = meter === "4/4" && mb.gtsPerformedBarTicks === 3360 && voices?.length === 1 && voices[0] === 3360;
++			const long = meter === "7/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 2 && voices[0] === 3360 && voices[1] === 3840;
++			if ((!short && !long) || mb.index === 0 || !mb.nextMasterBar || mb.isAnacrusis || mb.isFreeTime ||
++				mb.tripletFeel !== TripletFeel.NoTripletFeel || mb.directions?.size || bar.simileMark !== SimileMark.None) {
++				throw new FormatError("Invalid explicit GP measure playback length.");
++			}
++		}
+ 	}
+ 	/**
+ 	* Applies the given list of {@link FlatSyncPoint} to this song.
+@@ -20315,6 +20330,10 @@
+ 				const timeParts = c.innerText.split("/");
+ 				masterBar.timeSignatureNumerator = GpifParser._parseIntSafe(timeParts[0], 4);
+ 				masterBar.timeSignatureDenominator = GpifParser._parseIntSafe(timeParts[1], 4);
++				break;
++			case "GtsPerformedBarTicks":
++				if (c.innerText !== "3360" && c.innerText !== "3840") throw new FormatError("Invalid explicit GP measure playback length.");
++				masterBar.gtsPerformedBarTicks = Number(c.innerText);
+ 				break;
+ 			case "FreeTime":
+ 				masterBar.isFreeTime = true;
+@@ -30957,6 +30976,7 @@
+ 		}
+ 		o.set("start", obj.start);
+ 		o.set("isanacrusis", obj.isAnacrusis);
++		if (obj.gtsPerformedBarTicks) o.set("gtsperformedbarticks", obj.gtsPerformedBarTicks);
+ 		o.set("displayscale", obj.displayScale);
+ 		o.set("displaywidth", obj.displayWidth);
+ 		if (obj.directions !== null) {
+@@ -31035,6 +31055,9 @@
+ 				return true;
+ 			case "start":
+ 				obj.start = v;
++				return true;
++			case "gtsperformedbarticks":
++				obj.gtsPerformedBarTicks = v === 3360 || v === 3840 ? v : 0;
+ 				return true;
+ 			case "isanacrusis":
+ 				obj.isAnacrusis = v;
+@@ -67640,6 +67663,7 @@
+ 		masterBarNode.addElement("Time").innerText = `${masterBar.timeSignatureNumerator}/${masterBar.timeSignatureDenominator}`;
+ 		if (masterBar.actualBeamingRules) this._writeBarXProperties(masterBarNode, masterBar);
+ 		if (masterBar.isFreeTime) masterBarNode.addElement("FreeTime");
++		if (masterBar.gtsPerformedBarTicks) masterBarNode.addElement("GtsPerformedBarTicks").innerText = masterBar.gtsPerformedBarTicks.toString();
+ 		const bars = [];
+ 		for (const tracks of masterBar.score.tracks) for (const staves of tracks.staves) bars.push(staves.bars[masterBar.index].id.toString());
+ 		masterBarNode.addElement("Bars").innerText = bars.join(" ");

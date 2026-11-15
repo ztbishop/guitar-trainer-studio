@@ -1,0 +1,396 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -21190,7 +21190,7 @@
+ 							break;
+ 						case "GtsSlidePlayback":
+ 							const slidePlayback = c.findChildElement("Number")?.innerText;
+-							note.gtsSlidePlayback = slidePlayback === "1" ? 1 : slidePlayback === "2" ? 2 : 0;
++							note.gtsSlidePlayback = slidePlayback === "1" ? 1 : slidePlayback === "2" ? 2 : slidePlayback === "3" ? 3 : 0;
+ 							break;
+ 						case "GtsFineBendMidpoint":
+ 							note.gtsFineBendMidpoint = c.findChildElement("Number")?.innerText === "12" ? 12 : 0;
+@@ -31334,7 +31334,7 @@
+ 					obj.gtsRepeatTieRelease = v === true;
+ 					return true;
+ 				case "gtsslideplayback":
+-					obj.gtsSlidePlayback = v === 1 || v === 2 ? v : 0;
++					obj.gtsSlidePlayback = v === 1 || v === 2 || v === 3 ? v : 0;
+ 					return true;
+ 				case "gtsfinebendmidpoint":
+ 					obj.gtsFineBendMidpoint = v === 12 ? 12 : 0;
+@@ -32981,8 +32981,9 @@
+ 	* @public
+ 	*/
+ 	var NoteOnEvent = class extends NoteEvent {
+-		constructor(track, tick, channel, noteKey, noteVelocity) {
++		constructor(track, tick, channel, noteKey, noteVelocity, sampleOffsetMs = 0) {
+ 			super(track, tick, 128, channel, noteKey, noteVelocity);
++			this.sampleOffsetMs = sampleOffsetMs;
+ 		}
+ 		writeTo(s) {
+ 			s.writeByte(this.channel & 15 | 144);
+@@ -33320,7 +33321,7 @@
+ 				case MidiEventType.TimeSignature: return new TimeSignatureEvent(track, tick, JsonHelper.getValue(midiEvent, "numerator"), JsonHelper.getValue(midiEvent, "denominatorIndex"), JsonHelper.getValue(midiEvent, "midiClocksPerMetronomeClick"), JsonHelper.getValue(midiEvent, "thirdySecondNodesInQuarter"));
+ 				case MidiEventType.AlphaTabRest: return new AlphaTabRestEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"));
+ 				case MidiEventType.AlphaTabMetronome: return new AlphaTabMetronomeEvent(track, tick, JsonHelper.getValue(midiEvent, "metronomeNumerator"), JsonHelper.getValue(midiEvent, "metronomeDurationInTicks"), JsonHelper.getValue(midiEvent, "metronomeDurationInMilliseconds"));
+-				case MidiEventType.NoteOn: return new NoteOnEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "noteKey"), JsonHelper.getValue(midiEvent, "noteVelocity"));
++				case MidiEventType.NoteOn: return new NoteOnEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "noteKey"), JsonHelper.getValue(midiEvent, "noteVelocity"), JsonHelper.getValue(midiEvent, "sampleOffsetMs"));
+ 				case MidiEventType.NoteOff: return new NoteOffEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "noteKey"), JsonHelper.getValue(midiEvent, "noteVelocity"));
+ 				case MidiEventType.ControlChange: return new ControlChangeEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "controller"), JsonHelper.getValue(midiEvent, "value"));
+ 				case MidiEventType.ProgramChange: return new ProgramChangeEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "program"));
+@@ -33385,6 +33386,7 @@
+ 					o.set("channel", midiEvent.channel);
+ 					o.set("noteKey", midiEvent.noteKey);
+ 					o.set("noteVelocity", midiEvent.noteVelocity);
++					if (midiEvent.sampleOffsetMs) o.set("sampleOffsetMs", midiEvent.sampleOffsetMs);
+ 					break;
+ 				case MidiEventType.ControlChange:
+ 					o.set("channel", midiEvent.channel);
+@@ -39048,7 +39050,7 @@
+ 					break;
+ 				case MidiEventType.NoteOn:
+ 					const noteOn = e;
+-					this.channelNoteOn(noteOn.channel, noteOn.noteKey, noteOn.noteVelocity / 127);
++					this.channelNoteOn(noteOn.channel, noteOn.noteKey, noteOn.noteVelocity / 127, noteOn.sampleOffsetMs);
+ 					break;
+ 				case MidiEventType.NoteOff:
+ 					const noteOff = e;
+@@ -39167,7 +39169,7 @@
+ 		* @param key note value between 0 and 127 (60 being middle C)
+ 		* @param vel velocity as a float between 0.0 (equal to note off) and 1.0 (full)
+ 		*/
+-		noteOn(presetIndex, key, vel) {
++		noteOn(presetIndex, key, vel, sampleOffsetMs = 0) {
+ 			if (!this.presets) return;
+ 			const midiVelocity = vel * 127 | 0;
+ 			if (presetIndex < 0 || presetIndex >= this.presets.length) return;
+@@ -39178,6 +39180,14 @@
+ 			const voicePlayIndex = this._voicePlayIndex++;
+ 			for (const region of this.presets[presetIndex].regions) {
+ 				if (key < region.loKey || key > region.hiKey || midiVelocity < region.loVel || midiVelocity > region.hiVel) continue;
++				const doLoop = region.loopMode !== LoopMode.None && region.loopStart < region.loopEnd;
++				let position = region.offset;
++				if (Number.isFinite(sampleOffsetMs) && sampleOffsetMs > 0) {
++					position += region.sampleRate * sampleOffsetMs / 1000;
++					const loopLimit = region.loopEnd + 1;
++					if (doLoop && position >= loopLimit) position = region.loopStart + (position - loopLimit) % (loopLimit - region.loopStart);
++					if (position >= region.end && !doLoop) continue;
++				}
+ 				let voice = null;
+ 				if (region.group !== 0) {
+ 					for (const v of this._voices) if (v.playingPreset === presetIndex && v.region.group === region.group) v.endQuick(this.outSampleRate);
+@@ -39202,8 +39212,7 @@
+ 					voice.panFactorLeft = Math.sqrt(.5 - region.pan);
+ 					voice.panFactorRight = Math.sqrt(.5 + region.pan);
+ 				}
+-				voice.sourceSamplePosition = region.offset;
+-				const doLoop = region.loopMode !== LoopMode.None && region.loopStart < region.loopEnd;
++				voice.sourceSamplePosition = position;
+ 				voice.loopStart = doLoop ? region.loopStart : 0;
+ 				voice.loopEnd = doLoop ? region.loopEnd : 0;
+ 				voice.ampEnv.setup(region.ampEnv, key, midiVelocity, true, this.outSampleRate);
+@@ -39333,12 +39342,12 @@
+ 		* @param key note value between 0 and 127 (60 being middle C)
+ 		* @param vel velocity as a float between 0.0 (equal to note off) and 1.0 (full)
+ 		*/
+-		channelNoteOn(channel, key, vel) {
++		channelNoteOn(channel, key, vel, sampleOffsetMs = 0) {
+ 			if (!this._channels || channel > this._channels.channelList.length) return;
+ 			if (this._transpositionPitches.has(channel)) key += this._transpositionPitches.get(channel);
+ 			if (this._liveTranspositionPitches.has(channel)) key += this._liveTranspositionPitches.get(channel);
+ 			this._channels.activeChannel = channel;
+-			this.noteOn(this._channels.channelList[channel].presetIndex, key, vel);
++			this.noteOn(this._channels.channelList[channel].presetIndex, key, vel, sampleOffsetMs);
+ 		}
+ 		/**
+ 		* Stop playing notes on a channel
+@@ -41971,9 +41980,9 @@
+ 			tick += this.tickShift;
+ 			if (!this._smf1Mode) this._midiFile.addEvent(new AlphaTabRestEvent(track, tick, channel));
+ 		}
+-		addNote(track, start, length, key, velocity, channel) {
++		addNote(track, start, length, key, velocity, channel, sampleOffsetMs = 0) {
+ 			start += this.tickShift;
+-			this._midiFile.addEvent(new NoteOnEvent(track, start, channel, AlphaSynthMidiFileHandler._fixValue(key), AlphaSynthMidiFileHandler._fixValue(velocity)));
++			this._midiFile.addEvent(new NoteOnEvent(track, start, channel, AlphaSynthMidiFileHandler._fixValue(key), AlphaSynthMidiFileHandler._fixValue(velocity), sampleOffsetMs));
+ 			this._midiFile.addEvent(new NoteOffEvent(track, start + length, channel, AlphaSynthMidiFileHandler._fixValue(key), AlphaSynthMidiFileHandler._fixValue(velocity)));
+ 		}
+ 		static _fixValue(value) {
+@@ -43065,6 +43074,7 @@
+ 		}
+ 		_gtsRepeatTieSuccessors;
+ 		_gtsTiedBendTails;
++		_gtsLegatoAttacks;
+ 		_detectTickShift() {
+ 			let tickShift = 0;
+ 			for (const track of this._score.tracks) for (const staff of track.staves) for (const voice of staff.bars[0].voices) if (!voice.isEmpty) {
+@@ -43511,6 +43521,8 @@
+ 				this._gtsTiedBendTails.delete(note);
+ 				return;
+ 			}
++			const freshLegatoAttack = this._gtsLegatoAttacks?.get(note) === noteStart;
++			if (freshLegatoAttack) this._gtsLegatoAttacks.delete(note);
+ 			const tiedBendDuration = note.gtsTiedBend && this._tryGtsTiedBend(note, noteStart, beatDuration, noteSoundDuration, noteKey, channel, tempoOnBeatStart);
+ 			if (tiedBendDuration) {
+ 				this._handler.addNote(track.index, noteStart, tiedBendDuration, noteKey, velocity, channel);
+@@ -43519,7 +43531,7 @@
+ 			if (note.gtsSlidePlayback && this._tryGtsSlidePlayback(note, beatDuration, noteStart, noteSoundDuration, noteKey, velocity, channel, tempoOnBeatStart)) return;
+ 			if (note.hasBend) initialBend = MidiFileGenerator.getPitchWheel(note.bendPoints[0].value);
+ 			else if (note.beat.hasWhammyBar) initialBend = MidiFileGenerator.getPitchWheel(note.beat.whammyBarPoints[0].value);
+-			else if (note.isTieDestination || note.slideOrigin && note.slideOrigin.slideOutType === SlideOutType.Legato) initialBend = -1;
++			else if (note.isTieDestination || !freshLegatoAttack && note.slideOrigin && note.slideOrigin.slideOutType === SlideOutType.Legato) initialBend = -1;
+ 			else initialBend = MidiFileGenerator.getPitchWheel(0);
+ 			if (initialBend >= 0) this._handler.addNoteBend(track.index, noteStart, channel, noteKey, initialBend);
+ 			if (note.beat.hasRasgueado) {
+@@ -43542,7 +43554,7 @@
+ 			else if (note.beat.hasWhammyBar && note.index === 0) this._generateWhammy(note.beat, noteStart, noteDuration, channel, tempoOnBeatStart);
+ 			else if (note.slideInType !== SlideInType.None || note.slideOutType !== SlideOutType.None) this._generateSlide(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart);
+ 			else if (note.vibrato !== VibratoType.None || note.isTieDestination && note.tieOrigin.vibrato !== VibratoType.None) this._generateVibrato(note, noteStart, noteDuration, noteKey, channel);
+-			if (!note.isTieDestination && (!note.slideOrigin || note.slideOrigin.slideOutType !== SlideOutType.Legato)) this._handler.addNote(track.index, noteStart, noteSoundDuration, noteKey, velocity, channel);
++			if (!note.isTieDestination && (freshLegatoAttack || !note.slideOrigin || note.slideOrigin.slideOutType !== SlideOutType.Legato)) this._handler.addNote(track.index, noteStart, noteSoundDuration, noteKey, velocity, channel);
+ 		}
+ 		/**
+ 		* For every note within the octave, the number of keys to go up when playing ornaments.
+@@ -43942,6 +43954,7 @@
+ 			return SynthConstants.DefaultPitchWheel + bendValue / 2 * MidiFileGenerator._pitchValuePerSemitone;
+ 		}
+ 		_tryGtsSlidePlayback(note, beatDuration, start, length, key, velocity, channel, tempo) {
++			if (note.gtsSlidePlayback === 3) return this._tryGtsLegatoApproach(note, beatDuration, start, key, velocity, channel, tempo);
+ 			if (this._handler._smf1Mode || tempo !== 124 || !note.isStringed || note.beat.graceType !== GraceType.None ||
+ 				note.isGhost || note.isDead || note.hasBend || note.isHarmonic || note.isTrill || note.isPalmMute ||
+ 				note.isLeftHandTapped || note.isRightHandTapped || note.beat.tap || note.ornament !== NoteOrnament.None || note.isTieDestination || note.isHammerPullOrigin || note.isHammerPullDestination || note.vibrato !== VibratoType.None) return false;
+@@ -43973,6 +43986,27 @@
+ 			}
+ 			return false;
+ 		}
++		_tryGtsLegatoApproach(note, beatDuration, start, key, velocity, channel, tempo) {
++			if (this._handler._smf1Mode || beatDuration !== 960 || tempo !== 130) return false;
++			const beat = note.beat, next = beat.nextBeat, track = beat.voice.bar.staff.track;
++			if (!next || next.voice !== beat.voice || next.playbackDuration !== 960 || track.playbackInfo.program !== 27 ||
++				beat.notes.length !== 2 || next.notes.length !== 2 || !next.notes.some(n => n.gtsTiedBend)) return false;
++			const plain = n => n.isStringed && !n.isGhost && !n.isDead && !n.isHarmonic && !n.isTrill && !n.isPalmMute &&
++				!n.isStaccato && !n.isLetRing && !n.isRightHandTapped && !n.isLeftHandTapped && !n.isTieDestination &&
++				!n.isHammerPullOrigin && !n.isHammerPullDestination && n.ornament === NoteOrnament.None && n.vibrato === VibratoType.None;
++			if (!beat.notes.every(n => n.gtsSlidePlayback === 3 && plain(n) && !n.hasBend && !n.isTieOrigin &&
++				!n.slideOrigin && n.slideInType === SlideInType.None && n.slideOutType === SlideOutType.Legato &&
++				n.slideTarget?.beat === next && plain(n.slideTarget) && n.slideTarget.fret === n.fret + 3 &&
++				n.slideTarget.string === n.string && n.slideTarget.slideOutType === SlideOutType.None &&
++				(n.slideTarget.gtsTiedBend || !n.slideTarget.hasBend && !n.slideTarget.isTieOrigin))) return false;
++			this._gtsLegatoAttacks ??= new Map();
++			this._gtsLegatoAttacks.set(note.slideTarget, start + beatDuration);
++			for (const [offset, ticks, pitch, sampleOffsetMs] of [[0, 816, key, 0], [816, 72, key + 1, 200], [888, 72, key + 2, 200]]) {
++				this._handler.addNoteBend(track.index, start + offset, channel, pitch, MidiFileGenerator.getPitchWheel(0));
++				this._handler.addNote(track.index, start + offset, ticks, pitch, velocity, channel, sampleOffsetMs);
++			}
++			return true;
++		}
+ 		_generateSlide(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart) {
+ 			const duration = note.slideOutType === SlideOutType.Legato ? noteDuration.noteOnly : noteDuration.untilTieOrSlideEnd;
+ 			const playedBendPoints = [];
+@@ -66981,7 +67015,7 @@
+ 			if (note.ghostReleaseAtBeatEnd) this._writeSimplePropertyNode(properties, "GtsGhostReleaseAtBeatEnd", "Enable", null);
+ 			if (note.gtsRepeatTieRelease) this._writeSimplePropertyNode(properties, "GtsRepeatTieRelease", "Enable", null);
+ 			if (note.gtsTiedBend) this._writeSimplePropertyNode(properties, "GtsTiedBend", "Enable", null);
+-			if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
++			if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+ 			if (note.harmonicType !== HarmonicType.None) {
+ 				switch (note.harmonicType) {
+ 					case HarmonicType.Natural:
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -21186,7 +21186,7 @@ class GpifParser {
+ 						break;
+ 					case "GtsSlidePlayback":
+ 						const slidePlayback = c.findChildElement("Number")?.innerText;
+-						note.gtsSlidePlayback = slidePlayback === "1" ? 1 : slidePlayback === "2" ? 2 : 0;
++						note.gtsSlidePlayback = slidePlayback === "1" ? 1 : slidePlayback === "2" ? 2 : slidePlayback === "3" ? 3 : 0;
+ 						break;
+ 					case "GtsFineBendMidpoint":
+ 						note.gtsFineBendMidpoint = c.findChildElement("Number")?.innerText === "12" ? 12 : 0;
+@@ -31330,7 +31330,7 @@ class NoteSerializer {
+ 				obj.gtsRepeatTieRelease = v === true;
+ 				return true;
+ 			case "gtsslideplayback":
+-				obj.gtsSlidePlayback = v === 1 || v === 2 ? v : 0;
++				obj.gtsSlidePlayback = v === 1 || v === 2 || v === 3 ? v : 0;
+ 				return true;
+ 			case "gtsfinebendmidpoint":
+ 				obj.gtsFineBendMidpoint = v === 12 ? 12 : 0;
+@@ -32977,8 +32977,9 @@ class NoteEvent extends MidiEvent {
+ * @public
+ */
+ class NoteOnEvent extends NoteEvent {
+-	constructor(track, tick, channel, noteKey, noteVelocity) {
++	constructor(track, tick, channel, noteKey, noteVelocity, sampleOffsetMs = 0) {
+ 		super(track, tick, 128, channel, noteKey, noteVelocity);
++		this.sampleOffsetMs = sampleOffsetMs;
+ 	}
+ 	writeTo(s) {
+ 		s.writeByte(this.channel & 15 | 144);
+@@ -33316,7 +33317,7 @@ class JsonConverter {
+ 			case MidiEventType.TimeSignature: return new TimeSignatureEvent(track, tick, JsonHelper.getValue(midiEvent, "numerator"), JsonHelper.getValue(midiEvent, "denominatorIndex"), JsonHelper.getValue(midiEvent, "midiClocksPerMetronomeClick"), JsonHelper.getValue(midiEvent, "thirdySecondNodesInQuarter"));
+ 			case MidiEventType.AlphaTabRest: return new AlphaTabRestEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"));
+ 			case MidiEventType.AlphaTabMetronome: return new AlphaTabMetronomeEvent(track, tick, JsonHelper.getValue(midiEvent, "metronomeNumerator"), JsonHelper.getValue(midiEvent, "metronomeDurationInTicks"), JsonHelper.getValue(midiEvent, "metronomeDurationInMilliseconds"));
+-			case MidiEventType.NoteOn: return new NoteOnEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "noteKey"), JsonHelper.getValue(midiEvent, "noteVelocity"));
++			case MidiEventType.NoteOn: return new NoteOnEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "noteKey"), JsonHelper.getValue(midiEvent, "noteVelocity"), JsonHelper.getValue(midiEvent, "sampleOffsetMs"));
+ 			case MidiEventType.NoteOff: return new NoteOffEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "noteKey"), JsonHelper.getValue(midiEvent, "noteVelocity"));
+ 			case MidiEventType.ControlChange: return new ControlChangeEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "controller"), JsonHelper.getValue(midiEvent, "value"));
+ 			case MidiEventType.ProgramChange: return new ProgramChangeEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "program"));
+@@ -33381,6 +33382,7 @@ class JsonConverter {
+ 				o.set("channel", midiEvent.channel);
+ 				o.set("noteKey", midiEvent.noteKey);
+ 				o.set("noteVelocity", midiEvent.noteVelocity);
++				if (midiEvent.sampleOffsetMs) o.set("sampleOffsetMs", midiEvent.sampleOffsetMs);
+ 				break;
+ 			case MidiEventType.ControlChange:
+ 				o.set("channel", midiEvent.channel);
+@@ -39044,7 +39046,7 @@ class TinySoundFont {
+ 				break;
+ 			case MidiEventType.NoteOn:
+ 				const noteOn = e;
+-				this.channelNoteOn(noteOn.channel, noteOn.noteKey, noteOn.noteVelocity / 127);
++				this.channelNoteOn(noteOn.channel, noteOn.noteKey, noteOn.noteVelocity / 127, noteOn.sampleOffsetMs);
+ 				break;
+ 			case MidiEventType.NoteOff:
+ 				const noteOff = e;
+@@ -39163,7 +39165,7 @@ class TinySoundFont {
+ 	* @param key note value between 0 and 127 (60 being middle C)
+ 	* @param vel velocity as a float between 0.0 (equal to note off) and 1.0 (full)
+ 	*/
+-	noteOn(presetIndex, key, vel) {
++	noteOn(presetIndex, key, vel, sampleOffsetMs = 0) {
+ 		if (!this.presets) return;
+ 		const midiVelocity = vel * 127 | 0;
+ 		if (presetIndex < 0 || presetIndex >= this.presets.length) return;
+@@ -39174,6 +39176,14 @@ class TinySoundFont {
+ 		const voicePlayIndex = this._voicePlayIndex++;
+ 		for (const region of this.presets[presetIndex].regions) {
+ 			if (key < region.loKey || key > region.hiKey || midiVelocity < region.loVel || midiVelocity > region.hiVel) continue;
++			const doLoop = region.loopMode !== LoopMode.None && region.loopStart < region.loopEnd;
++			let position = region.offset;
++			if (Number.isFinite(sampleOffsetMs) && sampleOffsetMs > 0) {
++				position += region.sampleRate * sampleOffsetMs / 1000;
++				const loopLimit = region.loopEnd + 1;
++				if (doLoop && position >= loopLimit) position = region.loopStart + (position - loopLimit) % (loopLimit - region.loopStart);
++				if (position >= region.end && !doLoop) continue;
++			}
+ 			let voice = null;
+ 			if (region.group !== 0) {
+ 				for (const v of this._voices) if (v.playingPreset === presetIndex && v.region.group === region.group) v.endQuick(this.outSampleRate);
+@@ -39198,8 +39208,7 @@ class TinySoundFont {
+ 				voice.panFactorLeft = Math.sqrt(.5 - region.pan);
+ 				voice.panFactorRight = Math.sqrt(.5 + region.pan);
+ 			}
+-			voice.sourceSamplePosition = region.offset;
+-			const doLoop = region.loopMode !== LoopMode.None && region.loopStart < region.loopEnd;
++			voice.sourceSamplePosition = position;
+ 			voice.loopStart = doLoop ? region.loopStart : 0;
+ 			voice.loopEnd = doLoop ? region.loopEnd : 0;
+ 			voice.ampEnv.setup(region.ampEnv, key, midiVelocity, true, this.outSampleRate);
+@@ -39329,12 +39338,12 @@ class TinySoundFont {
+ 	* @param key note value between 0 and 127 (60 being middle C)
+ 	* @param vel velocity as a float between 0.0 (equal to note off) and 1.0 (full)
+ 	*/
+-	channelNoteOn(channel, key, vel) {
++	channelNoteOn(channel, key, vel, sampleOffsetMs = 0) {
+ 		if (!this._channels || channel > this._channels.channelList.length) return;
+ 		if (this._transpositionPitches.has(channel)) key += this._transpositionPitches.get(channel);
+ 		if (this._liveTranspositionPitches.has(channel)) key += this._liveTranspositionPitches.get(channel);
+ 		this._channels.activeChannel = channel;
+-		this.noteOn(this._channels.channelList[channel].presetIndex, key, vel);
++		this.noteOn(this._channels.channelList[channel].presetIndex, key, vel, sampleOffsetMs);
+ 	}
+ 	/**
+ 	* Stop playing notes on a channel
+@@ -41967,9 +41976,9 @@ class AlphaSynthMidiFileHandler {
+ 		tick += this.tickShift;
+ 		if (!this._smf1Mode) this._midiFile.addEvent(new AlphaTabRestEvent(track, tick, channel));
+ 	}
+-	addNote(track, start, length, key, velocity, channel) {
++	addNote(track, start, length, key, velocity, channel, sampleOffsetMs = 0) {
+ 		start += this.tickShift;
+-		this._midiFile.addEvent(new NoteOnEvent(track, start, channel, AlphaSynthMidiFileHandler._fixValue(key), AlphaSynthMidiFileHandler._fixValue(velocity)));
++		this._midiFile.addEvent(new NoteOnEvent(track, start, channel, AlphaSynthMidiFileHandler._fixValue(key), AlphaSynthMidiFileHandler._fixValue(velocity), sampleOffsetMs));
+ 		this._midiFile.addEvent(new NoteOffEvent(track, start + length, channel, AlphaSynthMidiFileHandler._fixValue(key), AlphaSynthMidiFileHandler._fixValue(velocity)));
+ 	}
+ 	static _fixValue(value) {
+@@ -43061,6 +43070,7 @@ class MidiFileGenerator {
+ 	}
+ 	_gtsRepeatTieSuccessors;
+ 	_gtsTiedBendTails;
++	_gtsLegatoAttacks;
+ 	_detectTickShift() {
+ 		let tickShift = 0;
+ 		for (const track of this._score.tracks) for (const staff of track.staves) for (const voice of staff.bars[0].voices) if (!voice.isEmpty) {
+@@ -43507,6 +43517,8 @@ class MidiFileGenerator {
+ 			this._gtsTiedBendTails.delete(note);
+ 			return;
+ 		}
++		const freshLegatoAttack = this._gtsLegatoAttacks?.get(note) === noteStart;
++		if (freshLegatoAttack) this._gtsLegatoAttacks.delete(note);
+ 		const tiedBendDuration = note.gtsTiedBend && this._tryGtsTiedBend(note, noteStart, beatDuration, noteSoundDuration, noteKey, channel, tempoOnBeatStart);
+ 		if (tiedBendDuration) {
+ 			this._handler.addNote(track.index, noteStart, tiedBendDuration, noteKey, velocity, channel);
+@@ -43515,7 +43527,7 @@ class MidiFileGenerator {
+ 		if (note.gtsSlidePlayback && this._tryGtsSlidePlayback(note, beatDuration, noteStart, noteSoundDuration, noteKey, velocity, channel, tempoOnBeatStart)) return;
+ 		if (note.hasBend) initialBend = MidiFileGenerator.getPitchWheel(note.bendPoints[0].value);
+ 		else if (note.beat.hasWhammyBar) initialBend = MidiFileGenerator.getPitchWheel(note.beat.whammyBarPoints[0].value);
+-		else if (note.isTieDestination || note.slideOrigin && note.slideOrigin.slideOutType === SlideOutType.Legato) initialBend = -1;
++		else if (note.isTieDestination || !freshLegatoAttack && note.slideOrigin && note.slideOrigin.slideOutType === SlideOutType.Legato) initialBend = -1;
+ 		else initialBend = MidiFileGenerator.getPitchWheel(0);
+ 		if (initialBend >= 0) this._handler.addNoteBend(track.index, noteStart, channel, noteKey, initialBend);
+ 		if (note.beat.hasRasgueado) {
+@@ -43538,7 +43550,7 @@ class MidiFileGenerator {
+ 		else if (note.beat.hasWhammyBar && note.index === 0) this._generateWhammy(note.beat, noteStart, noteDuration, channel, tempoOnBeatStart);
+ 		else if (note.slideInType !== SlideInType.None || note.slideOutType !== SlideOutType.None) this._generateSlide(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart);
+ 		else if (note.vibrato !== VibratoType.None || note.isTieDestination && note.tieOrigin.vibrato !== VibratoType.None) this._generateVibrato(note, noteStart, noteDuration, noteKey, channel);
+-		if (!note.isTieDestination && (!note.slideOrigin || note.slideOrigin.slideOutType !== SlideOutType.Legato)) this._handler.addNote(track.index, noteStart, noteSoundDuration, noteKey, velocity, channel);
++		if (!note.isTieDestination && (freshLegatoAttack || !note.slideOrigin || note.slideOrigin.slideOutType !== SlideOutType.Legato)) this._handler.addNote(track.index, noteStart, noteSoundDuration, noteKey, velocity, channel);
+ 	}
+ 	/**
+ 	* For every note within the octave, the number of keys to go up when playing ornaments.
+@@ -43938,6 +43950,7 @@ class MidiFileGenerator {
+ 		return SynthConstants.DefaultPitchWheel + bendValue / 2 * MidiFileGenerator._pitchValuePerSemitone;
+ 	}
+ 	_tryGtsSlidePlayback(note, beatDuration, start, length, key, velocity, channel, tempo) {
++		if (note.gtsSlidePlayback === 3) return this._tryGtsLegatoApproach(note, beatDuration, start, key, velocity, channel, tempo);
+ 		if (this._handler._smf1Mode || tempo !== 124 || !note.isStringed || note.beat.graceType !== GraceType.None ||
+ 			note.isGhost || note.isDead || note.hasBend || note.isHarmonic || note.isTrill || note.isPalmMute ||
+ 			note.isLeftHandTapped || note.isRightHandTapped || note.beat.tap || note.ornament !== NoteOrnament.None || note.isTieDestination || note.isHammerPullOrigin || note.isHammerPullDestination || note.vibrato !== VibratoType.None) return false;
+@@ -43969,6 +43982,27 @@ class MidiFileGenerator {
+ 		}
+ 		return false;
+ 	}
++	_tryGtsLegatoApproach(note, beatDuration, start, key, velocity, channel, tempo) {
++		if (this._handler._smf1Mode || beatDuration !== 960 || tempo !== 130) return false;
++		const beat = note.beat, next = beat.nextBeat, track = beat.voice.bar.staff.track;
++		if (!next || next.voice !== beat.voice || next.playbackDuration !== 960 || track.playbackInfo.program !== 27 ||
++			beat.notes.length !== 2 || next.notes.length !== 2 || !next.notes.some(n => n.gtsTiedBend)) return false;
++		const plain = n => n.isStringed && !n.isGhost && !n.isDead && !n.isHarmonic && !n.isTrill && !n.isPalmMute &&
++			!n.isStaccato && !n.isLetRing && !n.isRightHandTapped && !n.isLeftHandTapped && !n.isTieDestination &&
++			!n.isHammerPullOrigin && !n.isHammerPullDestination && n.ornament === NoteOrnament.None && n.vibrato === VibratoType.None;
++		if (!beat.notes.every(n => n.gtsSlidePlayback === 3 && plain(n) && !n.hasBend && !n.isTieOrigin &&
++			!n.slideOrigin && n.slideInType === SlideInType.None && n.slideOutType === SlideOutType.Legato &&
++			n.slideTarget?.beat === next && plain(n.slideTarget) && n.slideTarget.fret === n.fret + 3 &&
++			n.slideTarget.string === n.string && n.slideTarget.slideOutType === SlideOutType.None &&
++			(n.slideTarget.gtsTiedBend || !n.slideTarget.hasBend && !n.slideTarget.isTieOrigin))) return false;
++		this._gtsLegatoAttacks ??= new Map();
++		this._gtsLegatoAttacks.set(note.slideTarget, start + beatDuration);
++		for (const [offset, ticks, pitch, sampleOffsetMs] of [[0, 816, key, 0], [816, 72, key + 1, 200], [888, 72, key + 2, 200]]) {
++			this._handler.addNoteBend(track.index, start + offset, channel, pitch, MidiFileGenerator.getPitchWheel(0));
++			this._handler.addNote(track.index, start + offset, ticks, pitch, velocity, channel, sampleOffsetMs);
++		}
++		return true;
++	}
+ 	_generateSlide(note, noteStart, noteDuration, noteKey, channel, tempoOnBeatStart) {
+ 		const duration = note.slideOutType === SlideOutType.Legato ? noteDuration.noteOnly : noteDuration.untilTieOrSlideEnd;
+ 		const playedBendPoints = [];
+@@ -66977,7 +67011,7 @@ class GpifWriter {
+ 		if (note.ghostReleaseAtBeatEnd) this._writeSimplePropertyNode(properties, "GtsGhostReleaseAtBeatEnd", "Enable", null);
+ 		if (note.gtsRepeatTieRelease) this._writeSimplePropertyNode(properties, "GtsRepeatTieRelease", "Enable", null);
+ 		if (note.gtsTiedBend) this._writeSimplePropertyNode(properties, "GtsTiedBend", "Enable", null);
+-		if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
++		if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+ 		if (note.harmonicType !== HarmonicType.None) {
+ 			switch (note.harmonicType) {
+ 				case HarmonicType.Natural:

@@ -1,0 +1,178 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -43511,8 +43511,9 @@
+ 				this._gtsTiedBendTails.delete(note);
+ 				return;
+ 			}
+-			if (note.gtsTiedBend && this._tryGtsTiedBend(note, noteStart, beatDuration, noteSoundDuration, noteKey, channel, tempoOnBeatStart)) {
+-				this._handler.addNote(track.index, noteStart, noteSoundDuration, noteKey, velocity, channel);
++			const tiedBendDuration = note.gtsTiedBend && this._tryGtsTiedBend(note, noteStart, beatDuration, noteSoundDuration, noteKey, channel, tempoOnBeatStart);
++			if (tiedBendDuration) {
++				this._handler.addNote(track.index, noteStart, tiedBendDuration, noteKey, velocity, channel);
+ 				return;
+ 			}
+ 			if (note.gtsSlidePlayback && this._tryGtsSlidePlayback(note, beatDuration, noteStart, noteSoundDuration, noteKey, velocity, channel, tempoOnBeatStart)) return;
+@@ -43682,7 +43683,12 @@
+ 		_tryGtsTiedBend(note, start, firstDuration, duration, key, channel, tempo) {
+ 			if (this._handler._smf1Mode || note.isTieDestination || !note.isTieOrigin ||
+ 				!note.isStringed || ![2, 4].includes(note.bendPoints?.[1]?.value)) return false;
+-			const target = note.bendPoints[1].value;
++			const points = note.bendPoints;
++			const target = points[1].value;
++			const peak = (points.length === 3 || points.length === 4) && points[0].offset === 0 && points[0].value === 0 &&
++				points.at(-1).offset === BendPoint.MaxPosition && points.at(-1).value === 0 &&
++				points.slice(1, -1).every(point => point.offset === BendPoint.MaxPosition / 2 && point.value === target);
++			const heldValue = peak ? 0 : target;
+ 			const plain = n => !n.isDead && !n.isGhost && !n.isStaccato && !n.isPalmMute &&
+ 				!n.isHammerPullOrigin && !n.isHammerPullDestination && !n.isLeftHandTapped && !n.isRightHandTapped &&
+ 				!n.isTrill && n.ornament === NoteOrnament.None && n.vibrato === VibratoType.None &&
+@@ -43690,9 +43696,9 @@
+ 				!n.gtsRepeatTieRelease && !n.gtsSlidePlayback && !n.gtsFineBendMidpoint &&
+ 				n.beat.graceType === GraceType.None && !n.beat.tap && !n.beat.isTremolo && !n.beat.hasWhammyBar &&
+ 				!n.beat.hasRasgueado && n.beat.brushType === BrushType.None;
+-			const shape = (n, initial) => n.bendPoints?.length === 2 && n.bendPoints[0].offset === 0 &&
+-				n.bendPoints[0].value === initial && n.bendPoints[1].offset === BendPoint.MaxPosition && n.bendPoints[1].value === target;
+-			if (!plain(note) || !shape(note, 0) || duration <= firstDuration || duration > 15360) return false;
++			const shape = (n, initial, end) => n.bendPoints?.length === 2 && n.bendPoints[0].offset === 0 &&
++				n.bendPoints[0].value === initial && n.bendPoints[1].offset === BendPoint.MaxPosition && n.bendPoints[1].value === end;
++			if (!plain(note) || (!peak && !shape(note, 0, target)) || duration <= firstDuration || duration > 15360) return false;
+ 			const timing = beat => {
+ 				if (this._settings.player.playTripletFeel && beat.voice.bar.masterBar.tripletFeel !== TripletFeel.NoTripletFeel) {
+ 					const before = beat.previousBeat;
+@@ -43712,15 +43718,20 @@
+ 				const tail = previous.tieDestination;
+ 				if (!tail || tail.tieOrigin !== previous || tail.beat !== previous.beat.nextBeat ||
+ 					tail.string !== note.string || tail.fret !== note.fret || !plain(tail) ||
+-					tail.beat.playbackDuration <= 0 || (tail.hasBend && !shape(tail, target))) return false;
++					tail.beat.playbackDuration <= 0 || (tail.hasBend && !shape(tail, heldValue, heldValue))) return false;
+ 				const [tailShift, tailDuration] = timing(tail.beat);
+ 				if (tail.beat.absolutePlaybackStart + tailShift - note.beat.absolutePlaybackStart - shift !== elapsed) return false;
+ 				tails.push([tail, elapsed]);
+ 				elapsed += tailDuration;
+-				if (elapsed > duration) return false;
++				if (elapsed > 15360) return false;
+ 				previous = tail;
+ 			}
+-			if (elapsed !== duration || !tails.some(([tail]) => tail.hasBend)) return false;
++			if (!tails.some(([tail]) => tail.hasBend)) return false;
++			if (elapsed !== duration) {
++				const writtenDuration = previous.beat.absolutePlaybackStart - note.beat.absolutePlaybackStart + previous.beat.playbackDuration;
++				if (duration !== writtenDuration || note.isLetRing || tails.some(([tail]) => tail.isLetRing)) return false;
++			}
++			duration = elapsed;
+ 			const originBar = note.beat.voice.bar.masterBar;
+ 			const endBar = previous.beat.voice.bar.masterBar;
+ 			// Use played successors, since written ties may cross a repeat branch.
+@@ -43741,16 +43752,19 @@
+ 			for (const [tail, offset] of tails) this._gtsTiedBendTails.set(tail, start + offset);
+ 			const track = note.beat.voice.bar.staff.track.index;
+ 			// Soundslice interpolates sample rate, which is logarithmic in semitones.
+-			const ratio = Math.pow(2, target / 24) - 1;
++			const ratio = Math.pow(2, target / 24);
+ 			const finalWheel = MidiFileGenerator.getPitchWheel(target);
+ 			const positions = new Set([duration, ...tails.map(([, offset]) => offset)]);
++			const turningPoint = peak ? duration / 2 : duration;
++			positions.add(turningPoint);
+ 			for (let tick = 0; tick < duration; tick += 5) positions.add(tick);
+ 			for (const tick of [...positions].sort((a, b) => a - b)) {
+-				const wheel = Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(1 + ratio * tick / duration)));
+-				const value = tick === duration ? finalWheel : Math.min(wheel, finalWheel - 1);
++				const progress = tick <= turningPoint ? tick / turningPoint : (duration - tick) / turningPoint;
++				const wheel = Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(1 + (ratio - 1) * progress)));
++				const value = tick === turningPoint ? finalWheel : Math.min(wheel, finalWheel - 1);
+ 				this._handler.addNoteBend(track, start + tick, channel, key, value);
+ 			}
+-			return true;
++			return duration;
+ 		}
+ 		_getNoteDuration(note, beatPlayDuration, tempoOnBeatStart) {
+ 			const durationWithEffects = new MidiNoteDuration();
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -43507,8 +43507,9 @@ class MidiFileGenerator {
+ 			this._gtsTiedBendTails.delete(note);
+ 			return;
+ 		}
+-		if (note.gtsTiedBend && this._tryGtsTiedBend(note, noteStart, beatDuration, noteSoundDuration, noteKey, channel, tempoOnBeatStart)) {
+-			this._handler.addNote(track.index, noteStart, noteSoundDuration, noteKey, velocity, channel);
++		const tiedBendDuration = note.gtsTiedBend && this._tryGtsTiedBend(note, noteStart, beatDuration, noteSoundDuration, noteKey, channel, tempoOnBeatStart);
++		if (tiedBendDuration) {
++			this._handler.addNote(track.index, noteStart, tiedBendDuration, noteKey, velocity, channel);
+ 			return;
+ 		}
+ 		if (note.gtsSlidePlayback && this._tryGtsSlidePlayback(note, beatDuration, noteStart, noteSoundDuration, noteKey, velocity, channel, tempoOnBeatStart)) return;
+@@ -43678,7 +43679,12 @@ class MidiFileGenerator {
+ 	_tryGtsTiedBend(note, start, firstDuration, duration, key, channel, tempo) {
+ 		if (this._handler._smf1Mode || note.isTieDestination || !note.isTieOrigin ||
+ 			!note.isStringed || ![2, 4].includes(note.bendPoints?.[1]?.value)) return false;
+-		const target = note.bendPoints[1].value;
++		const points = note.bendPoints;
++		const target = points[1].value;
++		const peak = (points.length === 3 || points.length === 4) && points[0].offset === 0 && points[0].value === 0 &&
++			points.at(-1).offset === BendPoint.MaxPosition && points.at(-1).value === 0 &&
++			points.slice(1, -1).every(point => point.offset === BendPoint.MaxPosition / 2 && point.value === target);
++		const heldValue = peak ? 0 : target;
+ 		const plain = n => !n.isDead && !n.isGhost && !n.isStaccato && !n.isPalmMute &&
+ 			!n.isHammerPullOrigin && !n.isHammerPullDestination && !n.isLeftHandTapped && !n.isRightHandTapped &&
+ 			!n.isTrill && n.ornament === NoteOrnament.None && n.vibrato === VibratoType.None &&
+@@ -43686,9 +43692,9 @@ class MidiFileGenerator {
+ 			!n.gtsRepeatTieRelease && !n.gtsSlidePlayback && !n.gtsFineBendMidpoint &&
+ 			n.beat.graceType === GraceType.None && !n.beat.tap && !n.beat.isTremolo && !n.beat.hasWhammyBar &&
+ 			!n.beat.hasRasgueado && n.beat.brushType === BrushType.None;
+-		const shape = (n, initial) => n.bendPoints?.length === 2 && n.bendPoints[0].offset === 0 &&
+-			n.bendPoints[0].value === initial && n.bendPoints[1].offset === BendPoint.MaxPosition && n.bendPoints[1].value === target;
+-		if (!plain(note) || !shape(note, 0) || duration <= firstDuration || duration > 15360) return false;
++		const shape = (n, initial, end) => n.bendPoints?.length === 2 && n.bendPoints[0].offset === 0 &&
++			n.bendPoints[0].value === initial && n.bendPoints[1].offset === BendPoint.MaxPosition && n.bendPoints[1].value === end;
++		if (!plain(note) || (!peak && !shape(note, 0, target)) || duration <= firstDuration || duration > 15360) return false;
+ 		const timing = beat => {
+ 			if (this._settings.player.playTripletFeel && beat.voice.bar.masterBar.tripletFeel !== TripletFeel.NoTripletFeel) {
+ 				const before = beat.previousBeat;
+@@ -43708,15 +43714,20 @@ class MidiFileGenerator {
+ 			const tail = previous.tieDestination;
+ 			if (!tail || tail.tieOrigin !== previous || tail.beat !== previous.beat.nextBeat ||
+ 				tail.string !== note.string || tail.fret !== note.fret || !plain(tail) ||
+-				tail.beat.playbackDuration <= 0 || (tail.hasBend && !shape(tail, target))) return false;
++				tail.beat.playbackDuration <= 0 || (tail.hasBend && !shape(tail, heldValue, heldValue))) return false;
+ 			const [tailShift, tailDuration] = timing(tail.beat);
+ 			if (tail.beat.absolutePlaybackStart + tailShift - note.beat.absolutePlaybackStart - shift !== elapsed) return false;
+ 			tails.push([tail, elapsed]);
+ 			elapsed += tailDuration;
+-			if (elapsed > duration) return false;
++			if (elapsed > 15360) return false;
+ 			previous = tail;
+ 		}
+-		if (elapsed !== duration || !tails.some(([tail]) => tail.hasBend)) return false;
++		if (!tails.some(([tail]) => tail.hasBend)) return false;
++		if (elapsed !== duration) {
++			const writtenDuration = previous.beat.absolutePlaybackStart - note.beat.absolutePlaybackStart + previous.beat.playbackDuration;
++			if (duration !== writtenDuration || note.isLetRing || tails.some(([tail]) => tail.isLetRing)) return false;
++		}
++		duration = elapsed;
+ 		const originBar = note.beat.voice.bar.masterBar;
+ 		const endBar = previous.beat.voice.bar.masterBar;
+ 		// Use played successors, since written ties may cross a repeat branch.
+@@ -43737,16 +43748,19 @@ class MidiFileGenerator {
+ 		for (const [tail, offset] of tails) this._gtsTiedBendTails.set(tail, start + offset);
+ 		const track = note.beat.voice.bar.staff.track.index;
+ 		// Soundslice interpolates sample rate, which is logarithmic in semitones.
+-		const ratio = Math.pow(2, target / 24) - 1;
++		const ratio = Math.pow(2, target / 24);
+ 		const finalWheel = MidiFileGenerator.getPitchWheel(target);
+ 		const positions = new Set([duration, ...tails.map(([, offset]) => offset)]);
++		const turningPoint = peak ? duration / 2 : duration;
++		positions.add(turningPoint);
+ 		for (let tick = 0; tick < duration; tick += 5) positions.add(tick);
+ 		for (const tick of [...positions].sort((a, b) => a - b)) {
+-			const wheel = Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(1 + ratio * tick / duration)));
+-			const value = tick === duration ? finalWheel : Math.min(wheel, finalWheel - 1);
++			const progress = tick <= turningPoint ? tick / turningPoint : (duration - tick) / turningPoint;
++			const wheel = Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(1 + (ratio - 1) * progress)));
++			const value = tick === turningPoint ? finalWheel : Math.min(wheel, finalWheel - 1);
+ 			this._handler.addNoteBend(track, start + tick, channel, key, value);
+ 		}
+-		return true;
++		return duration;
+ 	}
+ 	_getNoteDuration(note, beatPlayDuration, tempoOnBeatStart) {
+ 		const durationWithEffects = new MidiNoteDuration();

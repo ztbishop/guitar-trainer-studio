@@ -1,0 +1,64 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -43716,7 +43716,7 @@
+ 		_tryGtsTiedBend(note, start, firstDuration, duration, key, channel, tempo, velocity) {
+ 			const falling = note.gtsFallingTie, preBent = falling && note.bendPoints?.[0]?.value > 0;
+ 			if (falling && (note.gtsTiedBend || note.beat.voice.bar.staff.track.playbackInfo.program !== 27)) return false;
+-			if (this._handler._smf1Mode || note.isTieDestination || !note.isTieOrigin ||
++			if (this._handler._smf1Mode || note.isTieDestination || (!note.isTieOrigin && !note.gtsTiedBend) ||
+ 				!note.isStringed || !note.bendPoints?.length) return false;
+ 			const points = note.bendPoints;
+ 			const target = points[0].value || points[1]?.value;
+@@ -43738,6 +43738,20 @@
+ 				!n.beat.hasRasgueado && n.beat.brushType === BrushType.None;
+ 			const shape = (n, initial, end) => n.bendPoints?.length === 2 && n.bendPoints[0].offset === 0 &&
+ 				n.bendPoints[0].value === initial && n.bendPoints[1].offset === BendPoint.MaxPosition && n.bendPoints[1].value === end;
++			if (!note.isTieOrigin) {
++				const {beat} = note, bar = beat.voice.bar.masterBar, track = beat.voice.bar.staff.track;
++				if (falling || !shape(note, 0, 2) || track.playbackInfo.program !== 27 ||
++					bar.timeSignatureNumerator !== 3 || bar.timeSignatureDenominator !== 4 || bar.tripletFeel !== TripletFeel.Triplet8th ||
++					beat.playbackStart !== 0 || firstDuration !== 1920 || duration !== firstDuration || beat.notes.length !== 2 ||
++					bar.tempoAutomations.some(mark => mark.ratioPosition > 0 || mark.value !== tempo) ||
++					beat.notes.some(n => !plain(n) || n.isLetRing || n.slideOrigin || (n !== note &&
++					 (!n.isStringed || n.hasBend || n.isTieOrigin || n.isTieDestination || n.realValue === key)))) return false;
++				const ratio = Math.pow(2, 1 / 12) - 1;
++				for (let offset = 0; offset <= duration; offset += 5)
++					this._handler.addNoteBend(track.index, start + offset, channel, key,
++						Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(1 + ratio * offset / duration))));
++				return duration;
++			}
+ 			if (!plain(note) || falling && (peak || note.isLetRing || note.slideOrigin) || (!release && !peak && !shape(note, preBent ? target : 0, target)) || duration <= firstDuration || duration > 15360) return false;
+ 			const timing = beat => {
+ 				if (this._settings.player.playTripletFeel && beat.voice.bar.masterBar.tripletFeel !== TripletFeel.NoTripletFeel) {
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -43712,7 +43712,7 @@ class MidiFileGenerator {
+ 	_tryGtsTiedBend(note, start, firstDuration, duration, key, channel, tempo, velocity) {
+ 		const falling = note.gtsFallingTie, preBent = falling && note.bendPoints?.[0]?.value > 0;
+ 		if (falling && (note.gtsTiedBend || note.beat.voice.bar.staff.track.playbackInfo.program !== 27)) return false;
+-		if (this._handler._smf1Mode || note.isTieDestination || !note.isTieOrigin ||
++		if (this._handler._smf1Mode || note.isTieDestination || (!note.isTieOrigin && !note.gtsTiedBend) ||
+ 			!note.isStringed || !note.bendPoints?.length) return false;
+ 		const points = note.bendPoints;
+ 		const target = points[0].value || points[1]?.value;
+@@ -43734,6 +43734,20 @@ class MidiFileGenerator {
+ 			!n.beat.hasRasgueado && n.beat.brushType === BrushType.None;
+ 		const shape = (n, initial, end) => n.bendPoints?.length === 2 && n.bendPoints[0].offset === 0 &&
+ 			n.bendPoints[0].value === initial && n.bendPoints[1].offset === BendPoint.MaxPosition && n.bendPoints[1].value === end;
++		if (!note.isTieOrigin) {
++			const {beat} = note, bar = beat.voice.bar.masterBar, track = beat.voice.bar.staff.track;
++			if (falling || !shape(note, 0, 2) || track.playbackInfo.program !== 27 ||
++				bar.timeSignatureNumerator !== 3 || bar.timeSignatureDenominator !== 4 || bar.tripletFeel !== TripletFeel.Triplet8th ||
++				beat.playbackStart !== 0 || firstDuration !== 1920 || duration !== firstDuration || beat.notes.length !== 2 ||
++				bar.tempoAutomations.some(mark => mark.ratioPosition > 0 || mark.value !== tempo) ||
++				beat.notes.some(n => !plain(n) || n.isLetRing || n.slideOrigin || (n !== note &&
++				 (!n.isStringed || n.hasBend || n.isTieOrigin || n.isTieDestination || n.realValue === key)))) return false;
++			const ratio = Math.pow(2, 1 / 12) - 1;
++			for (let offset = 0; offset <= duration; offset += 5)
++				this._handler.addNoteBend(track.index, start + offset, channel, key,
++					Math.round(MidiFileGenerator.getPitchWheel(24 * Math.log2(1 + ratio * offset / duration))));
++			return duration;
++		}
+ 		if (!plain(note) || falling && (peak || note.isLetRing || note.slideOrigin) || (!release && !peak && !shape(note, preBent ? target : 0, target)) || duration <= firstDuration || duration > 15360) return false;
+ 		const timing = beat => {
+ 			if (this._settings.player.playTripletFeel && beat.voice.bar.masterBar.tripletFeel !== TripletFeel.NoTripletFeel) {

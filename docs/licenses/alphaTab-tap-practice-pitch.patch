@@ -1,0 +1,56 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -6199,6 +6199,7 @@
+ 			return 0;
+ 		}
+ 		get harmonicPitch() {
++			// GtsTappedHarmonicTicks -2 selects the captured pitch with native note duration.
+ 			if (this.gtsTappedHarmonicTicks && this.isStringed && this.harmonicType === HarmonicType.Tap &&
+ 				[3.2, 5, 7, 12].includes(this.harmonicValue)) return Math.trunc(this.harmonicValue);
+ 			if (this.harmonicType === HarmonicType.None || !this.isStringed) return 0;
+@@ -21194,7 +21195,7 @@
+ 							break;
+ 						case "GtsTappedHarmonicTicks": {
+ 							const ticks = Number(c.findChildElement("Number")?.innerText);
+-							note.gtsTappedHarmonicTicks = [-1, 320, 960, 1600, 5760].includes(ticks) ? ticks : 0;
++							note.gtsTappedHarmonicTicks = [-2, -1, 320, 960, 1600, 5760].includes(ticks) ? ticks : 0;
+ 							break;
+ 						}
+ 						case "GtsWrittenVibrato":
+@@ -31358,7 +31359,7 @@
+ 					obj.trillSpeed = JsonHelper.parseEnum(v, Duration);
+ 					return true;
+ 				case "gtstappedharmonicticks":
+-					obj.gtsTappedHarmonicTicks = [-1, 320, 960, 1600, 5760].includes(v) ? v : 0;
++					obj.gtsTappedHarmonicTicks = [-2, -1, 320, 960, 1600, 5760].includes(v) ? v : 0;
+ 					return true;
+ 				case "gtswrittenvibrato":
+ 					obj.gtsWrittenVibrato = v === true;
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -6195,6 +6195,7 @@ class Note {
+ 		return 0;
+ 	}
+ 	get harmonicPitch() {
++		// GtsTappedHarmonicTicks -2 selects the captured pitch with native note duration.
+ 		if (this.gtsTappedHarmonicTicks && this.isStringed && this.harmonicType === HarmonicType.Tap &&
+ 			[3.2, 5, 7, 12].includes(this.harmonicValue)) return Math.trunc(this.harmonicValue);
+ 		if (this.harmonicType === HarmonicType.None || !this.isStringed) return 0;
+@@ -21190,7 +21191,7 @@ class GpifParser {
+ 						break;
+ 					case "GtsTappedHarmonicTicks": {
+ 						const ticks = Number(c.findChildElement("Number")?.innerText);
+-						note.gtsTappedHarmonicTicks = [-1, 320, 960, 1600, 5760].includes(ticks) ? ticks : 0;
++						note.gtsTappedHarmonicTicks = [-2, -1, 320, 960, 1600, 5760].includes(ticks) ? ticks : 0;
+ 						break;
+ 					}
+ 					case "GtsWrittenVibrato":
+@@ -31354,7 +31355,7 @@ class NoteSerializer {
+ 				obj.trillSpeed = JsonHelper.parseEnum(v, Duration);
+ 				return true;
+ 			case "gtstappedharmonicticks":
+-				obj.gtsTappedHarmonicTicks = [-1, 320, 960, 1600, 5760].includes(v) ? v : 0;
++				obj.gtsTappedHarmonicTicks = [-2, -1, 320, 960, 1600, 5760].includes(v) ? v : 0;
+ 				return true;
+ 			case "gtswrittenvibrato":
+ 				obj.gtsWrittenVibrato = v === true;

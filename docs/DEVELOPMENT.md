@@ -1,5 +1,9 @@
 # Development setup and checks
 
+## alphaTab maintenance
+
+Before changing a bundled version, follow the [alphaTab upgrade inventory](ALPHATAB-UPGRADES.md). When changing an alphaTab patch or host adapter, update the inventory and its regression alongside the code.
+
 ## Per-note Guitar Pro tapping checks
 
 Run `node --test tests/right-hand-tap.test.js` and `node tests/run-right-hand-tap-browser.cjs`. The browser runner uses the existing Playwright/Chrome options, a temporary local server and an isolated browser profile. Set `GTS_TAP_REFERENCE` to the existing read-only Lesson Bridge root to include its six saved GPX cases and original-mask evidence. Set `GTS_TAP_BASELINE` to the pre-patch `alphaTab.js` to compare the old native connections and full MIDI event stream and reproduce the old loss on the same synthetic witness. Neither input is needed for the self-contained tests. `GTS_SCREENSHOT_DIR` optionally stores private screen/print evidence under an ignored output directory.

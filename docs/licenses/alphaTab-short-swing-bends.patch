@@ -1,0 +1,98 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -43769,8 +43769,13 @@
+ 					bar.timeSignatureNumerator === 3 && bar.tripletFeel === TripletFeel.Triplet8th;
+ 				const straightChord = target === 4 && [480,1440].includes(firstDuration) &&
+ 					bar.timeSignatureNumerator === 4 && bar.tripletFeel === TripletFeel.NoTripletFeel;
++				const shortRise = bar.timeSignatureNumerator === 4 && bar.tripletFeel === TripletFeel.Triplet8th &&
++					beat.playbackStart % 960 === 0 && beat.duration === Duration.Eighth &&
++					(firstDuration === 640 && beat.notes.length <= 2 ||
++						firstDuration === 320 && target === 2 && beat.tupletNumerator === 3 &&
++						beat.tupletDenominator === 2 && beat.notes.length === 2);
+ 				if (falling || !shape(note, 0, target) || track.playbackInfo.program !== 27 ||
+-					bar.timeSignatureDenominator !== 4 || !(swungChord || straightChord) || duration !== firstDuration || beat.notes.length !== 2 ||
++					bar.timeSignatureDenominator !== 4 || !(shortRise || (swungChord || straightChord) && beat.notes.length === 2) || duration !== firstDuration ||
+ 					bar.tempoAutomations.some(mark => mark.ratioPosition > 0 || mark.value !== tempo) ||
+ 					beat.notes.some(n => !plain(n) || n.isLetRing || n.slideOrigin || (n !== note &&
+ 					 (!n.isStringed || n.hasBend || n.isTieOrigin || n.isTieDestination || n.realValue === key)))) return false;
+@@ -43897,7 +43902,13 @@
+ 			duration = elapsed;
+ 			const originBar = note.beat.voice.bar.masterBar;
+ 			const endBar = previous.beat.voice.bar.masterBar;
+-			if (release && (originBar !== endBar || tails.length !== 1 || !shape(previous, 0, 0) ||
++			const crossBarRelease = release && target === 2 && firstDuration === 320 && duration === 4160 &&
++				endBar.index === originBar.index + 1 && note.beat.playbackStart === 3520 && note.beat.notes.length === 2 &&
++				note.beat.duration === Duration.Eighth && note.beat.tupletNumerator === 3 && note.beat.tupletDenominator === 2 &&
++				previous.beat.playbackStart === 0 && previous.beat.playbackDuration === 3840 &&
++				[originBar, endBar].every(b => b.timeSignatureNumerator === 4 && b.timeSignatureDenominator === 4 &&
++					b.tripletFeel === TripletFeel.Triplet8th);
++			if (release && (originBar !== endBar && !crossBarRelease || tails.length !== 1 || !shape(previous, 0, 0) ||
+ 				previous.beat.notes.length !== 1 || previous.isLetRing || note.isLetRing || key + target / 2 > 127 ||
+ 				note.beat.notes.length > 2 || note.beat.notes.some(n => n !== note &&
+ 				 (!plain(n) || n.hasBend || n.isTieDestination || n.isTieOrigin || n.isLetRing || n.realValue === key + target / 2)))) return false;
+@@ -44156,10 +44167,13 @@
+ 				note.isTieOrigin || note.isTieDestination || note.slideOrigin || note.slideInType !== SlideInType.None) return false;
+ 			const swung = bar.timeSignatureNumerator === 3 && bar.timeSignatureDenominator === 4 &&
+ 				bar.tripletFeel === TripletFeel.Triplet8th && ticks === 640;
+-			if (note.gtsSourceArticulation === 1 && swung && beat.playbackStart === 0 && note.isStaccato &&
+-				note.slideOutType === SlideOutType.None && beat.notes.length === 3) {
++			const singleSwing = bar.timeSignatureNumerator === 4 && bar.timeSignatureDenominator === 4 &&
++				bar.tripletFeel === TripletFeel.Triplet8th && [480,640].includes(ticks) &&
++				beat.playbackStart % 960 === 0 && beat.duration === Duration.Eighth && beat.notes.length === 1;
++			if (note.gtsSourceArticulation === 1 && note.isStaccato && note.slideOutType === SlideOutType.None &&
++				(singleSwing || swung && beat.playbackStart === 0 && beat.notes.length === 3)) {
+ 				this._handler.addNoteBend(track.index, start, channel, key, MidiFileGenerator.getPitchWheel(0));
+-				this._handler.addNote(track.index, start, 160, key, velocity, channel);
++				this._handler.addNote(track.index, start, ticks / 4, key, velocity, channel);
+ 				return true;
+ 			}
+ 			const straight = bar.timeSignatureNumerator === 4 && bar.timeSignatureDenominator === 4 &&
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -43765,8 +43765,13 @@ class MidiFileGenerator {
+ 				bar.timeSignatureNumerator === 3 && bar.tripletFeel === TripletFeel.Triplet8th;
+ 			const straightChord = target === 4 && [480,1440].includes(firstDuration) &&
+ 				bar.timeSignatureNumerator === 4 && bar.tripletFeel === TripletFeel.NoTripletFeel;
++			const shortRise = bar.timeSignatureNumerator === 4 && bar.tripletFeel === TripletFeel.Triplet8th &&
++				beat.playbackStart % 960 === 0 && beat.duration === Duration.Eighth &&
++				(firstDuration === 640 && beat.notes.length <= 2 ||
++					firstDuration === 320 && target === 2 && beat.tupletNumerator === 3 &&
++					beat.tupletDenominator === 2 && beat.notes.length === 2);
+ 			if (falling || !shape(note, 0, target) || track.playbackInfo.program !== 27 ||
+-				bar.timeSignatureDenominator !== 4 || !(swungChord || straightChord) || duration !== firstDuration || beat.notes.length !== 2 ||
++				bar.timeSignatureDenominator !== 4 || !(shortRise || (swungChord || straightChord) && beat.notes.length === 2) || duration !== firstDuration ||
+ 				bar.tempoAutomations.some(mark => mark.ratioPosition > 0 || mark.value !== tempo) ||
+ 				beat.notes.some(n => !plain(n) || n.isLetRing || n.slideOrigin || (n !== note &&
+ 				 (!n.isStringed || n.hasBend || n.isTieOrigin || n.isTieDestination || n.realValue === key)))) return false;
+@@ -43893,7 +43898,13 @@ class MidiFileGenerator {
+ 		duration = elapsed;
+ 		const originBar = note.beat.voice.bar.masterBar;
+ 		const endBar = previous.beat.voice.bar.masterBar;
+-		if (release && (originBar !== endBar || tails.length !== 1 || !shape(previous, 0, 0) ||
++		const crossBarRelease = release && target === 2 && firstDuration === 320 && duration === 4160 &&
++			endBar.index === originBar.index + 1 && note.beat.playbackStart === 3520 && note.beat.notes.length === 2 &&
++			note.beat.duration === Duration.Eighth && note.beat.tupletNumerator === 3 && note.beat.tupletDenominator === 2 &&
++			previous.beat.playbackStart === 0 && previous.beat.playbackDuration === 3840 &&
++			[originBar, endBar].every(b => b.timeSignatureNumerator === 4 && b.timeSignatureDenominator === 4 &&
++				b.tripletFeel === TripletFeel.Triplet8th);
++		if (release && (originBar !== endBar && !crossBarRelease || tails.length !== 1 || !shape(previous, 0, 0) ||
+ 			previous.beat.notes.length !== 1 || previous.isLetRing || note.isLetRing || key + target / 2 > 127 ||
+ 			note.beat.notes.length > 2 || note.beat.notes.some(n => n !== note &&
+ 			 (!plain(n) || n.hasBend || n.isTieDestination || n.isTieOrigin || n.isLetRing || n.realValue === key + target / 2)))) return false;
+@@ -44152,10 +44163,13 @@ class MidiFileGenerator {
+ 			note.isTieOrigin || note.isTieDestination || note.slideOrigin || note.slideInType !== SlideInType.None) return false;
+ 		const swung = bar.timeSignatureNumerator === 3 && bar.timeSignatureDenominator === 4 &&
+ 			bar.tripletFeel === TripletFeel.Triplet8th && ticks === 640;
+-		if (note.gtsSourceArticulation === 1 && swung && beat.playbackStart === 0 && note.isStaccato &&
+-			note.slideOutType === SlideOutType.None && beat.notes.length === 3) {
++		const singleSwing = bar.timeSignatureNumerator === 4 && bar.timeSignatureDenominator === 4 &&
++			bar.tripletFeel === TripletFeel.Triplet8th && [480,640].includes(ticks) &&
++			beat.playbackStart % 960 === 0 && beat.duration === Duration.Eighth && beat.notes.length === 1;
++		if (note.gtsSourceArticulation === 1 && note.isStaccato && note.slideOutType === SlideOutType.None &&
++			(singleSwing || swung && beat.playbackStart === 0 && beat.notes.length === 3)) {
+ 			this._handler.addNoteBend(track.index, start, channel, key, MidiFileGenerator.getPitchWheel(0));
+-			this._handler.addNote(track.index, start, 160, key, velocity, channel);
++			this._handler.addNote(track.index, start, ticks / 4, key, velocity, channel);
+ 			return true;
+ 		}
+ 		const straight = bar.timeSignatureNumerator === 4 && bar.timeSignatureDenominator === 4 &&

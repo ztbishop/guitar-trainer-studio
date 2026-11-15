@@ -1,9 +1,123 @@
 # Guitar Trainer Studio: status and to-do
 
+## Pending alphaTab publication — 2026-11-14
+
+- [x] Review and validate the complete pending trainer-side alphaTab checkpoint for the owner-authorized commit/push: 563 Node tests, all 17 manifest hashes, exact classic/core patch replay and offline updater regressions.
+- Existing audible lesson/browser/Fishman acceptance items below remain open. This routine checkpoint keeps alphaTab 1.8.4 and app version 1.0.1; no release or private Lesson Bridge changes.
+
 ## Recording editor playhead — 2026-11-10
 
 - [x] Reproduce lesson 87750's outro rewind with unchanged anchors; protect editor transitions from native Pause seeks. All 563 Node tests and full-recording, sync-practice and loop/repeat browser checks pass.
 - [ ] After refresh/reimport, verify lesson 87750 past 9:42, open/close Edit sync, resume, and seek to bar 51. The exact intermittent Pause-with-frozen-clock state remains unconfirmed; a separate Chrome decoder/read failure was captured. See [investigation](RECORDING-PLAYBACK.md).
+
+## Swung connected-grace targets
+
+- [ ] Open Hands-on Fingerstyle 95717 with explicit GP-native grace and check the two voices around bars 4 and 9.
+
+## Whole note in written 6/8
+
+- [ ] Open Hands-on Fingerstyle 95712 through Send without timing and listen to the whole note in bar 13 and the next bar.
+
+## Captured GP tap practice pitch
+
+- [ ] Open prepared Rock Sauce Lead 248 with explicit native grace and Send without timing. Check the low-E fret-10 tap target in bar 8.
+
+## Captured GP on-beat rock grace
+
+- [ ] Prepare 254 with explicit native grace, send without timing and listen for the grace and slides into bar 21 and the long releases after bars 3 and 21.
+
+## Captured GP fractional rock slides
+
+- [ ] Listen to prepared Rock Sauce Lead 221 score-only through four passes. Check the overlapping approach into bar 4, the bar 8 bend and the silent repeat close.
+
+## Captured GP sampled rock restart
+
+- [ ] Listen to prepared Rock Sauce Lead 239 score-only through three passes. Check the separate legato attacks, the fresh bend sample and the silent bar before each repeat.
+
+## Captured GP compact blues
+
+- [ ] Listen to prepared Freestyle Blues 95570 with retained timing. Check the opening legato, the swung handoff near the end of bar 2 and the short fine bend.
+
+## Captured GP sampled blues
+
+- [ ] Listen to prepared Freestyle Blues 95557 on both passes with retained boundaries. Check the shared MIDI 59 in the legato chord, the shift target and the swung palm-muted releases.
+
+## Captured GP terminal falls
+
+- [ ] Listen to prepared Pedal Steel 46659 with its boundaries retained. Check the triplet attacks and listen for the full fall into the first ending and the silent final bar.
+
+## Captured GP straight paired bends
+
+- [ ] Listen to prepared Pedal Steel 46657 on both passes. Check the pre-bent releases, sampled slides, paired rises and the two vibrato passages.
+
+## Captured GP long vibrato rises
+
+- [ ] Listen to prepared Pedal Steel 46658 on both passes. Check the mixed meter, the quarter-note bends and the independent release through bars 6–7.
+
+## Captured GP swung dyad releases
+
+- [ ] Listen to prepared Pedal Steel 46665 on both passes. Check the release and sampled dyads in bars 2–3 and the falling restart and held bend in bars 4–6.
+
+## Captured GP pre-bent approaches
+
+- [ ] Listen to prepared Pedal Steel 46638 on both passes, checking the release and fresh target across bars 2–3, the sampled slide and falling dyad in bar 4, and the closing dyad.
+
+## Captured GP swung reattacks
+
+- [ ] Listen to prepared Pedal Steel 46647 on both passes: the short chords in bars 2–3 and the separate reattack, hold and hammer across bars 4–5.
+
+## Captured GP hammer attacks and chord releases
+
+- [ ] Listen to prepared Pedal Steel 46651 in bars 4–5 on both passes; check the separate hammer/pull attacks, sustained strings, and the two independent falling pitches.
+
+## Captured GP tapped harmonics
+
+- [ ] Listen to prepared Pedal Steel 46662 after refreshing the local reader. Check the three opening tap pitches, the swung release in bar 3 and the long tie through bars 6–7 on both passes.
+
+## Sustained GP tied bends
+
+- [ ] Listen to prepared Pedal Steel 46654 at bars 3–5 and 7–9 and through the release inside the silent final bar.
+
+- [ ] Listen to prepared Pedal Steel 46663 through both passes and its release inside the silent final bar.
+
+- [ ] Listen to prepared Pedal Steel 46640 and 46644 on both passes; check the fresh attacks, short palm mute, paired exits and mixed swing against the matching recordings.
+
+- [ ] Listen to prepared Pedal Steel 46645 on both passes and check the raised release into bar 4. Check the two 1,920-tick releases in 46652.
+
+- [ ] Check prepared Pedal Steel 46653 on both passes. Listen for the continuous rise and short chord partner across bars 6–8.
+
+- [ ] Check prepared 46656 and 46664 with the matching recordings. Listen for the rising restart into bar 5 and the staggered falls in bars 2 and 3 across both passes.
+
+- [ ] When a complete capture qualifies, check paired falling exits against the matching recording. Verify both 300 ms restarts, optional approach samples and fresh targets.
+
+- [ ] Check prepared Pedal Steel 46661 on both passes with the matching recording. Listen for the bar 4 staccato and descending exit, and the bar 7 tied exit and target attack.
+
+- [ ] Listen to Pedal Steel 46661 on both passes, including the standalone chord rise and the two written tie continuations.
+
+- [ ] Listen to Pedal Steel 46641 on both repeat passes after refreshing the reader. Check the raised attacks and continuous releases, including the held chord partner.
+
+- [ ] Listen to Pedal Steel 46637 and 46642 on both repeat passes after refreshing the local reader. Check the held peak and the steady dyad against their written vibrato signs.
+
+- [ ] Listen to the prepared Pedal Steel 46650 through both falling-bend restarts after refreshing the local trainer.
+
+- [ ] Listen to the prepared Pedal Steel 46646 on both repeat passes after refreshing the local trainer. Check both legato targets, the peak bend and the swung release.
+
+- [ ] After refreshing the local trainer, listen to both passes of Pedal Steel 46636 and check that the bend keeps rising through the tie.
+
+## Explicit GP repeat-ending tie releases
+
+- [x] Verify the first and second release, both bundle paths, worker transport, and reapplication through the patch registry.
+- [ ] Listen to the score-only import of either saved ending example after refreshing the local trainer. Let both passes play and check the pull-off into the first and second endings.
+
+## Explicit GP directional slides
+
+- [x] Verify classic/core readback and playback, worker transport, and byte-exact reapplication through the alphaTab updater registry.
+- [ ] Refresh the local trainer and listen to a score-only Send of 81437 or 81441. Check bar 10's chord release and the tied bass slide-ins at bars 11 and 15. Those saved recordings have no usable timing map.
+
+## Explicit GP fine bends and internal clocks
+
+- [x] Retain both properties through classic and core GP reader/writer and worker score transport. Verify playback and reject invalid bar lengths.
+- [ ] In the normal trainer, listen through a marked fine bend and verify recording alignment separately. Seek and loop through a marked internal bar and its following boundary.
 
 ## Explicit GP ghost pull-off release
 

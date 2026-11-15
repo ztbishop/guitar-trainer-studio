@@ -1,0 +1,182 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -43569,6 +43569,17 @@
+ 			if (freshLegatoAttack) this._gtsLegatoAttacks.delete(note);
+ 			if (note.gtsFallingTie && this._tryGtsTiedBend(note, noteStart, beatDuration, noteSoundDuration, noteKey, channel, tempoOnBeatStart, velocity)) return;
+ 			if (note.gtsSourceArticulation && this._tryGtsSourceArticulation(note, beatDuration, noteStart, noteKey, velocity, channel)) return;
++			if (!this._handler._smf1Mode && note.slideOutType === SlideOutType.Legato) {
++				const bend = note.beat.notes.find(n => n !== note && n.gtsTiedBend);
++				const target = bend && this._getPairedReleaseTarget(bend, note, noteStart, beatDuration);
++				if (target) {
++					this._gtsLegatoAttacks ??= new Map();
++					this._gtsLegatoAttacks.set(target, noteStart + beatDuration);
++					this._handler.addNoteBend(track.index, noteStart, channel, noteKey, MidiFileGenerator.getPitchWheel(0));
++					this._handler.addNote(track.index, noteStart, beatDuration, noteKey, velocity, channel);
++					return;
++				}
++			}
+ 			const tiedBendDuration = note.gtsTiedBend && this._tryGtsTiedBend(note, noteStart, beatDuration, noteSoundDuration, noteKey, channel, tempoOnBeatStart, velocity);
+ 			if (tiedBendDuration) {
+ 				this._handler.addNote(track.index, noteStart, tiedBendDuration, noteKey + note.bendPoints[0].value / 2, velocity, channel);
+@@ -43740,6 +43751,42 @@
+ 			}
+ 			return this._gtsRepeatTieSuccessors;
+ 		}
++		_getPairedReleaseTarget(bend, slide, start, firstDuration) {
++			const beat = bend.beat, staff = beat.voice.bar.staff, bar = beat.voice.bar.masterBar;
++			const target = slide.slideTarget, firstHold = bend.tieDestination, lastHold = firstHold?.tieDestination;
++			const lastTarget = target?.tieDestination;
++			const marks = n => n?.bendPoints?.map(p => [p.offset, p.value]).join();
++			const plain = n => n && n.isStringed && !n.isDead && !n.isGhost && !n.isLetRing && !n.isPalmMute &&
++				!n.isStaccato && !n.isHarmonic && !n.isTrill && n.vibrato === VibratoType.None &&
++				!n.isHammerPullOrigin && !n.isHammerPullDestination && !n.isLeftHandTapped && !n.isRightHandTapped &&
++				n.slideInType === SlideInType.None && n.ornament === NoteOrnament.None;
++			if (staff.track.playbackInfo.program !== 27 || staff.track.staves.length !== 1 || this._score.tracks.length !== 1 ||
++				firstDuration !== 960 || beat.playbackStart !== 2880 || beat.notes.length !== 2 ||
++				marks(bend) !== "0,2,60,0" || ![bend, slide, target, firstHold, lastHold, lastTarget].every(plain) ||
++				slide.slideOutType !== SlideOutType.Legato || slide.slideOrigin || slide.hasBend || slide.isTieOrigin || slide.isTieDestination ||
++				target.beat !== beat.nextBeat || target.fret !== slide.fret + 1 || target.string !== slide.string ||
++				target.hasBend || lastTarget.hasBend || target.isTieDestination || lastTarget.isTieOrigin ||
++				target.beat !== firstHold.beat || lastTarget.beat !== lastHold.beat ||
++				marks(firstHold) !== "0,0,60,0" || marks(lastHold) !== "0,0,60,0" || lastHold.isTieOrigin ||
++				firstHold.beat.playbackDuration !== 3840 || lastHold.beat.playbackDuration !== 2880 ||
++				[target, firstHold, lastTarget, lastHold].some(n => n.beat.playbackStart !== 0 ||
++					n.beat.notes.length !== 2 || n.slideOutType !== SlideOutType.None)) return null;
++			const middle = firstHold.beat.voice.bar.masterBar, ending = lastHold.beat.voice.bar.masterBar;
++			if (middle.index !== bar.index + 1 || ending.index !== middle.index + 1 ||
++				![bar, middle, ending].every(b => b.timeSignatureNumerator === 4 &&
++					b.timeSignatureDenominator === 4 && b.tripletFeel === TripletFeel.Triplet8th)) return null;
++			const visits = this._getGtsRepeatTieSuccessors();
++			const first = visits.get(start - 2880), second = visits.get(start + 960);
++			if (first?.from !== bar || first.to !== middle || second?.from !== middle) return null;
++			if (second.to !== ending) {
++				const silent = this._score.masterBars[ending.index + 1];
++				if (!silent || second.to !== silent || silent !== this._score.masterBars.at(-1) ||
++					ending.alternateEndings !== 1 || ending.repeatCount !== 2 || silent.calculateDuration() !== 3840 ||
++					silent.isRepeatStart || silent.repeatCount || silent.alternateEndings ||
++					!staff.bars[silent.index].voices.every(v => v.beats.every(b => b.notes.length === 0))) return null;
++			}
++			return target;
++		}
+ 		_tryGtsTiedBend(note, start, firstDuration, duration, key, channel, tempo, velocity) {
+ 			const falling = note.gtsFallingTie, preBent = falling && note.bendPoints?.[0]?.value > 0;
+ 			if (falling && (note.gtsTiedBend || note.beat.voice.bar.staff.track.playbackInfo.program !== 27)) return false;
+@@ -43929,6 +43976,9 @@
+ 			const originBar = note.beat.voice.bar.masterBar;
+ 			const endBar = previous.beat.voice.bar.masterBar;
+ 			const silentTail = this._score.masterBars[endBar.index + 1];
++			const pairedSlide = release && duration === 7680 && tails.length === 2 &&
++				note.beat.notes.find(n => n !== note && n.slideOutType === SlideOutType.Legato);
++			const pairedRelease = pairedSlide && this._getPairedReleaseTarget(note, pairedSlide, start, firstDuration);
+ 			if (terminalRise) {
+ 				const score = this._score, track = note.beat.voice.bar.staff.track;
+ 				const staff = note.beat.voice.bar.staff, middle = score.masterBars[originBar.index + 1];
+@@ -43949,7 +43999,7 @@
+ 				previous.beat.playbackStart === 0 && previous.beat.playbackDuration === 3840 &&
+ 				[originBar, endBar].every(b => b.timeSignatureNumerator === 4 && b.timeSignatureDenominator === 4 &&
+ 					b.tripletFeel === TripletFeel.Triplet8th);
+-			if (release && (originBar !== endBar && !crossBarRelease || tails.length !== 1 || !shape(previous, 0, 0) ||
++			if (release && !pairedRelease && (originBar !== endBar && !crossBarRelease || tails.length !== 1 || !shape(previous, 0, 0) ||
+ 				previous.beat.notes.length !== 1 || previous.isLetRing || note.isLetRing || key + target / 2 > 127 ||
+ 				note.beat.notes.length > 2 || note.beat.notes.some(n => n !== note &&
+ 				 (!plain(n) || n.hasBend || n.isTieDestination || n.isTieOrigin || n.isLetRing || n.realValue === key + target / 2)))) return false;
+@@ -43961,7 +44011,7 @@
+ 					const visit = successors.get(tick);
+ 					if (visit?.from !== this._score.masterBars[i] ||
+ 						(visit.to !== this._score.masterBars[i + 1] &&
+-						 !(terminalRise && i === endBar.index - 1 && visit.to === silentTail))) return false;
++						 !((terminalRise || pairedRelease) && i === endBar.index - 1 && visit.to === silentTail))) return false;
+ 					tick += visit.from.calculateDuration();
+ 				}
+ 			}
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -43565,6 +43565,17 @@ class MidiFileGenerator {
+ 		if (freshLegatoAttack) this._gtsLegatoAttacks.delete(note);
+ 		if (note.gtsFallingTie && this._tryGtsTiedBend(note, noteStart, beatDuration, noteSoundDuration, noteKey, channel, tempoOnBeatStart, velocity)) return;
+ 		if (note.gtsSourceArticulation && this._tryGtsSourceArticulation(note, beatDuration, noteStart, noteKey, velocity, channel)) return;
++		if (!this._handler._smf1Mode && note.slideOutType === SlideOutType.Legato) {
++			const bend = note.beat.notes.find(n => n !== note && n.gtsTiedBend);
++			const target = bend && this._getPairedReleaseTarget(bend, note, noteStart, beatDuration);
++			if (target) {
++				this._gtsLegatoAttacks ??= new Map();
++				this._gtsLegatoAttacks.set(target, noteStart + beatDuration);
++				this._handler.addNoteBend(track.index, noteStart, channel, noteKey, MidiFileGenerator.getPitchWheel(0));
++				this._handler.addNote(track.index, noteStart, beatDuration, noteKey, velocity, channel);
++				return;
++			}
++		}
+ 		const tiedBendDuration = note.gtsTiedBend && this._tryGtsTiedBend(note, noteStart, beatDuration, noteSoundDuration, noteKey, channel, tempoOnBeatStart, velocity);
+ 		if (tiedBendDuration) {
+ 			this._handler.addNote(track.index, noteStart, tiedBendDuration, noteKey + note.bendPoints[0].value / 2, velocity, channel);
+@@ -43736,6 +43747,42 @@ class MidiFileGenerator {
+ 		}
+ 		return this._gtsRepeatTieSuccessors;
+ 	}
++	_getPairedReleaseTarget(bend, slide, start, firstDuration) {
++		const beat = bend.beat, staff = beat.voice.bar.staff, bar = beat.voice.bar.masterBar;
++		const target = slide.slideTarget, firstHold = bend.tieDestination, lastHold = firstHold?.tieDestination;
++		const lastTarget = target?.tieDestination;
++		const marks = n => n?.bendPoints?.map(p => [p.offset, p.value]).join();
++		const plain = n => n && n.isStringed && !n.isDead && !n.isGhost && !n.isLetRing && !n.isPalmMute &&
++			!n.isStaccato && !n.isHarmonic && !n.isTrill && n.vibrato === VibratoType.None &&
++			!n.isHammerPullOrigin && !n.isHammerPullDestination && !n.isLeftHandTapped && !n.isRightHandTapped &&
++			n.slideInType === SlideInType.None && n.ornament === NoteOrnament.None;
++		if (staff.track.playbackInfo.program !== 27 || staff.track.staves.length !== 1 || this._score.tracks.length !== 1 ||
++			firstDuration !== 960 || beat.playbackStart !== 2880 || beat.notes.length !== 2 ||
++			marks(bend) !== "0,2,60,0" || ![bend, slide, target, firstHold, lastHold, lastTarget].every(plain) ||
++			slide.slideOutType !== SlideOutType.Legato || slide.slideOrigin || slide.hasBend || slide.isTieOrigin || slide.isTieDestination ||
++			target.beat !== beat.nextBeat || target.fret !== slide.fret + 1 || target.string !== slide.string ||
++			target.hasBend || lastTarget.hasBend || target.isTieDestination || lastTarget.isTieOrigin ||
++			target.beat !== firstHold.beat || lastTarget.beat !== lastHold.beat ||
++			marks(firstHold) !== "0,0,60,0" || marks(lastHold) !== "0,0,60,0" || lastHold.isTieOrigin ||
++			firstHold.beat.playbackDuration !== 3840 || lastHold.beat.playbackDuration !== 2880 ||
++			[target, firstHold, lastTarget, lastHold].some(n => n.beat.playbackStart !== 0 ||
++				n.beat.notes.length !== 2 || n.slideOutType !== SlideOutType.None)) return null;
++		const middle = firstHold.beat.voice.bar.masterBar, ending = lastHold.beat.voice.bar.masterBar;
++		if (middle.index !== bar.index + 1 || ending.index !== middle.index + 1 ||
++			![bar, middle, ending].every(b => b.timeSignatureNumerator === 4 &&
++				b.timeSignatureDenominator === 4 && b.tripletFeel === TripletFeel.Triplet8th)) return null;
++		const visits = this._getGtsRepeatTieSuccessors();
++		const first = visits.get(start - 2880), second = visits.get(start + 960);
++		if (first?.from !== bar || first.to !== middle || second?.from !== middle) return null;
++		if (second.to !== ending) {
++			const silent = this._score.masterBars[ending.index + 1];
++			if (!silent || second.to !== silent || silent !== this._score.masterBars.at(-1) ||
++				ending.alternateEndings !== 1 || ending.repeatCount !== 2 || silent.calculateDuration() !== 3840 ||
++				silent.isRepeatStart || silent.repeatCount || silent.alternateEndings ||
++				!staff.bars[silent.index].voices.every(v => v.beats.every(b => b.notes.length === 0))) return null;
++		}
++		return target;
++	}
+ 	_tryGtsTiedBend(note, start, firstDuration, duration, key, channel, tempo, velocity) {
+ 		const falling = note.gtsFallingTie, preBent = falling && note.bendPoints?.[0]?.value > 0;
+ 		if (falling && (note.gtsTiedBend || note.beat.voice.bar.staff.track.playbackInfo.program !== 27)) return false;
+@@ -43925,6 +43972,9 @@ class MidiFileGenerator {
+ 		const originBar = note.beat.voice.bar.masterBar;
+ 		const endBar = previous.beat.voice.bar.masterBar;
+ 		const silentTail = this._score.masterBars[endBar.index + 1];
++		const pairedSlide = release && duration === 7680 && tails.length === 2 &&
++			note.beat.notes.find(n => n !== note && n.slideOutType === SlideOutType.Legato);
++		const pairedRelease = pairedSlide && this._getPairedReleaseTarget(note, pairedSlide, start, firstDuration);
+ 		if (terminalRise) {
+ 			const score = this._score, track = note.beat.voice.bar.staff.track;
+ 			const staff = note.beat.voice.bar.staff, middle = score.masterBars[originBar.index + 1];
+@@ -43945,7 +43995,7 @@ class MidiFileGenerator {
+ 			previous.beat.playbackStart === 0 && previous.beat.playbackDuration === 3840 &&
+ 			[originBar, endBar].every(b => b.timeSignatureNumerator === 4 && b.timeSignatureDenominator === 4 &&
+ 				b.tripletFeel === TripletFeel.Triplet8th);
+-		if (release && (originBar !== endBar && !crossBarRelease || tails.length !== 1 || !shape(previous, 0, 0) ||
++		if (release && !pairedRelease && (originBar !== endBar && !crossBarRelease || tails.length !== 1 || !shape(previous, 0, 0) ||
+ 			previous.beat.notes.length !== 1 || previous.isLetRing || note.isLetRing || key + target / 2 > 127 ||
+ 			note.beat.notes.length > 2 || note.beat.notes.some(n => n !== note &&
+ 			 (!plain(n) || n.hasBend || n.isTieDestination || n.isTieOrigin || n.isLetRing || n.realValue === key + target / 2)))) return false;
+@@ -43957,7 +44007,7 @@ class MidiFileGenerator {
+ 				const visit = successors.get(tick);
+ 				if (visit?.from !== this._score.masterBars[i] ||
+ 					(visit.to !== this._score.masterBars[i + 1] &&
+-					 !(terminalRise && i === endBar.index - 1 && visit.to === silentTail))) return false;
++					 !((terminalRise || pairedRelease) && i === endBar.index - 1 && visit.to === silentTail))) return false;
+ 				tick += visit.from.calculateDuration();
+ 			}
+ 		}
