@@ -7,7 +7,8 @@ export function syncPracticeMenuSummary(state, doc = globalThis.document) {
   const count = Number(hex && state.extraStringTolerance !== 'off')
     + Number(hex && state.filterHexSpikes === true)
     + Number(state.filterScoreRange === true)
+    + Number(state.allowWrittenBendRanges !== false)
     + Number(state.midi.ignoreBriefErrors === true && Boolean(state.midi.activeInputId));
-  const text = `Held notes: ${held} · ${count} ${count === 1 ? 'filter' : 'filters'} enabled${hex ? '' : ' · Hex options unavailable'}`;
+  const text = `Held notes: ${held} · ${count} ${count === 1 ? 'option' : 'options'} enabled${hex ? '' : ' · Hex options unavailable'}`;
   if (summary.textContent !== text) summary.textContent = text;
 }

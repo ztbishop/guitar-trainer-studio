@@ -4,6 +4,7 @@ import {inferPolyExpectedNoteIds} from './poly-feedback.js';
 import {attackSlots,ignoresMutedString} from './attack-rules.js';
 import {WaitSession} from './wait-session.js';
 import {supportedHeldTone} from './wait-chord-gesture.js';
+import {matchesRecord,attackAssignment} from './bend-matching.js';
 
 export class RealtimeSession extends WaitSession {
   constructor(events,options={}) {
@@ -14,7 +15,7 @@ export class RealtimeSession extends WaitSession {
   reset(scoreMs=0,speed=1) {
     // Reinitialize tolerance evidence without retaining held notes across attempts.
     const clean=new WaitSession(this.events,this.options);
-    for(const key of ['held','pitch','pitchAttacks','spikeCandidates','singlePrecursors','pendingErrors','activeBriefErrors'])this[key]=clean[key];
+    for(const key of ['held','pitch','pitchAttacks','spikeCandidates','singlePrecursors','pendingErrors','activeBriefErrors','bendGestures'])this[key]=clean[key];
     this.records=this.events.map((event,index)=>({eventId:event.id,event,timeMs:event.startTimeMs,slots:attackSlots(event,this.hex,null),
       firstHitMs:null,wrong:0,wrongNotes:[],retries:0,burst:null,finalized:false,
       skipped:realtimeWindowExpired(this.window(index,speed),scoreMs)}));
@@ -30,8 +31,9 @@ export class RealtimeSession extends WaitSession {
     if(running && this.pausedAt!==null){this.pauseOffset+=Math.max(0,at-this.pausedAt);this.pausedAt=null;}
   }
   eventTime(at){return (this.pausedAt??at)-this.pauseOffset;}
+  prepareAttack(){return false;}
   window(index,speed){return realtimeHitWindow(this.events[index],this.events[index+1],speed,this.timing);}
-  pauseEvidence(){this.held.clear();this.pitch.reset();this.pitchAttacks.clear();this.spikeCandidates.clear();this.singlePrecursors.clear();}
+  pauseEvidence(){this.held.clear();this.pitch.reset();this.pitchAttacks.clear();this.spikeCandidates.clear();this.singlePrecursors.clear();this.bendGestures.clear();}
   advance(scoreMs,speed=1,at=null) {
     if(!this.started || this.completed)return;
     if(Number.isFinite(at))this.clockAt=at;
@@ -73,8 +75,7 @@ export class RealtimeSession extends WaitSession {
     const nearest=nearby[0];
     if(nearest&&(ignoresMutedString(nearest.event,note,this.hex,this.extraStringTolerance)||nearest.event.isPercussive))return nearest;
     const candidates=nearby.filter(r=>!r.event.isPercussive&&!ignoresMutedString(r.event,note,this.hex,this.extraStringTolerance)&&
-      r.slots.some(s=>!s.hit&&!s.missed&&s.midi===note.midi)&&
-      !(this.hex&&r.slots.some(s=>s.hit?.channel===note.channel&&s.midi===note.midi)));
+      attackAssignment(r.slots,note,{allow:this.allowWrittenBendRanges,hex:this.hex}));
     return candidates[0]??nearest;
   }
   noteOn(note,scoreMs,speed=1){
@@ -83,12 +84,14 @@ export class RealtimeSession extends WaitSession {
     // Incoming attacks get first chance before held-note settlement.
     this.clockAt=at;this.lastClock={scoreMs:correctedMs,at};
     this.flushPendingErrors(at);
-    const preview=this.hex?this.pitch.interpret(note):note;
+    const preview=this.hex?this.pitch.noteOn({...note,at}):note;
+    const continuation=this.consumeBendContinuation(preview,at);
+    if(continuation){this.advance(correctedMs,speed,at);return continuation;}
     const record=this.selectTarget(preview,correctedMs,speed);
     this.inputClock={scoreMs:correctedMs,speed};
     if(!record){this.advance(correctedMs,speed,at);const wrong={type:'wrong',eventId:null,midi:note.midi,channel:note.channel,at,scoreMs:correctedMs,wrongPitch:false};if(this.ignoreBriefErrors){wrong.pending=true;this.pendingErrors.set(wrong,this.orphanRecord);this.activeBriefErrors.set(wrong,this.orphanRecord);}else this.orphanRecord.wrong++;
       this.orphanWrong.push(wrong);return this.lastFeedback={...wrong,type:wrong.pending?'pending-off-target':'wrong'};}
-    const result=super.noteOn(this.records.indexOf(record),{...note,at,_scoreMs:correctedMs,_speed:speed},at);
+    const result=super.noteOn(this.records.indexOf(record),{...note,at,_scoreMs:correctedMs,_speed:speed,_bendChecked:true},at);
     this.advance(correctedMs,speed,at);return result;
   }
   grade(index,note,at,correcting=false){
@@ -102,16 +105,16 @@ export class RealtimeSession extends WaitSession {
       if(!r.burst||at-r.burst.at>this.timing.chordGroupingMs)r.burst={at,lastAt:at,wrong:false};
       r.burst.lastAt=at;
     }
-    if(correcting)for(const s of r.slots)if(!s.hit&&s.midi===note.midi)s.missed=false;
-    const slot=r.slots.find(s=>!s.hit&&!s.missed&&(event.isPercussive||s.midi===note.midi));
-    const duplicate=this.hex&&r.slots.some(s=>s.hit?.channel===note.channel&&s.midi===note.midi);
-    if(slot&&!duplicate){
-      const deltaMs=(scoreMs-r.timeMs)/speed;
-      slot.hit={at,scoreMs,deltaMs,channel:note.channel,stringHint:note.stringHint??null};
-      slot.channel=note.channel;slot.hitAt=at;slot.evidence='attack';delete slot.originAt;r.firstHitMs??=scoreMs;
-      return this.lastFeedback={type:'correct',eventId:r.eventId,midi:note.midi,deltaMs,noteIds:slot.noteIds,complete:r.slots.every(s=>s.hit)};
+    const deltaMs=(scoreMs-r.timeMs)/speed;
+    const credit={hit:{at,scoreMs,deltaMs,channel:note.channel,stringHint:note.stringHint??null},channel:note.channel,hitAt:at,evidence:'attack'};
+    const slot=event.isPercussive?r.slots.find(s=>!s.hit&&!s.missed):this.assignAttack(r,note,at,credit,correcting);
+    if(slot){
+      if(event.isPercussive)Object.assign(slot,credit);
+      r.firstHitMs??=scoreMs;
+      return this.lastFeedback={type:'correct',eventId:r.eventId,midi:note.midi,deltaMs,noteIds:slot.noteIds,
+        ...(slot.bendRange?{writtenBendRange:true,acceptedPitch:note.soundingMidi??note.midi}:{}),complete:r.slots.every(s=>s.hit)};
     }
-    const wrong={type:'wrong',eventId:r.eventId,midi:note.midi,rawMidi:note.rawMidi,channel:note.channel,stringHint:note.stringHint??null,at,scoreMs,wrongPitch:!r.slots.some(s=>s.midi===note.midi)};
+    const wrong={type:'wrong',eventId:r.eventId,midi:note.midi,rawMidi:note.rawMidi,channel:note.channel,stringHint:note.stringHint??null,at,scoreMs,wrongPitch:!matchesRecord(r,note,this.allowWrittenBendRanges)};
     if(!this.hex&&wrong.wrongPitch)wrong.inferredNoteIds=inferPolyExpectedNoteIds(r.slots);
     if(this.ignoreBriefErrors){wrong.pending=true;this.pendingErrors.set(wrong,r);this.activeBriefErrors.set(wrong,r);}else r.wrong++;
     r.wrongNotes.push(wrong);r.burst.wrong=true;

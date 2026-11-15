@@ -177,6 +177,10 @@
         <details class="practice-input-filters practice-tuning">
           <summary><span id="practice-filters-title">MIDI input tolerance</span><span id="practice-tolerance-summary" class="practice-setting-summary"></span></summary>
           <p class="field-help practice-filter-intro">Review these settings if tracking causes unexpected errors or repeated chords stall. Changing an option pauses practice and clears its results.</p>
+          <div class="practice-filter-option">
+            <label class="toggle-row" for="allow-written-bend-ranges"><input id="allow-written-bend-ranges" type="checkbox" checked aria-describedby="written-bend-help" /><span>Allow written bend ranges</span></label>
+            <p id="written-bend-help" class="field-help">Accepts the written base pitch or any pitch in its marked bend, pre-bend or whammy range, including chord notes. Does not grade technique accuracy.</p>
+          </div>
           <div class="practice-filter-option practice-filter-select">
             <label for="held-note-tolerance">Allow held notes in repeated chords</label>
             <select id="held-note-tolerance" aria-describedby="held-note-help">
@@ -216,6 +220,7 @@
             <p id="brief-error-availability" class="field-help"></p>
           </div>
           <details class="practice-filter-details"><summary>How these settings work</summary>
+            <p class="field-help"><strong>Written bend ranges:</strong> On by default in Hex and Poly. A written C-to-D bend accepts C, C♯ or D for that note. Each chord note keeps its own requirement, and ordinary notes keep exact-pitch matching. This accepts note participation without checking bend shape, timing or vibrato quality.</p>
             <p class="field-help"><strong>Held notes:</strong> For repeated identical chords in all practice modes. Choose Off, One, Two (default) or Three. Two/Three allow continued carryover. At least one required note must still receive a fresh attack. Released notes cannot count.</p>
             <p class="field-help"><strong>Extra strings:</strong> For chords with at least two pitched strings. Skipped strings lie between written pitched strings; All also forgives outside strings. Ignored input cannot satisfy required pitches. Other enabled filters still apply.</p>
             <p class="field-help">Written X notes need no tolerance setting. An all-X beat requires one fresh MIDI attack at any pitch from any string. In mixed chords, pitched notes are required; identified Hex X-string input is forgiven. Poly cannot identify individual X strings.</p>

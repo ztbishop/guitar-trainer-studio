@@ -1,5 +1,12 @@
 # Guitar Trainer Studio: status and to-do
 
+## Written bend ranges — 2026-11-15
+
+- [x] Add **Allow written bend ranges**, on by default in Hex/Poly and Realtime/both Wait choices, saved independently. Marked bends, pre-bends, releases and whammy accept the base pitch or written range, including fine bends and played tie chains. Ordinary pitches and other tolerance defaults remain unchanged; saved Off restores original onset matching.
+- [x] Keep each chord requirement independent; resolve overlapping ranges without making acceptance depend on strum order. Continuous pitch-wheel movement never supplies a new attack. Vibrato does not widen initial pitch matching. A bounded continuation guard keeps likely converter re-keys attached to their original note; see architecture for the time and channel rules.
+- [x] Pass all 671 Node tests and isolated Chrome written-bend checks in all six practice/input combinations, tolerance default/persistence/layout checks, and existing Realtime timing/feedback checks. Syntax and whitespace checks pass. No physical MIDI acceptance claimed.
+- [ ] Owner hard-refreshes and compares On/Off with Fishman Hex and Poly: C→D bends/pre-bends, a release, fine bends, wide whammy, vibrato, bent/unbent chords, tied notes and quick deliberate separate attacks in Wait and Realtime. Confirm correct notes register without skipped targets. The continuation guard can confuse unusually quick separate notes; wide whammy ranges intentionally accept broad pitch choices. This mode does not measure endpoint, shape or technique accuracy.
+
 ## Pending alphaTab publication — 2026-11-14
 
 - [x] Review and validate the complete pending trainer-side alphaTab checkpoint for the owner-authorized commit/push: 563 Node tests, all 17 manifest hashes, exact classic/core patch replay and offline updater regressions.

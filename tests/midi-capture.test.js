@@ -79,6 +79,30 @@ test('capture is opt-in, bounded, restarts cleanly, and records duplicate held a
   stopMidiCapture();assert.equal(captureMidiEvent(note),null);
 });
 
+test('capture retains written bend policy and acceptance evidence without changing raw MIDI',()=>{
+  const saved={allowWrittenBendRanges:AppState.allowWrittenBendRanges,mode:AppState.mode,expectedEvents:AppState.expectedEvents,waitTrainer:AppState.waitTrainer};
+  try {
+    const target={id:'bend',notes:[{midi:60,string:2,fret:1,sourceNoteId:'bend-note',bendRange:{min:60,max:62},hasVibrato:true}]};
+    AppState.mode='wait';AppState.expectedEvents=[target];AppState.waitTrainer={currentEvent:target};
+    for(const enabled of [true,false]) {
+      AppState.allowWrittenBendRanges=enabled;startMidiCapture();
+      const note=normalizeMidiMessage({data:[0x90,61,80],timeStamp:performance.now()});
+      const row=captureMidiEvent(note,{accepted:true});
+      captureMidiOutcome(row,{type:'correct',eventId:'bend',midi:61,writtenBendRange:enabled,acceptedPitch:61.25,noteIds:['bend-note'],continuation:'written-bend'});
+      const evidence=midiCaptureReport().events[0];
+      assert.equal(evidence.allowWrittenBendRanges,enabled);
+      assert.deepEqual(evidence.targetBefore.notes[0].bendRange,{min:60,max:62});
+      assert.equal(evidence.targetBefore.notes[0].hasVibrato,true);
+      assert.equal(evidence.grading.writtenBendRange,enabled);
+      assert.equal(evidence.grading.acceptedPitch,61.25);
+      assert.deepEqual(evidence.grading.noteIds,['bend-note']);
+      assert.equal(evidence.grading.continuation,'written-bend');
+      assert.deepEqual(evidence.raw,[0x90,61,80]);assert.equal(note.midi,61);
+      stopMidiCapture();
+    }
+  } finally {stopMidiCapture();Object.assign(AppState,saved);}
+});
+
 test('report connects a brief MIDI octave attack to retained fret 25 and a screenshot in both modes',()=>{
   for(const inputMode of ['single-channel','hex-6ch']) {
     AppState.mode='wait';AppState.inputMode=inputMode;

@@ -22,7 +22,8 @@ export function clearMidiCapture(){
 export function stopMidiCapture(){const changed=recording || !reason;if(recording)markMidiSnapshot('Stopped');recording=false;reason||='Stopped';if(changed)revision++;notify();}
 function targetInfo(event){return event?{eventId:event.id,measure:event.measureNumber,occurrence:event.occurrence,
   isPercussive:Boolean(event.isPercussive),mutedStrings:[...(event.mutedStrings??[])],
-  notes:event.notes.map(n=>({midi:n.midi,string:n.string,fret:n.fret,isDead:Boolean(n.isDead),sourceNoteId:String(n.sourceNoteId)}))}:null;}
+  notes:event.notes.map(n=>({midi:n.midi,string:n.string,fret:n.fret,isDead:Boolean(n.isDead),sourceNoteId:String(n.sourceNoteId),
+    ...(n.bendRange?{bendRange:{...n.bendRange}}:{}),...(n.hasVibrato?{hasVibrato:true}:{})}))}:null;}
 export function captureMidiEvent(note,{input,accepted,receivedAt=performance.now()}={}) {
   if(!recording)return null;
   const target=AppState.mode==='wait'?AppState.waitTrainer?.currentEvent:AppState.trainer.currentEvent;
@@ -34,6 +35,7 @@ export function captureMidiEvent(note,{input,accepted,receivedAt=performance.now
     hexBase:AppState.midi.hexChannelBase,hexReverse:AppState.midi.hexChannelReverse,singleChannel:AppState.midi.singleChannel,
     extraStringTolerance:AppState.extraStringTolerance,heldNoteTolerance:AppState.heldNoteTolerance,
     filterHexSpikes:AppState.filterHexSpikes!==false,filterScoreRange:AppState.filterScoreRange===true,
+    allowWrittenBendRanges:AppState.allowWrittenBendRanges!==false,
     ignoreBriefErrors:AppState.midi.ignoreBriefErrors===true,minErrorMs:AppState.midi.minErrorMs,
     pitchBendRange:AppState.midi.pitchBendRange,
     scoreFileName:AppState.ui.loadedFileName,practiceTrackId:AppState.practiceTrackId,
@@ -60,6 +62,7 @@ export function captureMidiOutcome(row,outcome) {
   row.handlerDurationMs=Math.max(0,performance.now()-startedClock-row.receivedTimeMs);
   row.grading=outcome && typeof outcome==='object'?{
     type:outcome.type,eventId:outcome.eventId,midi:outcome.midi,wrongPitch:outcome.wrongPitch,
+    writtenBendRange:outcome.writtenBendRange,acceptedPitch:outcome.acceptedPitch,noteIds:outcome.noteIds?[...outcome.noteIds]:undefined,continuation:outcome.continuation,
     complete:outcome.complete,minimumMs:outcome.minimumMs,target:targetInfo(AppState.expectedEvents.find(event=>event.id===outcome.eventId)),
     range:outcome.range?structuredClone(outcome.range):undefined,
     correction:outcome.correction?structuredClone(outcome.correction):undefined,

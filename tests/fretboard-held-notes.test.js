@@ -125,3 +125,33 @@ test('fresh paused input is neutral even when the last feedback has the same acc
   tracker.remember(fresh,{type:'correct',eventId:'chord',midi:64,noteIds:['e']},active);
   assert.equal(tracker.isUngraded(fresh),false,'later genuine acceptance replaces neutral attribution');
 });
+
+for(const hex of [false,true])test(`${hex?'Hex':'Poly'} accepted written bend keeps the written target green without claiming a higher played fret`,()=>{
+  const tracker=new FretboardHeldNotes();
+  const target={id:'bend',notes:[{id:'bend:c',sourceNoteId:'c',midi:60,string:2,fret:1,bendRange:{min:60,max:62}}]};
+  const states={'bend:c':'correct'};
+  for(const midi of [60,61,62]) {
+    const source=attack(midi,hex?2:1,hex?2:null),active=new Map([[`${source.channel}:${midi}`,source]]);
+    const outcome={type:'correct',eventId:target.id,midi,noteIds:['bend:c'],writtenBendRange:true};
+    assert(tracker.remember(source,outcome,active));
+    const visible=tracker.visible([source],{currentEvent:target,noteStates:states});
+    const model=buildFretboardModel({track,currentEvent:target,noteStates:states,activeNotes:visible,inputMode:hex?'hex-6ch':'single-channel',lastFeedback:outcome});
+    assert.deepEqual(model.played,[]);
+    assert.deepEqual(model.targets.map(n=>({fret:n.fret,midi:n.midi,state:n.state})),[{fret:1,midi:60,state:'correct'}]);
+    assert.deepEqual(tracker.visible([source],{currentEvent:events[1],noteStates:states}),[],'accepted bend stays hidden after advancement');
+    assert.deepEqual(tracker.visible([source],{currentEvent:target,noteStates:{}}),[source],'reset invalidates the display attribution');
+    assert.deepEqual(tracker.visible([source],{currentEvent:target,noteStates:states,liveWrongNotes:[{midi,channel:source.channel}]}),[source],'explicit live errors remain visible');
+  }
+});
+
+for(const type of ['ignored-collected-tone','ignored-bend-continuation'])test(`${type} honors evaluator bend identities instead of searching for the sounding pitch in the score`,()=>{
+  const tracker=new FretboardHeldNotes(),source=attack(62),active=new Map([['1:62',source]]);
+  const target={id:'bend',notes:[{id:'bend:c',midi:60,string:2,fret:1}]};
+  const outcome={type,eventId:'bend',midi:62,noteIds:['bend:c'],writtenBendRange:true};
+  const states={'bend:c':'correct'},before=JSON.stringify({source,outcome,target,states});
+  assert(tracker.remember(source,outcome,active,{events:[target],noteStates:states}));
+  assert.deepEqual(tracker.visible([source],{currentEvent:target,noteStates:states}),[]);
+  assert.equal(JSON.stringify({source,outcome,target,states}),before,'display never changes grading, score or input evidence');
+  const fresh={...source,at:200};
+  assert.deepEqual(tracker.visible([fresh],{currentEvent:target,noteStates:states}),[fresh],'a later unrelated attack does not inherit bend acceptance');
+});

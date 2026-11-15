@@ -153,6 +153,16 @@ Repeated notes normally need a fresh attack. The **Allow held notes in repeated 
 
 Written muted **X** beats need a fresh MIDI attack. If your muted strum produces no MIDI at all, Wait cannot detect it. In mixed chords, pitched notes remain required.
 
+### Bends, pre-bends, whammy and vibrato
+
+**Allow written bend ranges** is on by default under Practice → MIDI input tolerance. In Hex and Poly, Realtime and Wait, a marked C-to-D bend accepts C, C♯ or D for that note. Pre-bends, releases and whammy use the written base pitch and marked range too. This helps you practice the piece without requiring a perfectly tracked bend. Broad whammy ranges are deliberately forgiving; a correct result does not prove that you reached the endpoint or performed the bend's shape or timing accurately.
+
+Each required chord note keeps its own range. One played attack cannot fill two chord requirements, even where their ranges overlap, and unbent chord notes still need their normal pitch. Tied continuations remain part of the original note. Fine bends retain their written limits: a bend halfway from C to C♯ does not make C♯ a correct starting note.
+
+Vibrato alone does not widen the initial correct pitch. Continuous MIDI pitch-bend messages do not count as new attacks. If a converter reports a continuing bend or vibrato as new notes instead, an automatic safeguard can keep closely linked changes with the original note. Very quick separate notes can look similar, especially in Poly, so this is a limited tracking aid. Check both expressive passages and deliberate separate notes with your MIDI setup.
+
+Turn this option off to restore the original exact-pitch matching for new attacks; the automatic continuation safeguard remains active. The choice persists across score loads and sessions; changing it pauses practice and clears results. Other MIDI tolerances and ordinary note requirements are unchanged.
+
 ### Reading the feedback
 
 - The light-blue score cursor shows the current beat.
@@ -175,12 +185,13 @@ Some toolbar items move into **More** when the window is narrow.
 Practice selects one track and the practice mode. **Check MIDI input tolerance during setup**, especially if tracking causes unexpected errors or repeated chords stall. MIDI guitars and conversion software can report extra or lingering notes; these settings help balance comfortable practice against how strictly mistakes are counted. They do not replace correct device/channel setup.
 
 - **Held notes** helps recognize repeated identical chords while allowing some tones to keep ringing.
+- **Allow written bend ranges** accepts each marked note's base pitch or bend/pre-bend/whammy range, without grading technique accuracy.
 - **Ignore extra chord strings (Hex)** can forgive selected unwritten strings in chords. It does not supply missing required pitches.
 - **Filter confirmed tracking spikes (Hex)** filters specific MIDI sequences that indicate tracking artifacts.
 - **Ignore notes outside written fret range** uses the written shape as a guide, not your actual hand position.
 - **Ignore brief off-target notes** forgives wrong notes shorter than your chosen duration, including real brief mistakes.
 
-These options apply in Realtime and both Wait chord choices; string-based options need Hex input. First use allows **Two held notes**, selects **Skipped strings only** for Hex extra-string tolerance, and enables **confirmed tracking-spike filtering**. Written-fret-range filtering and brief-note filtering start off; the brief-note duration starts at 30 ms when enabled. All four score-feedback switches start on. Saved choices take precedence over these defaults.
+These options apply in Realtime and both Wait chord choices; string-based options need Hex input. First use enables **Allow written bend ranges**, allows **Two held notes**, selects **Skipped strings only** for Hex extra-string tolerance, and enables **confirmed tracking-spike filtering**. Written-fret-range filtering and brief-note filtering start off; the brief-note duration starts at 30 ms when enabled. All four score-feedback switches start on. Saved choices take precedence over these defaults.
 
 Change one option at a time and compare both comfortable playing and deliberate mistakes. More tolerance can also hide genuine mistakes. Two held notes verifies fewer reattacks than One, skipped-string tolerance forgives some real extra-string mistakes, and written-range filtering can omit distant wrong pitches. Brief-note filtering at 60 ms, for example, also forgives real wrong notes shorter than 60 ms. Correct required notes still count immediately.
 

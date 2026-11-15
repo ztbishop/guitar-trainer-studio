@@ -7,14 +7,17 @@ import {supportedHeldTone,refreshHeldEvidence} from './wait-chord-gesture.js';
 import {MidiPitchState,PITCH_SETTLE_MS} from './midi-pitch.js';
 import {outsideScoreRange} from './score-range-filter.js';
 import {spikeCandidate,confirmedSpike,acceptedSinglePrecursor,confirmedPreviousOnset} from './hex-tracking-spikes.js';
+import {acceptsSlot,matchesRecord,attackAssignment} from './bend-matching.js';
+import {BendGestures} from './bend-gestures.js';
 export class WaitSession {
-  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,extraStringTolerance='off',heldNoteTolerance='one',filterHexSpikes=true,filterScoreRange=false,ignoreBriefErrors=false,minErrorMs=30,rangeStaves=[],pitchBendRange=12,pitchState=null} = {}) {
+  constructor(events, {hex=false,chordMode='collect',chordWindowMs=200,extraStringTolerance='off',heldNoteTolerance='one',filterHexSpikes=true,filterScoreRange=false,allowWrittenBendRanges=true,ignoreBriefErrors=false,minErrorMs=30,rangeStaves=[],pitchBendRange=12,pitchState=null} = {}) {
     this.heldNoteTolerance=heldNoteTolerance;this.events=events;this.extraStringTolerance=extraStringTolerance;this.tail=null;
     this.records=events.map(event=>{
       return {eventId:event.id,slots:attackSlots(event,hex,false),wrong:0,wrongNotes:[],retries:0,attemptStartAt:null,skipped:false,burst:null};
     });
     this.ignoreBriefErrors=ignoreBriefErrors===true;this.minErrorMs=briefErrorMs(minErrorMs);this.pendingErrors=new Map();this.activeBriefErrors=new Map();
     this.hex=hex;this.lastFeedback=null;this.liveWrong=new Map();this.held=new Map();
+    this.allowWrittenBendRanges=allowWrittenBendRanges!==false;this.bendGestures=new BendGestures();
     this.filterScoreRange=filterScoreRange;this.rangeStaves=rangeStaves;
     this.filterHexSpikes=filterHexSpikes;this.spikeCandidates=new Map();this.singlePrecursors=new Map();
     this.pitch=pitchState??new MidiPitchState(pitchBendRange);this.pitchAttacks=new Map();
@@ -28,17 +31,22 @@ export class WaitSession {
     if(this.chordMode!=='together' || !record || record.skipped || record.slots.length<=1 ||
         record.attemptStartAt===null || !Number.isFinite(at) || at-record.attemptStartAt<=this.chordWindowMs ||
         record.slots.every(s=>s.hit))return false;
-    record.slots.forEach(slot=>{slot.hit=false;slot.channel=null;delete slot.heldRefresh;delete slot.originAt;});
+    record.slots.forEach(slot=>{slot.hit=false;slot.channel=null;delete slot.heldRefresh;delete slot.originAt;delete slot.attackInput;});
+    this.bendGestures.forgetRecord(record);
     record.attemptStartAt=null;record.retries++;
     this.lastFeedback={type:'retry',eventId:record.eventId,complete:false};return true;
   }
   noteOn(index,note,at=note.at??0) {
     this.flushPendingErrors(at);
+    const expiredAttempt=this.prepareAttack(index,at);
+    if(expiredAttempt)note={...note,_expiredAttempt:true};
     const previous=this.singlePrecursors.get(note.channel);
     this.singlePrecursors.delete(note.channel);
     const candidate=this.spikeCandidates.get(note.channel);
     this.spikeCandidates.delete(note.channel);
     const played=this.hex?this.pitch.noteOn({...note,at}):note;
+    const continuation=note._bendChecked?null:this.consumeBendContinuation(played,at);
+    if(continuation)return continuation;
     const retrigger=this.hex && this.filterHexSpikes?confirmedPreviousOnset(previous,this.events[index],played,index,at):null;
     if(retrigger) {
       for(const [key,value] of this.held)if(value.channel===note.channel)this.held.delete(key);
@@ -46,7 +54,8 @@ export class WaitSession {
       (this.records[index].trackingSpikes??=[]).push(retrigger);
       return this.lastFeedback={type:'ignored-previous-onset',eventId:this.events[index].id,midi:played.midi,trackingSpike:retrigger,complete:false};
     }
-    const range=this.filterScoreRange?outsideScoreRange(this.events[index],played,this.rangeStaves,{hex:this.hex}):null;
+    const range=this.filterScoreRange && !matchesRecord(this.records[index],played,this.allowWrittenBendRanges)
+      ?outsideScoreRange(this.events[index],played,this.rangeStaves,{hex:this.hex}):null;
     if(range) {
       if(this.hex)for(const [key,value] of this.held)if(value.channel===note.channel)this.held.delete(key);
       this.pitchAttacks.delete(note.channel);
@@ -74,6 +83,25 @@ export class WaitSession {
       return this.lastFeedback={...feedback,type:'pending-off-target',minimumMs:this.minErrorMs};
     }
     return feedback;
+  }
+  consumeBendContinuation(note,at) {
+    const continuation=this.bendGestures.attack({...note,at},{hex:this.hex});
+    if(!continuation)return null;
+    this.pitchAttacks.delete(note.channel);this.spikeCandidates.delete(note.channel);this.singlePrecursors.delete(note.channel);
+    if(this.hex)for(const [key,value] of this.held)if(value.channel===note.channel)this.held.delete(key);
+    return this.lastFeedback=continuation;
+  }
+  prepareAttack(index,at){return this.expire(index,at);}
+  assignAttack(record,note,at,credit,correcting=false) {
+    const moves=attackAssignment(record.slots,note,{allow:this.allowWrittenBendRanges,hex:this.hex,correcting});
+    if(!moves)return null;
+    for(const move of moves) {
+      const {slot,input}=move;
+      Object.assign(slot,move.credit??credit,{attackInput:{...input,at:move.credit?.hitAt??at},missed:false});
+      delete slot.originAt;delete slot.heldRefresh;
+      this.bendGestures.remember(record,slot,slot.attackInput,this.events[this.records.indexOf(record)]);
+    }
+    return moves.at(-1).slot;
   }
   removeWrong(record,wrong) {
     record.wrongNotes.splice(record.wrongNotes.indexOf(wrong),1);
@@ -132,16 +160,18 @@ export class WaitSession {
       record.burst.lastAt=at;
       record.burst.keys.add(key);record.burst.seen.add(identity);
     }
-    const expiredAttempt=this.expire(index,at);
-    const duplicate=this.hex && record.slots.some(s=>s.hit && s.midi===note.midi && s.channel===note.channel);
-    const slot=record.slots.find(s=>!s.hit && (event.isPercussive || s.midi===note.midi));
-    if(!slot || duplicate) {
-      const wrongPitch=!record.slots.some(s=>s.midi===note.midi);
+    const expiredAttempt=this.expire(index,at) || note._expiredAttempt===true;
+    const slot=event.isPercussive?record.slots.find(s=>!s.hit):this.assignAttack(record,note,at,
+      {hit:true,channel:note.channel,hitAt:at,evidence:'attack'},correcting);
+    if(!slot) {
+      const wrongPitch=!matchesRecord(record,note,this.allowWrittenBendRanges);
       // Replaying a collected tone cannot fill another Hex unison slot and does
       // not add a penalty while the learner supplies the missing chord tones.
       if(!wrongPitch){
         if(['two','three'].includes(this.heldNoteTolerance))refreshHeldEvidence(record,note,at,this.hex);
-        return {type:'ignored-collected-tone',eventId:record.eventId,midi:note.midi,complete:false};
+        const matched=record.slots.filter(s=>acceptsSlot(s,note,this.allowWrittenBendRanges));
+        return {type:'ignored-collected-tone',eventId:record.eventId,midi:note.midi,noteIds:matched.flatMap(s=>s.noteIds),
+          writtenBendRange:matched.some(s=>Boolean(s.bendRange)),complete:false};
       }
       record.burst.wrong=true;
       if(!this.ignoreBriefErrors)record.wrong++;
@@ -156,13 +186,14 @@ export class WaitSession {
       }
       return this.lastFeedback=feedback;
     }
-    slot.hit=true;slot.channel=note.channel;slot.hitAt=at;slot.evidence='attack';delete slot.originAt;delete slot.heldRefresh;
+    if(event.isPercussive){slot.hit=true;slot.channel=note.channel;slot.hitAt=at;slot.evidence='attack';delete slot.originAt;delete slot.heldRefresh;}
     record.attemptStartAt??=at;
     const complete=record.slots.every(s=>s.hit);
     if(complete && (record.slots.length>1 || event.isPercussive))this.tail={index,at:record.burst.at,window,
       lastAt:at,firstIdentity:record.burst.seen.values().next().value,
       seen:new Set(record.burst.seen),pitches:new Set(record.slots.map(s=>s.midi)),percussive:event.isPercussive};
-    return this.lastFeedback={type:'correct',eventId:record.eventId,midi:note.midi,noteIds:slot.noteIds,expiredAttempt,complete};
+    return this.lastFeedback={type:'correct',eventId:record.eventId,midi:note.midi,noteIds:slot.noteIds,
+      ...(slot.bendRange?{writtenBendRange:true,acceptedPitch:note.soundingMidi??note.midi}:{}),expiredAttempt,complete};
   }
   settle(index,at) {
     const supported=supportedHeldTone(this.events,this.records,this.held,index,at,this);
@@ -180,6 +211,7 @@ export class WaitSession {
       channel:slot.channel,noteIds,at,complete:true};
   }
   noteOff(note) {
+    this.bendGestures.release(note);
     let briefChanged=false;
     for(const [entry,record] of this.activeBriefErrors)if(entry.channel===note.channel && (entry.rawMidi??entry.midi)===note.midi && Number.isFinite(note.at) && note.at>=entry.at && note.at-entry.at<this.minErrorMs) {
       this.removeWrong(record,entry);
@@ -211,10 +243,10 @@ export class WaitSession {
     if(allowCorrection && old?.type==='wrong' && old.wrongPitch && at>=attack.at && at-attack.at<=PITCH_SETTLE_MS) {
       const played=this.pitch.interpret(attack.note),record=this.records[attack.index];
       const wrong=record.wrongNotes.find(n=>n.channel===note.channel && n.at===attack.at && n.rawMidi===played.rawMidi);
-      if(wrong && played.midi!==wrong.midi) {
+      if(wrong && (played.midi!==wrong.midi || matchesRecord(record,played,this.allowWrittenBendRanges))) {
         const correction={rawMidi:played.rawMidi,fromMidi:wrong.midi,toMidi:played.midi,bendValue:played.bendValue,
           range:this.pitch.range,channel:note.channel,attackAt:attack.at,at,
-          matched:record.slots.some(s=>s.midi===played.midi)};
+          matched:matchesRecord(record,played,this.allowWrittenBendRanges)};
         (record.pitchCorrections??=[]).push(correction);
         if(!correction.matched) {
           const live=this.liveWrong.delete(`${wrong.channel}:${wrong.midi}`);

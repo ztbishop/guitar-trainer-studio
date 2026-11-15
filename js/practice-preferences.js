@@ -3,7 +3,7 @@ export const PRACTICE_PREFERENCES_KEY = 'gts.practicePreferences';
 export const FEEDBACK_PREFERENCE_KEYS = ['showNotationFeedback', 'showTabCircles', 'showTabMistakes', 'inferPolyMistakes'];
 
 export function readPracticePreferences(storage) {
-  const defaults = {mode: 'realtime', feedback: Object.fromEntries(FEEDBACK_PREFERENCE_KEYS.map(key => [key, true])), waitChord: {mode: 'collect', windowMs: 200}, extraStringTolerance: 'internal', heldNoteTolerance:'two', filterHexSpikes:true, filterScoreRange:false};
+  const defaults = {mode: 'realtime', feedback: Object.fromEntries(FEEDBACK_PREFERENCE_KEYS.map(key => [key, true])), waitChord: {mode: 'collect', windowMs: 200}, extraStringTolerance: 'internal', heldNoteTolerance:'two', filterHexSpikes:true, filterScoreRange:false, allowWrittenBendRanges:true};
   try {
     storage ??= globalThis.window?.localStorage;
     const saved = JSON.parse(storage?.getItem(PRACTICE_PREFERENCES_KEY) ?? 'null');
@@ -14,6 +14,7 @@ export function readPracticePreferences(storage) {
     else if(saved?.heldNoteTolerance==='multiple')defaults.heldNoteTolerance='two';
     if(typeof saved?.filterScoreRange==='boolean')defaults.filterScoreRange=saved.filterScoreRange;
     if(typeof saved?.filterHexSpikes==='boolean')defaults.filterHexSpikes=saved.filterHexSpikes;
+    if(typeof saved?.allowWrittenBendRanges==='boolean')defaults.allowWrittenBendRanges=saved.allowWrittenBendRanges;
     for (const key of FEEDBACK_PREFERENCE_KEYS) {
       if (typeof saved?.feedback?.[key] === 'boolean') defaults.feedback[key] = saved.feedback[key];
     }
@@ -35,6 +36,7 @@ export function savePracticePreferences(state, storage) {
       heldNoteTolerance:['off','one','two','three'].includes(state.heldNoteTolerance)?state.heldNoteTolerance:'two',
       filterHexSpikes: state.filterHexSpikes!==false,
       filterScoreRange: state.filterScoreRange===true,
+      allowWrittenBendRanges: state.allowWrittenBendRanges!==false,
     }));
   } catch { /* Preferences still apply to the current session if storage is unavailable. */ }
 }

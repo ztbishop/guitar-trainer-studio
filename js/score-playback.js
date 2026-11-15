@@ -1,6 +1,7 @@
 // Normalize alphaTab's generated playback lookup into score-independent data.
 // No transport control or correctness decisions belong here.
 import { midiToNoteName } from './note-utils.js';
+import { writtenBendSegment } from './written-bends.js';
 
 export function tickToTimeMs(timeline, tick, speed = 1) {
   if (!timeline?.tempoMap?.length || !Number.isFinite(tick) || !(speed > 0)) return null;
@@ -29,6 +30,7 @@ export function buildPlaybackTimeline(tickCache, { tempo = 120, ticksPerQuarter 
   const changes = new Map([[0, tempo > 0 ? tempo : 120]]);
   const occurrences = new Map();
   const beatOccurrences = new Map();
+  const writtenCurves = new Map();
   for (const [playbackMeasureIndex, bar] of tickCache.masterBars.entries()) {
     const measureNumber = bar.masterBar.index + 1;
     const occurrence = (occurrences.get(measureNumber) || 0) + 1;
@@ -60,19 +62,24 @@ export function buildPlaybackTimeline(tickCache, { tempo = 120, ticksPerQuarter 
           writtenStartTick: beat.absolutePlaybackStart,
           startTick, endTick: bar.start + span.end, isRest: Boolean(beat.isRest), notes: [],
         };
-        event.notes = (beat.notes || []).filter(note => Number.isFinite(note.realValue)).map((note, index) => ({
-          id: `${key}:note:${note.id ?? index}`, sourceNoteId: String(note.id ?? `${sourceBeatId}:${index}`),
-          sourceBeatId, midi: note.realValue, noteName: midiToNoteName(note.realValue),
-          sourceString: Number.isFinite(note.string) && note.string > 0 ? note.string : null,
-          string: note.string > 0 && beat.voice.bar.staff.tuning.length >= note.string
-            ? beat.voice.bar.staff.tuning.length + 1 - note.string : null,
-          fret: Number.isFinite(note.fret) ? note.fret : null,
-          leftHandFinger: Number.isInteger(note.leftHandFinger) ? note.leftHandFinger : -2,
-          isDead: Boolean(note.isDead),
-          attack: !note.isTieDestination,
-          tieOriginId: note.tieOrigin ? String(note.tieOrigin.id) : null,
-          tieDestinationId: note.tieDestination ? String(note.tieDestination.id) : null,
-        }));
+        event.notes = (beat.notes || []).filter(note => Number.isFinite(note.realValue)).map((note, index) => {
+          const id=`${key}:note:${note.id ?? index}`;
+          writtenCurves.set(id,{bend:note.bendPoints,whammy:beat.whammyBarPoints});
+          return {
+            id, sourceNoteId: String(note.id ?? `${sourceBeatId}:${index}`),
+            sourceBeatId, midi: note.realValue, noteName: midiToNoteName(note.realValue),
+            sourceString: Number.isFinite(note.string) && note.string > 0 ? note.string : null,
+            string: note.string > 0 && beat.voice.bar.staff.tuning.length >= note.string
+              ? beat.voice.bar.staff.tuning.length + 1 - note.string : null,
+            fret: Number.isFinite(note.fret) ? note.fret : null,
+            leftHandFinger: Number.isInteger(note.leftHandFinger) ? note.leftHandFinger : -2,
+            isDead: Boolean(note.isDead),
+            hasVibrato: Number.isFinite(note.vibrato) && note.vibrato>0 || Number.isFinite(beat.vibrato) && beat.vibrato>0,
+            attack: !note.isTieDestination,
+            tieOriginId: note.tieOrigin ? String(note.tieOrigin.id) : null,
+            tieDestinationId: note.tieDestination ? String(note.tieDestination.id) : null,
+          };
+        });
         beatOccurrences.set(key, event);
       }
     }
@@ -86,6 +93,7 @@ export function buildPlaybackTimeline(tickCache, { tempo = 120, ticksPerQuarter 
   timeline.events = [...beatOccurrences.values()].sort((a,b) => a.startTick-b.startTick);
   // Preserve individual notes, including unisons on different strings and tie destinations.
   const latestNotes = new Map();
+  const tieChains = new Set();
   for (const event of timeline.events) {
     event.durationTicks = Math.max(0, event.endTick-event.startTick);
     event.startTimeMs = tickToTimeMs(timeline,event.startTick);
@@ -95,17 +103,31 @@ export function buildPlaybackTimeline(tickCache, { tempo = 120, ticksPerQuarter 
       note.durationTicks = event.durationTicks;
       const origin = latestNotes.get(`${event.trackId}:${note.tieOriginId}`);
       // Only contiguous, actually-played ties extend an attack. Repeat jumps do not.
-      if (!note.attack && origin && origin.endTick === note.startTick && origin.midi === note.midi) {
-        const root = origin.root;
+      const continues=!note.attack && origin && origin.endTick === note.startTick && origin.midi === note.midi;
+      const root=continues?origin.root:note;
+      const chain=continues?origin.chain:{notes:[],valid:true,range:null,hasVibrato:false};
+      const curves=writtenCurves.get(note.id);
+      const bendState=writtenBendSegment(note.midi,curves.bend,curves.whammy,continues?origin.bendState:null);
+      chain.notes.push(note);chain.valid=chain.valid && bendState.valid;chain.hasVibrato||=note.hasVibrato;
+      if(bendState.bendRange)chain.range=chain.range
+        ? {min:Math.min(chain.range.min,bendState.bendRange.min),max:Math.max(chain.range.max,bendState.bendRange.max)}
+        : bendState.bendRange;
+      tieChains.add(chain);
+      if (continues) {
         root.endTick = note.endTick;
         root.durationTicks = root.endTick-root.startTick;
         note.attackNoteId = root.id;
-        latestNotes.set(`${event.trackId}:${note.sourceNoteId}`, {...note, root});
       } else {
         note.attackNoteId = note.attack ? note.id : null;
-        latestNotes.set(`${event.trackId}:${note.sourceNoteId}`, {...note, root:note});
       }
+      latestNotes.set(`${event.trackId}:${note.sourceNoteId}`, {...note, root, chain, bendState});
     }
+  }
+  // A late bend belongs to the original required attack. Share only the range
+  // of that actually played tie chain, including its continuation display data.
+  for(const chain of tieChains)for(const note of chain.notes) {
+    if(chain.valid && chain.range)note.bendRange={...chain.range};
+    note.hasVibrato=chain.hasVibrato;
   }
   for (const event of timeline.events) for (const note of event.notes) {
     note.startTimeMs = tickToTimeMs(timeline,note.startTick);

@@ -26,6 +26,7 @@ export function resetRealtimeSession(reason = 'reset', tick = AppState.tickPosit
     hex: AppState.inputMode === 'hex-6ch', latencyMs: AppState.trainer.latencyMs || 0,
     extraStringTolerance: AppState.extraStringTolerance,heldNoteTolerance:AppState.heldNoteTolerance,
     filterHexSpikes:AppState.filterHexSpikes,filterScoreRange:AppState.filterScoreRange,
+    allowWrittenBendRanges:AppState.allowWrittenBendRanges,
     ignoreBriefErrors:AppState.midi.ignoreBriefErrors,minErrorMs:AppState.midi.minErrorMs,
     pitchBendRange:AppState.midi.pitchBendRange,
     rangeStaves:AppState.tracks.find((track,index)=>String(track.index??index)===String(AppState.practiceTrackId))?.staves??[],

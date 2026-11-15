@@ -13,7 +13,7 @@ export class WaitController {
   configure(events,endTick,hex=false,loop=false,chordSettings={},loopCountIn=false) {
     this.stop();this.events=events;this.endTick=endTick;this.hex=hex;
     this.loop=loop;this.loopCountIn=loopCountIn;this.pass=1;this.lastPassResults=null;this.passHistory=[];
-    this.chordSettings={chordMode:chordSettings.mode,chordWindowMs:chordSettings.windowMs,extraStringTolerance:chordSettings.extraStringTolerance,heldNoteTolerance:chordSettings.heldNoteTolerance,filterHexSpikes:chordSettings.filterHexSpikes,filterScoreRange:chordSettings.filterScoreRange,rangeStaves:chordSettings.rangeStaves,ignoreBriefErrors:chordSettings.ignoreBriefErrors,minErrorMs:chordSettings.minErrorMs};
+    this.chordSettings={chordMode:chordSettings.mode,chordWindowMs:chordSettings.windowMs,extraStringTolerance:chordSettings.extraStringTolerance,heldNoteTolerance:chordSettings.heldNoteTolerance,filterHexSpikes:chordSettings.filterHexSpikes,filterScoreRange:chordSettings.filterScoreRange,allowWrittenBendRanges:chordSettings.allowWrittenBendRanges,rangeStaves:chordSettings.rangeStaves,ignoreBriefErrors:chordSettings.ignoreBriefErrors,minErrorMs:chordSettings.minErrorMs};
     this.pitchState=new MidiPitchState(chordSettings.pitchBendRange);
     this.chordSettings.pitchState=this.pitchState;
     this.session=new WaitSession(events,{hex,...this.chordSettings});this.index=-1;this.publish();
@@ -56,6 +56,7 @@ export class WaitController {
     this.advance(this.now());this.pausedAt=this.now();
     this.session.held.clear();
     this.session.pitchAttacks.clear();
+    this.session.bendGestures.clear();
     this.session.spikeCandidates.clear();this.session.singlePrecursors.clear();
     this.pitchState.reset();
     this.manualPaused=true;this.pausedFrom=this.phase;this.phase='paused';this.transport.pause();this.publish();return true;
@@ -103,7 +104,7 @@ export class WaitController {
       return result;
     }
     if(!this.active || !['waiting','seeking'].includes(this.phase)) {
-      if(note.type==='note-on'){this.session.held.clear();this.session.pitchAttacks.clear();this.session.spikeCandidates.clear();this.session.singlePrecursors.clear();this.pitchState.reset();}
+      if(note.type==='note-on'){this.session.held.clear();this.session.pitchAttacks.clear();this.session.bendGestures.clear();this.session.spikeCandidates.clear();this.session.singlePrecursors.clear();this.pitchState.reset();}
       return null;
     }
     if(note.type!=='note-on')return null;

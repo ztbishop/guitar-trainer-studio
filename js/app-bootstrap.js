@@ -98,7 +98,7 @@ function stepFretboard(direction) {
 }
 
 function configureWaitSession() {
-  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,extraStringTolerance:AppState.extraStringTolerance,heldNoteTolerance:AppState.heldNoteTolerance,filterHexSpikes:AppState.filterHexSpikes,filterScoreRange:AppState.filterScoreRange,ignoreBriefErrors:AppState.midi.ignoreBriefErrors,minErrorMs:AppState.midi.minErrorMs,rangeStaves:AppState.tracks.find((track,index)=>String(track.index??index)===String(AppState.practiceTrackId))?.staves??[],pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
+  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,extraStringTolerance:AppState.extraStringTolerance,heldNoteTolerance:AppState.heldNoteTolerance,filterHexSpikes:AppState.filterHexSpikes,filterScoreRange:AppState.filterScoreRange,allowWrittenBendRanges:AppState.allowWrittenBendRanges,ignoreBriefErrors:AppState.midi.ignoreBriefErrors,minErrorMs:AppState.midi.minErrorMs,rangeStaves:AppState.tracks.find((track,index)=>String(track.index??index)===String(AppState.practiceTrackId))?.staves??[],pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
 }
 
 function changePracticeLoop(loop) {
@@ -277,6 +277,12 @@ function wirePracticeControls() {
     clearActiveMidiNotes();configureWaitSession();renderTrainerUi();
   });
   chordControls.sync();
+  const bendRanges=document.getElementById('allow-written-bend-ranges');
+  bendRanges?.addEventListener('change',()=>{
+    const enabled=bendRanges.checked;
+    waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
+    AppState.allowWrittenBendRanges=enabled;savePracticePreferences(AppState);resetRealtimeSession('input-tolerance');configureWaitSession();renderTrainerUi();
+  });
   const spikeFilter=document.getElementById('filter-hex-spikes');
   spikeFilter.addEventListener('change',()=>{
     const enabled=spikeFilter.checked;
@@ -569,6 +575,8 @@ function renderTrainerUi() {
   if(heldNotes){heldNotes.value=AppState.heldNoteTolerance;heldNotes.disabled=AppState.media.editing;}
   const spikeFilter=document.getElementById('filter-hex-spikes');
   const rangeFilter=document.getElementById('filter-score-range');
+  const bendRanges=document.getElementById('allow-written-bend-ranges');
+  if(bendRanges){bendRanges.checked=AppState.allowWrittenBendRanges;bendRanges.disabled=AppState.media.editing;}
   if(rangeFilter){rangeFilter.checked=AppState.filterScoreRange;rangeFilter.disabled=AppState.media.editing;}
   if(spikeFilter){spikeFilter.checked=AppState.filterHexSpikes;spikeFilter.disabled=AppState.inputMode!=='hex-6ch' || AppState.media.editing;}
   syncPracticeMenuSummary(AppState);
@@ -746,6 +754,7 @@ async function bootstrap() {
   AppState.heldNoteTolerance=preferences.heldNoteTolerance;
   AppState.filterHexSpikes=preferences.filterHexSpikes;
   AppState.filterScoreRange=preferences.filterScoreRange;
+  AppState.allowWrittenBendRanges=preferences.allowWrittenBendRanges;
   const displayPreferences=readDisplayPreferences();
   AppState.viewMode=displayPreferences.viewMode;
   Object.assign(AppState.ui,displayPreferences.ui);

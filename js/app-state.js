@@ -23,6 +23,7 @@ export const AppState = {
   heldNoteTolerance: 'two',
   filterHexSpikes: true,
   filterScoreRange: false,
+  allowWrittenBendRanges: true,
   inputMode: 'single-channel',
   correctnessMode: 'pitch-only',
   alphaTabReady: false,

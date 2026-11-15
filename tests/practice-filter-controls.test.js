@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const source=readFileSync(new URL('../js/app-bootstrap.js',import.meta.url),'utf8');
-for(const [control,property] of [['spikeFilter','filterHexSpikes'],['rangeFilter','filterScoreRange']]) {
+for(const [control,property] of [['spikeFilter','filterHexSpikes'],['rangeFilter','filterScoreRange'],['bendRanges','allowWrittenBendRanges']]) {
   test(`${property} saves both click directions despite synchronous stop repaint`,()=>{
     const pattern=new RegExp(control+"\\??\\.addEventListener\\('change',\\(\\)=>\\{([\\s\\S]*?)\\n  \\}\\);");
     const body=source.match(pattern)?.[1];assert.ok(body,'actual change handler found');

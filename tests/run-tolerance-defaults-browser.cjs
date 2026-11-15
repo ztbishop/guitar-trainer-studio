@@ -21,6 +21,8 @@ const {createAppServer}=require('../local-web-server.cjs');
         assert.equal(await page.locator('#extra-string-tolerance').inputValue(),returning?'off':'internal');
         assert(await page.locator('#filter-hex-spikes').isChecked());
         assert(!(await page.locator('#filter-score-range').isChecked()));
+        assert(await page.locator('#allow-written-bend-ranges').isChecked());
+        assert(!(await page.locator('#allow-written-bend-ranges').isDisabled()));
         assert(!(await page.locator('#ignore-brief-errors').isChecked()));
         assert.equal(await page.locator('#minimum-error-ms').inputValue(),'30');
         assert(await page.locator('#show-notation-feedback').isChecked());assert(await page.locator('#show-tab-circles').isChecked());
@@ -38,15 +40,22 @@ const {createAppServer}=require('../local-web-server.cjs');
           assert(await page.locator('#practice-popup').evaluate(el=>el.scrollWidth<=el.clientWidth+1),`Practice overflow ${width}`);
           await page.keyboard.press('Escape');
           await page.locator('#btn-more').click();await page.locator('[data-launch-panel="help-popup"]').click();
-          assert.match(await page.locator('#help-popup').textContent(),/review Practice → MIDI input tolerance/);
+          assert.match(await page.locator('#help-popup').textContent(),/Practice → MIDI input tolerance/);
           assert(await page.locator('#help-popup').evaluate(el=>el.scrollWidth<=el.clientWidth+1),`Help overflow ${width}`);
           await page.keyboard.press('Escape');
           // Reset disclosure state for the next viewport without changing preferences.
           await page.locator('.practice-input-filters').evaluate(el=>{el.open=false;});
         }
       }
+      await page.locator('#btn-practice').click();
+      await page.locator('.practice-input-filters').evaluate(el=>{el.open=true;});
+      await page.locator('#allow-written-bend-ranges').uncheck();
+      assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('gts.practicePreferences')).allowWrittenBendRanges),false);
+      await page.reload();await page.locator('#fretboard-content svg').waitFor();
+      assert(!(await page.locator('#allow-written-bend-ranges').isChecked()));
+      assert.equal(await page.locator('#held-note-tolerance').inputValue(),returning?'one':'two');
       assert.deepEqual(errors,[]);await context.close();
     }
-    console.log('PASS: fresh Two/Skipped defaults; saved One/Off and feedback off retained across reload; spike/range/brief defaults unchanged; desktop/phone Practice/Help guidance without overflow or page errors.');
+    console.log('PASS: written bend ranges default on for fresh/earlier profiles and explicit off persists; fresh Two/Skipped defaults; saved One/Off and feedback off retained across reload; spike/range/brief defaults unchanged; desktop/phone Practice/Help guidance without overflow or page errors.');
   } finally {if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});
