@@ -4,6 +4,7 @@ const {createAppServer}=require('../local-web-server.cjs');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const timingRows=points=>points.map(([bar,time,position=0,hide=0])=>[bar,time,position,hide]);
 function wav() {
   const data=Buffer.alloc(44+22050*2*12);data.write('RIFF');data.writeUInt32LE(data.length-8,4);data.write('WAVEfmt ',8);
   data.writeUInt32LE(16,16);data.writeUInt16LE(1,20);data.writeUInt16LE(1,22);data.writeUInt32LE(22050,24);
@@ -82,12 +83,28 @@ function wav() {
     const startTime=await page.locator('#media-audio').evaluate(el=>el.currentTime);
     assert(startTime>=0.95 && startTime<3,`Play uses the imported one-second start, not the provisional zero-second alignment (actual ${startTime})`);
     await page.locator('#play-pause-button').click();
-    // Mismatched timing fails before a recording request and keeps the opened score usable.
-    const requestsBefore=mediaRequests;
-    await offer({...payload,syncPoints:[[0,1],[96,11]]});await page.getByRole('button',{name:'Import lesson',exact:true}).click();
-    await page.locator('#lesson-import-dialog [role=status]').filter({hasText:'does not match'}).waitFor({timeout:35000});
-    assert.equal(mediaRequests,requestsBefore);assert.equal(await page.evaluate(()=>lessonState.currentScoreFile.fileName),'imported-lesson.gp');
-    await page.getByRole('button',{name:'Close',exact:true}).click();
+    // Timing failures preserve valid resource imports and lead to explicit repair.
+    for(const [syncPoints,reason] of [
+      [[[0,1],[96,11]],/does not match/],
+      [[[0,1],[4,11,0,1]],/hides/],
+      [[[0,5],[4,4]],/increase/],
+      [[[0,1],[4,13]],/beyond the recording/],
+    ]) {
+      const requestsBefore=mediaRequests;
+      assert.equal((await offer({...payload,syncPoints})).ok,true);
+      if(reason.source==='increase')assert.match(await page.locator('#lesson-import-dialog').innerText(),/manual alignment/,'malformed timing is disclosed before import');
+      await page.getByRole('button',{name:'Import lesson',exact:true}).click();
+      await page.locator('#lesson-import-notice').filter({hasText:'Imported timing was not applied'}).waitFor({timeout:35000});
+      assert.match(await page.locator('#lesson-import-notice').innerText(),reason);
+      assert(mediaRequests>requestsBefore,'valid recording still loads despite rejected timing');
+      assert.equal(await page.evaluate(()=>lessonState.currentScoreFile.fileName),'imported-lesson.gp');
+      assert.equal(await page.locator('#media-audio').getAttribute('src'),'https://recording.test/clip.wav');
+      assert.equal(await page.locator('#lesson-import-dialog').isVisible(),false);
+      assert.equal(await page.locator('#media-editor').isVisible(),true);
+      assert.equal(await page.evaluate(()=>lessonState.media.editing && !lessonState.isPlaying),true);
+      assert.equal(await page.locator('#media-audio').evaluate(el=>el.paused),true);
+      assert.deepEqual(timingRows(JSON.parse(await page.locator('#media-sync-json').inputValue())),timingRows(syncPoints),'rejected timing values remain available for repair');
+    }
     // Score-only path deliberately omits media/timing and never starts playback.
     await offer({...payload,recording:null,syncPoints:null});await page.getByRole('button',{name:'Import lesson',exact:true}).click();
     await page.locator('#lesson-import-notice').filter({hasText:'Lesson ready.'}).waitFor({timeout:35000});
@@ -136,10 +153,16 @@ function wav() {
     assert.equal(mediaRequests,beforePartial,'timing-only does not reload media');
     assert.equal(await page.evaluate(()=>lessonState.currentScoreFile===retainedScore && lessonState.playbackTimeline===retainedTimeline),true);
     assert.deepEqual(await page.evaluate(()=>lessonState.media.points.map(p=>p.millisecondOffset)),[2000,9000,11000]);
-    await offer({...partial,syncPoints:[[0,1],[4,13]]});await page.getByRole('button',{name:'Import lesson',exact:true}).click();
-    await page.locator('#lesson-import-dialog [role=status]').filter({hasText:'did not finish'}).waitFor();
-    assert.deepEqual(await page.evaluate(()=>lessonState.media.points.map(p=>p.millisecondOffset)),[2000,9000,11000],'invalid timing preserves alignment');
-    await page.getByRole('button',{name:'Close',exact:true}).click();
+    for(const syncPoints of [[[0,1],[4,13]],[[0,5],[4,4]],[[0,1],[4,11,0,1]]]) {
+      const requestsBefore=mediaRequests;
+      await offer({...partial,syncPoints});await page.getByRole('button',{name:'Import lesson',exact:true}).click();
+      await page.locator('#lesson-import-notice').filter({hasText:'Imported timing was not applied'}).waitFor();
+      assert.deepEqual(await page.evaluate(()=>lessonState.media.points.map(p=>p.millisecondOffset)),[2000,9000,11000],'invalid timing preserves alignment');
+      assert.equal(mediaRequests,requestsBefore,'timing-only fallback does not reload recording');
+      assert.equal(await page.evaluate(()=>lessonState.currentScoreFile===retainedScore && lessonState.media.editing && !lessonState.isPlaying),true);
+      assert.deepEqual(timingRows(JSON.parse(await page.locator('#media-sync-json').inputValue())),timingRows(syncPoints));
+      assert.equal(await page.locator('#lesson-import-dialog').isVisible(),false);
+    }
     await offer({...partial,recording:{url:'https://recording.test/replacement.wav',label:'Replacement'},syncPoints:null});
     await page.getByRole('button',{name:'Import lesson',exact:true}).click();
     await page.locator('#lesson-import-notice').filter({hasText:'Add alignment'}).waitFor();
@@ -197,8 +220,13 @@ function wav() {
     await offer({...localOffer,score:null,syncPoints:[[0,1],[4,13]]});
     await page.locator('#lesson-recording-file').setInputFiles({name:'short-take.wav',mimeType:'audio/wav',buffer:wav()});
     await page.getByRole('button',{name:'Import lesson',exact:true}).click();
-    await page.locator('#lesson-import-dialog [role=status]').filter({hasText:'did not finish'}).waitFor();
-    await page.getByRole('button',{name:'Close',exact:true}).click();
+    await page.locator('#lesson-import-notice').filter({hasText:'Imported timing was not applied'}).waitFor();
+    assert.equal(await page.locator('#lesson-import-dialog').isVisible(),false);
+    assert.equal(await page.evaluate(()=>lessonState.currentScoreFile===localScore && lessonState.media.editing && !lessonState.isPlaying),true);
+    assert.equal(await page.locator('#media-recording-label').innerText(),'short-take.wav');
+    assert.match(await page.locator('#media-audio').getAttribute('src'),/^blob:/);
+    assert.equal(await page.locator('#media-audio').evaluate(el=>el.paused),true);
+    assert.deepEqual(timingRows(JSON.parse(await page.locator('#media-sync-json').inputValue())),timingRows([[0,1],[4,13]]));
     // New score selection invalidates a pending local-file review.
     await offer(localOffer);await page.locator('#lesson-recording-file').setInputFiles({name:'obsolete.wav',mimeType:'audio/wav',buffer:wav()});
     await page.locator('#score-file-input').setInputFiles(scorePath);
@@ -218,6 +246,6 @@ function wav() {
     await page.locator('#lesson-import-dialog [role=status]').filter({hasText:'did not finish'}).waitFor();
     assert.equal(await page.evaluate(()=>lessonState.media.preview),false,'obsolete recording cannot attach to replacement score');
     assert.deepEqual(errors,[]);
-    console.log('Lesson import browser checks passed: automatic practice-ready completion and closing in Realtime/Wait, silent Wait, manual alignment without timing, native score/media/timing import, review gates, optional save, no autoplay, mismatch recovery and stale-load cancellation. Authenticated provider/hardware acceptance remains separate.');
+    console.log('Lesson import browser checks passed: valid native score/media/timing import, Realtime/Wait completion, nonzero timing, review gates, no autoplay/save, structural/hidden/nonmonotonic/duration timing recovery, original rejected timing retained, timing-only alignment preservation, local-file recovery, manual paste/Undo and stale-load cancellation. Authenticated provider/hardware acceptance remains separate.');
   } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});

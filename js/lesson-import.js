@@ -21,7 +21,7 @@ export function initLessonImport({loadFile,mediaControls,state}) {
   fileInput.addEventListener('change',()=>{
     if(busy || pending?.recording?.kind!=='local-choice')return;
     const file=fileInput.files[0];if(!file)return;
-    try{recordingFile=validateRecordingFile(file);fileLabel.textContent=recordingFile.name+' · '+(recordingFile.size/1024/1024).toFixed(2)+' MB';status.textContent='Recording selected. Import lesson to continue.';}
+    try{recordingFile=validateRecordingFile(file);fileLabel.textContent=recordingFile.name+' · '+(recordingFile.size/1024/1024).toFixed(2)+' MB';status.textContent='Recording selected. Import lesson to continue.'+(pending.timingWarning?' Imported timing needs manual alignment: '+pending.timingWarning:'');}
     catch(error){status.textContent=error.message;}
     finally{fileInput.value='';accept.disabled=!recordingFile;}
   });
@@ -61,12 +61,15 @@ export function initLessonImport({loadFile,mediaControls,state}) {
         if(!accepted)throw new Error('The score could not be opened, or its loading was superseded.');
         await waitForScore(lesson,token);current(token);
       } else if(!state.currentScoreFile || !state.playerReady)throw new Error('Load a score in Guitar Trainer before sending recording/timing alone.');
-      let readyToPractice=true;
-      if(lesson.recording || lesson.syncPoints || retained) {
+      let readyToPractice=true,timingWarning=lesson.timingWarning??null;
+      if(lesson.recording || lesson.syncPoints || retained || !lesson.score && timingWarning) {
         status.textContent='Applying selected recording and alignment…';
-        ({readyToPractice}=await mediaControls.importLesson(recording,lesson.syncPoints,{retained}));current(token);
+        const result=await mediaControls.importLesson(recording,lesson.syncPoints,{retained,
+          timingWarning,rejectedSyncPoints:lesson.rejectedSyncPoints??null});current(token);
+        readyToPractice=result.readyToPractice;timingWarning=result.timingWarning??timingWarning;
       } else mediaControls.finishEditing();
-      notify(readyToPractice?'Lesson ready. Press Play to practice. Saving is optional.':'Recording loaded. Add alignment in Media Sync, then Finish editing to practice.');
+      notify(timingWarning?'Imported timing was not applied. '+timingWarning+(readyToPractice?' Score loaded; practice with synth or add a recording.':' Review alignment in Media Sync before practicing with the recording.'):
+        readyToPractice?'Lesson ready. Press Play to practice. Saving is optional.':'Recording loaded. Add alignment in Media Sync, then Finish editing to practice.');
       success=true;
     } catch(error) {heading.textContent='Import needs attention';status.textContent=error.message+' The import did not finish; any successfully opened score remains available.';}
     finally {
@@ -83,9 +86,9 @@ export function initLessonImport({loadFile,mediaControls,state}) {
       hideNotice();
       heading.textContent='Import lesson from Lesson Bridge?';note.hidden=false;
       if(!pending.score && (!state.currentScoreFile || !state.playerReady))throw new Error('Load a score in Guitar Trainer before sending recording/timing alone.');
-      description.textContent=`${pending.title} · ${pending.score?pending.score.fileName:'keep current score: '+state.currentScoreFile.fileName} · from ${new URL(pending.lessonUrl).origin} · ${pending.recording?.kind==='local-choice'?'choose a local recording here':pending.recording?'recording from '+new URL(pending.recording.url).origin:pending.keepRecording?'keep current recording':'no recording'} · ${pending.syncPoints?pending.syncPoints.length+' timing points':'no new timing'}`;
+      description.textContent=`${pending.title} · ${pending.score?pending.score.fileName:'keep current score: '+state.currentScoreFile.fileName} · from ${new URL(pending.lessonUrl).origin} · ${pending.recording?.kind==='local-choice'?'choose a local recording here':pending.recording?'recording from '+new URL(pending.recording.url).origin:pending.keepRecording?'keep current recording':'no recording'} · ${pending.timingWarning?'timing needs manual alignment':pending.syncPoints?pending.syncPoints.length+' timing points':'no new timing'}`;
       note.textContent=pending.score?'The score will be replaced. Changing score or recording discards incompatible alignment; supply matching timing or align manually. Nothing saves automatically.':'Only selected components will be updated. Replacing a recording clears its previous alignment; timing-only updates keep the current score and recording. Saving remains optional.';
-      status.textContent='';cancel.textContent='Cancel';accept.hidden=false;
+      status.textContent=pending.timingWarning?'The selected resources can still load. Imported timing needs manual alignment: '+pending.timingWarning:'';cancel.textContent='Cancel';accept.hidden=false;
       localRecording.hidden=pending.recording?.kind!=='local-choice';accept.disabled=!localRecording.hidden;
       dialog.showModal();cancel.focus();reply(true,'Review the lesson in Guitar Trainer.');
     } catch(error) {pending=null;resetRecording();reply(false,error.message.includes('Load a score')?error.message:'The lesson payload is invalid or unsupported. Rescan and select supported resources.');}

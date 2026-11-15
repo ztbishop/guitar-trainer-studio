@@ -19,6 +19,43 @@ test('version 2 supports explicit partial updates while rejecting empty or ambig
   assert.throws(()=>validateLesson({...p,keepRecording:'yes'}));
   assert.equal(validateLesson({...payload(),version:2,keepRecording:true}).keepRecording,true);
 });
+
+test('invalid timing can be reviewed with valid resources while retaining bounded original evidence',()=>{
+  const invalid=[[[0,2],[4,1]],[[1,0],[4,10]],[[0,0],[4,'later']],[]];
+  for(const version of [1,2,3])for(const syncPoints of invalid) {
+    const p={...payload(),version,recording:{url:'https://example.com/clip.mp4'},syncPoints};
+    const result=validateLesson(p);
+    assert.equal(result.score.fileName,'test.gp5');assert.equal(result.recording.url,p.recording.url);
+    assert.equal(result.syncPoints,null);assert(result.timingWarning);
+    assert.deepEqual(result.rejectedSyncPoints,syncPoints);
+    assert.notEqual(result.rejectedSyncPoints,syncPoints);
+  }
+  const rejected=[[0,2],[4,1]],result=validateLesson({...payload(),version:2,syncPoints:rejected});
+  rejected[0][1]=99;assert.equal(result.rejectedSyncPoints[0][1],2,'review evidence does not alias the source array');
+  const valid=validateLesson({...payload(),recording:{url:'https://example.com/clip.mp4'},syncPoints:[[0,1],[4,10]]});
+  assert.equal(valid.timingWarning,undefined);assert.equal(valid.rejectedSyncPoints,undefined);
+});
+
+test('timing recovery never bypasses version, resource, retention or empty-update validation',()=>{
+  const base={...payload(),version:2,recording:{url:'https://example.com/clip.mp4'},syncPoints:[[0,3],[4,2]]};
+  for(const edit of [p=>p.version=99,p=>p.score.fileName='../bad.gp',p=>p.score.base64='bad!',
+    p=>p.lessonUrl='javascript:alert(1)',p=>p.recording.url='https://user:secret@example.com/clip.mp4',
+    p=>p.keepRecording='yes',p=>p.recording={kind:'local-choice',path:'secret.wav'}]) {
+    const p=structuredClone(base);edit(p);assert.throws(()=>validateLesson(p));
+  }
+  assert.throws(()=>validateLesson({...payload(),syncPoints:[]}),/selected recording/);
+  assert.throws(()=>validateLesson({...base,score:null,recording:null,syncPoints:null}),/Select a score/);
+  const timingOnly=validateLesson({...base,score:null,recording:null});
+  assert.equal(timingOnly.keepRecording,true);assert(timingOnly.timingWarning);
+  assert.equal(validateLesson({...base,version:3,recording:{kind:'local-choice'}}).recording.kind,'local-choice');
+});
+
+test('rejected timing does not retain oversized or nested data',()=>{
+  for(const syncPoints of [Array(4097).fill([0,0]),[[0,'x'.repeat(65)],[4,10]],[[0,{nested:true}],[4,10]],{points:[[0,0],[4,10]]}]) {
+    const result=validateLesson({...payload(),version:2,syncPoints});
+    assert.equal(result.syncPoints,null);assert(result.timingWarning);assert.equal(result.rejectedSyncPoints,null);
+  }
+});
 test('Soundslice conversion maps native expanded repeats/jumps, fractions and terminal endpoints without mutation',()=>{
   for(const spec of repeatCases) {
     const {timeline}=repeatFixture(spec),n=timeline.measures.length;

@@ -1,5 +1,13 @@
 # Guitar Trainer Studio: status and to-do
 
+## Timing fallback and group sync movement — 2026-11-15
+
+- [x] Load valid imported score/recording resources when timing is rejected; show the reason, retain bounded timing evidence in Paste sync points, and leave the editor open for manual alignment. Timing-only rejection preserves current alignment. Resource/security/stale-load errors remain failures; no automatic timing repair, autoplay or save.
+- [x] Add Move all / Move selected section for saved-point dragging and nudging. Inclusive section endpoints shift uniformly, outside anchors stay fixed, and groups stop at neighbors/recording edges. One Undo reverses the whole gesture; no locked-target or stretching controls. Guard Undo and source replacement during dragging.
+- [x] Pass all 683 Node checks, focused native import and group-movement browser checks, import-timeline and sync/practice regressions, syntax and whitespace checks. Synthetic demo/recording fixtures only; no private lesson collection or Lesson Bridge source changes.
+- [ ] Owner hard-refreshes and imports a known timing mismatch: confirm score/video load, clear manual-alignment warning and no autoplay. Try Move all and a middle section, drag against a neighbor, Undo, and preview before saving. Audible/provider/physical-MIDI acceptance remains local.
+- [ ] Explanation pauses and missing explanation-measure reconciliation remain on hold until the owner provides a concrete example.
+
 ## Written bend ranges — 2026-11-15
 
 - [x] Add **Allow written bend ranges**, on by default in Hex/Poly and Realtime/both Wait choices, saved independently. Marked bends, pre-bends, releases and whammy accept the base pitch or written range, including fine bends and played tie chains. Ordinary pitches and other tolerance defaults remain unchanged; saved Off restores original onset matching.

@@ -4,7 +4,7 @@ import {recordingScoreRange,recordingRegion} from './media-score-range.js';
 import {LibraryStore,fingerprint} from './library-store.js';
 import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport,pointTick,mediaTimeAtTick} from './media-sync.js';
 import {htmlMediaPlayer,youtubeMediaPlayer,waveformPeaks} from './media-player.js';
-import {timelineGuides,boundedAnchorTime,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel,timelineRuler} from './media-timeline.js';
+import {timelineGuides,boundedAnchorShift,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel,timelineRuler} from './media-timeline.js';
 import {soundslicePoints,lessonTimelineKey} from './lesson-import-data.js';
 
 const svg=(tag,attrs={},text)=>{const node=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,String(value));if(text!==undefined)node.textContent=text;return node;};
@@ -21,6 +21,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   get('editor-toolbar').append(get('save-profile'),get('dirty'));
   get('point-tools').before(get('selection'));
   get('apply-time').before(get('add-point'));
+  get('move-help').before(get('nudge-left'),get('nudge-right'));
   get('extra-tools').append(get('unload'));
   get('popup').firstElementChild.append(get('extra-tools'));
   get('extra-tools').before(get('paste-sync'));
@@ -29,9 +30,11 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   const timelineSpacer=document.createElement('div');timelineSpacer.className='media-timeline-spacer';
   timelineSpacer.setAttribute('aria-hidden','true');get('timeline').before(timelineSpacer);
   let projectedGuides=[],timelineFrame=0;
+  let sectionFirst=0,sectionLast=0,movementPositions='';
   let player=null,source=null,localFile=null,blobUrl=null,points=[],peaks=[],selected=-1,undo=[],redo=[],profiles=[],scoreHash='',profileId='',pendingProfile=null;
   let generation=0,scoreBytes=null,busy=false,pendingDelete=null,playhead=null,dirty=false;
   let zoom=1,waveformBusy=false,waveformGeneration=0,dragging=false,lastTimelineInteraction=0,buffering=false;
+  let cancelDrag=null;
   let seekGeneration=0;
   let layout='left',share=35,showPlayer=true,showEditor=false;
   try {const saved=JSON.parse(localStorage.getItem('gts.mediaLayout') || '{}');if(MEDIA_LAYOUTS.includes(saved.layout))layout=saved.layout;if(saved.share>=20 && saved.share<=65)share=saved.share;if(typeof saved.showPlayer==='boolean')showPlayer=saved.showPlayer;if(typeof saved.showEditor==='boolean')showEditor=saved.showEditor;}catch{}
@@ -54,22 +57,28 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     const silent=AppState.media.preview && AppState.mode==='wait' && !AppState.media.editing;
     get('audio').muted=get('video').muted=silent;
     if(silent && player?.masterVolume)player.masterVolume=0;
-    const ready=Boolean(player && player.backingTrackDuration>0 && points.length>=2 && AppState.playbackTimeline && !busy && !AppState.media.returning && (!AppState.media.preview || AppState.playerReady));
+    const ready=Boolean(player && player.backingTrackDuration>0 && points.length>=2 && AppState.playbackTimeline && !busy && !dragging && !AppState.media.returning && (!AppState.media.preview || AppState.playerReady));
     get('listen').disabled=!ready;get('listen').setAttribute('aria-pressed',String(AppState.media.preview));
     get('practice').disabled=busy || AppState.media.returning;get('practice').setAttribute('aria-pressed',String(!AppState.media.preview));
     get('unload').disabled=!player || busy;get('save-profile').disabled=!ready || !scoreHash;
     get('delete-profile').disabled=!profileId || busy;get('export-profile').disabled=!profiles.length || busy;
-    get('waveform').disabled=!localFile || busy || waveformBusy;get('undo').disabled=!undo.length || busy;get('redo').disabled=!redo.length || busy;
+    get('waveform').disabled=!localFile || busy || waveformBusy;get('undo').disabled=!undo.length || busy || dragging;get('redo').disabled=!redo.length || busy || dragging;
     get('remove-point').disabled=selected<0 || !ready;
     get('apply-time').disabled=get('add-point').disabled=!ready;
     get('apply-pasted-sync').disabled=!ready;
     get('add-point').textContent=targetIndex()>=0?'Update sync point':'Add sync point';
-    for(const key of ['nudge-left','nudge-right'])get(key).disabled=selected<0 || !ready;
+    const movable=movementRange(selected)!==null;
+    const movingLabel=get('move-scope').value==='all'?'all sync points':get('move-scope').value==='section'?'selected section':'selected sync point';
+    for(const [key,direction] of [['nudge-left','earlier'],['nudge-right','later']]) {
+      get(key).disabled=!movable || !ready;
+      get(key).setAttribute('aria-label',`Move ${movingLabel} 50 milliseconds ${direction}`);
+    }
+    for(const key of ['move-scope','section-first','section-last'])get(key).disabled=!ready;
     get('dirty').textContent=dirty?'Unsaved changes':profileId?'Saved profile':'Not saved';
     get('save-profile').textContent=profileId?'Save changes':'Save profile';
     get('seek').disabled=!player || busy;
     get('load-embedded').disabled=!host.embeddedMedia();
-    for(const key of ['source-kind','choose-file','load-link','load-embedded','profile-select'])get(key).disabled=busy || (key==='load-embedded' && !host.embeddedMedia());
+    for(const key of ['source-kind','choose-file','load-link','load-embedded','profile-select'])get(key).disabled=busy || dragging || (key==='load-embedded' && !host.embeddedMedia());
     get('pip').disabled=!player || source?.kind==='youtube' || !document.pictureInPictureEnabled || !get('video').videoWidth;
     const floatingReason=source?.kind==='youtube'?'YouTube floating video uses browser controls, if available. Our Float button supports local video and direct video URLs.':
       !document.pictureInPictureEnabled?'This browser does not provide floating video.':!get('video').videoWidth?'Choose a video recording to enable floating video.':'';
@@ -97,7 +106,9 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('local-controls').hidden=kind!=='local';get('link-controls').hidden=!['url','youtube'].includes(kind);get('embedded-controls').hidden=kind!=='embedded';
   }
   function disposal() {
+    cancelDrag?.();
     player?.destroy();player=null;source=null;localFile=null;peaks=[];
+    resetMovement();
     get('point-time').value='0.000';seekGeneration++;
     get('sync-json').value='';get('paste-status').textContent='';get('paste-sync').open=false;
     waveformGeneration++;waveformBusy=false;get('waveform-status').textContent='';
@@ -189,12 +200,55 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     else get('add-point').focus();
   }
   function edit(next,{preservePlayback=false}={}) {
+    if(cancelDrag){cancelDrag();renderPoints();sync();}
     const checked=validatePoints(next,AppState.playbackTimeline,player?.backingTrackDuration);
     if(checked.length<2)throw new Error('Keep at least a start and end point.');
     if(JSON.stringify(checked)===JSON.stringify(points))return;
     host.applyMediaSyncPoints(checked,{preservePlayback});
     undo.push(structuredClone(points));if(undo.length>100)undo.shift();redo=[];
     points=checked;dirty=true;renderPoints();sync();message('Alignment edited. Save profile to keep these changes.');
+  }
+  function resetMovement() {
+    get('move-scope').value='point';sectionFirst=sectionLast=0;movementPositions='';
+  }
+  function movementRange(index) {
+    if(index<0 || index>=points.length)return null;
+    const scope=get('move-scope').value;
+    if(scope==='all')return [0,points.length-1];
+    if(scope==='section')return index>=sectionFirst && index<=sectionLast?[sectionFirst,sectionLast]:null;
+    return [index,index];
+  }
+  function renderMovement() {
+    const positions=JSON.stringify(points.map(({barIndex,barOccurence,barPosition})=>[barIndex,barOccurence,barPosition]));
+    // Inserting/removing/replacing score targets invalidates an index-based section.
+    if(positions!==movementPositions) {
+      resetMovement();movementPositions=positions;
+      for(const key of ['section-first','section-last']) {
+        get(key).replaceChildren();
+        points.forEach((point,index)=>{
+          const label=syncPointLabel(point,AppState.score,AppState.playbackTimeline);
+          get(key).append(new Option(`${index+1}: ${label==='Start' || label==='End'?label:'Measure '+label}`,String(index)));
+        });
+      }
+    }
+    const scope=get('move-scope').value;
+    get('section-first-label').hidden=get('section-last-label').hidden=scope!=='section';
+    get('section-first').value=String(sectionFirst);get('section-last').value=String(sectionLast);
+    get('move-help').textContent=scope==='point'?'Drag a saved point or use the nudge arrows.':
+      scope==='all'?'Drag any saved point or nudge to shift all points together. Stops at the recording edges.':
+      'Drag a point in this section or nudge. Both endpoint points move; points outside stay fixed.';
+  }
+  function isMovingPoint(index) {
+    const scope=get('move-scope').value;
+    return scope==='all' || (scope==='section' && index>=sectionFirst && index<=sectionLast);
+  }
+  function shiftedPoints(initial,first,last,delta) {
+    return initial.map((point,index)=>index>=first && index<=last?{...point,millisecondOffset:point.millisecondOffset+delta}:{...point});
+  }
+  function movementMessage(delta,requested) {
+    if(Math.abs(delta-requested)<0.001)return;
+    message(delta===0?'Cannot move farther: a neighboring point or recording edge is in the way. Move one point to adjust the boundary.':
+      'Move stopped at a neighboring point or recording edge. Spacing within the moved group is unchanged. Save profile to keep changes.');
   }
   function formPoint() {
     const measure=AppState.playbackTimeline?.measures[Number(get('measure').value)];
@@ -278,10 +332,13 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   function nudge(delta) {
     if(selected<0 || !player)return;
-    const next=structuredClone(points),index=selected,wasPlaying=AppState.isPlaying;
-    next[index].millisecondOffset=boundedAnchorTime(points,index,points[index].millisecondOffset+delta,player.backingTrackDuration);
+    const range=movementRange(selected);if(!range)return;
+    const index=selected,wasPlaying=AppState.isPlaying,token=generation;
+    const shift=boundedAnchorShift(points,...range,delta,player.backingTrackDuration);
+    if(!shift){movementMessage(shift,delta);return;}
+    const next=shiftedPoints(points,...range,shift);
     edit(next,{preservePlayback:true});selectPoint(index);
-    return seekRecording(next[index].millisecondOffset,{resume:wasPlaying});
+    return seekRecording(next[index].millisecondOffset,{resume:wasPlaying}).then(()=>{if(token===generation)movementMessage(shift,delta);});
   }
   async function buildWaveform() {
     if(!localFile || waveformBusy)return;
@@ -328,6 +385,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   function renderPoints(viewportOnly=false) {
     if(dragging)return;
     if(selected>=points.length)selected=-1;
+    if(!viewportOnly)renderMovement();
     const timeline=get('timeline'),duration=player?.backingTrackDuration || 1;
     const scroll=timeline.parentElement,width=scroll.clientWidth*zoom;
     if(!width)return;
@@ -363,7 +421,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     points.forEach((point,index)=>{
       const x=point.millisecondOffset/duration*1000;
       if(x<left-100*unit || x>left+span+100*unit)return;
-      const marker=svg('g',{class:'media-marker'+(selected===index?' is-selected':''),transform:`translate(${x} 0)`,'data-point':index});
+      const marker=svg('g',{class:'media-marker'+(selected===index?' is-selected':'')+(isMovingPoint(index)?' is-moving':''),transform:`translate(${x} 0)`,'data-point':index});
       const label=syncPointLabel(point,AppState.score,AppState.playbackTimeline);
       marker.append(svg('line',{x1:0,x2:0,y1:16,y2:31,'pointer-events':'none'}),svg('path',{d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}),svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},label),svg('rect',{x:-9*unit,y:0,width:18*unit,height:30,fill:'transparent'}));
       timeline.append(marker);
@@ -388,6 +446,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     if(viewportOnly)return;
     get('point-list').replaceChildren();points.forEach((point,index)=>{
       const button=document.createElement('button');button.type='button';button.setAttribute('aria-pressed',String(index===selected));
+      button.classList.toggle('is-moving',isMovingPoint(index));
       const beat=1+point.barPosition*AppState.score.masterBars[point.barIndex].timeSignatureNumerator;
       const position=pointTick(point,AppState.playbackTimeline)===0?'Start':syncPointLabel(point,AppState.score,AppState.playbackTimeline)==='End'?'End':`Measure ${point.barIndex+1}, beat ${Number(beat.toFixed(2))}`;
       button.textContent=`${position}${point.barOccurence?` (repeat ${point.barOccurence+1})`:''} → ${clock(point.millisecondOffset)}`;
@@ -461,8 +520,22 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   });
   get('nudge-left').addEventListener('click',action(()=>nudge(-50)));
   get('nudge-right').addEventListener('click',action(()=>nudge(50)));
+  get('move-scope').addEventListener('change',()=>{
+    if(get('move-scope').value==='section') {
+      sectionFirst=Math.max(0,selected);sectionLast=Math.min(points.length-1,sectionFirst+1);
+    }
+    if(selected<0 && points.length)selectPoint(0,{preserveTime:true});
+    renderPoints();sync();
+  });
+  for(const key of ['section-first','section-last'])get(key).addEventListener('change',()=>{
+    if(key==='section-first'){sectionFirst=Number(get(key).value);sectionLast=Math.max(sectionFirst,sectionLast);}
+    else {sectionLast=Number(get(key).value);sectionFirst=Math.min(sectionFirst,sectionLast);}
+    if(selected<sectionFirst || selected>sectionLast)selectPoint(sectionFirst,{preserveTime:true});
+    renderPoints();sync();
+  });
   get('remove-point').addEventListener('click',action(()=>{edit(points.filter((_,index)=>index!==selected));selected=-1;renderPoints();sync();}));
   for(const key of ['undo','redo'])get(key).addEventListener('click',action(()=>{
+    if(dragging)return;
     const from=key==='undo'?undo:redo,to=key==='undo'?redo:undo;if(!from.length)return;
     to.push(structuredClone(points));points=from.pop();selected=-1;dirty=true;host.applyMediaSyncPoints(points);renderPoints();sync();message('Alignment edited. Save profile to keep changes.');
   }));
@@ -474,10 +547,10 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   });
   get('timeline').parentElement.addEventListener('wheel',()=>{lastTimelineInteraction=performance.now();},{passive:true});
   get('waveform').addEventListener('click',buildWaveform);
-  get('timeline').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key) || selected<0)return;event.preventDefault();action(()=>nudge((event.key==='ArrowLeft'?-1:1)*(event.shiftKey?100:10)))();});
+  get('timeline').addEventListener('keydown',event=>{if(dragging || !['ArrowLeft','ArrowRight'].includes(event.key) || selected<0)return;event.preventDefault();action(()=>nudge((event.key==='ArrowLeft'?-1:1)*(event.shiftKey?100:10)))();});
   get('timeline').addEventListener('pointerdown',event=>{
     lastTimelineInteraction=performance.now();
-    if(event.button!==0 || !player || busy || AppState.media.returning)return;
+    if(event.button!==0 || !player || busy || dragging || AppState.media.returning)return;
     const marker=event.target.closest('[data-point]'),guide=event.target.closest('[data-guide]');
     if(!marker) {
       if(guide){chooseGuide(Number(guide.dataset.guide),Number(guide.dataset.beat),{reveal:false});action(seekSelectedTarget)();}
@@ -485,13 +558,39 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       return;
     }
     event.preventDefault();const index=Number(marker.dataset.point);selectPoint(index,{preserveTime:true});
-    const timeline=get('timeline'),initial=structuredClone(points),token=generation;timeline.setPointerCapture(event.pointerId);
-    dragging=true;const startX=event.clientX,startTime=initial[index].millisecondOffset,rect=timelineRect(),wasPlaying=AppState.isPlaying;
-    let nextTime=initial[index].millisecondOffset,moved=false;
-    const move=e=>{if(e.pointerId!==event.pointerId || token!==generation)return;if(!moved){if(Math.abs(e.clientX-startX)<3)return;moved=true;host.pauseMediaPlayback();player.pause();}nextTime=boundedAnchorTime(initial,index,startTime+(e.clientX-startX)/rect.width*1024/1000*player.backingTrackDuration,player.backingTrackDuration);selectTime(nextTime);timeline.querySelector(`[data-point="${index}"]`)?.setAttribute('transform',`translate(${nextTime/player.backingTrackDuration*1000} 0)`);};
-    const cleanup=()=>{dragging=false;timeline.removeEventListener('pointermove',move);timeline.removeEventListener('pointerup',finish);timeline.removeEventListener('pointercancel',cancel);if(timeline.hasPointerCapture(event.pointerId))timeline.releasePointerCapture(event.pointerId);};
-    const finish=e=>{if(e.pointerId!==event.pointerId)return;move(e);cleanup();if(token!==generation)return;const next=initial;next[index].millisecondOffset=nextTime;try{if(!moved){selectPoint(index,{preserveTime:true});action(seekSelectedTarget)();return;}if(nextTime!==startTime)edit(next);selectPoint(index);action(()=>seekRecording(nextTime,{resume:wasPlaying}))();}catch(error){message(error.message);renderPoints();}sync();};
-    const cancel=()=>{cleanup();if(token===generation)selectPoint(index,{preserveTime:true});};
+    const range=movementRange(index);
+    if(!range){
+      const token=generation;
+      action(async()=>{await seekSelectedTarget();if(token===generation)message('Choose a point inside the selected section to move it, or change Drag / nudge to Move one point.');})();
+      return;
+    }
+    const timeline=get('timeline'),initialPoints=points,initial=structuredClone(points),token=generation;timeline.setPointerCapture(event.pointerId);
+    dragging=true;const startX=event.clientX,startTime=initial[index].millisecondOffset,rect=timelineRect(),wasPlaying=AppState.isPlaying,previousTime=get('point-time').value;
+    sync();
+    let nextTime=startTime,shift=0,requested=0,moved=false;
+    const move=e=>{
+      if(e.pointerId!==event.pointerId || token!==generation)return;
+      if(!moved){if(Math.abs(e.clientX-startX)<3)return;moved=true;host.pauseMediaPlayback();player.pause();}
+      requested=(e.clientX-startX)/rect.width*1024/1000*player.backingTrackDuration;
+      shift=boundedAnchorShift(initial,...range,requested,player.backingTrackDuration);
+      nextTime=startTime+shift;selectTime(nextTime);
+      for(let i=range[0];i<=range[1];i++)timeline.querySelector(`[data-point="${i}"]`)?.setAttribute('transform',`translate(${(initial[i].millisecondOffset+shift)/player.backingTrackDuration*1000} 0)`);
+    };
+    const cleanup=()=>{dragging=false;cancelDrag=null;timeline.removeEventListener('pointermove',move);timeline.removeEventListener('pointerup',finish);timeline.removeEventListener('pointercancel',cancel);if(timeline.hasPointerCapture(event.pointerId))timeline.releasePointerCapture(event.pointerId);};
+    const finish=e=>{
+      if(e.pointerId!==event.pointerId)return;
+      move(e);cleanup();
+      if(token!==generation || initialPoints!==points){renderPoints();sync();return;}
+      try {
+        if(!moved){selectPoint(index,{preserveTime:true});action(seekSelectedTarget)();return;}
+        if(shift)edit(shiftedPoints(initial,...range,shift));
+        selectPoint(index);
+        action(async()=>{await seekRecording(nextTime,{resume:wasPlaying});if(token===generation)movementMessage(shift,requested);})();
+      } catch(error){message(error.message);renderPoints();}
+      sync();
+    };
+    const cancel=()=>{cleanup();if(token===generation){get('point-time').value=previousTime;selectPoint(index,{preserveTime:true});}else {renderPoints();sync();}};
+    cancelDrag=cleanup;
     timeline.addEventListener('pointermove',move);timeline.addEventListener('pointerup',finish);timeline.addEventListener('pointercancel',cancel);
   });
   get('save-profile').addEventListener('click',action(async()=>{
@@ -563,14 +662,19 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     captureRecording() {
       return source && player?{source:structuredClone(source),file:localFile,score:AppState.currentScoreFile}:null;
     },
-    async importLesson(recording,syncPoints,{retained=null}={}) {
+    async importLesson(recording,syncPoints,{retained=null,timingWarning=null,rejectedSyncPoints=null}={}) {
       const score=AppState.currentScoreFile,initialGeneration=generation;
       await timelineReady();
       if(score!==AppState.currentScoreFile || initialGeneration!==generation)throw new Error('Lesson import was superseded by a score/source change.');
       const expectedTimeline=AppState.playbackTimeline,expectedTimelineKey=lessonTimelineKey(expectedTimeline);
       if(expectedTimelineKey===null)throw new Error('The score playback timeline is not ready.');
-      // Check score structure before loading a recording or applying any imported anchors.
-      const imported=syncPoints?soundslicePoints(syncPoints,expectedTimeline):null;
+      // Timing incompatibility must not prevent an otherwise valid recording load.
+      // Lifecycle, URL, native score and media errors remain hard failures below.
+      let imported=null,checked=null;
+      if(syncPoints && !timingWarning) {
+        try {imported=soundslicePoints(syncPoints,expectedTimeline);}
+        catch(error){timingWarning=error.message;}
+      }
       if(!recording && !retained && !player)throw new Error('Load a recording before sending timing alone.');
       const replacing=Boolean(recording || retained),loadGeneration=generation+(replacing?1:0);
       if(recording?.kind==='local') {
@@ -589,10 +693,13 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
         if(lessonTimelineKey(AppState.playbackTimeline)!==expectedTimelineKey)throw new Error('Lesson import stopped because the score playback timeline changed. Prepare and send the lesson again.');
       };
       checkImport();
-      const checked=imported?validatePoints(imported,AppState.playbackTimeline,player.backingTrackDuration):null;
+      if(imported) {
+        try {checked=validatePoints(imported,AppState.playbackTimeline,player.backingTrackDuration);}
+        catch(error){timingWarning=error.message;}
+      }
       openEditor();
       if(checked && !replacing)edit(checked);
-      else if(imported) {
+      else if(checked) {
         // Loading already selected Recording with its provisional alignment.
         // Publish imported anchors to that active native player as well as the editor.
         host.applyMediaSyncPoints(checked);
@@ -601,9 +708,15 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       }
       if(replacing)await selectRecording();
       checkImport();
-      if(imported)finishEditing();
-      message(imported?'Lesson ready. Press Play to practice. Save profile to keep the imported alignment.':'Recording loaded. Align it manually, then Save profile.');
-      return {readyToPractice:Boolean(imported)};
+      if(checked)finishEditing();
+      if(timingWarning) {
+        const evidence=rejectedSyncPoints ?? syncPoints;
+        get('sync-json').value=evidence?JSON.stringify(evidence):'';
+        get('paste-sync').open=true;
+        get('paste-status').textContent=`Imported timing was not applied: ${timingWarning}${evidence?' Original timing is kept here for reference.':''}`;
+        message(`Score and recording are loaded. Imported timing was not applied: ${timingWarning} ${replacing?'Review the alignment manually':'Existing alignment is unchanged; review it in the editor'}, then Save profile.`);
+      } else message(checked?'Lesson ready. Press Play to practice. Save profile to keep the imported alignment.':'Recording loaded. Align it manually, then Save profile.');
+      return {readyToPractice:Boolean(checked),timingWarning};
     },
     setVolume(percent){
       if(!Number.isFinite(percent) || percent<0 || percent>100)return false;

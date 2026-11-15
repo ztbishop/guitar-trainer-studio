@@ -1,5 +1,13 @@
 # Guitar Trainer Studio Architecture
 
+## Timing fallback and group sync movement — 2026-11-15
+
+`lesson-import-data.js` validates score/recording/schema boundaries independently of timing usability. Timing-only validation errors become internal `timingWarning` and a bounded detached `rejectedSyncPoints` value; the existing sender protocol stays unchanged. `lesson-import.js` discloses warnings in review and completion, passes them to the media controller and distinguishes manual-alignment completion from hard resource/stale-load failure. A score-only update can still complete for synth practice.
+
+`media-controls.js:importLesson` catches only the synchronous timing conversion and duration-validation steps. Score identity, media generation and `lessonTimelineKey` guards remain outside those catches. Valid points reach the existing host before practice completion. Rejected timing leaves the editor open with a reason and evidence in the paste field; a timing-only failure does not replace points or history. Loading a new recording retains its ordinary provisional/matched-profile map. It does not infer missing bars, stretch supplied times or introduce explanation pauses. Rejected data never enters saved profiles.
+
+`media-timeline.js:boundedAnchorShift` computes one delta for a contiguous anchor-index interval, bounded by adjacent fixed times with 1 ms separation and the recording edges. `media-controls.js` owns temporary movement scope/section state, previews all included arrows and commits one validated points array through the existing edit/Undo/host path. Point identities (bar/occurrence/position) reset scope when targets change; timestamp-only edits preserve it. Pointer capture has a disposal cleanup, generation/points-snapshot guards, and guarded Undo/Redo so stale drags cannot overwrite newer alignment. Highlighting is display-only. Existing native host mapping, preview/grading policy and profile schema remain unchanged. See MEDIA-SYNC and DEV-NOTES for behavior/evidence.
+
 ## Written bend ranges — 2026-11-15
 
 `written-bends.js` normalizes written note bend and beat whammy curves into an absolute fractional `bendRange` including the base pitch. It sums simultaneous curves at their joint breakpoints, preserves fine limits, and rejects malformed data. `score-playback.js` carries that range and `hasVibrato` through each actually played contiguous tie chain without leaking across independent repeats. Native alphaTab rendering, sound and integration remain unchanged.

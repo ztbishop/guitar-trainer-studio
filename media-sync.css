@@ -94,6 +94,13 @@ body.media-editor-visible.fretboard-visible .app-main { grid-template-rows:minma
 .media-sync-fields select { max-width:220px; }
 .media-point-list { display:flex; flex-wrap:wrap; gap:4px; max-height:100px; overflow:auto; }
 .media-point-list button[aria-pressed="true"] { outline:2px solid #2563eb; }
+.media-point-list button.is-moving { background:var(--control-bg-hover,#dbeafe); border-color:#2563eb; }
+#media-move-tools { padding:4px 0; }
+#media-move-tools label { min-width:0; max-width:100%; }
+#media-move-tools select { width:190px; max-width:100%; }
+#media-move-help { flex:1 1 220px; }
+.media-marker.is-moving path { stroke:#1e40af; stroke-width:2; vector-effect:non-scaling-stroke; }
+.media-marker.is-moving line { stroke-width:3; }
 .media-profile-controls { display:grid; gap:8px; padding-top:8px; }
 .media-source-card,.media-view-card { display:grid; gap:8px; }
 #media-popup .field-group,#media-popup .field-help { margin:0; }

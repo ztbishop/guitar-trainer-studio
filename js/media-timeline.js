@@ -38,9 +38,24 @@ export function timelineGuides(score,timeline,points,target=null) {
 }
 
 export function boundedAnchorTime(points,index,time,duration) {
-  const min=index>0?points[index-1].millisecondOffset+1:0;
-  const max=index<points.length-1?points[index+1].millisecondOffset-1:duration;
-  return Math.max(min,Math.min(max,time));
+  const current=points[index].millisecondOffset;
+  return current+boundedAnchorShift(points,index,index,time-current,duration);
+}
+
+// Move a contiguous saved-anchor selection by one shared delta. Only its outer
+// edges constrain movement; internal spacing and all source points stay intact.
+export function boundedAnchorShift(points,first,last,requestedDelta,duration) {
+  if(!Array.isArray(points) || !Number.isInteger(first) || !Number.isInteger(last) ||
+      first<0 || last<first || last>=points.length || !Number.isFinite(requestedDelta) ||
+      !Number.isFinite(duration) || duration<0 || requestedDelta===0)return 0;
+  const start=points[first].millisecondOffset,end=points[last].millisecondOffset;
+  const min=(first>0?points[first-1].millisecondOffset+1:0)-start;
+  const max=(last<points.length-1?points[last+1].millisecondOffset-1:duration)-end;
+  if(!Number.isFinite(min) || !Number.isFinite(max) || min>max)return 0;
+  const delta=Math.max(min,Math.min(max,requestedDelta));
+  // Very tightly imported anchors can have less than a 1 ms gap already. Never
+  // turn a nudge into a move in the opposite direction or a larger requested move.
+  return Math.abs(delta)>Math.abs(requestedDelta) || delta*requestedDelta<0?0:delta || 0;
 }
 
 export function timeFromClientX(clientX,rect,duration) {

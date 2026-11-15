@@ -25,11 +25,25 @@ export function validateLesson(data) {
     if(data.recording.kind!==undefined)throw new Error('Unsupported recording kind.');
     recording={url:mediaUrl(data.recording.url),label:String(data.recording.label || data.title).slice(0,240)};
   }
-  const syncPoints=data.syncPoints===null || data.syncPoints===undefined?null:validateSoundslice(data.syncPoints);
-  if(data.version===1 && syncPoints && !recording)throw new Error('Timing needs a selected recording.');
+  const hasTiming=data.syncPoints!==null && data.syncPoints!==undefined;
+  if(data.version===1 && hasTiming && !recording)throw new Error('Timing needs a selected recording.');
   const keepRecording=data.version>=2 && (data.keepRecording===true || (!score && !recording));
-  if(data.version>=2 && !score && !recording && !syncPoints)throw new Error('Select a score, recording or timing update.');
-  return {title:data.title,lessonUrl,score,recording,syncPoints,keepRecording};
+  if(data.version>=2 && !score && !recording && !hasTiming)throw new Error('Select a score, recording or timing update.');
+  let syncPoints=null,timingIssue=null;
+  if(hasTiming) {
+    try{syncPoints=validateSoundslice(data.syncPoints);}
+    catch(error){timingIssue={timingWarning:error.message,rejectedSyncPoints:rejectedTimingCopy(data.syncPoints)};}
+  }
+  return {title:data.title,lessonUrl,score,recording,syncPoints,keepRecording,...timingIssue};
+}
+
+// Keep ordinary rejected timing available for manual repair without retaining
+// oversized arrays, nested objects or arbitrarily large strings in review state.
+function rejectedTimingCopy(data) {
+  const scalar=value=>value===null || typeof value==='number' || typeof value==='boolean' || typeof value==='string' && value.length<=64;
+  if(!Array.isArray(data) || data.length>4096 || !data.every(point=>scalar(point) ||
+      Array.isArray(point) && point.length<=4 && point.every(scalar)))return null;
+  return data.map(point=>Array.isArray(point)?point.slice():point);
 }
 export function validateSoundslice(data) {
   if(!Array.isArray(data) || data.length<2 || data.length>4096)throw new Error('Expected 2–4096 Soundslice timing points.');

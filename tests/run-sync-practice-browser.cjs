@@ -105,16 +105,25 @@ function recording() {
         assert(ruler.length>2 && ruler.length<25,'only visible ruler labels are drawn');
         assert.equal(new Set(ruler).size,ruler.length,'fine time labels remain distinct');
         assert(ruler.some(label=>/\.\d{3}$/.test(label)),'short recording supports millisecond ruler precision');
+        // The editor can scroll independently on laptops. Raw mouse coordinates
+        // do not auto-scroll like locator.click(), so reveal the actual surface.
+        await page.locator('#media-timeline').scrollIntoViewIfNeeded();
+        await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
         const expected=await page.evaluate(()=>{
           const svg=document.querySelector('#media-timeline'),box=svg.viewBox.baseVal;
           return (box.x+box.width*0.6)/1000*document.querySelector('#media-audio').duration;
         });
         const box=await page.locator('#media-timeline').boundingBox();
+        assert(await page.locator('#media-timeline').evaluate(svg=>{
+          const box=svg.getBoundingClientRect(),hit=document.elementFromPoint(box.x+box.width*0.6,box.y+55);
+          return hit===svg || svg.contains(hit);
+        }),'the waveform click must reach the visible timeline');
         await page.mouse.click(box.x+box.width*0.6,box.y+55);
         await page.waitForFunction(time=>Math.abs(Number(document.querySelector('#media-point-time').value)-time)<0.002,expected);
         if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.GTS_SCREENSHOT_DIR,'sync-extreme-zoom.png'),fullPage:true});
         await page.locator('#media-add-point').click();
         const beforeDrag=await page.evaluate(()=>syncState.media.points[0].millisecondOffset);
+        await page.locator('#media-timeline [data-point="0"] path').scrollIntoViewIfNeeded();
         const anchor=await page.locator('#media-timeline [data-point="0"] path').boundingBox();
         await page.mouse.move(anchor.x+anchor.width/2,anchor.y+4);await page.mouse.down();
         await page.mouse.move(anchor.x+anchor.width/2+80,anchor.y+4,{steps:5});await page.mouse.up();
