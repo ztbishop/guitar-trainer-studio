@@ -1,3 +1,7 @@
+# Guitar Trainer Studio architecture
+
+See [Current status and to-do](TODO.md) for the shipped baseline and pending real-world checks. Dated sections here describe the contracts and decisions at each implementation stage.
+
 ## Reviewed draft actions and explicit media reload — 2026-11-17
 
 The alphaTab maintenance command runs outside the browser. Trainer uses native layout, guards synchronous echoes of omitted-bar seeks and cancels obsolete queued audio starts. Saved marked GP scores use a matched classic/core worker schema. [Updater and compatibility details](ALPHATAB-UPGRADES.md).
@@ -1100,7 +1104,7 @@ Validation: 110 automated tests; native tab geometry across Default/ScoreTab/Tab
 
 ## Overview
 
-Implementation status and priorities are tracked in `TODO.md`; development decisions and user validation are recorded in `DEV-NOTES.md`. The v1 scope below is a design goal, not a list of completed features.
+The original v1 design goals are retained below. See [Current status and to-do](TODO.md) for shipped features and [Development notes](DEV-NOTES.md) for verification history.
 
 Guitar Trainer Studio should be a sibling app to Piano Trainer Studio, not an instrument mode inside it.
 The app should preserve native alphaTab features wherever possible and layer custom trainer logic on top.

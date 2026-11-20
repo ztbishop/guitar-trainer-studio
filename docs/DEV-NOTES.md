@@ -1,6 +1,8 @@
-## v1.0.2 release preparation — 2026-11-20
+For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
-Owner requested committing/pushing the local Trainer changes and a new release with simple public notes, superseding the earlier local-only publication hold. Owner explicitly selected v1.0.2 stable. Release notes remain high-level and user-facing. Includes the current qualified alphaTab 1.9.0, native layout and practice fixes, visual draft/explanation timing, independent reference recording and media recovery. Lesson Bridge remains unchanged; no private score/media/capture files are included. Git attributes retain verified vendor LF bytes and upstream patch context.
+## v1.0.2 release — 2026-11-20
+
+Owner requested committing/pushing the local Trainer changes and a new release with simple public notes, superseding the earlier local-only publication hold. The stable release was published on November 20, 2026 at commit `7cfa56c`. It includes the current qualified alphaTab 1.9.0, native layout and practice fixes, visual draft/explanation timing, independent reference recording and media recovery. Lesson Bridge remains unchanged; no private score/media/capture files are included. Git attributes retain verified vendor LF bytes and upstream patch context. [GitHub release](https://github.com/ztbishop/guitar-trainer-studio/releases/tag/v1.0.2)
 
 Validation: the Node suite passes 895 tests with eight optional external-fixture skips; no failures. All 17 installed vendor file hashes match the manifest. The retained 1.9.0 qualification report records all gates passing and installed-file verification. The documented long synthetic-video browser check passes review, explanation seeking, Wait silence, terminal read-error reporting, paused reload and explicit resume. Its short variant raced past a seek assertion and was replaced by the documented longer fixture. Changed application modules pass syntax checks; whitespace checks pass with original vendor/patch context preserved. This release check does not replay the private catalog. Hardware and provider/audible acceptance remain separate.
 
@@ -14,9 +16,9 @@ The ten portable Basic exports account for 2,175 main-note occurrences and 330 c
 
 The old string-line gap renderer patch retired. The other registered behaviors now live in four coordinated replay files. The [updater guide](ALPHATAB-UPGRADES.md#qualifying-19-and-later-releases) lists each one, the release command and rollback. Headless Chrome and simulated MIDI cover application behavior. Audible alignment and a physical MIDI instrument were outside this run.
 
-Qualification evidence in the private Lesson Bridge checkout is under ~dist/alphatab-qualification/1.9.0-T1hZkL/report.json`. The updater wrote its backup location there. The complete staged exercise checks, per-reader musical comparisons, browser results and installation hash comparison belong to this run.
+Qualification evidence in the private Lesson Bridge checkout is under `dist/alphatab-qualification/1.9.0-T1hZkL/report.json`. The updater wrote its backup location there. The complete staged exercise checks, per-reader musical comparisons, browser results and installation hash comparison belong to this run.
 
-## Native score layout restored — 2026-11-20
+## Native score layout restored before the 1.9.0 upgrade — 2026-11-20
 
 Removed the November 5 annotation layout adapter and its label-based minimum score width. Hummingbird 101143 exposed 26 backwards rendered transitions across 18 measures in the controlled comparison. The model and performance advanced in score order. A mid-bar chord label registered a beat's spacing before earlier beats registered. Native screen and print layout now handle labels. Dense annotation overlap can recur on 1.8.4.
 

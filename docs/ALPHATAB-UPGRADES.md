@@ -1,5 +1,7 @@
 # alphaTab upgrade checklist
 
+Guitar Trainer Studio v1.0.2 ships the qualified alphaTab 1.9.0 bundles. Use the procedure and four replay patches below for the current reader. The 1.8.4 inventory and the initial 1.9.0 staging checkpoint document earlier work and rollback. [Installed upgrade and verification](DEV-NOTES.md#installed-alphatab-190--2026-11-20)
+
 ## Qualifying 1.9 and later releases
 
 From the GuitarTrainerStudio root in PowerShell, run the following command. Replace the version for the next release. Omit `--install` for a staged report.

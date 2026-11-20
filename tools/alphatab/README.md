@@ -15,37 +15,23 @@ The command downloads the release, automatically tries the four current patches 
 
 For a test run only, omit `--install`. Every successful replacement keeps the previous files in a backup. If the **final installed-file verification** reports an error after replacement, the backup is available and rollback is manual. See the [rollback command and backup location](../../docs/ALPHATAB-UPGRADES.md#qualifying-19-and-later-releases).
 
-### Previous 1.8.4 procedure and initial staging result
+## Reinstall or verify the current bundles
 
-Read the [upgrade inventory](../../docs/ALPHATAB-UPGRADES.md) before changing versions. The updater uses Windows PowerShell 5.1, Git and Windows `tar.exe`. The app still needs no build step or runtime internet access.
-
-The approved node-4 native-duration tap adaptation is mandatory: preserve alphaTab-tap-node-four.patch after all prior patches (**43 registered total**). It changes only stringed Tap/node 4 with numeric GtsTappedHarmonicTicks=-2 to the captured +4 pitch; unmarked node 4 and other marker values stay native +28. Preserve native duration/whammy and earlier node/fixed-release profiles. Port GPIF/GP export, cloning and classic/core worker handling of the existing -2 marker with the getter. Run node --test tests/tap-node-four-reader.test.js tests/tapped-harmonic.test.js tests/pinch-harmonic-reader.test.js plus retained clock/bend/timeline controls, complete prepared 94723/94724 imports and old/mixed/cached-reader refusal before qualifying new hashes. Verify normal/SMF whammy and complete ties, not just parsing. Full patch replay and offline maintenance must pass; update plan, manifest and MPL source notices together. See [mandatory port details](../../docs/ALPHATAB-UPGRADES.md).
-
-Double-click **update-alphatab.cmd** to see the installed, latest and qualified versions. Enter selects the qualified version. A new upstream version is blocked until it passes the upgrade checklist.
-
-From PowerShell at the repository root:
+Guitar Trainer Studio v1.0.2 includes the qualified alphaTab 1.9.0 bundles. Use an explicit version at the repository root to reinstall the same release.
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\alphatab\update-alphatab.ps1 -Version 1.8.4
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\alphatab\update-alphatab.ps1 -Version 1.9.0
 ```
 
-Verify the qualified version without installing:
+Add `-CheckOnly` to verify the qualified package without installing it. Use `-PrepareOnly` with a candidate version to stage an upgrade for inspection. The staged files stay under `tools/alphatab/.work` and the installed reader stays in place.
 
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\alphatab\update-alphatab.ps1 -Version 1.8.4 -CheckOnly
-```
-
-To evaluate a new release, pass its exact version with `-PrepareOnly`. This retains the verified archive and staged candidate under `tools/alphatab/.work`, including when a patch fails. Follow the inventory to locate upstream changes and run behavioral checks. `-PrepareOnly` without a version uses the registry's latest stable release. It never installs.
-
-The 1.9.0 staging run reached patch replay and stopped at the TAB string-gap patch. The installed version remains 1.8.4. See the [1.9.0 checkpoint](../../docs/ALPHATAB-UPGRADES.md#alphatab-190-staging-checkpoint--2026-11-20) for marked-score cases that still need compatibility work.
+The 1.8.4 patch inventory and initial 1.9.0 staging attempt remain useful for comparison and rollback. The current four replay patches carry forward the supported marked-score behaviors, including the captured pinch and tap pitches. Follow the inventory when qualifying a new release. [Upgrade inventory and rollback](../../docs/ALPHATAB-UPGRADES.md)
 
 The updater verifies the archive SHA-512, version, required runtime assets and licenses. It searches for each patch's context with `git apply --check`, replays the patches on staged files, and verifies the qualified upstream and final bundle hashes. Only then does it replace `assets/vendor/alphatab` and write a manifest with patch provenance and runtime/notice hashes. A conflict or mismatch leaves installed files untouched. A failed installation move attempts to restore the previous directory.
 
 Run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\alphatab\test-updater.ps1` for the offline maintenance tests. They cover staged patch application, changed contexts, the version and hash gates, downloads simulated locally, and rollback.
 
 Previous assets are retained in `tools/alphatab/.backups`, excluded from Git. Temporary downloads are cleaned up. Backups can be large and are kept until you remove them after acceptance. To restore one, close playback, move the current `assets/vendor/alphatab` folder somewhere safe, then copy the chosen complete backup folder to `assets/vendor/alphatab`. Alternatively, use Git to restore a committed vendor checkpoint, taking care to preserve any wanted local changes.
-
-Captured pinch-harmonic pitches are a required local adaptation. Preserve the registered `alphaTab-pinch-harmonic-interval.patch` when staging a new alphaTab version; it carries `GtsPinchHarmonicSemitones` through classic/core GPIF, cloning, worker JSON and GP export. The marked +5 interval must sound MIDI 62 at the regression fixture’s A-string fret 12; the unmarked GP node must still sound MIDI 81. Run `node --test tests/pinch-harmonic-reader.test.js tests/tapped-harmonic.test.js` and the receiving Bridge old/mixed-core no-send check before qualifying new hashes. Do not retire this patch merely because the new reader imports the file: prove the same marked/unmarked pitches, source TAB, full ties, repeats, normal/SMF MIDI and worker roundtrips. See [the upgrade inventory](../../docs/ALPHATAB-UPGRADES.md).
 
 After an update:
 
