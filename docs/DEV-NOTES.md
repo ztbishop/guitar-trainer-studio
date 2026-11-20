@@ -1,5 +1,11 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Speed Trainer and proportional sync edits — 2026-11-20
+
+Speed Trainer lives inside Loop and uses the existing Realtime synth transport. The selected range repeats at the target until the player stops. Wait retains its independent metronome tempo. Media Sync adds one Drag / nudge choice for stretching the selected timestamps against their final marker. Undo and Redo cover the entire edit. Both features are opt-in and use the existing score and profile formats.
+
+The Node suite passed 898 tests with eight optional fixture skips. Isolated Chrome checks used a generated score to exercise continuous looping and measure actual count-in click intervals, and a generated recording to check drag, nudge, fixed endpoints, no-crossing limits, cancellation, Undo/Redo and narrow-screen layout. Listening with the owner’s guitar and recording remains pending.
+
 ## v1.0.2 release — 2026-11-20
 
 Owner requested committing/pushing the local Trainer changes and a new release with simple public notes, superseding the earlier local-only publication hold. The stable release was published on November 20, 2026 at commit `7cfa56c`. It includes the current qualified alphaTab 1.9.0, native layout and practice fixes, visual draft/explanation timing, independent reference recording and media recovery. Lesson Bridge remains unchanged; no private score/media/capture files are included. Git attributes retain verified vendor LF bytes and upstream patch context. [GitHub release](https://github.com/ztbishop/guitar-trainer-studio/releases/tag/v1.0.2)

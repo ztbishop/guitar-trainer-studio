@@ -58,6 +58,31 @@ export function boundedAnchorShift(points,first,last,requestedDelta,duration) {
   return Math.abs(delta)>Math.abs(requestedDelta) || delta*requestedDelta<0?0:delta || 0;
 }
 
+// Stretch from the first handle around the fixed last point. The shortest
+// existing interval sets the compression limit for the entire selection.
+export function moveAnchors(points,first,last,requested,duration,stretch=false) {
+  let shift;
+  const start=points[first].millisecondOffset, end=points[last].millisecondOffset;
+  if(stretch) {
+    let shortest=Infinity;
+    for(let i=first+1;i<=last;i++) {
+      shortest=Math.min(shortest,points[i].millisecondOffset-points[i-1].millisecondOffset);
+    }
+    const leftEdge=first>0 ? points[first-1].millisecondOffset+1 : 0;
+    const compressionLimit=shortest>1 ? (end-start)*(1-1/shortest) : 0;
+    shift=first===last ? 0 : Math.max(Math.min(0,leftEdge-start),Math.min(requested,compressionLimit));
+  } else {
+    shift=boundedAnchorShift(points,first,last,requested,duration);
+  }
+  if(!shift)return {points,shift:0};
+  const moved=points.map((point,i)=>{
+    if(i<first || i>last || (stretch && i===last))return point;
+    const weight=stretch ? (end-point.millisecondOffset)/(end-start) : 1;
+    return {...point,millisecondOffset:point.millisecondOffset+shift*weight};
+  });
+  return {points:moved,shift};
+}
+
 export function timeFromClientX(clientX,rect,duration) {
   // SVG uses preserveAspectRatio=none and includes 12 units of endpoint padding.
   return Math.max(0,Math.min(duration,((clientX-rect.left)/rect.width*1024-12)/1000*duration));

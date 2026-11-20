@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {timelineGuides,boundedAnchorTime,boundedAnchorShift,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel,timelineRuler,scoreTargetForBeat} from '../js/media-timeline.js';
+import {timelineGuides,boundedAnchorTime,boundedAnchorShift,moveAnchors,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel,timelineRuler,scoreTargetForBeat} from '../js/media-timeline.js';
 const timeline={endTick:800,measures:[{measureNumber:1,occurrence:1,startTick:0,endTick:400},{measureNumber:1,occurrence:2,startTick:400,endTick:800}]};
 const score={masterBars:[{timeSignatureNumerator:4}]};
 const points=[{barIndex:0,barOccurence:0,barPosition:0,millisecondOffset:1000},{barIndex:0,barOccurence:1,barPosition:1,millisecondOffset:9000}];
@@ -44,6 +44,16 @@ test('nudges and repeated reverse drags respect neighboring anchors and media bo
 });
 
 const anchors=times=>Object.freeze(times.map(millisecondOffset=>Object.freeze({millisecondOffset})));
+test('stretch scales uneven timestamp gaps around the pinned last marker',()=>{
+  const original=anchors([50,100,200,500,900,1000]);
+  const times=delta=>moveAnchors(original,1,4,delta,1000,true).points.map(p=>p.millisecondOffset);
+  assert.deepEqual(times(400),[50,500,550,700,900,1000]);
+  assert.deepEqual(times(-1000),[50,51,157.125,475.5,900,1000]);
+  assert.deepEqual(times(9999),[50,892,893,896,900,1000]);
+  const tight=anchors([0,0.5,100]);
+  assert.equal(moveAnchors(tight,0,2,1,100,true).points,tight);
+  assert.equal(moveAnchors(original,1,1,50,1000,true).points,original);
+});
 test('a selected interior anchor group shifts uniformly between its outside neighbors',()=>{
   const original=anchors([1000,2000.25,2400.75,4000,7000]);
   for(const [requested,expected] of [[125.5,125.5],[-10000,-999.25],[10000,2999]]) {

@@ -131,6 +131,12 @@
 .menu-unavailable { opacity: 0.45; }
 .loop-help, #loop-controls-status { font-size: 0.75rem; color: var(--muted); line-height: 1.5; margin: 14px 0 0; }
 #loop-controls-status:empty { display: none; }
+.speed-training { margin-top: 14px; border-top: 1px solid var(--section-rule); }
+.speed-training summary { padding: 12px 0; cursor: pointer; }
+#training-fields { display: grid; grid-template-columns: repeat(auto-fit,minmax(110px,1fr)); gap: 12px; border: 0; margin: 0 0 12px; padding: 0; }
+#training-fields label { display: grid; gap: 4px; }
+#training-fields input { width: 100%; min-width: 0; }
+#training-status { font-size: .85rem; margin-inline-start: 6px; }
 #btn-looper.is-loop-enabled, #more-loop-shortcut.is-loop-enabled {
   background: #d9edfc;
   border-color: #2994d0;

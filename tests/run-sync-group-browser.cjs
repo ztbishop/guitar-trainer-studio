@@ -138,6 +138,16 @@ function wav() {
     await select(2);await page.locator('#media-nudge-right').click();
     await page.locator('#media-undo').click();await expectTimes(base,'cancelled preview does not add an undo entry');
 
+    await change('media-move-scope','stretch');
+    await page.locator('#media-nudge-right').click();
+    await undoRoundTrip(base,[1000,3050,5025,7000,11000],'stretch nudge around fixed last point');
+    await select(3);
+    assert(await page.locator('#media-nudge-right').isDisabled(),'last marker stays pinned');
+    await drag(2,1000);await expectTimes(base,'interior marker is not a stretch handle');
+    await drag(1,1000,{cancel:true});await expectTimes(base,'cancel discards the stretch preview');
+    await drag(1,-4000);
+    await undoRoundTrip(base,[1000,1001,4000.5,7000,11000],'stretch drag stops at previous marker');
+
     if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.GTS_SCREENSHOT_DIR,'sync-group-desktop.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844});
     assert(await page.locator('#media-move-scope').isVisible());

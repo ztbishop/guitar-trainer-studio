@@ -311,6 +311,19 @@
           </div>
         </div>
         <p id="loop-controls-status" role="status">Load a score to choose a section.</p>
+        <details class="speed-training">
+          <summary id="training-summary">Speed Trainer</summary>
+          <form id="speed-training-form">
+            <fieldset id="training-fields" aria-label="Speed Trainer settings" disabled>
+              <label>Start (%)<input id="training-start" type="number" min="25" max="199" value="60" required /></label>
+              <label>Target (%)<input id="training-target" type="number" min="26" max="200" value="100" required /></label>
+              <label>Add (points)<input id="training-step" type="number" min="1" max="175" value="5" required /></label>
+              <label>Every (loops)<input id="training-every" type="number" min="1" max="9007199254740991" value="2" required /></label>
+            </fieldset>
+            <button id="training-action" type="submit" disabled>Enable speed training</button>
+            <span id="training-status" role="status"></span>
+          </form>
+        </details>
       </div>
     </section>
 
@@ -662,7 +675,7 @@
         <details class="sync-editor-help" id="media-paste-sync"><summary>Paste sync points</summary><label for="media-sync-json">Soundslice sync points (JSON)</label><textarea id="media-sync-json" rows="4" maxlength="1000000" spellcheck="false" placeholder="[[0,9.9],[95,199.8],[96,201.8]]"></textarea><p class="field-help">Load the matching score and recording first. Applying replaces this recording's current alignment; Undo can restore it. Save profile to keep changes.</p><button id="media-apply-pasted-sync" type="button" disabled>Apply pasted sync points</button><p id="media-paste-status" class="field-help" role="status"></p></details>
         <div id="media-point-tools" class="media-sync-fields"><label>1. Score measure<select id="media-measure"></select></label><label>Beat<input id="media-beat" type="number" min="1" step="0.01" value="1" /></label><button id="media-add-point" type="button" disabled title="Create or update the chosen measure/beat at the selected recording time, then pause">Add sync point</button><div class="media-time-tools"><label>2. Recording seconds<input id="media-point-time" type="number" min="0" step="0.01" value="0" /></label><button id="media-apply-time" type="button" disabled title="Copy the current playhead into Selected time; this does not save a sync point">Copy playhead time</button><button id="media-nudge-left" type="button" aria-label="Move selected sync point 50 milliseconds earlier" disabled>← 50 ms</button><button id="media-nudge-right" type="button" aria-label="Move selected sync point 50 milliseconds later" disabled>50 ms →</button></div><button id="media-remove-point" type="button" disabled>Delete point</button></div>
         <div id="media-move-tools" class="media-sync-fields">
-          <label>Drag / nudge<select id="media-move-scope" aria-describedby="media-move-help"><option value="point">Move one point</option><option value="all">Move all</option><option value="section">Move selected section</option></select></label>
+          <label>Drag / nudge<select id="media-move-scope" aria-describedby="media-move-help"><option value="point">Move one point</option><option value="all">Move all</option><option value="section">Move selected section</option><option value="stretch">Stretch selected section</option></select></label>
           <label id="media-section-first-label" hidden>From point<select id="media-section-first"></select></label>
           <label id="media-section-last-label" hidden>Through point<select id="media-section-last"></select></label>
           <span id="media-move-help" class="field-help">Drag a saved point or use the nudge arrows.</span>

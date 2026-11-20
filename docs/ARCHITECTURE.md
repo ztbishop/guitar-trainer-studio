@@ -2,6 +2,12 @@
 
 See [Current status and to-do](TODO.md) for the shipped baseline and pending real-world checks. Dated sections here describe the contracts and decisions at each implementation stage.
 
+## Loop speed training and sync section stretching
+
+`speed-trainer.js` tracks completed passes on the current practice loop. Bootstrap receives the native Finished event for continuous loops and for loops with count-in. It finishes grading the outgoing pass and sets the next speed before the host schedules clicks. A deliberate seek into the middle of a pass excludes that partial pass from speed progression. Pause keeps completed passes. Reset and loop edits restart the progression. The Loop form is available during Realtime synth practice with an enabled range.
+
+`media-timeline.js` calculates both uniform group moves and proportional stretches from the gesture’s original recording times. Stretch pins the last point and bounds compression using the shortest existing interval. `media-controls.js` uses the same result for drag previews, committed drags, buttons and keyboard nudges. Each commit uses ordinary validated sync points and the editor’s existing history and profile format.
+
 ## Reviewed draft actions and explicit media reload — 2026-11-17
 
 The alphaTab maintenance command runs outside the browser. Trainer uses native layout, guards synchronous echoes of omitted-bar seeks and cancels obsolete queued audio starts. Saved marked GP scores use a matched classic/core worker schema. [Updater and compatibility details](ALPHATAB-UPGRADES.md).

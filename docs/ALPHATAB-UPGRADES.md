@@ -4,6 +4,8 @@ Guitar Trainer Studio v1.0.2 ships the qualified alphaTab 1.9.0 bundles. Use the
 
 ## Qualifying 1.9 and later releases
 
+For Loop Speed Trainer, retain the native Finished notification on both continuous synth repeats and non-looping range completion. The host forwards deliberate score and paused fretboard navigation so a partial pass can be excluded. Bootstrap applies the next speed before the host schedules a loop count-in. Run `tests/run-speed-trainer-browser.cjs` against the candidate to check actual pass cadence, the target cap and audio-clock click spacing.
+
 From the GuitarTrainerStudio root in PowerShell, run the following command. Replace the version for the next release. Omit `--install` for a staged report.
 
 ```powershell

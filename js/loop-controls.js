@@ -1,8 +1,9 @@
 // Loop presentation only. Values follow playback order, including repeats.
 import {AppState} from './app-state.js';
 import {resolvePracticeRange,measureOccurrenceLabel} from './practice-range.js';
+import {canTrainSpeed,createSpeedTraining} from './speed-trainer.js';
 
-export function initLoopControls(onLoopChange=()=>{}) {
+export function initLoopControls(onLoopChange=()=>{},onTrainingChange=()=>{}) {
   const get=id=>document.getElementById(id);
   const enabled=get('practice-loop-enabled'),countIn=get('loop-count-in');
   const start=get('practice-loop-start'),end=get('practice-loop-end');
@@ -11,6 +12,24 @@ export function initLoopControls(onLoopChange=()=>{}) {
   let selectionMessage='';
   const ready=()=>Boolean(AppState.playerReady && !AppState.media.editing && !AppState.media.returning && AppState.playbackTimeline?.measures.length);
   let lastTimeline;
+  const trainingForm=get('speed-training-form'),trainingFields=['start','target','step','every'];
+  trainingForm?.addEventListener('submit',event=>{
+    event.preventDefault();
+    if(!canTrainSpeed(AppState))return;
+    if(AppState.practiceLoop.speedTraining)onTrainingChange(null);
+    else {
+      const values=Object.fromEntries(trainingFields.map(key=>[key,Number(get('training-'+key).value)]));
+      const run=createSpeedTraining(values);
+      if(!run) {
+        const target=get('training-target');
+        target.setCustomValidity('Choose a target speed higher than the starting speed.');
+        target.reportValidity();return;
+      }
+      onTrainingChange(run);
+    }
+    sync();
+  });
+  trainingForm?.addEventListener('input',()=>get('training-target').setCustomValidity(''));
   function hideNotice() {
     if(noticeTimer!==null)clearTimeout(noticeTimer);
     noticeTimer=null;
@@ -81,6 +100,23 @@ export function initLoopControls(onLoopChange=()=>{}) {
       if(timeline?.measures.length && !AppState.practiceLoop.enabled)AppState.practiceLoop.endIndex=timeline.measures.length-1;
     }
     const available=ready(),loop=AppState.practiceLoop,max=timeline?.measures.length||1;
+    if(trainingForm) {
+      const run=loop.speedTraining;
+      const usable=canTrainSpeed(AppState);
+      get('training-fields').disabled=!usable || Boolean(run);
+      get('training-action').disabled=!usable;
+      const percent=Math.round(AppState.playbackSpeed*100);
+      let status='';
+      if(!usable)status='Enable a loop in Realtime with Synth audio to train speed.';
+      else if(run)status=percent>=run.target?'Target reached. Looping at this speed.':
+        `${run.completed % run.every} of ${run.every} loops at this speed.`;
+      // Transport repaints every frame. Only announce actual status changes.
+      for(const [id,label] of [['training-action',run?'End speed training':'Enable speed training'],
+        ['training-summary',run?`Speed Trainer · ${percent}%`:'Speed Trainer'],['training-status',status]]) {
+        const node=get(id);
+        if(node.textContent!==label)node.textContent=label;
+      }
+    }
     for(const id of ['btn-looper','more-loop-shortcut']) {
       const button=get(id);
       button?.classList?.toggle('is-loop-enabled',loop.enabled);

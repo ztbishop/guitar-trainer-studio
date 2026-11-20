@@ -6,7 +6,7 @@ import {recordingScoreRange,recordingRegion} from './media-score-range.js';
 import {LibraryStore,fingerprint} from './library-store.js';
 import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport,pointTick,mediaTimeAtTick} from './media-sync.js';
 import {htmlMediaPlayer,youtubeMediaPlayer,waveformPeaks} from './media-player.js';
-import {timelineGuides,boundedAnchorShift,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel,timelineRuler} from './media-timeline.js';
+import {timelineGuides,moveAnchors,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel,timelineRuler} from './media-timeline.js';
 import {soundslicePoints,lessonTimelineKey} from './lesson-import-data.js';
 import {compileTimingPlan,planPositionAtTime,timingPlanIntervals,INTERVAL_TIMING_FORMAT} from './explanation-timing.js';
 
@@ -110,7 +110,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     if(timingPlan||draftTiming)for(const key of ['remove-point','apply-time','add-point','apply-pasted-sync','undo','redo'])get(key).disabled=true;
     get('add-point').textContent=targetIndex()>=0?'Update sync point':'Add sync point';
     const movable=movementRange(selected)!==null;
-    const movingLabel=get('move-scope').value==='all'?'all sync points':get('move-scope').value==='section'?'selected section':'selected sync point';
+    const movingLabel={all:'all sync points',section:'selected section',stretch:'first point of stretch section',point:'selected sync point'}[get('move-scope').value];
     for(const [key,direction] of [['nudge-left','earlier'],['nudge-right','later']]) {
       get(key).disabled=Boolean(timingPlan||draftTiming) || !movable || !ready;
       get(key).setAttribute('aria-label',`Move ${movingLabel} 50 milliseconds ${direction}`);
@@ -287,10 +287,11 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('move-scope').value='point';sectionFirst=sectionLast=0;movementPositions='';
   }
   function movementRange(index) {
-    if(timingPlan)return null;
+    if(timingPlan || draftTiming)return null;
     if(index<0 || index>=points.length)return null;
     const scope=get('move-scope').value;
     if(scope==='all')return [0,points.length-1];
+    if(scope==='stretch')return index===sectionFirst && sectionFirst<sectionLast?[sectionFirst,sectionLast]:null;
     if(scope==='section')return index>=sectionFirst && index<=sectionLast?[sectionFirst,sectionLast]:null;
     return [index,index];
   }
@@ -308,23 +309,22 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       }
     }
     const scope=get('move-scope').value;
-    get('section-first-label').hidden=get('section-last-label').hidden=scope!=='section';
+    get('section-first-label').hidden=get('section-last-label').hidden=scope!=='section' && scope!=='stretch';
     get('section-first').value=String(sectionFirst);get('section-last').value=String(sectionLast);
     get('move-help').textContent=scope==='point'?'Drag a saved point or use the nudge arrows.':
       scope==='all'?'Drag any saved point or nudge to shift all points together. Stops at the recording edges.':
+      scope==='stretch'?'Drag or nudge the first point. The last stays fixed and the points between adjust proportionally.':
       'Drag a point in this section or nudge. Both endpoint points move; points outside stay fixed.';
   }
   function isMovingPoint(index) {
     const scope=get('move-scope').value;
-    return scope==='all' || (scope==='section' && index>=sectionFirst && index<=sectionLast);
-  }
-  function shiftedPoints(initial,first,last,delta) {
-    return initial.map((point,index)=>index>=first && index<=last?{...point,millisecondOffset:point.millisecondOffset+delta}:{...point});
+    return scope==='all' || (scope==='section' && index>=sectionFirst && index<=sectionLast) ||
+      (scope==='stretch' && index>=sectionFirst && index<sectionLast);
   }
   function movementMessage(delta,requested) {
     if(Math.abs(delta-requested)<0.001)return;
     message(delta===0?'Cannot move farther: a neighboring point or recording edge is in the way. Move one point to adjust the boundary.':
-      'Move stopped at a neighboring point or recording edge. Spacing within the moved group is unchanged. Save profile to keep changes.');
+      'Move stopped at a neighboring point or recording edge. Save profile to keep changes.');
   }
   function formPoint() {
     const measure=AppState.playbackTimeline?.measures[Number(get('measure').value)];
@@ -410,9 +410,8 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     if(selected<0 || !player)return;
     const range=movementRange(selected);if(!range)return;
     const index=selected,wasPlaying=AppState.isPlaying,token=generation;
-    const shift=boundedAnchorShift(points,...range,delta,player.backingTrackDuration);
+    const {shift,points:next}=moveAnchors(points,...range,delta,player.backingTrackDuration,get('move-scope').value==='stretch');
     if(!shift){movementMessage(shift,delta);return;}
-    const next=shiftedPoints(points,...range,shift);
     edit(next,{preservePlayback:true});selectPoint(index);
     return seekRecording(next[index].millisecondOffset,{resume:wasPlaying}).then(()=>{if(token===generation)movementMessage(shift,delta);});
   }
@@ -630,16 +629,20 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   get('nudge-left').addEventListener('click',action(()=>nudge(-50)));
   get('nudge-right').addEventListener('click',action(()=>nudge(50)));
   get('move-scope').addEventListener('change',()=>{
-    if(get('move-scope').value==='section') {
+    const stretch=get('move-scope').value==='stretch';
+    if(stretch && sectionFirst===sectionLast && points.length>=2) {
+      sectionFirst=Math.max(0,Math.min(selected,points.length-2));sectionLast=sectionFirst+1;
+    } else if(get('move-scope').value==='section') {
       sectionFirst=Math.max(0,selected);sectionLast=Math.min(points.length-1,sectionFirst+1);
     }
-    if(selected<0 && points.length)selectPoint(0,{preserveTime:true});
+    if(stretch && points.length)selectPoint(sectionFirst,{preserveTime:true});
+    else if(selected<0 && points.length)selectPoint(0,{preserveTime:true});
     renderPoints();sync();
   });
   for(const key of ['section-first','section-last'])get(key).addEventListener('change',()=>{
     if(key==='section-first'){sectionFirst=Number(get(key).value);sectionLast=Math.max(sectionFirst,sectionLast);}
     else {sectionLast=Number(get(key).value);sectionFirst=Math.min(sectionFirst,sectionLast);}
-    if(selected<sectionFirst || selected>sectionLast)selectPoint(sectionFirst,{preserveTime:true});
+    if(get('move-scope').value==='stretch' || selected<sectionFirst || selected>sectionLast)selectPoint(sectionFirst,{preserveTime:true});
     renderPoints();sync();
   });
   get('remove-point').addEventListener('click',action(()=>{edit(points.filter((_,index)=>index!==selected));selected=-1;renderPoints();sync();}));
@@ -673,20 +676,21 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     const range=movementRange(index);
     if(!range){
       const token=generation;
-      action(async()=>{await seekSelectedTarget();if(token===generation)message('Choose a point inside the selected section to move it, or change Drag / nudge to Move one point.');})();
+      action(async()=>{await seekSelectedTarget();if(token===generation)message(get('move-scope').value==='stretch'?'Choose two distinct endpoints and drag the first point to stretch the section.':'Choose a point inside the selected section to move it, or change Drag / nudge to Move one point.');})();
       return;
     }
     const timeline=get('timeline'),initialPoints=points,initial=structuredClone(points),token=generation;timeline.setPointerCapture(event.pointerId);
     dragging=true;const startX=event.clientX,startTime=initial[index].millisecondOffset,rect=timelineRect(),wasPlaying=AppState.isPlaying,previousTime=get('point-time').value;
     sync();
-    let nextTime=startTime,shift=0,requested=0,moved=false;
+    const stretch=get('move-scope').value==='stretch';
+    let nextTime=startTime,shift=0,requested=0,moved=false,preview=initial;
     const move=e=>{
       if(e.pointerId!==event.pointerId || token!==generation)return;
       if(!moved){if(Math.abs(e.clientX-startX)<3)return;moved=true;host.pauseMediaPlayback();player.pause();}
       requested=(e.clientX-startX)/rect.width*1024/1000*player.backingTrackDuration;
-      shift=boundedAnchorShift(initial,...range,requested,player.backingTrackDuration);
-      nextTime=startTime+shift;selectTime(nextTime);
-      for(let i=range[0];i<=range[1];i++)timeline.querySelector(`[data-point="${i}"]`)?.setAttribute('transform',`translate(${(initial[i].millisecondOffset+shift)/player.backingTrackDuration*1000} 0)`);
+      ({shift,points:preview}=moveAnchors(initial,...range,requested,player.backingTrackDuration,stretch));
+      nextTime=preview[index].millisecondOffset;selectTime(nextTime);
+      for(let i=range[0];i<=range[1];i++)timeline.querySelector(`[data-point="${i}"]`)?.setAttribute('transform',`translate(${preview[i].millisecondOffset/player.backingTrackDuration*1000} 0)`);
     };
     const cleanup=()=>{dragging=false;cancelDrag=null;timeline.removeEventListener('pointermove',move);timeline.removeEventListener('pointerup',finish);timeline.removeEventListener('pointercancel',cancel);if(timeline.hasPointerCapture(event.pointerId))timeline.releasePointerCapture(event.pointerId);};
     const finish=e=>{
@@ -695,7 +699,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       if(token!==generation || initialPoints!==points){renderPoints();sync();return;}
       try {
         if(!moved){selectPoint(index,{preserveTime:true});action(seekSelectedTarget)();return;}
-        if(shift)edit(shiftedPoints(initial,...range,shift));
+        if(shift)edit(preview);
         selectPoint(index);
         action(async()=>{await seekRecording(nextTime,{resume:wasPlaying});if(token===generation)movementMessage(shift,requested);})();
       } catch(error){message(error.message);renderPoints();}

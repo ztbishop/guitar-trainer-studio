@@ -9,6 +9,7 @@ import {initMidiCaptureControls,captureFeedbackView} from './midi-capture.js';
 // Do NOT: let this grow into a giant logic file
 
 import { initAlphaTab, loadScoreFile, play, stop, applyPlaybackTrackState, acquireWaitTransport, holdWaitAtTick, pauseWaitTransport, releaseWaitTransport, finishWaitTransport, setPlaybackSpeed, setMetronomeVolume, applyPracticeLoop, startCountIn } from './alphatab-host.js';
+import {canTrainSpeed,finishSpeedTrainingPass} from './speed-trainer.js';
 import { AppState } from './app-state.js';
 import { WaitController } from './wait-controller.js';
 
@@ -116,9 +117,19 @@ function changePracticeLoop(loop) {
   const projected=projectedPracticeLoop(loop);
   if(!projected)return 'This section is omitted from the recording. Choose a section with music included in this lesson.';
   waitController.stop();pauseWaitTransport();
-  AppState.practiceLoop={...projected,notice:''};applyPracticeLoop(projected.range);
+  AppState.practiceLoop={...projected,notice:''};
+  if(!projected.enabled)AppState.practiceLoop.speedTraining=null;
+  restartSpeedTraining();
+  applyPracticeLoop(projected.range);
   if(projected.range)AppState.tickPosition=projected.range.startTick;
   clearActiveMidiNotes();syncTrainerFoundation();
+}
+
+function restartSpeedTraining() {
+  const run=AppState.practiceLoop.speedTraining;
+  if(!run || !canTrainSpeed(AppState))return;
+  run.completed=0;run.partial=false;
+  if(AppState.playbackSpeed!==run.start/100)setPlaybackSpeed(run.start/100);
 }
 
 function reconcileMediaPracticeLoop() {
@@ -136,11 +147,16 @@ function wireTempoAndLoopControls() {
   transportControls=initTransportControls({
     onMetronomeChange:setMetronomeVolume,
     onSpeedChange(speed) {
+      AppState.practiceLoop.speedTraining=null;
       if(AppState.mode==='wait') {setPlaybackSpeed(speed);renderTrainerUi();return;}
       waitController.stop();pauseWaitTransport();
       if(setPlaybackSpeed(speed)){resetRealtimeSession('speed-change');configureWaitSession();}renderTrainerUi();
     },
     onLoopChange:changePracticeLoop,
+    onTrainingChange(run) {
+      if(run)changePracticeLoop({...AppState.practiceLoop,speedTraining:run});
+      else AppState.practiceLoop.speedTraining=null;
+    },
   });
   transportControls.sync();
 }
@@ -279,6 +295,7 @@ function wireTransportButtons() {
     if(mediaControls?.draftTransport('reset'))return;
     waitController.stop();
     stop();
+    restartSpeedTraining();
     const start=AppState.practiceLoop.range?.startTick ?? 0;
     resetRealtimeSession('stop',start);
     updateActiveTargetsFromPlayback(start);
@@ -337,6 +354,7 @@ function wirePracticeControls() {
   });
   for(const mode of document.querySelectorAll('input[name="practice-mode"]'))mode.checked=mode.value===AppState.mode;
   for(const mode of document.querySelectorAll('input[name="practice-mode"]'))mode.addEventListener('change', event => {
+    AppState.practiceLoop.speedTraining=null;
     if(AppState.media.editing){AppState.mode=event.target.value==='wait'?'wait':'realtime';savePracticePreferences(AppState);renderTrainerUi();return;}
     waitController.stop();pauseWaitTransport();
     AppState.mode=event.target.value==='wait'?'wait':'realtime';
@@ -826,6 +844,8 @@ async function bootstrap() {
       },
       onPlayerPositionChanged: (position) => {
         if(AppState.media.returning || AppState.media.editing)return;
+        const loop=AppState.practiceLoop;
+        if(loop.speedTraining?.partial && Math.abs(position.currentTick-loop.range.startTick)<=3)loop.speedTraining.partial=false;
         if(position.isSeek && AppState.mode!=='wait')transportControls?.clearPulse();
         if(AppState.mode==='wait')waitController.positionChanged(position);
         else handlePlaybackPosition(position);
@@ -837,7 +857,13 @@ async function bootstrap() {
       onMediaScoreFinished: () => {finishRealtimeSession({expectRewind:false});renderTrainerUi();},
       onPlayerFinished: () => {
         transportControls?.clearPulse();
-        if(!AppState.media.editing && AppState.isPlaying && AppState.mode==='realtime')finishRealtimeSession();
+        if(!AppState.media.editing && AppState.isPlaying && AppState.mode==='realtime'){
+          finishRealtimeSession();
+          if(AppState.practiceLoop.speedTraining && canTrainSpeed(AppState)){
+            const speed=finishSpeedTrainingPass(AppState.practiceLoop.speedTraining);
+            if(speed!==AppState.playbackSpeed)setPlaybackSpeed(speed);
+          }
+        }
         renderTrainerUi();
       },
       onPlayerStateChanged: () => {
@@ -852,7 +878,13 @@ async function bootstrap() {
       onMetronomeError: () => renderTrainerUi(),
       onCountInChanged: () => renderTrainerUi(),
       onLoopSelection: selection => {if(!AppState.media.preview)transportControls?.selectLoopByDrag(selection);},
-      onMediaChanged: () => {mediaControls?.mediaChanged();if(AppState.playerReady && !AppState.media.editing && !AppState.media.returning){reconcileMediaPracticeLoop();configureWaitSession();resetRealtimeSession('media-source-or-alignment');}renderTrainerUi();},
+      onPracticeSeek: () => {if(AppState.practiceLoop.speedTraining)AppState.practiceLoop.speedTraining.partial=true;},
+      onMediaChanged: () => {
+        if(AppState.media.editing || AppState.media.preview)AppState.practiceLoop.speedTraining=null;
+        mediaControls?.mediaChanged();
+        if(AppState.playerReady && !AppState.media.editing && !AppState.media.returning){reconcileMediaPracticeLoop();configureWaitSession();resetRealtimeSession('media-source-or-alignment');}
+        renderTrainerUi();
+      },
       onMediaScoreTarget: target => mediaControls?.scoreTargetSelected(target),
     });
   } catch (error) {

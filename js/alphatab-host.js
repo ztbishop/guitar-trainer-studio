@@ -922,6 +922,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     onMetronomeTick: callbacks.onMetronomeTick || null,
     onMetronomeError: callbacks.onMetronomeError || null,
     onLoopSelection: callbacks.onLoopSelection || null,
+    onPracticeSeek: callbacks.onPracticeSeek || null,
     onCountInChanged: callbacks.onCountInChanged || null,
     onMediaChanged: callbacks.onMediaChanged || null,
     onMediaScoreTarget: callbacks.onMediaScoreTarget || null,
@@ -1209,7 +1210,10 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   // A score click/drag is an intentional seek, even when paused and no native
   // Pause snap was emitted. Do not let an unused pause acknowledgement mask it.
   let scoreDragging=false,scoreMouseDown=null;
-  alphaTabApi.beatMouseDown?.on(beat => {mediaPausePosition=null;explicitPlanSeek=null;pauseSeekPending=false;if(AppState.mode!=='wait')cancelCountIn();scoreMouseDown=beat.id;});
+  alphaTabApi.beatMouseDown?.on(beat => {
+    hostCallbacks.onPracticeSeek?.();
+    mediaPausePosition=null;explicitPlanSeek=null;pauseSeekPending=false;if(AppState.mode!=='wait')cancelCountIn();scoreMouseDown=beat.id;
+  });
   alphaTabApi.beatMouseMove?.on(beat => {if(scoreMouseDown!==null && scoreMouseDown!==beat.id)scoreDragging=true;});
   alphaTabApi.beatMouseUp?.on(beat => {
     const clicked=scoreMouseDown!==null && !scoreDragging;
@@ -1615,6 +1619,7 @@ export function pause() {
 export function seekPausedTick(tick) {
   mediaPausePosition=null;explicitPlanSeek=null;
   if(!alphaTabApi || !AppState.playerReady || AppState.media.editing || !Number.isFinite(tick))return false;
+  hostCallbacks.onPracticeSeek?.();
   cancelCountIn();alphaTabApi.pause();
   pauseSeekPending=false;
   AppState.isPlaying=false;

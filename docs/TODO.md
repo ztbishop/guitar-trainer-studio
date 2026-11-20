@@ -2,6 +2,11 @@
 
 **Stable baseline: v1.0.2, published November 20, 2026.** The core practice and usability work is complete. The next milestone is a few normal practice sessions with the released build. Use this page for current priorities and the dated archive for earlier decisions. [Release notes](releases/v1.0.2.md) · [GitHub release](https://github.com/ztbishop/guitar-trainer-studio/releases/tag/v1.0.2) · [Historical to-do entries](TODO-HISTORY.md)
 
+## Changes since v1.0.2
+
+- **Loop → Speed Trainer** increases Realtime synth speed after a chosen number of completed loops. Try a short loop with Loop Count-in and listen for the next pass’s tempo as it increases. [Tempo and Loop](../README.md#tempo-and-loop)
+- **Media Sync → Drag / nudge → Stretch selected section** adjusts a passage against a pinned final marker. On a real recording, listen at the first and last points, then try Undo before saving. [Alignment controls](MEDIA-SYNC.md#alignment)
+
 ## Complete and shipped
 
 - **Practice.** Wait and Realtime, count-in, tempo, loops and repeat-aware navigation, retained feedback, and adjustable chord and input tolerances. Written bend ranges default on for Hex and Poly, including affected notes in chords. Both modes grade pitch. [Player guide](../README.md#practice-modes-and-feedback)
