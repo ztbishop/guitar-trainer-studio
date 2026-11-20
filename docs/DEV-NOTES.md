@@ -2,6 +2,8 @@ For the active checklist, see [Current status and to-do](TODO.md). Older entries
 
 ## Speed Trainer and proportional sync edits — 2026-11-20
 
+The Loop menu labels the step **Speed increase (%)**. A value of 5 takes playback from 60% to 65% of the score tempo.
+
 Speed Trainer lives inside Loop and uses the existing Realtime synth transport. The selected range repeats at the target until the player stops. Wait retains its independent metronome tempo. Media Sync adds one Drag / nudge choice for stretching the selected timestamps against their final marker. Undo and Redo cover the entire edit. Both features are opt-in and use the existing score and profile formats.
 
 The Node suite passed 898 tests with eight optional fixture skips. Isolated Chrome checks used a generated score to exercise continuous looping and measure actual count-in click intervals, and a generated recording to check drag, nudge, fixed endpoints, no-crossing limits, cancellation, Undo/Redo and narrow-screen layout. Listening with the owner’s guitar and recording remains pending.
