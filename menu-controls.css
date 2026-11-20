@@ -228,7 +228,7 @@
 .more-shortcut-button .menu-status { margin-left: auto; text-align: right; }
 .menu-future, .menu-track-details { margin: 12px 0; }
 .toolbar-popup summary { min-height: 44px; padding: 10px 0; cursor: pointer; font-weight: 600; }
-.menu-debug:not([open]) { display: block; }
+.menu-debug:not([open]), #lesson-import-settings:not([open]) { display: block; }
 .menu-debug > .popup-card { margin: 12px 0; }
 .menu-library-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .menu-action-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--section-rule); padding-top: 12px; }
@@ -430,3 +430,33 @@
 @media (min-width: 761px) and (min-height: 1000px) {
  .library-folder-list, .library-score-list { max-height: calc(100dvh - var(--toolbar-height,58px) - 300px); }
 }
+.draft-timing-active #media-point-tools,
+.draft-timing-active #media-selection,
+.draft-timing-active #media-zoom-toolbar,
+.draft-timing-active #media-editor .media-timeline-scroll,
+.draft-timing-active #media-editor .media-timeline-spacer,
+.draft-timing-active #media-move-tools { display:none !important; }
+.draft-timing-active #media-mode-controls,
+.draft-timing-active #media-save-profile,
+.draft-timing-active #media-dirty,
+.draft-timing-active #media-finish-editing { display:none !important; }
+.draft-timing-active #media-editor { height:min(52vh,510px) !important; }
+.draft-timing-active #media-editor-toolbar { margin-bottom:2px; }
+.draft-timing-active .at-cursor-bar, .draft-timing-active .at-cursor-beat { visibility:hidden; }
+.draft-score-cursor { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; z-index:5; }
+#media-draft-timing h3 { margin:4px 0; font-size:1rem; }
+#media-draft-timing p { margin:6px 0; }
+#media-draft-timing details { margin:6px 0; }
+#media-draft-timing select { max-width:28em; }
+#media-draft-timing input[type=number] { width:11em; }
+#media-draft-seek { width:100%; }
+.draft-timeline-scroll { overflow-x:auto; width:100%; background:#f4f6fa; border:1px solid #a2aab4; position:sticky; top:0; z-index:1; }
+#media-draft-timeline { display:block; height:110px; min-width:100%; touch-action:none; user-select:none; }
+#media-draft-timing > p { font-size:12px; }
+#media-draft-timing button,#media-draft-timing select,#media-draft-timing input { min-height:30px; padding:5px 8px; font-size:13px; }
+#media-draft-timing input[type=number] { width:14em; }
+#media-draft-timeline [data-piece] { cursor:ew-resize; }
+#media-draft-timeline [data-target=select] { cursor:pointer; }
+.draft-selected { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:8px 0; }
+#media-draft-affected { flex-basis:100%; font-size:.85em; }
+#media-draft-unplaced { display:flex; flex-wrap:wrap; gap:4px; margin:6px 0; }

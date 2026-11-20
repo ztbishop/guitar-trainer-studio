@@ -1,0 +1,22 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -6217,7 +6217,7 @@
+ 				this.harmonicType === HarmonicType.Pinch && this.harmonicValue === 5) return 5;
+ 			// GtsTappedHarmonicTicks -2 selects the captured pitch with native note duration.
+ 			if (this.gtsTappedHarmonicTicks && this.isStringed && this.harmonicType === HarmonicType.Tap &&
+-				[3.2, 5, 7, 12].includes(this.harmonicValue)) return Math.trunc(this.harmonicValue);
++				([3.2, 5, 7, 12].includes(this.harmonicValue) || this.gtsTappedHarmonicTicks === -2 && this.harmonicValue === 4)) return Math.trunc(this.harmonicValue);
+ 			if (this.harmonicType === HarmonicType.None || !this.isStringed) return 0;
+ 			const value = this.harmonicValue;
+ 			if (ModelUtils.isAlmostEqualTo(value, 2.4)) return 36;
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -6213,7 +6213,7 @@
+ 				this.harmonicType === HarmonicType.Pinch && this.harmonicValue === 5) return 5;
+ 		// GtsTappedHarmonicTicks -2 selects the captured pitch with native note duration.
+ 		if (this.gtsTappedHarmonicTicks && this.isStringed && this.harmonicType === HarmonicType.Tap &&
+-			[3.2, 5, 7, 12].includes(this.harmonicValue)) return Math.trunc(this.harmonicValue);
++			([3.2, 5, 7, 12].includes(this.harmonicValue) || this.gtsTappedHarmonicTicks === -2 && this.harmonicValue === 4)) return Math.trunc(this.harmonicValue);
+ 		if (this.harmonicType === HarmonicType.None || !this.isStringed) return 0;
+ 		const value = this.harmonicValue;
+ 		if (ModelUtils.isAlmostEqualTo(value, 2.4)) return 36;

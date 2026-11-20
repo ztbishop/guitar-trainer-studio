@@ -1,6 +1,15 @@
-.lesson-import-dialog { width:min(520px,calc(100vw - 32px)); box-sizing:border-box; color:#edf2f7; background:#1b2430; border:1px solid #7790ac; border-radius:12px; padding:22px; overflow-wrap:anywhere; }
+.lesson-import-dialog { width:min(520px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); overflow:auto; box-sizing:border-box; color:#edf2f7; background:#1b2430; border:1px solid #7790ac; border-radius:12px; padding:22px; overflow-wrap:anywhere; }
 .lesson-import-dialog::backdrop { background:rgb(0 0 0 / .65); }
 .lesson-import-dialog h2 { margin-top:0; }
+.lesson-import-dialog p { margin:12px 0; }
+.lesson-import-dialog p:empty { display:none; }
+#lesson-import-resources { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:7px 12px; margin:12px 0; }
+#lesson-import-resources[hidden],#lesson-import-details[hidden] { display:none; }
+#lesson-import-resources dt { color:#b9c9dc; }
+#lesson-import-resources dd { margin:0; }
+#lesson-import-details { font-size:.9em; color:#c5d4e5; }
+#lesson-import-details summary { cursor:pointer; }
+#lesson-timing-review { color:#c5d4e5; }
 .lesson-import-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
 .lesson-import-actions button { font:inherit; padding:9px 14px; cursor:pointer; }
 .lesson-import-notice { position:fixed; right:16px; bottom:16px; z-index:10000; max-width:min(420px,calc(100vw - 64px)); margin:0; padding:12px 16px; border:1px solid #7790ac; border-radius:9px; color:#edf2f7; background:#1b2430; box-shadow:0 4px 18px #0004; pointer-events:none; }

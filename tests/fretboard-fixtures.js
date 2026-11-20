@@ -12,9 +12,15 @@ export const profiles = [
   {name:'Twelve strings',tuning:[64,64,59,59,55,55,50,50,45,45,40,40],capo:0},
 ];
 
-export function nativeAlphaTab() {
-  const context=vm.createContext({console,process,TextEncoder,TextDecoder});
-  vm.runInContext(readFileSync(new URL('../assets/vendor/alphatab/alphaTab.js',import.meta.url),'utf8'),context);
+export function nativeAlphaTab(globals={}) {
+  const context=vm.createContext({console,process,TextEncoder,TextDecoder,...globals});
+  let code=readFileSync(new URL('../assets/vendor/alphatab/alphaTab.js',import.meta.url),'utf8');
+  if(globals.AudioWorkletNode) {
+    // The browser normally registers this loader during DOM initialization.
+    const end=code.lastIndexOf('});');
+    code=code.slice(0,end)+'BrowserUiFacade.createAlphaSynthAudioWorklet=(ctx,settings)=>ctx.audioWorklet.addModule(settings.core.scriptFile);'+code.slice(end);
+  }
+  vm.runInContext(code,context);
   return context.alphaTab;
 }
 

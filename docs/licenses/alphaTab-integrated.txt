@@ -75,3 +75,5 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Authorized local adaptation (2026-11-17): marked native-duration tapped node-4 practice pitch; ordinary unmarked files retain native behavior. MPL-2.0 source patch: docs/licenses/alphaTab-tap-node-four.patch.

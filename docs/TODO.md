@@ -1,4 +1,289 @@
+## v1.0.2 release preparation — 2026-11-20
+
+- [x] Prepare high-level release notes and matching app version; verify regression tests and installed 1.9.0 asset hashes.
+- [x] Owner selected v1.0.2 stable; publication uses the configured main branch and a new annotated tag, preserving existing releases.
+
+## Native score layout restored — 2026-11-20
+
+For the next alphaTab version, use the [saved-fixture qualification command](ALPHATAB-UPGRADES.md#qualifying-19-and-later-releases). A failed gate identifies what needs investigation.
+
+Hard-refresh Trainer to use native beat placement. Hummingbird and the late-label fixture retain the written beat order. Dense annotations may overlap on the pinned 1.8.4 renderer. The 1.9 upgrade remains a separate qualification task. Start with the TAB string-line gap patch conflict and use the saved marked-score controls before retiring reader support. [Upgrade status](ALPHATAB-UPGRADES.md)
+
+## Draft review and recording recovery complete — 2026-11-17
+
+Use Clear reviewed notices → Use reviewed timing → Play when the reviewed candidate passes timing checks. The two review actions are adjacent and genuine boundary errors remain guarded. Terminal HTML recording errors now show Reload recording, retaining source/score/timing and paused position for an explicit retry. The owner's stall was a confirmed media read error at an unbuffered time; provider retry with the update is not yet a live acceptance. Preserve unsaved alignment before refreshing. Targeted automated checks pass; no catalog work is needed for this task. [Report and harness limitation](<../../../Lesson Bridge/docs/DRAFT-REVIEW-PLAYBACK.md>).
+
+## Native repeat-bar batch complete — 2026-11-17
+
+Native repeat-bar batch complete: 81421 and 81459/81460 now work directly from their original GPX files with complete Wait targets. That is three lesson references / two distinct recovered originals. Tapped/hammer notes, independent voices, let-ring guidance and internal tied sustains are retained. All actual notes and native playback remain unchanged; no alphaTab patch was added. All three affected lesson references pass actual local native import, complete Wait and cursor/fretboard checks; retained Soundslice routes remain verified. Hard-refresh Trainer and use the original GPX. No remaining native-practice blocker in these two files. Unproved boundary ties retain clear recovery guidance. This bounded task is at its stopping point. [Report](<../../../Lesson Bridge/docs/NATIVE-REPEAT-RECOVERY.md>).
+
+## Targeted saved repeat/Soundslice checks complete — 2026-11-17
+
+Targeted saved-repeat follow-up: three additional GPX originals plus 97826 control, seven Soundslice practice routes and eleven actual local imports checked. 97826 and Open D repeat sections pass complete native Wait; 81421’s tapped donors and 81459’s polyphonic let-ring donors retain explicit native guards and verified complete Soundslice practice fallbacks. All sampled Soundslice options pass with notes/ties intact. No runtime changes, video sync or catalog replay. Use complete Soundslice practice for 81421/81459; use native GPX for 97826 and 49482’s repeat sections. No new capture-generated success is counted. [Results and verification limits](<../../../Lesson Bridge/docs/REPEAT-SAMPLE-QA.md>).
+
+## Native GPX simile Wait fix complete — 2026-11-17
+
+97826’s native GPX now directly supplies all **214 played notes / 56 Wait groups**, recovering 79 notes in 14 repeat bars without changing its 135 written notes or the loaded score. The shared Trainer host fix supports proved simple/chained similes, including plain ties wholly inside a donor bar. Unsupported shapes clearly request an expanded practice score instead of silently omitting targets. Capture-only counts stay 499/500; the C/G source conflict remains unresolved. Hard-refresh Trainer; the raw original works directly. Targeted local import, five reader paths, genuine internal ties and six unchanged ordinary controls pass. No video sync/catalog replay. This task is at its stopping point. [Scope and evidence](NATIVE-SIMILE-PRACTICE.md).
+
+## Node-4 shared reader fix complete — 2026-11-17
+
+The approved marked native-duration Tap/node-4 pitch support is implemented and qualified in classic/core and both worker paths. 94723/94724 preserve all 295 notes/38 ties/257 Wait groups through actual local imports. Ordinary/unmarked originals remain native. All 43 patches and updater maintenance pass; no video sync or version/publication change. Hard-refresh both readers. [Use, targeted checks and source inventory](<../../../Lesson Bridge/docs/NODE4-HARMONIC-RECOVERY.md>). The remaining source slash-voicing ambiguity in 97826 is not a receiver defect; do not guess its music. Earlier inventories below are dated history.
+
+## Consolidated offline practice regression — 2026-11-17
+
+The complete saved practice corpus passes: 419 capture-generated score routes and 252 distinct original GPX/GP files representing 289 lesson/file references. Classic, core, classic-worker and core-worker readbacks preserve complete native pitches, string/fret, tuning/capo, clocks and ties; 2684 reader/worker cases pass. Real Trainer WaitSession with synthetic correct Poly input completes 79613 generated-score groups and 51782 original-file groups. All 364 qualified explicit Wait exports separately pass source/native/full-release readback. Other explicit Wait guards retain complete normal/native-grace/written-order score routes; no parts are silently dropped. No new runtime, reader, grading or vendor changes were needed.
+
+Three retained GP5 fingerprints (20930/20963/20978) predated the approved nonadjacent grace-sustain fix. Replaying the frozen older timeline reproduces each old hash exactly. Current native tie endpoints prove four longer, correct releases; every other pitch, note, attack, tie and clock is unchanged. The practice baseline records are reconciled with that proof; this is not a new repair. Other 285 retained original comparisons are exact. Original recording-timing statuses/evidence remain unchanged and were not revalidated. No provider requests, live browser, audible alignment or hardware test occurred.
+
+The user will continue additional courses: use targeted per-course GPX and Soundslice checks next and defer another consolidated run until a meaningful batch or shared runtime change. [Full offline result and limits](<../../../Lesson Bridge/docs/CONSOLIDATED-PRACTICE-REGRESSION.md>).
+
+## Countrified marked-course transfer audit — 2026-11-17
+
+All seven Countrified Rock Guitar Guidebook marked lessons have complete generated practice scores and readable original GPX files. The coordinated source fixes one narrowly proved v2 orphan start before an explicit different-fret hammer handoff at an exact barline, recovering 48993 with all 230 notes/21 actual connected ties retained. It reports the one unconnected start mark; provider playback and the native original confirm no tie there. No destination, attack or pitch is removed. Strict/default/timing qualification remains unchanged.
+
+Fifteen actual local imports pass: all seven originals untimed, all five available original drafts, two Soundslice practice imports and normal Soundslice timing for 48990 with 18 supplied/applied points. Draft activation stays disabled. Full original bytes, notes, tuning/capo, clocks and tie links compare exactly; the course retains 1714 notes/57 ties. 72 source Node checks pass (two optional skips); nine exact practice controls and classic/core/stock readbacks pass. No Trainer runtime, alphaTab, receiver/grading/protocol/version change. Original timing still has zero accepted/five draft-only/two guarded pairs; the Soundslice ordinary-timing result is a separate route. Current source inventory: 419 complete generated scores; original timing 95 accepted/143 draft-only/50 blocked across 288 pairs. No full-catalog, live-audio or hardware acceptance is claimed. [Complete course evidence and options](<../../../Lesson Bridge/docs/COUNTRIFIED-COURSE-AUDIT.md>).
+
+## Open D original GPX coverage completed — 2026-11-17
+
+All 13 marked-course GPX originals now pass actual local Trainer untimed imports, expanding the initial two-file coverage. Original bytes, all 6703 notes/519 ties, source tuning/capo, native beat clocks and complete tie links compare exactly after import. Nine original timing routes pass native validation; 49467 needs draft review because its supplied timing lacks the final sounding endpoint. The three performances (49482/49487/49494) retain original untimed/manual imports; source-witness grammar prevents verified recording sync. An additional timed-original import (49458) and draft-review import (49467) pass, with draft activation paused and no autoplay/save. The two earlier originals have identical native fingerprints.
+
+This completion changes documentation/evidence only; no new Trainer/runtime/reader/grading/protocol/version change. Both original GPX and generated practice availability are 13/13; earlier generated-score results remain valid. Overall source inventory stays 412 complete generated scores; original timing is now 95 accepted/138 draft-only/48 blocked across 281 pairs. Other courses were not replayed. The earlier two-original limitation is superseded. [Complete GPX status and scope](<../../../Lesson Bridge/docs/OPEN-D-GPX-AUDIT.md>).
+
+## Open D marked-course practice audit — 2026-11-17
+
+All 13 Soundslice-marked lessons in Acoustic Coffeehouse: Open D now provide complete generated practice scores; three new performance recoveries retain 4523 notes/452 ties. Full course proof retains 6703 notes/519 ties. The first ten captures use Open D; performances explicitly capture tuning one semitone lower with capos 3/0/5. The coordinated source preserves all tuning, capo, pitch/string/fret, attacks and ties while allowing the explicit v2 fretted TAB geometry to retain its captured piano sound preset and writing known navigation signs as guidance. Practice visits each written bar once, without jumps or recording sync. No instrument or tuning is guessed from the course title.
+
+Five actual local imports pass: three recovered practice scores with full Wait/release checks, generated explanation/Skip for 49473, and original GPX timing for 49469. All nine classic/core/stock readbacks match; 32 source tests and 13 exact practice controls pass. The browser harness had confused same-string/same-pitch notes at one onset in different voices; matching source measure/voice/beat resolves that false duration failure without weakening any sustain assertion. The receiver was already correct: no Trainer runtime, reader, alphaTab, grading, protocol or version change. No live audible or hardware acceptance is inferred. The owner requested a bounded practice-first audit, excluding 37 unmarked lessons and deferring catalog replay. Current source inventory: 412 complete generated-score IDs; original timing 87 accepted/137 draft-only/46 blocked across 270 pairs. [Course baseline and verified options](<../../../Lesson Bridge/docs/OPEN-D-COURSE-AUDIT.md>).
+
+## Jazz Discovery Vol. 3 held-out transfer audit — 2026-11-17
+
+All 25 course GPX originals read in the unchanged Trainer; 22 of 24 paired originals pass recording-timing compilation. Original 98100 has musical correspondence differences and 98109 retains an ambiguous boundary hold; original drafts/untimed import remain separate from verified activation. Both can use the generated Soundslice timed score instead. The coordinated source now recognizes explicitly labelled literal full-measure rests without optional fr metadata, preserving native silence, music/ties and supplied boundaries. All 24 generated timing routes pass; 6302 notes and 1021 ties remain. Existing 24 practice GP and 18 practice XML routes are unchanged.
+
+Seven actual local Trainer imports pass across original timing/draft, generated explanation/Skip, practice GP/XML, including earlier successful 87753. Eight older generated preparations and seven original results compare exactly; 55 source Node checks pass, one optional skip. The owner confirmed live extension video/timing access separately; fixture media do not establish audible alignment or hardware acceptance. No Trainer runtime, reader, alphaTab, grading, protocol or version changes. Retained source inventory is now 399 complete capture-generated scores; original timing totals are 86 accepted/137 draft-only/45 blocked across 268 pairs. Earlier rows were retained, not replayed. Defer long regressions until several unfamiliar courses, as requested. [Source baseline, lesson table and limits](<../../../Lesson Bridge/docs/JAZZ-DISCOVERY-3-AUDIT.md>).
+
+## Original bend-timing batch — 2026-11-17
+
+The coordinated source’s timing-only finite-bend witness and mapped bend/whammy curve checks recover four accepted original timing routes (46636/46643/46653/46663) and 19 explicit draft-review routes. All 23 affected local Trainer imports passed before pause; resume finished reconciliation/documentation without repeating them or catalog QA. Original bytes, 704 notes/171 tied continuations and all musical events remain intact. Source/original curve differences are retained as unresolved draft alternatives, with activation/grading paused. No pitch, note, attack, tie or endpoint is removed to fit a recording.
+
+All 35 original native musical fingerprints/features and five prior timing controls remain unchanged. 125 distinct source Node checks pass, five optional skips; eight Python checks pass. The existing receiver/native timing validation remains final authority. No Trainer runtime/alphaTab/host/grading/protocol/version change was needed. Reconciled inventory: 64 accepted, 135 draft-only, 45 strict/draft-blocked original pairs, out of 244; 375 saved complete generated practice-score routes remain. Only 35 affected rows were freshly replayed; other pair evidence is retained. This batch is complete, overall recording synchronization is not. Next recommended phase is held-out unfamiliar-course material when supplied. [Source evidence and remaining limits](<../../../Lesson Bridge/docs/ORIGINAL-BEND-TIMING.md>). No publication or live-provider/audible/physical MIDI acceptance is claimed.
+
+## Original navigation timing batch — 2026-11-16
+
+The coordinated source fixes shared traversal qualification for exact opening pickup markers, initial implicit repeats and existing GP-validated jump/terminal-ending profiles. Strict source music, endpoint/order and native sustain/omission guards remain. Ten original-score pairs now prepare and import explicit v5 drafts: 20970, 81419, 95562, 95576, 97196, 97200, 97212, 97222, 98086 and 98089. All original bytes, 4572 notes/127 tied continuations and native musical fingerprints are retained; unresolved issues remain and timing activation/recording grading stay paused. No new strict timing is accepted.
+
+All 31 investigated originals retain exact native event hashes/features; five prior controls keep their plan hashes and musical events. Fifteen actual Trainer imports pass, including the strict and genuine let-ring draft controls. 133 distinct source Node tests pass, five optional skips; eight final Python checks pass after one transient host-aborted loopback connection. This Trainer runtime/reader/host/grading/protocol/version is unchanged. Source inventory now has 60 accepted, 116 draft-only, 68 strict/draft-blocked pairs; 375 complete generated practice-score routes remain. Only 31 original rows are freshly replayed; other pair evidence remains dated. Overall timing work is not complete: the next largest remaining group is 35 bend contexts. [Source batch and remaining work](<../../../Lesson Bridge/docs/ORIGINAL-NAVIGATION-TIMING.md>). No publication or provider/audio/physical MIDI acceptance is claimed.
+
+## Final coordinated fallback QA — 2026-11-16
+
+The current local sender/receiver combination passes 33 saved browser checks across 19 lessons, including 27 actual imports. Verified flows include strict/draft originals, generated explanation/optional skip, complete GP/selected parts, independent URL/local video with active Wait, partial passages/omissions, qualified XML and explicit untimed manual alignment. One session moves timed GP → XML → passage → reference passage → full GP without stale anchors/reference or changed musical events. No autoplay/save or note/tie removal. The final test compares musical events rather than regenerated IDs/omitted expression metadata. No receiver/reader/host/grading/runtime fix was required.
+
+117 source Node checks pass (three named optional skips), 89 Trainer receiver/media checks pass and nine Python checks pass. The source inventory retains 375 complete generated-score IDs with unchanged capture hashes; no fresh whole-catalog conversion replay is claimed. Retained original-timing audit: 60 accepted, 106 draft-only, 78 strict/draft-blocked pairs, out of 244. These limits do not mean unavailable practice scores. XML expressiveness and conservative passage boundary limitations remain documented. All requested checklist features have qualified implementations; manual timing repair and broader notation support remain evidence-led follow-ups. No new score/sync count, version, package build or publication. No live provider/audible/physical MIDI acceptance inferred. [Final source QA matrix and remaining limits](<../../../Lesson Bridge/docs/FINAL-FALLBACK-QA.md>). This reconciliation is at its stopping point.
+
+## Qualified source practice MusicXML — 2026-11-16
+
+The coordinated source now supplies explicit practice MusicXML only after complete per-part source-proved GP/XML signature equality. This unchanged receiver handles it through ordinary v2 score-only import and exact existing reader proofs. Default display is rhythmic TAB, written bars once, no recording anchors; actual pitch elements, source tuning/string/fret, chord attacks and ties remain. Native expression is omitted with supported written guidance. Existing independent reference-video v6 is separate.
+
+Two actual local XML imports (87750, 98074) preserve 433 notes, one tie, 426 Wait groups, every source pitch/position and full sustain endpoint; offered/loaded XML bytes match, no autoplay/timing. Three reserved expressive cases stay XML-blocked, with GP recovery intact. A 95578 retry preserves earlier GP preparation. A two-part chord/tie reader regression passes. 38 source Node and four focused Python checks pass. Initial string-number mapping and non-guitar HTTP fixture assumptions were corrected without reader changes. No alphaTab/receiver runtime/grading/version change, no new complete-song or verified-sync count; no live provider/audio/physical MIDI acceptance inferred. [Source MusicXML contract and evidence](<../../../Lesson Bridge/docs/PRACTICE-MUSICXML.md>). Restart the visible source helper/reload Bridge; this Trainer needs no new runtime update for this task. This bounded task is at its stopping point.
+
+## Explicit source passage practice — 2026-11-16
+
+The coordinated private source now prepares an explicitly selected original written-measure range with included/omitted ranges in the offer and score titles. All source parts remain by default; explicitly selected parts name omitted parts. Tied cut-edge bars, similes, missing meters and unsupported source content are conservatively guarded. No note/tie flags are removed to force a cut. The existing practice GP/reader proofs and score-only version-2 receiver remain unchanged; optional reference video uses the existing independent v6 route.
+
+Actual local imports of 87750 measures 2–15 and 95578 measures 2–9 preserve all 95 notes, 11 connected ties, 72 Wait groups, source pitches/positions and full sustained endpoints. Loaded bytes equal offered bytes; no timing/autoplay. The loaded title itself discloses omissions. Tested 97232 tie-boundary cut stays blocked. A two-part reader regression retains both tied parts; 39 targeted source tests pass. Range edits invalidate Send. No receiver runtime, alphaTab, grading, protocol or version changes; no new complete-song or verified-sync count. No live provider/audio/physical MIDI acceptance inferred. [Source passage contract and evidence](<../../../Lesson Bridge/docs/PARTIAL-PASSAGE.md>). This task is at its stopping point.
+
+## Source blocker reporting — 2026-11-16
+
+The coordinated private source now displays independent attempted conversion/timing/practice failures and the fallback actually verified. Score-only or independent-reference practice, normal untimed manual alignment, pending choices and full failure are distinguished. Individually verified parts disclose omitted others; partial passages are not promised. Report changes do not alter GP bytes, source proofs, notes, ties, timing, readiness or this receiver runtime.
+
+Five saved controls and three actual local imports retain 1773 notes, 80 ties and 1415 performed Wait groups, full sustained endpoints, source positions and exact applied anchors for the timed case. 97222’s missing endpoint and 95578’s unsupported timed bend retain complete score-only practice. 82233 remains a normal timing mismatch; 87750/98074 retain success. 39 targeted source tests and isolated restoration/stale-state controls pass. No new reader/grading/protocol/version change, new score recovery or new synchronized lesson; no live provider/audio/physical MIDI acceptance inferred. [Source reporting contract and evidence](<../../../Lesson Bridge/docs/BLOCKER-REPORTING.md>). This task is at its stopping point.
+
+## Source capability-based timing recovery — 2026-11-16
+
+The coordinated private source now chooses timed-practice recovery by the existing strict exporter’s complete source/native musical proof and repeat order rather than its first normal-error string. All timing boundaries/endpoints remain mandatory. This Trainer runtime, reader and grading are unchanged; existing version-2 validation still owns final timing application. Three actual local imports preserve full notes/pitches/attacks/ties/releases and complete Wait groups: 87750 retains its exact active media anchors; 97222 (missing endpoint) and 95578 (unsupported timed bend) remain score-only. Two normal controls retain their behavior. 82 source Node tests pass, two optional skips, plus isolated UI error/summary-independent recovery and refusal controls. No new saved synchronized lesson or practice-score count is claimed; 375 complete-score routes remain. No provider/audible/physical MIDI acceptance, version change or publication. [Source contract and evidence](<../../../Lesson Bridge/docs/CAPABILITY-TIMING-RECOVERY.md>). This bounded task is at its stopping point.
+
+## Practice score reference video — 2026-11-16
+
+- [x] Keep an explicitly selected recording alongside simplified practice scores through strict v6/reference-only capability, with no estimated or supplied sync.
+- [x] Preserve all notes/pitches/attacks/ties/releases and existing automatic-import/local-file review choices.
+- [x] Verify six real local imports, linked/local MP4 controls, independent active Wait, unload/new-score cleanup and old/schema/permission controls.
+- [x] Update both projects' dev notes and the imported broader QA status; keep alphaTab, versions and the 375-score inventory unchanged.
+
+[Bridge reference-video contract and saved-case evidence](<../../../Lesson Bridge/docs/PRACTICE-REFERENCE-VIDEO.md>). This bounded task is complete locally. Authenticated provider playback, live YouTube, audible timing and physical MIDI acceptance remain separate; no synchronization is claimed.
+
+## Generated source explanation/skip acceptance — 2026-11-16
+
+- [x] Verify five generated Soundslice score imports and existing optional Skip to music, retaining every actual note/tie/target.
+- [x] Keep missing-endpoint cases guarded and explicit score-only recovery available; preserve original-file preparation.
+- [x] Record strict scope and source/destination/native checks in both project notes.
+
+[Bridge saved-source explanation/skip evidence](<../../../Lesson Bridge/docs/SOUNDSLICE-EXPLANATION-RECOVERY.md>). This bounded task is complete locally. Multi-part/unsupported notation expansion and incomplete timing recovery remain separate, evidence-led work.
+
+## Both 97232 parts recovered — 2026-11-16
+
+- [x] Apply the separately approved shared terminal-clock extension, preserving all 338 notes/104 ties/225 groups and final rest across both parts.
+- [x] Verify classic/core/worker, normal/SMF MIDI, ordinary unmarked GP, old/mixed refusal, actual Trainer imports and 52 prior timelines.
+- [x] Register/replay 42 patches and update source notices, manifests and future alphaTab port instructions.
+- [x] Reconcile inventory: all 375 saved IDs have a complete generated score route.
+
+[Bridge terminal evidence and inventory](<../../../Lesson Bridge/docs/TERMINAL-PART-RECOVERY.md>). This score task is complete; the broader imported QA/product checklist remains separate.
+
+## Terminal first-part sustain investigated — 2026-11-16
+
+- [x] Diagnose 97232’s genuine final tied overflow and prove the current tick lookup clips it.
+- [x] Stage an isolated both-part terminal-clock proof preserving 338 notes, 104 ties and 225 groups.
+- [ ] Separate reader authorization, then bounded source/reader integration and full classic/core/worker/Trainer/updater verification.
+
+[Bridge proposal and isolated evidence](<../../../Lesson Bridge/docs/TERMINAL-PART-RECOVERY.md>). Production still offers complete part 2; diagnostic output is not an accepted arrangement.
+
+## Last saved-score-only pair recovered — 2026-11-16
+
+- [x] Verify 95582/95586 complete imports: 2105 notes, 288 ties, 1083 groups; native tied pickup, written navigation and disclosed trill instruction preserved.
+- [x] Retain 50 prior complete timelines; update the two inventory rows and imported QA status.
+- [ ] Remaining complete-arrangement gap, if requested: 97232 first-part overfull measure; complete second part is already available.
+
+[Bridge evidence and current inventory](<../../../Lesson Bridge/docs/DIRECTIONS-ORNAMENT-RECOVERY.md>). The broader imported QA checklist is not fully implemented; see the linked status record.
+
+## Approved clock/valley recovery complete — 2026-11-16
+
+- [x] Apply the explicitly approved shared short 12/8 clock and zero-midpoint bend-valley fixes to classic/core, keeping every actual note, pitch, attack and tie.
+- [x] Verify 95578 and both earlier tie fixes through complete source readback and actual local Trainer imports; retain 49 prior complete timelines.
+- [x] Register/replay 41 patches, manifests/hashes and source notices; document required future alphaTab ports and tests.
+- [x] Reconcile requested rows: 372 complete generated, one selected-part-only, two saved-score-only.
+
+This approved batch is complete locally. Next source investigation, if requested: 95582 directions and 95586 tro. [Bridge evidence and current inventory](<../../../Lesson Bridge/docs/TIE-CLOCK-RECOVERY.md>). Hardware/audio acceptance remains separate. The earlier unchecked authorization item below is superseded.
+
+## Tie-start recovery and remaining short-bar reader proposal — 2026-11-16
+
+- [x] Verify complete 95567/95572 imports: 4557 notes, 426 connected ties, 1806 groups and full releases, with unchanged Trainer runtime.
+- [x] Reconcile the three saved rows: inventory now 371 complete generated, one selected-part-only, three saved-score-only.
+- [ ] Obtain separate authorization before integrating 95578's 5520-tick internal clock and zero-midpoint bend-valley reader corrections; isolated full-score feasibility passes only.
+
+[Bridge evidence and isolated proposal](<../../../Lesson Bridge/docs/TIE-CLOCK-RECOVERY.md>). Hardware/audio/live-provider acceptance remains separate.
+
+## Harmonic recovery and updater qualification — 2026-11-16 (local only)
+
+- [x] Preserve exact sounding pitches/notes/attacks/ties for 91151 and 97125/97126, including the expressly authorized captured-pinch reader extension.
+- [x] Keep unmarked GP native; verify classic/core, both worker codecs, normal/SMF MIDI, repeated ties, invalid-marker and old/mixed-reader controls.
+- [x] Register the replayable MPL patch, qualified hashes and manifest; document required porting/tests in both alphaTab updater documents. All 39 patches replay; updater maintenance checks pass.
+- [x] Refresh the three saved inventory rows; no lesson ID remains without a verified saved route. Five still need their saved score and one has only a complete selected part.
+
+This harmonic batch is at its stopping point. [Bridge harmonic evidence and current inventory](<../../../Lesson Bridge/docs/HARMONIC-RECOVERY.md>). Physical MIDI, audible and live-provider acceptance remain separate.
+
+## Shared bend acceptance and saved inventory — 2026-11-16 (local only)
+
+- [x] Verify nine newly recovered Wait scores: all 5259 notes, 370 ties, 3586 groups and full releases; keep existing Trainer runtime unchanged.
+- [x] Verify prepared-practice Send, explicit Wait imports, reader/worker roundtrips, written-range controls and 35 prior complete timelines.
+- [x] Reconcile 375 saved lesson IDs; preserve separate generated/selected-part/saved-original/timing evidence.
+- [ ] Next coordinated investigation: non-octave harmonic patterns in 91151 and 97125/97126, with full pitch/attack/tie proof; no blind TAB-only simplification.
+
+[Bridge evidence and reconciled inventory](<../../../Lesson Bridge/docs/BEND-FAMILY-RECOVERY.md>). This bend batch is at its stopping point. Installed-provider, physical MIDI and audible acceptance remain separate.
+
+## Nonadjacent grace sustain qualification — 2026-11-16 (local only)
+
+- [x] Repair the shared practice sustain for complete same-group on-beat/before-beat grace ties, preserving every native note, attack and tie.
+- [x] Verify 20930/20963/20978 explicit Wait imports: 664 notes, four ties, 281 Wait groups and full releases. Compare retained normal GP5 and Wait outputs through current/stock/worker readers.
+- [x] Keep repeat/rest/reattack/missing-event guards and recording timing evidence; retain 32 prior complete timelines and eight independent source guards.
+- [ ] Owner acceptance: hard-refresh Trainer/reload Bridge/restart its visible helper, hold the first grace through the intervening other-string grace, and check the tied release with the MIDI guitar. Audible/live-provider acceptance remains separate.
+
+See [shared fix and test scope](DEV-NOTES.md#shared-nonadjacent-grace-tie-sustain--2026-11-16-local-only). Three Wait fallbacks were repaired; these lessons already had normal conversions.
+
+## Tremolo and beam practice qualification — 2026-11-16 (local only)
+
+- [x] Verify complete generated 97218/97230 practice imports: 432 source notes plus 89 required repeated occurrences, 65 ties and 353 Wait groups.
+- [x] Prove repeated chords, grace slide, exact clocks and full sustained releases through current/stock readers and worker roundtrips; retain 30 prior successful reports and eleven independent guards.
+- [x] Keep normal/native-shorthand imports and strict timing separate; no Trainer grading/runtime/vendor patch.
+- [ ] Owner acceptance: restart the visible source helper/reload Bridge, Prepare the Soundslice score and use Wait with written bend ranges enabled. Strike every displayed tremolo repetition; hardware/audio acceptance remains separate.
+
+See [qualification and limits](DEV-NOTES.md#shared-tremolo-and-beam-practice-acceptance--2026-11-16-local-only).
+
+## Native grace-tie practice qualification — 2026-11-16 (local only)
+
+- [x] Verify eight complete saved practice scores in the unchanged Trainer, including the previously blocked 97226/97253 captures: 4,714 notes, 587 ties and 2,901 Wait groups retained.
+- [x] Prove full tied releases, actual pre-bent pitch acceptance and outside-range rejection through classic/core/stock readers and worker roundtrips; no vendor/runtime/grading change.
+- [x] Keep explicit score-only disclosure, strict timing isolation, nonadjacent/dangling/unknown-content guards and the 22 prior exact practice controls.
+- [ ] Owner acceptance: restart the visible source helper/reload Bridge, select the Soundslice score and use Wait with written bend ranges enabled. Provider audio and physical MIDI remain separate.
+
+See [full qualification](DEV-NOTES.md#shared-native-grace-tie-acceptance--2026-11-16-local-only). No new TAB-only mode; possible future simplified TAB still requires proved notes/ties and readable disclosed rhythm.
+
+## Complete practice parts and short-grace qualification — 2026-11-16 (local only)
+
+- [x] Qualify the unchanged receiver with four two-part scores, one explicitly selected complete second part and two complete short-grace scores; preserve every included source note/tie and every Wait attack.
+- [x] Keep failed/omitted parts explicit, per-part preflight proofs, ordinary score-only lesson-v2 offers, no autoplay/saving and no inferred sync. Verify source-choice invalidation and independent selected-part download.
+- [x] Record 17 isolated browser results and coordinated tests without copying private capture data here. No Trainer runtime or vendor changes were needed.
+- [ ] Owner acceptance: reload the local extension/restart its visible helper; try a recovered score in Wait using the existing practice-track selector. Native expression, physical MIDI and real provider media remain separate from automated proof.
+
+See [shared import evidence](DEV-NOTES.md#shared-practice-part-and-short-grace-imports--2026-11-16-local-only). Remaining pre-bent grace ties, repeated tremolo attacks and overfull source parts need source-side investigation; no blanket receiver bypass.
+
+## Shared finite carry saved audit — 2026-11-16 (local only)
+
+- [x] Prove complete ordinary tie chains through actual contiguous performed bars and finite standalone vibrato, preserving every native note/tie/event. Keep actual cross-break sustain, repeat-jump/malformed links and let-ring guarded.
+- [x] Check all 244 saved original practice event arrays against the previous normalizer, with no changes. 98063 now passes; the older within-bar fix also covers 98064. Coordinated Bridge fixes bring normal timed coverage from 39 to 60, plus 25 new explicit draft-only routes.
+- [x] 89 focused Trainer tests and all 50 coordinated isolated browser cases pass; document counts, native/source limitations and private evidence without adding lesson files here.
+- [ ] Owner acceptance: hard-refresh Trainer and recheck/send matching originals with actual provider recordings; confirm audible alignment and physical MIDI as usual.
+
+See [shared carry investigation and limits](DEV-NOTES.md#shared-finite-carry-audit-across-saved-lessons--2026-11-16-local-only). This broad saved-input task is at its stopping point; no publication.
+
+## Finite native ties at recording breaks — 2026-11-16 (local only)
+
+- [x] Fix 97483's false hold-boundary rejection using proved finite within-bar native ties; retain exact original notes, tied sustains, bytes and recording plan. Normal timed v4 import now passes.
+- [x] 86 focused checks, native classic/core/worker readbacks, supplied/synthetic receiver imports and retained explanation browser checks pass. Record the separate short-target timeout in the broader interval browser; no unrelated harness cleanup or catalog replay.
+- [ ] Owner acceptance: hard-refresh local Trainer, use Bridge's Advanced → Check timing again, then Send the original with its video/timing. Confirm audible tied phrase endings. No draft/manual retiming is required for this rejection.
+
+See [diagnosis, proof and limits](DEV-NOTES.md#finite-native-ties-at-recording-breaks--2026-11-16-local-only). No vendor/Bridge runtime/protocol change or publication.
+
+## Visual draft alignment — 2026-11-15 (local only)
+
+- [x] Replace passage forms with one draft timeline, continuous recording transport, native-geometry display-only score tracking, selected occurrence mapping, explicit whole/point editing and original-evidence preservation.
+- [x] Keep unknown endpoints unplaced, existing strict validation unchanged, all draft grading paused, and explicit export/reopen/activation.
+- [ ] Owner acceptance: actual 97322 video/audible alignment and provider seek/buffering; 97311 still needs complete valid correspondence or a matching score.
+
 # Guitar Trainer Studio: status and to-do
+
+## Explicit Draft timing — 2026-11-15 (local only)
+
+- [x] 82 focused checks pass including the four supplied saved controls; isolated draft, ordinary, explanation and interval browser checks pass. Syntax and whitespace pass. No catalog replay.
+
+- [x] Add separately gated lesson-v5 / draft-recording-timing-v1 / draft-timing-v1 recovery with explicit review, immutable source evidence and editable Media Sync working copy. See [exact contract](DRAFT-TIMING.md).
+- [x] Keep all draft recording grading paused until complete strict validation and explicit Use reviewed timing. Preserve verified sections/anchors, list missing endpoints/unmapped visits/range issues, provide bounded passage listening, Undo/Redo/restore and explicit draft export/reopen. No fit/rescale/clamp or auto save.
+- [ ] Bridge follow-up constructs and explicitly sends drafts only after the new exact capability. Normal/verified workflows stay unchanged.
+- [ ] Owner checks one intentionally incomplete lesson after Bridge integration; 97311 musical correspondence remains unresolved, 97322/97326 need owner-supplied endpoints. 97330 stays verified at its actual duration. No publishing authorized.
+
+
+## Matched timing intervals — 2026-11-15 (local only)
+
+- [x] Add the strict, independently capability-gated interval format from Bridge's proposal; preserve versions 1–4, original explanation timing, score bytes, exact anchors, recording identity and actual duration checks. See [exact contract](TIMING-MATCH.md).
+- [x] Keep source rests distinct from explanations and skip only reviewed, independently verified silent score omissions, including first visits. Require complete native evidence from all tracks/voices; reject sounding omissions and ambiguous holds/ties.
+- [x] Preserve grading suspension, neutral listen/skip controls, retained musical targets/loops, complete profile plans, default-on saved automatic import, local-file selection, no autoplay and explicit saving.
+- [x] Pass 173 focused Node checks (including complete 87753 control), syntax/whitespace checks, and isolated interval, existing explanation and legacy-import browser regressions. Paused omitted-measure seeks keep provider/cursor together; Reset and delayed native seek callbacks retain the requested recording position. Synthetic playback fixtures only; no catalog replay.
+- [ ] Bridge follow-up must query `score-timing-match-v1`, construct the strict runtime plan from reviewed evidence, and keep unsupported cases blocked. No Bridge edits or publishing in this task.
+- [ ] After Bridge integration, owner hard-refreshes Trainer and checks one newly supported lesson in the normal browser. Actual audible/provider/Fishman acceptance is not inferred from automated tests.
+
+## Optional automatic lesson import — 2026-11-15 (local only)
+
+- [x] Add **Settings → Lesson imports → Import helper lessons automatically**, on by default with saved On/Off choices retained in localStorage. The Lesson imports section starts collapsed and can be expanded to change the option. Non-local-choice offers bypass review through the existing import pipeline; local recordings still require file selection and Import.
+- [x] Follow-up checks: 51 focused dialog/v4 tests and isolated Chrome default-on, compact collapse/expansion and saved On/Off reload checks pass. The earlier default-off decision is superseded.
+- [x] Keep schema/hash/capability/native-order/duration checks, original bytes, paused playback and explicit saving. Acknowledge receipt before loading completes; block overlapping imports, show progress, and surface loading failures in the attention dialog. Invalid offers still return rejection to the sender.
+- [x] Pass 59 focused receiver/legacy/v4 checks, syntax and whitespace checks, and isolated Chrome opt-in/reload/automatic online/local-file/duration-failure checks. Synthetic fixtures only; no catalog replay or new hardware claim.
+- [ ] Owner hard-refreshes and checks the collapsed Settings section and Send in the normal browser; any previously saved Off choice remains off. Bridge needs no automatic-import change; bringing its matched Trainer tab/window forward is a separate Bridge task requested by prompt.
+- [ ] Keep the existing publication hold: no commit, push or deployment.
+
+## Compact explanation import review — 2026-11-15
+
+- [x] Owner confirmed lesson 87753 works. Keep its 77 musical visits / 20 explanations and only omissions 50–53 (second pass of measures 46–49), with original GPX unchanged.
+- [x] Use one Import/Cancel review for online recordings; Import confirms the displayed recording. Keep local-file selection required. Put technical recording ID and native visit numbers in closed Details; show a plain repeat adjustment in the main review.
+- [x] Preserve strict v4/hash/native-order/duration validation, capability protocol, no autoplay and no automatic saving. Changes stay in Trainer; no commit, push or deployment.
+- [x] Focused receiver/schema/complete-87753 evidence tests, isolated Chrome one-click URL import/local selection/Cancel/no-autoplay/no-save checks, and desktop/phone visual review pass. Playback/grading code is unchanged.
+- [ ] Owner can hard-refresh and check the shorter online review, or choose a local recording and import without a separate checkbox.
+
+## Explanation timing receiver — 2026-11-15 (local, not published)
+
+- [x] Implement strict v4 / explanation-plan-v1 reception, score/recording binding, explicit review and capability negotiation. Keep legacy imports and original score bytes/native traversal intact. See [contract and Bridge handoff](EXPLANATION-TIMING.md).
+- [x] Separate explanations from music; support holds, listen/skip, seeking, pause, native loops/count-in, Wait, Realtime and reviewed repeat omissions. Guard ties/sustains crossing changed boundaries. Keep existing input tolerances.
+- [x] Save complete plans in profiles/backups. Explanation timing is read-only in ordinary anchor editing; Move one/all/section remain available for legacy profiles.
+- [x] Verify the supplied original GPX against external preparation: 81 native visits, 77 retained, 20 breaks, omissions 50–53 only, 106 times and final measure retained. Focused synthetic offline/native-browser checks; no private catalog replay.
+- [x] Final checks: 723 Node tests, 14 application-module syntax checks, whitespace review, complete explanation browser runner (including final-measure loops, profile restore and too-short media), and existing sync/practice + lesson-import browser regressions pass.
+- [x] Bridge implemented preparation and capability-gated Send separately; owner reported lesson 87753 works. Its newer workflow is described in private `dist/lesson-workflow-20261115/REPORT.md`. Specific Fishman and audible technique acceptance are not inferred from that report.
+- [ ] Publication explicitly held for this task: no commit, push, deployment, version change or release.
 
 ## Timing fallback and group sync movement — 2026-11-15
 
@@ -6,7 +291,7 @@
 - [x] Add Move all / Move selected section for saved-point dragging and nudging. Inclusive section endpoints shift uniformly, outside anchors stay fixed, and groups stop at neighbors/recording edges. One Undo reverses the whole gesture; no locked-target or stretching controls. Guard Undo and source replacement during dragging.
 - [x] Pass all 683 Node checks, focused native import and group-movement browser checks, import-timeline and sync/practice regressions, syntax and whitespace checks. Synthetic demo/recording fixtures only; no private lesson collection or Lesson Bridge source changes.
 - [ ] Owner hard-refreshes and imports a known timing mismatch: confirm score/video load, clear manual-alignment warning and no autoplay. Try Move all and a middle section, drag against a neighbor, Undo, and preview before saving. Audible/provider/physical-MIDI acceptance remains local.
-- [ ] Explanation pauses and missing explanation-measure reconciliation remain on hold until the owner provides a concrete example.
+- Explanation-pause deferral superseded by the supplied 87753 example and receiver work above. Automatic inference without verified source evidence remains unsupported.
 
 ## Written bend ranges — 2026-11-15
 

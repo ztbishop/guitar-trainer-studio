@@ -31,6 +31,8 @@ function wav() {
     const base=`http://127.0.0.1:${server.address().port}`;
     browser=await chromium.launch({headless:true,channel:process.env.GTS_BROWSER_CHANNEL || 'chrome'});
     const context=await browser.newContext({viewport:{width:1360,height:900}});
+    // This runner covers explicit review; the default-on path has its own checks.
+    await context.addInitScript(()=>localStorage.setItem('gts.lessonImport.auto','false'));
     let mediaRequests=0;
     await context.route('https://recording.test/**',route=>{
       mediaRequests++;const bytes=wav(),range=route.request().headers().range?.match(/bytes=(\d+)-(\d*)/);
@@ -190,7 +192,8 @@ function wav() {
     assert.match(await page.locator('#lesson-recording-name').innerText(),/local-take.wav/,'canceling replacement picker retains selection');
     await page.locator('#lesson-recording-file').setInputFiles({name:'notes.txt',mimeType:'text/plain',buffer:Buffer.from('not media')});
     await page.locator('#lesson-import-dialog [role=status]').filter({hasText:'Choose an audio or video file'}).waitFor();
-    assert.match(await page.locator('#lesson-recording-name').innerText(),/local-take.wav/);
+    assert.equal(await page.locator('#lesson-recording-name').innerText(),'No recording selected.');
+    assert.equal(await page.getByRole('button',{name:'Import lesson',exact:true}).isDisabled(),true,'an invalid replacement cannot reuse the previously valid file');
     assert.equal(await page.evaluate(()=>lessonState.currentScoreFile===beforeLocal.score && JSON.stringify(lessonState.media.points)===beforeLocal.points && document.querySelector('#media-audio').src===beforeLocal.src),true,'selection alone leaves current lesson unchanged');
     await page.getByRole('button',{name:'Cancel',exact:true}).click();
     assert.equal(await page.evaluate(()=>lessonState.currentScoreFile===beforeLocal.score && document.querySelector('#media-audio').src===beforeLocal.src),true,'cancel review preserves current lesson');

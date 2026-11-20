@@ -47,3 +47,5 @@ For an explicitly authorized release: verify that the proposed version/tag is un
 Stable v1.0.0 was explicitly authorized on 2026-10-29. Preserve the earlier beta release and all tags.
 
 Beta v0.0.4 was explicitly authorized on 2026-10-24, lifting the prior documentation/licensing hold. Its checks and publication result belong in DEV-NOTES.md and the task handoff; physical hardware acceptance and actual public hosting are separate from automated evidence.
+
+Stable v1.0.2 was explicitly authorized on 2026-11-20. Its simple public notes are in docs/releases/v1.0.2.md. Preserve prior releases and tags.

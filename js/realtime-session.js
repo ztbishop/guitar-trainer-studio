@@ -32,8 +32,17 @@ export class RealtimeSession extends WaitSession {
   }
   eventTime(at){return (this.pausedAt??at)-this.pauseOffset;}
   prepareAttack(){return false;}
-  window(index,speed){return realtimeHitWindow(this.events[index],this.events[index+1],speed,this.timing);}
+  window(index,speed){
+    const event=this.events[index],window=realtimeHitWindow(event,this.events[index+1],speed,this.timing);
+    if(Number.isFinite(event.practiceSectionStartMs))window.start=Math.max(window.start,event.practiceSectionStartMs-Math.max(0,this.latencyMs)*speed);
+    if(Number.isFinite(event.practiceSectionEndMs)){window.end=Math.min(window.end,event.practiceSectionEndMs);window.exclusive=true;}
+    return window;
+  }
   pauseEvidence(){this.held.clear();this.pitch.reset();this.pitchAttacks.clear();this.spikeCandidates.clear();this.singlePrecursors.clear();this.bendGestures.clear();}
+  breakEvidence(){
+    this.pauseEvidence();this.tail=null;this.clearLiveWrong();
+    for(const record of this.records)record.burst=null;
+  }
   advance(scoreMs,speed=1,at=null) {
     if(!this.started || this.completed)return;
     if(Number.isFinite(at))this.clockAt=at;
@@ -63,13 +72,15 @@ export class RealtimeSession extends WaitSession {
     }
     if(this.finishRequested&&!this.pendingErrors.size)this.completed=true;
   }
-  selectTarget(note,correctedMs,speed){
+  selectTarget(note,correctedMs,speed,receivedMs=correctedMs){
     // The current pending pitch wins over an early repeat. Only the immediate
     // next onset may use early grace, so fast passages cannot skip ahead.
-    const next=this.records.find(r=>r.timeMs>correctedMs);
+    const inSection=r=>(!Number.isFinite(r.event.practiceSectionStartMs)||receivedMs>=r.event.practiceSectionStartMs) &&
+      (!Number.isFinite(r.event.practiceSectionEndMs)||receivedMs<r.event.practiceSectionEndMs);
+    const next=this.records.find(r=>!r.skipped&&!r.finalized&&inSection(r)&&r.timeMs>correctedMs);
     const nearby=this.records.filter((r,index)=>{
       const window=this.window(index,speed);
-      return !r.skipped&&!r.finalized&&(r.timeMs<=correctedMs || r===next) &&
+      return !r.skipped&&!r.finalized&&inSection(r)&&(r.timeMs<=correctedMs || r===next) &&
         correctedMs>=window.start&&!realtimeWindowExpired(window,correctedMs);
     }).sort((a,b)=>a.timeMs-b.timeMs);
     const nearest=nearby[0];
@@ -87,7 +98,7 @@ export class RealtimeSession extends WaitSession {
     const preview=this.hex?this.pitch.noteOn({...note,at}):note;
     const continuation=this.consumeBendContinuation(preview,at);
     if(continuation){this.advance(correctedMs,speed,at);return continuation;}
-    const record=this.selectTarget(preview,correctedMs,speed);
+    const record=this.selectTarget(preview,correctedMs,speed,scoreMs);
     this.inputClock={scoreMs:correctedMs,speed};
     if(!record){this.advance(correctedMs,speed,at);const wrong={type:'wrong',eventId:null,midi:note.midi,channel:note.channel,at,scoreMs:correctedMs,wrongPitch:false};if(this.ignoreBriefErrors){wrong.pending=true;this.pendingErrors.set(wrong,this.orphanRecord);this.activeBriefErrors.set(wrong,this.orphanRecord);}else this.orphanRecord.wrong++;
       this.orphanWrong.push(wrong);return this.lastFeedback={...wrong,type:wrong.pending?'pending-off-target':'wrong'};}

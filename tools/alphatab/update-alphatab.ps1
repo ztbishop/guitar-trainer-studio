@@ -52,7 +52,7 @@ function Get-Download([string]$Url, [string]$Destination) {
 
 try {
     if ($CheckOnly -and $PrepareOnly) { throw 'Choose either -CheckOnly or -PrepareOnly.' }
-    $plan = Get-LocalAlphaTabPlan $toolRoot $bundles
+    $plan = Get-LocalAlphaTabPlan $toolRoot $bundles $Version
     if (-not (Test-Path -LiteralPath (Join-Path $repoRoot 'js\alphatab-host.js') -PathType Leaf)) {
         throw 'Run this tool from its tools/alphatab folder inside GuitarTrainerStudio.'
     }
@@ -76,6 +76,7 @@ try {
         }
     }
     if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw 'Use a stable version such as 1.8.4.' }
+    $plan = Get-LocalAlphaTabPlan $toolRoot $bundles $Version
     Write-Host "Preparing alphaTab $Version from the official npm package..."
     $metadata = Invoke-RestMethod -Uri "https://registry.npmjs.org/@coderline/alphatab/$Version" -TimeoutSec 60
     if ($metadata.name -ne '@coderline/alphatab' -or $metadata.version -ne $Version) { throw 'Unexpected package metadata.' }
@@ -113,7 +114,7 @@ try {
         if ($header -notmatch ('alphaTab v' + [regex]::Escape($Version) + '(?:\s|\()')) { throw "Wrong version header in $file" }
     }
     if ($PrepareOnly) { $retainStage = $true }
-    if (-not $PrepareOnly -and $Version -cne $plan.qualifiedVersion) {
+    if (-not $PrepareOnly -and ($Version -cne $plan.qualifiedVersion -or ($plan.PSObject.Properties['installApproved'] -and !$plan.installApproved))) {
         throw "alphaTab $Version has not been qualified. Use -PrepareOnly and follow docs/ALPHATAB-UPGRADES.md before installing."
     }
     $patchResult = Invoke-LocalAlphaTabPatches $plan $prepared $stageRoot $repoRoot $Version
@@ -126,6 +127,7 @@ try {
     }
     $record | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $prepared 'vendor-manifest.json') -Encoding UTF8
     Write-Host 'Package integrity, version, runtime assets and required license notices verified.'
+    if ($plan.PSObject.Properties['integrity'] -and $Version -ceq $plan.qualifiedVersion -and $integrity -cne $plan.integrity) { throw 'Qualified package integrity changed.' }
     if ($PrepareOnly) {
         Write-Host 'Candidate only: patch application does not qualify a new release or change installed assets.'
     } elseif ($CheckOnly) {

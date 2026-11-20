@@ -16,7 +16,10 @@ test('missing profile placement defaults left while valid saved placements remai
 });
 
 test('native 1.8.4 worker info compatibility fixes only the recursive getter and is idempotent',()=>{
-  assert.ok(installAlphaTabCompatibility(native));
+  const recursive={synth:{AlphaSynthWebWorkerApi:class {get loadedMidiInfo(){return this.loadedMidiInfo;}}}};
+  assert.ok(installAlphaTabCompatibility(recursive));
+  assert.equal(installAlphaTabCompatibility(recursive),false);
+  installAlphaTabCompatibility(native);
   const worker=Object.create(native.synth.AlphaSynthWebWorkerApi.prototype),info={currentTick:42};worker._loadedMidiInfo=info;
   assert.equal(worker.loadedMidiInfo,info);assert.equal(installAlphaTabCompatibility(native),false);
   const untouched={synth:{AlphaSynthWebWorkerApi:class {get loadedMidiInfo(){return 'correct';}}}};
@@ -64,7 +67,7 @@ test('profile export validates version and strips unknown properties and media c
   assert.ok(!('grading' in parsed));assert.ok(!('recordingBytes' in parsed));
   assert.throws(()=>validateProfile({...profile(),scoreHash:'file-name'}));
   assert.throws(()=>validateProfile({...profile(),points:[{barIndex:-1}]}));
-  assert.throws(()=>parseProfileExport({format:MEDIA_PROFILE_FORMAT,version:2,profiles:[]}));
+  assert.throws(()=>parseProfileExport({format:MEDIA_PROFILE_FORMAT,version:3,profiles:[]}));
 });
 test('library version 2 accepts sync profiles while version 1 remains readable and invalid profiles reject',async()=>{
   const backup={format:LIBRARY_FORMAT,version:2,folders:[],scores:[{id:'score',fileName:'a.gp5',title:'Song',data:encodeBytes(new Uint8Array([1]))}],mediaProfiles:[profile()]};

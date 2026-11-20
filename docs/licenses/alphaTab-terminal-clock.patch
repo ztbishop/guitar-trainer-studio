@@ -1,0 +1,70 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -3574,6 +3574,14 @@
+ 			for (const mb of this.masterBars) {
+ 				mb.finish(sharedDataBag);
+ 				if (!mb.gtsPerformedBarTicks) continue;
++                // Explicit terminal clock only; unmarked GP keeps native timing.
++                if (mb.gtsPerformedBarTicks === 4440) {
++                    const terminalBars = this.tracks.length >= 1 && this.tracks.length <= 8 && this.tracks.every(t => t.staves.length === 1 && t.staves[0].tuning.length >= 4 && t.staves[0].tuning.length <= 6) ? this.tracks.map(t => t.staves[0].bars[mb.index]) : [];
++                    const terminalLengths = terminalBars.map(b => b.voices.filter(v => !v.isEmpty).map(v => v.calculateDuration()));
++                    const terminalTail = terminalBars.every(b => b.voices.every(v => v.beats.every(e => e.playbackStart < 3840 || e.graceType === GraceType.None && (e.isRest || e.notes.every(n => n.isTieDestination && n.tieOrigin && n.tieOrigin.tieDestination === n && n.tieOrigin.beat.absolutePlaybackStart + n.tieOrigin.beat.playbackDuration === e.absolutePlaybackStart)))));
++                    if (mb.index === 0 || mb.nextMasterBar || mb.timeSignatureNumerator !== 4 || mb.timeSignatureDenominator !== 4 || mb.isAnacrusis || mb.isFreeTime || mb.isRepeatStart || mb.isRepeatEnd || mb.alternateEndings || mb.tripletFeel !== TripletFeel.NoTripletFeel || mb.directions?.size || !terminalBars.length || !terminalTail || terminalBars.some(b => b.simileMark !== SimileMark.None) || terminalLengths.some(v => v.length !== 1 || v[0] < 3840 || v[0] > 4440) || Math.max(...terminalLengths.flat()) !== 4440) throw new FormatError("Invalid explicit GP terminal playback length.");
++                    continue;
++                }
+ 				const staves = this.tracks.length === 1 ? this.tracks[0].staves : [];
+ 				const bar = staves.length === 1 ? staves[0].bars[mb.index] : null;
+ 				const voices = bar?.voices.filter(v => !v.isEmpty).map(v => v.calculateDuration());
+@@ -20365,7 +20373,7 @@
+ 					masterBar.timeSignatureDenominator = GpifParser._parseIntSafe(timeParts[1], 4);
+ 					break;
+ 				case "GtsPerformedBarTicks":
+-					if (c.innerText !== "3360" && c.innerText !== "3840" && c.innerText !== "5520") throw new FormatError("Invalid explicit GP measure playback length.");
++					if (c.innerText !== "3360" && c.innerText !== "3840" && c.innerText !== "5520" && c.innerText !== "4440") throw new FormatError("Invalid explicit GP measure playback length.");
+ 					masterBar.gtsPerformedBarTicks = Number(c.innerText);
+ 					break;
+ 				case "FreeTime":
+@@ -31121,7 +31129,7 @@
+ 					obj.start = v;
+ 					return true;
+ 				case "gtsperformedbarticks":
+-					obj.gtsPerformedBarTicks = v === 3360 || v === 3840 || v === 5520 ? v : 0;
++					obj.gtsPerformedBarTicks = v === 3360 || v === 3840 || v === 5520 || v === 4440 ? v : 0;
+ 					return true;
+ 				case "isanacrusis":
+ 					obj.isAnacrusis = v;
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -3570,6 +3570,14 @@
+ 		for (const mb of this.masterBars) {
+ 			mb.finish(sharedDataBag);
+ 			if (!mb.gtsPerformedBarTicks) continue;
++                // Explicit terminal clock only; unmarked GP keeps native timing.
++                if (mb.gtsPerformedBarTicks === 4440) {
++                    const terminalBars = this.tracks.length >= 1 && this.tracks.length <= 8 && this.tracks.every(t => t.staves.length === 1 && t.staves[0].tuning.length >= 4 && t.staves[0].tuning.length <= 6) ? this.tracks.map(t => t.staves[0].bars[mb.index]) : [];
++                    const terminalLengths = terminalBars.map(b => b.voices.filter(v => !v.isEmpty).map(v => v.calculateDuration()));
++                    const terminalTail = terminalBars.every(b => b.voices.every(v => v.beats.every(e => e.playbackStart < 3840 || e.graceType === GraceType.None && (e.isRest || e.notes.every(n => n.isTieDestination && n.tieOrigin && n.tieOrigin.tieDestination === n && n.tieOrigin.beat.absolutePlaybackStart + n.tieOrigin.beat.playbackDuration === e.absolutePlaybackStart)))));
++                    if (mb.index === 0 || mb.nextMasterBar || mb.timeSignatureNumerator !== 4 || mb.timeSignatureDenominator !== 4 || mb.isAnacrusis || mb.isFreeTime || mb.isRepeatStart || mb.isRepeatEnd || mb.alternateEndings || mb.tripletFeel !== TripletFeel.NoTripletFeel || mb.directions?.size || !terminalBars.length || !terminalTail || terminalBars.some(b => b.simileMark !== SimileMark.None) || terminalLengths.some(v => v.length !== 1 || v[0] < 3840 || v[0] > 4440) || Math.max(...terminalLengths.flat()) !== 4440) throw new FormatError("Invalid explicit GP terminal playback length.");
++                    continue;
++                }
+ 			const staves = this.tracks.length === 1 ? this.tracks[0].staves : [];
+ 			const bar = staves.length === 1 ? staves[0].bars[mb.index] : null;
+ 			const voices = bar?.voices.filter(v => !v.isEmpty).map(v => v.calculateDuration());
+@@ -20361,7 +20369,7 @@
+ 				masterBar.timeSignatureDenominator = GpifParser._parseIntSafe(timeParts[1], 4);
+ 				break;
+ 			case "GtsPerformedBarTicks":
+-				if (c.innerText !== "3360" && c.innerText !== "3840" && c.innerText !== "5520") throw new FormatError("Invalid explicit GP measure playback length.");
++				if (c.innerText !== "3360" && c.innerText !== "3840" && c.innerText !== "5520" && c.innerText !== "4440") throw new FormatError("Invalid explicit GP measure playback length.");
+ 				masterBar.gtsPerformedBarTicks = Number(c.innerText);
+ 				break;
+ 			case "FreeTime":
+@@ -31117,7 +31125,7 @@
+ 				obj.start = v;
+ 				return true;
+ 			case "gtsperformedbarticks":
+-				obj.gtsPerformedBarTicks = v === 3360 || v === 3840 || v === 5520 ? v : 0;
++				obj.gtsPerformedBarTicks = v === 3360 || v === 3840 || v === 5520 || v === 4440 ? v : 0;
+ 				return true;
+ 			case "isanacrusis":
+ 				obj.isAnacrusis = v;

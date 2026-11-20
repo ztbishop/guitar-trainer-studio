@@ -9,7 +9,7 @@ import { getPracticeEvents, tickToTimeMs } from './score-playback.js';
 import { RealtimeSession } from './realtime-session.js';
 import { eventsInRange } from './practice-range.js';
 import { noteStatesFromRecords } from './practice-visuals.js';
-import {practiceEvents,practiceTimeAtTick,mediaPracticeTime} from './media-practice.js';
+import {practiceEvents,practiceTimeAtTick,mediaPracticeTime,practicePlanPosition,practiceTimingPlan} from './media-practice.js';
 
 const timeAtTick=tick=>practiceTimeAtTick(AppState,tick,tickToTimeMs(AppState.playbackTimeline,tick));
 
@@ -17,6 +17,7 @@ let realtime = null;
 let finishTimer=null;
 let lastPositionTick = null;
 let finishedAwaitingRewind = false;
+let lastPracticePosition=null;
 
 export function resetRealtimeSession(reason = 'reset', tick = AppState.tickPosition) {
   clearTimeout(finishTimer);finishTimer=null;
@@ -31,9 +32,30 @@ export function resetRealtimeSession(reason = 'reset', tick = AppState.tickPosit
     pitchBendRange:AppState.midi.pitchBendRange,
     rangeStaves:AppState.tracks.find((track,index)=>String(track.index??index)===String(AppState.practiceTrackId))?.staves??[],
   });
-  realtime.reset(timeAtTick(tick) ?? 0, AppState.playbackSpeed || 1);
+  lastPracticePosition=practicePlanPosition(AppState);
+  // A held native cursor sits just before the preceding musical endpoint.
+  // Starting an attempt inside commentary must skip that completed passage.
+  const resetTime=lastPracticePosition && lastPracticePosition.kind!=='music'?AppState.media.clock.timeMs:timeAtTick(tick);
+  realtime.reset(resetTime ?? 0, AppState.playbackSpeed || 1);
   AppState.trainer.sessionReason = reason;
   publishRealtimeStats();
+}
+
+function preparePracticeClock(scoreMs,at,speed=AppState.playbackSpeed||1) {
+  const position=practicePlanPosition(AppState,scoreMs);
+  if(position && realtime) {
+    const previous=lastPracticePosition;
+    if(previous && (previous.kind!==position.kind || previous.section?.startTick!==position.section?.startTick)) {
+      realtime.breakEvidence();
+      // Finish only the section just left. The explanation has no targets, and
+      // an automatic jump must retain the musical results already earned.
+      if(previous.section && scoreMs>=previous.section.endMs && AppState.isPlaying)
+        realtime.advance(previous.section.endMs,speed,realtime.eventTime(at));
+    }
+    if(position.kind!=='music')realtime.flushPendingErrors(realtime.eventTime(at));
+  }
+  lastPracticePosition=position;
+  return outsideRecordingScore(AppState,scoreMs);
 }
 
 function publishRealtimeStats() {
@@ -55,11 +77,13 @@ export function newRealtimeAttemptHere(at = performance.now()) {
   updateActiveTargetsFromPlayback(AppState.tickPosition);
 }
 
-export function handlePlaybackPosition({currentTick, at = performance.now(), speed = 1, isSeek = false, isPauseSnap = false}) {
-  if(AppState.media.editing || (outsideRecordingScore(AppState) && !isSeek))return;
+export function handlePlaybackPosition({currentTick, at = performance.now(), speed = 1, isSeek = false, isPauseSnap = false, isPlanTransition = false, mediaSeekChanged = false}) {
+  if(AppState.media.editing)return;
   const scoreMs = mediaPracticeTime(AppState,at,timeAtTick(currentTick));
   if (scoreMs === null) return;
   if (!realtime) resetRealtimeSession('playback-ready', currentTick);
+  const outside=preparePracticeClock(scoreMs,at,speed);
+  if(outside && !isSeek){publishRealtimeStats();refreshTrainerMatchState();return;}
   if (isPauseSnap) {
     lastPositionTick = currentTick;
     realtime.anchorPosition(scoreMs,at,speed);
@@ -77,14 +101,15 @@ export function handlePlaybackPosition({currentTick, at = performance.now(), spe
   finishedAwaitingRewind=false;
   // Native seek acknowledgements at the unchanged position are not new attempts.
   // A real seek, loop rewind, speed change or completed replay still resets grading.
-  const movedSeek = isSeek && (lastPositionTick === null || Math.abs(currentTick-lastPositionTick)>2 || realtime.completed);
+  const movedSeek = isSeek && !isPlanTransition && (mediaSeekChanged || lastPositionTick === null || Math.abs(currentTick-lastPositionTick)>2 || realtime.completed ||
+    practiceTimingPlan(AppState) && realtime.anchor && Math.abs(scoreMs-realtime.anchor.scoreMs)>2);
   if (movedSeek || (realtime.anchor && ((AppState.isPlaying && scoreMs < realtime.anchor.scoreMs - 2) || speed !== realtime.anchor.speed))) {
     resetRealtimeSession('seek-or-speed-change',currentTick);
     realtime.started = AppState.isPlaying;
   }
   lastPositionTick = currentTick;
   realtime.anchorPosition(scoreMs,at,speed);
-  if (AppState.isPlaying && !outsideRecordingScore(AppState)) {
+  if (AppState.isPlaying && !outside) {
     realtime.started = true;
     realtime.advance(scoreMs-(AppState.trainer.latencyMs||0)*speed,speed,realtime.eventTime(at));
   }
@@ -101,16 +126,19 @@ export function handlePlaybackState() {
   }
   const at=performance.now();
   realtime.setRunning(AppState.isPlaying,at);
-  realtime.anchorPosition(mediaPracticeTime(AppState,at,timeAtTick(AppState.tickPosition)??0),at,AppState.playbackSpeed||1);
+  const scoreMs=mediaPracticeTime(AppState,at,timeAtTick(AppState.tickPosition)??0);
+  preparePracticeClock(scoreMs,at);
+  realtime.anchorPosition(scoreMs,at,AppState.playbackSpeed||1);
   publishRealtimeStats();
   refreshTrainerMatchState();
 }
 
 export function advanceRealtimeClock(at = performance.now()) {
-  if(AppState.media.editing || outsideRecordingScore(AppState))return;
+  if(AppState.media.editing)return;
   if (!realtime?.started || !AppState.isPlaying || realtime.completed) return;
   const scoreMs = mediaPracticeTime(AppState,at,realtime.scoreTime(at));
   if (scoreMs === null) return;
+  if(preparePracticeClock(scoreMs,at)){publishRealtimeStats();refreshTrainerMatchState();return;}
   realtime.advance(scoreMs-realtime.latencyMs*realtime.anchor.speed,realtime.anchor.speed,realtime.eventTime(at));
   publishRealtimeStats();
   refreshTrainerMatchState();
@@ -225,6 +253,12 @@ function findEventIndexAtTick(tickPosition) {
   return -1;
 }
 
+function repeatPracticeNotice(timeline,trackId) {
+  const issue=timeline?.similePracticeIssues?.find(issue=>issue.trackId===String(trackId));
+  return issue ? {status:'This track’s repeat-bar notation needs an expanded practice score',
+    summary:`Repeat bar ${issue.measureNumber} cannot be verified for practice${issue.reason ? ": "+issue.reason : ""}. Use a Soundslice practice score or an expanded Guitar Pro score.`} : null;
+}
+
 export function buildExpectedEventsFromPracticeTrack({ tracks = AppState.tracks, practiceTrackId = AppState.practiceTrackId, timeline = AppState.playbackTimeline } = {}) {
   const trackIndex = tracks.findIndex((track,index)=>getTrackId(track,index) === String(practiceTrackId));
   const track = tracks[trackIndex];
@@ -251,12 +285,13 @@ export function buildExpectedEventsFromPracticeTrack({ tracks = AppState.tracks,
   AppState.activeTargets = expectedEvents.length ? [expectedEvents[0]] : [];
 
   if (!expectedEvents.length) {
+    const notice=repeatPracticeNotice(timeline,practiceTrackId);
     setTrainerState({
       currentEventIndex: -1,
       currentEvent: null,
       matchState: 'idle',
-      status: timeline ? 'No playable note attacks found on the selected track' : 'Preparing score playback timeline…',
-      summary: timeline ? `${trackName} • no playable attacks` : 'Waiting for alphaTab playback data',
+      status: notice?.status ?? (timeline ? 'No playable note attacks found on the selected track' : 'Preparing score playback timeline…'),
+      summary: notice?.summary ?? (timeline ? `${trackName} • no playable attacks` : 'Waiting for alphaTab playback data'),
       awaitingReleaseForEventId: null,
     });
     return expectedEvents;
@@ -277,26 +312,38 @@ export function buildExpectedEventsFromPracticeTrack({ tracks = AppState.tracks,
 export function updateActiveTargetsFromPlayback(position) {
   const tickPosition = Number.isFinite(position) ? position : 0;
   if (!AppState.expectedEvents.length) {
+    const notice=repeatPracticeNotice(AppState.playbackTimeline,AppState.practiceTrackId);
     AppState.activeTargets = [];
     setTrainerState({
       currentEventIndex: -1,
       currentEvent: null,
       matchState: 'idle',
-      status: AppState.score && !AppState.playbackTimeline ? 'Preparing score playback timeline…' : 'Load a score and select a practice track to begin',
-      summary: 'No expected events loaded',
+      status: notice?.status ?? (AppState.score && !AppState.playbackTimeline ? 'Preparing score playback timeline…' : 'Load a score and select a practice track to begin'),
+      summary: notice?.summary ?? 'No expected events loaded',
       awaitingReleaseForEventId: null,
     });
     return null;
   }
 
-  const nextIndex = findEventIndexAtTick(tickPosition);
+  const nextIndex = outsideRecordingScore(AppState)?-1:findEventIndexAtTick(tickPosition);
   const currentEvent = setCurrentTrainerEventByIndex(nextIndex);
   refreshTrainerMatchState(tickPosition);
   return currentEvent;
 }
 
 export function refreshTrainerMatchState(position = AppState.tickPosition) {
+  const notice=repeatPracticeNotice(AppState.playbackTimeline,AppState.practiceTrackId);
+  if(!AppState.expectedEvents.length && notice) {
+    setTrainerState({...notice,matchState:'idle',awaitingReleaseForEventId:null});
+    return null;
+  }
   const detectedPitches = getFilteredActivePitches();
+  if(outsideRecordingScore(AppState)) {
+    setCurrentTrainerEventByIndex(-1);
+    const region=practicePlanPosition(AppState)?.kind;
+    setTrainerState({detectedPitches,matchState:'idle',status:region==='explanation'?'Explanation • grading paused':region==='unmatched-source-rest'?'Unscored break • grading paused':'Outside the musical score • grading paused'});
+    return 'idle';
+  }
   const currentEvent = AppState.trainer.currentEvent;
 
   setTrainerState({
@@ -376,13 +423,16 @@ export function handleMidiEvent(midiEvent) {
   let outcome=null;
   AppState.midi.lastEvent = midiEvent;
   if(AppState.media.editing)return null;
+  const at=Number.isFinite(midiEvent?.at)?midiEvent.at:performance.now();
+  const scoreMs=mediaPracticeTime(AppState,at,realtime?.scoreTime(at));
+  const outside=preparePracticeClock(scoreMs,at);
   if(midiEvent?.type==='note-off' && realtime?.noteOff({...midiEvent,at:realtime.eventTime(midiEvent.at??performance.now())}))publishRealtimeStats();
-  if (midiEvent?.type === 'note-on' && AppState.isPlaying && realtime?.started && !outsideRecordingScore(AppState)) {
-    const at = Number.isFinite(midiEvent.at) ? midiEvent.at : performance.now();
-    outcome=realtime.noteOn({...midiEvent,at:realtime.eventTime(at)},mediaPracticeTime(AppState,at,realtime.scoreTime(at)),realtime.anchor?.speed || 1);
+  if (midiEvent?.type === 'note-on' && AppState.isPlaying && realtime?.started && !outside) {
+    outcome=realtime.noteOn({...midiEvent,at:realtime.eventTime(at)},scoreMs,realtime.anchor?.speed || 1);
     publishRealtimeStats();
   }
-  if(midiEvent?.type==='pitch-bend' && realtime && !outsideRecordingScore(AppState)){outcome=realtime.pitchBend(midiEvent,realtime.eventTime(midiEvent.at??performance.now()),null,AppState.isPlaying);if(outcome)publishRealtimeStats();}
+  if(midiEvent?.type==='pitch-bend' && realtime && !outside){outcome=realtime.pitchBend(midiEvent,realtime.eventTime(midiEvent.at??performance.now()),null,AppState.isPlaying);if(outcome)publishRealtimeStats();}
+  if(outside)publishRealtimeStats();
   refreshTrainerMatchState(AppState.tickPosition);
   return outcome;
 }

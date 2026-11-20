@@ -85,6 +85,13 @@ export class WaitController {
     });
   }
   gate(index) {
+    if(index!==this.index && this.events[index].practiceBreakBefore) {
+      // Commentary and omitted playback visits carry no ringing/gesture credit.
+      // Keep the completed records and pending error-release decisions intact.
+      this.session.held.clear();this.pitchState.reset();this.session.pitchAttacks.clear();
+      this.session.bendGestures.clear();this.session.spikeCandidates.clear();this.session.singlePrecursors.clear();
+      this.session.tail=null;this.session.clearLiveWrong();
+    }
     this.index=index;this.phase='seeking';this.desiredTick=this.events[index].startTick;
     this.publish();this.transport.hold(this.desiredTick);
   }

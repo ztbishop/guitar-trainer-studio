@@ -8,6 +8,7 @@ export function initLoopControls(onLoopChange=()=>{}) {
   const start=get('practice-loop-start'),end=get('practice-loop-end');
   const notice=get('loop-enabled-notice');
   let noticeTimer=null;
+  let selectionMessage='';
   const ready=()=>Boolean(AppState.playerReady && !AppState.media.editing && !AppState.media.returning && AppState.playbackTimeline?.measures.length);
   let lastTimeline;
   function hideNotice() {
@@ -19,10 +20,10 @@ export function initLoopControls(onLoopChange=()=>{}) {
   function selectByDrag(selection) {
     if(!ready())return;
     const wasEnabled=AppState.practiceLoop.enabled;
-    apply({...AppState.practiceLoop,...selection,enabled:true});
+    if(!apply({...AppState.practiceLoop,...selection,enabled:true}))return;
     if(wasEnabled || !notice)return;
     hideNotice();
-    notice.textContent=`Loop enabled: measures ${selection.startIndex+1}–${selection.endIndex+1}`;
+    notice.textContent=`Loop enabled: measures ${AppState.practiceLoop.startIndex+1}–${AppState.practiceLoop.endIndex+1}`;
     notice.classList.add('is-visible');
     noticeTimer=setTimeout(()=>{
       notice.classList.remove('is-visible');
@@ -33,7 +34,10 @@ export function initLoopControls(onLoopChange=()=>{}) {
     if(!ready())return;
     hideNotice();
     next.range=next.enabled ? resolvePracticeRange(AppState.playbackTimeline,next.startIndex,next.endIndex) : null;
-    onLoopChange(next);sync();
+    selectionMessage='';
+    const result=onLoopChange(next);
+    if(typeof result==='string')selectionMessage=result;
+    sync();return !selectionMessage;
   }
   function change(which,value) {
     if(!ready())return;
@@ -72,6 +76,7 @@ export function initLoopControls(onLoopChange=()=>{}) {
   function sync(force=false) {
     const timeline=AppState.playbackTimeline;
     if(timeline!==lastTimeline) {
+      selectionMessage='';
       lastTimeline=timeline;
       if(timeline?.measures.length && !AppState.practiceLoop.enabled)AppState.practiceLoop.endIndex=timeline.measures.length-1;
     }
@@ -97,8 +102,8 @@ export function initLoopControls(onLoopChange=()=>{}) {
     if(countIn){countIn.disabled=!available || !loop.enabled;countIn.checked=Boolean(loop.countIn);}
     get('loop-count-in-label')?.classList?.toggle('menu-unavailable',!available || !loop.enabled);
     const repeated=timeline?.measures.some(measure=>measure.occurrence>1);
-    get('loop-controls-status').textContent=AppState.media.editing ? 'Loops are paused while editing sync. Choose Finish editing in Media Sync to restore your loop.' : AppState.media.returning ? 'Restoring the player…' : !available ? 'Load a score to choose a section.' : repeated
-      ? `${measureOccurrenceLabel(timeline.measures[loop.startIndex])} through ${measureOccurrenceLabel(timeline.measures[loop.endIndex])}. Numbers follow playback order, including repeats.` : '';
+    get('loop-controls-status').textContent=AppState.media.editing ? 'Loops are paused while editing sync. Choose Finish editing in Media Sync to restore your loop.' : AppState.media.returning ? 'Restoring the player…' : !available ? 'Load a score to choose a section.' : selectionMessage || loop.notice || (repeated
+      ? `${measureOccurrenceLabel(timeline.measures[loop.startIndex])} through ${measureOccurrenceLabel(timeline.measures[loop.endIndex])}. Numbers follow playback order, including repeats.` : '');
   }
   return {sync,selectByDrag};
 }

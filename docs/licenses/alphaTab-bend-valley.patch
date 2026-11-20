@@ -1,0 +1,54 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -6376,7 +6376,10 @@
+ 				const isContinuedBend = this.isTieDestination && this.tieOrigin.hasBend;
+ 				this.isContinuedBend = isContinuedBend;
+ 			} else this.bendType = BendType.None;
+-			if (hasBend && this.bendType === BendType.Custom) {
++			// An explicit interior valley is not a monotonic pre-bend/release.
++			const hasBendValley = hasBend && (points.length === 3 || points.length === 4 && points[1].value === points[2].value) &&
++				points[1].value < Math.min(points[0].value, points[points.length - 1].value);
++			if (hasBend && this.bendType === BendType.Custom && !hasBendValley) {
+ 				if (points.length === 4) {
+ 					const origin = points[0];
+ 					const middle1 = points[1];
+@@ -21346,9 +21349,9 @@
+ 				if (!bendOrigin) bendOrigin = new BendPoint(0, 0);
+ 				if (!bendDestination) bendDestination = new BendPoint(BendPoint.MaxPosition, 0);
+ 				note.addBendPoint(bendOrigin);
+-				if (bendMiddleOffset1 && bendMiddleValue) note.addBendPoint(new BendPoint(bendMiddleOffset1, bendMiddleValue));
+-				if (bendMiddleOffset2 && bendMiddleValue) note.addBendPoint(new BendPoint(bendMiddleOffset2, bendMiddleValue));
+-				if (!bendMiddleOffset1 && !bendMiddleOffset2 && bendMiddleValue) note.addBendPoint(new BendPoint(BendPoint.MaxPosition / 2 | 0, bendMiddleValue));
++				if (bendMiddleOffset1 && bendMiddleValue !== null) note.addBendPoint(new BendPoint(bendMiddleOffset1, bendMiddleValue));
++				if (bendMiddleOffset2 && bendMiddleValue !== null) note.addBendPoint(new BendPoint(bendMiddleOffset2, bendMiddleValue));
++				if (!bendMiddleOffset1 && !bendMiddleOffset2 && bendMiddleValue !== null) note.addBendPoint(new BendPoint(BendPoint.MaxPosition / 2 | 0, bendMiddleValue));
+ 				note.addBendPoint(bendDestination);
+ 			}
+ 			if (element !== -1 && variation !== -1) note.percussionArticulation = PercussionMapper.articulationFromElementVariation(element, variation);
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -6372,7 +6372,10 @@
+ 			const isContinuedBend = this.isTieDestination && this.tieOrigin.hasBend;
+ 			this.isContinuedBend = isContinuedBend;
+ 		} else this.bendType = BendType.None;
+-		if (hasBend && this.bendType === BendType.Custom) {
++		// An explicit interior valley is not a monotonic pre-bend/release.
++			const hasBendValley = hasBend && (points.length === 3 || points.length === 4 && points[1].value === points[2].value) &&
++				points[1].value < Math.min(points[0].value, points[points.length - 1].value);
++			if (hasBend && this.bendType === BendType.Custom && !hasBendValley) {
+ 			if (points.length === 4) {
+ 				const origin = points[0];
+ 				const middle1 = points[1];
+@@ -21342,9 +21345,9 @@
+ 			if (!bendOrigin) bendOrigin = new BendPoint(0, 0);
+ 			if (!bendDestination) bendDestination = new BendPoint(BendPoint.MaxPosition, 0);
+ 			note.addBendPoint(bendOrigin);
+-			if (bendMiddleOffset1 && bendMiddleValue) note.addBendPoint(new BendPoint(bendMiddleOffset1, bendMiddleValue));
+-			if (bendMiddleOffset2 && bendMiddleValue) note.addBendPoint(new BendPoint(bendMiddleOffset2, bendMiddleValue));
+-			if (!bendMiddleOffset1 && !bendMiddleOffset2 && bendMiddleValue) note.addBendPoint(new BendPoint(BendPoint.MaxPosition / 2 | 0, bendMiddleValue));
++			if (bendMiddleOffset1 && bendMiddleValue !== null) note.addBendPoint(new BendPoint(bendMiddleOffset1, bendMiddleValue));
++			if (bendMiddleOffset2 && bendMiddleValue !== null) note.addBendPoint(new BendPoint(bendMiddleOffset2, bendMiddleValue));
++			if (!bendMiddleOffset1 && !bendMiddleOffset2 && bendMiddleValue !== null) note.addBendPoint(new BendPoint(BendPoint.MaxPosition / 2 | 0, bendMiddleValue));
+ 			note.addBendPoint(bendDestination);
+ 		}
+ 		if (element !== -1 && variation !== -1) note.percussionArticulation = PercussionMapper.articulationFromElementVariation(element, variation);

@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
-test('native tab painting tolerates pitched notes without guitar-string assignments',()=>{
+import * as core from '../assets/vendor/alphatab/alphaTab.core.mjs';
+
+for(const kind of ['classic','core'])test(`${kind} tab painting tolerates pitched notes without guitar-string assignments`,()=>{
   const context=vm.createContext({console,process});
   vm.runInContext(readFileSync(new URL('../assets/vendor/alphatab/alphaTab.js',import.meta.url),'utf8'),context);
-  const at=context.alphaTab;
+  const at=kind==='classic'?context.alphaTab:core;
   for(const width of [900,1800]) {
     const settings=new at.Settings();
     settings.core.engine='svg';settings.core.enableLazyLoading=false;settings.core.includeNoteBounds=true;

@@ -1,12 +1,33 @@
 # Private lesson sender: trainer receiver contract
 
+## Independent reference recording, version 6
+
+An explicit simplified-practice choice may send version 6 with recordingMode: "reference-only". Required: format, version, title, lessonUrl, score {fileName,base64}, recording {url,label} or {kind:"local-choice"}, and recordingMode. Extra fields and all syncPoints/timingPlan/draftTiming/keepRecording fields reject, even null. Existing resource policy applies. Capability replies include lesson 6 and recordingModes ["reference-only-v1"] only with the independent player installed. The sender must require both before an offer; no downgrade.
+
+js/practice-reference.js owns independent native media controls and local blob cleanup. It neither estimates alignment nor calls the score/media host. Score Play, Wait, loops, tempo and grading remain score-based; native video controls cannot advance targets. A new score/unload releases the temporary reference. Nothing plays/saves automatically, score saves do not retain the reference, and the existing saved automatic-import preference remains; local choice always needs file review. [Bridge reference-video contract and saved-case evidence](<../../../Lesson Bridge/docs/PRACTICE-REFERENCE-VIDEO.md>).
+
+## Explicit draft receiver
+
+The optional [Draft timing contract](DRAFT-TIMING.md) adds lesson-v5 and exact draft-timing-v1 capability. Bridge must explicitly select this mode; strict v1–v4 imports are never downgraded. Receipt acknowledges review only. No draft Send is authorized by the older capabilities.
+
+
+## Matched timing interval extension — 2026-11-15
+
+See [the exact matched timing contract](TIMING-MATCH.md) for the separate `musical-visits-and-intervals` version 1 plan and `score-timing-match-v1` capability. It preserves unlabelled source rests as unscored intervals and allows reviewed omissions of independently verified full-rest score measures, including first visits. Existing envelope versions and explanation-plan semantics are unchanged. Bridge remains unmodified here and intentionally blocks these cases until its follow-up integration. Never flatten them into ordinary timing or treat one capability as the other.
+
+## Explanation timing version 4 — 2026-11-15
+
+The [explanation timing contract](EXPLANATION-TIMING.md) defines the exact v4 envelope, independent plan version, capability request/reply, strict fields, recording confirmation, validation, playback behavior and handoff to Bridge. It is separate from the legacy v1–v3 timing recovery below. Version 4 forbids `syncPoints` and never falls back to ordinary alignment. Original bytes and native traversal remain unchanged; a reviewed ordered subset controls this recording only. Source/timing evidence remains Bridge-owned. No extension implementation is included here.
+
+Automatic import starts on under **Settings → Lesson imports → Import helper lessons automatically**, with changes saved per browser address. A saved Off choice remains off. The Lesson imports section starts collapsed. Valid non-local-choice offers bypass review using the same loading/validation pipeline. Local-choice always requires selecting a valid file and clicking Import. With the option off, the compact review uses **Import lesson** as confirmation of the displayed recording, with no extra recording checkbox. Recording ID/native visit numbers remain in closed Details; the main review gives a plain repeat adjustment. These changes need no payload/capability or sender change.
+
 ## Ownership and distribution
 
 Owner decision, 2026-10-29: the Chrome extension is private and maintained in the separate **Lesson Bridge** project. This repository ships no extension source, ZIP builder, store listing assets or extension installation guide. Historical commits/releases are unchanged. Do not restore those files or promote the extension in README/Help. Developer references and trainer-side compatibility are intentionally retained. Do not publish or push the separate copied project to this repository.
 
 ## Modules retained here
 
-- `js/lesson-import.js` creates the review dialog, listens for same-window/same-origin messages, validates each offer and orchestrates injected score/media loaders after explicit acceptance. It waits for matching score bytes/timeline/player readiness and invalidates pending work on unrelated score loads.
+- `js/lesson-import.js` owns the saved automatic-import preference and review dialog, listens for same-window/same-origin messages, validates each offer and orchestrates injected score/media loaders after manual acceptance or under the enabled preference. It waits for matching score bytes/timeline/player readiness and invalidates pending work on unrelated score loads.
 - `js/lesson-import-data.js` independently validates versions, URLs, filenames, base64 and a maximum 12 MiB score. It validates Soundslice timing and converts expanded playback occurrences into native flat sync points. It has no native/player calls.
 - `lesson-import.css` styles the review and temporary completion notice. `js/app-bootstrap.js` initializes the receiver and forwards score-loading invalidation.
 - `js/media-controls.js` owns importLesson, recording retention, shared timeline-ready initialization, stale-source guards and unsaved alignment. It calls the existing host to apply validated imported points before completing a recording replacement. Merely updating editor points leaves native playback on provisional timing: preserve this nonzero-start regression fix. Timing-only updates and manual paste use the existing edit/Undo path.
@@ -24,7 +45,7 @@ The id is a string of at most 100 characters. The receiver requires event.source
 
 `{type:'gts-lesson-reply', id, ok, message}`
 
-An ok reply acknowledges that review was queued, **not** that the user accepted or import completed. A pending/open review or busy import rejects another offer. This protocol is not cryptographic extension authentication; no loading or remote recording request occurs before the user accepts the review. Cancel leaves the loaded session intact.
+An ok reply acknowledges receipt for review or automatic loading, **not** completed import. It is sent before awaiting resource loading, preserving the sender's short reply timeout. A pending/open review or busy import rejects another offer. This protocol is not cryptographic extension authentication. With automatic import off, no loading or remote recording request occurs before the user accepts review. The default-on automatic-import option allows non-local-choice offers to load directly and replace the open score/unsaved alignment; a saved Off choice is preserved. Cancel in a displayed review leaves the loaded session intact. Automatic loading failures open the same attention dialog; strict validation is never bypassed.
 
 Payload:
 
@@ -55,4 +76,6 @@ Ordinary version-1/2 requests remain unchanged. Unsupported older trainers rejec
 
 ## Equivalent timeline rebuilds during import (2026-11-02)
 
-The receiver snapshots alignment semantics with lessonTimelineKey before awaiting recording load. It compares played measure order/occurrences/indices/tick bounds, tick resolution, total ticks and tempo map instead of native timeline object identity. Equal rebuilds retain imported timing; changed semantics reject. Score-file identity, recording-load generation and player availability remain independent cancellation checks. Points are revalidated against the current timeline and recording duration before native application, with another lifecycle/snapshot check after selection. The receiver still requires review, avoids autoplay and automatic saving, accepts protocol versions 1/2/3, and preserves the original score bytes.
+The receiver snapshots alignment semantics with lessonTimelineKey before awaiting recording load. It compares played measure order/occurrences/indices/tick bounds, tick resolution, total ticks and tempo map instead of native timeline object identity. Equal rebuilds retain imported timing; changed semantics reject. Score-file identity, recording-load generation and player availability remain independent cancellation checks. Points are revalidated against the current timeline and recording duration before native application, with another lifecycle/snapshot check after selection. The receiver avoids autoplay and automatic saving and preserves the original score bytes. The current automatic-import policy and version-4 support above supersede the original mandatory-review/version-1–3 scope without changing these lifecycle guards.
+
+Visual Draft timing uses the existing v5 draft-timing-v1 contract unchanged. Hard-refresh Trainer; no Bridge change is required. Continuous provisional score tracking remains separate from strict activation/grading. See [Draft timing workflow and handoff](DRAFT-TIMING.md#visual-workflow-handoff--2026-11-15).

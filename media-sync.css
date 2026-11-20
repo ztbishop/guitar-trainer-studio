@@ -139,3 +139,8 @@ body.media-editor-visible #fretboard-container { display:none; }
 .media-timeline-spacer { height:0; pointer-events:none; }
 #media-timeline { position:sticky; left:0; width:100%; overflow:hidden; }
 .media-ruler-tick { stroke:#64748b; stroke-width:1; vector-effect:non-scaling-stroke; pointer-events:none; }
+
+/* Keep the two draft acceptance steps visible while reviewing the timeline. */
+.draft-review-actions { position:sticky; top:0; z-index:2; padding:8px 0; background:var(--panel-strong,#f8fafc); }
+#media-draft-use:not(:disabled) { border:2px solid var(--accent,#4fa3ff); font-weight:700; }
+#media-draft-review-status { margin:4px 0 10px; }

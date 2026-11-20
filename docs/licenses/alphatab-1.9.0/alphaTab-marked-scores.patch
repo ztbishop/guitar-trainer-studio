@@ -1,0 +1,574 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -2666,6 +2666,7 @@
+ 		* Gets or sets a value indicating whether the master bar is an anacrusis (aka. pickup bar)
+ 		*/
+ 		isAnacrusis = false;
++		gtsPerformedBarTicks = 0;
+ 		/**
+ 		* The position in the nominal meter (unit: midi ticks) at which the first tick of this bar sits.
+ 		* @remarks
+@@ -2694,6 +2695,7 @@
+ 		* Calculates the time spent in this bar. (unit: midi ticks)
+ 		*/
+ 		calculateDuration(respectAnacrusis = true) {
++			if (respectAnacrusis && this.gtsPerformedBarTicks) return this.gtsPerformedBarTicks;
+ 			if (this.isAnacrusis && respectAnacrusis) {
+ 				let duration = 0;
+ 				for (const track of this.score.tracks) for (const staff of track.staves) {
+@@ -3784,6 +3786,29 @@
+ 					barNumber++;
+ 				}
+ 				mb.finish(sharedDataBag);
++				if (!mb.gtsPerformedBarTicks) continue;
++                // Explicit terminal clock only; unmarked GP keeps native timing.
++                if (mb.gtsPerformedBarTicks === 4440) {
++                    const terminalBars = this.tracks.length >= 1 && this.tracks.length <= 8 && this.tracks.every(t => t.staves.length === 1 && t.staves[0].tuning.length >= 4 && t.staves[0].tuning.length <= 6) ? this.tracks.map(t => t.staves[0].bars[mb.index]) : [];
++                    const terminalLengths = terminalBars.map(b => b.voices.filter(v => !v.isEmpty).map(v => v.calculateDuration()));
++                    const terminalTail = terminalBars.every(b => b.voices.every(v => v.beats.every(e => e.playbackStart < 3840 || e.graceType === 0 && (e.isRest || e.notes.every(n => n.isTieDestination && n.tieOrigin && n.tieOrigin.tieDestination === n && n.tieOrigin.beat.absolutePlaybackStart + n.tieOrigin.beat.playbackDuration === e.absolutePlaybackStart)))));
++                    if (mb.index === 0 || mb.nextMasterBar || mb.timeSignatureNumerator !== 4 || mb.timeSignatureDenominator !== 4 || mb.isAnacrusis || mb.isFreeTime || mb.isRepeatStart || mb.isRepeatEnd || mb.alternateEndings || mb.tripletFeel !== 0 || mb.directions?.size || !terminalBars.length || !terminalTail || terminalBars.some(b => b.simileMark !== 0) || terminalLengths.some(v => v.length !== 1 || v[0] < 3840 || v[0] > 4440) || Math.max(...terminalLengths.flat()) !== 4440) throw new FormatError("Invalid explicit GP terminal playback length.");
++                    continue;
++                }
++				const staves = this.tracks.length === 1 ? this.tracks[0].staves : [];
++				const bar = staves.length === 1 ? staves[0].bars[mb.index] : null;
++				const voices = bar?.voices.filter(v => !v.isEmpty).map(v => v.calculateDuration());
++				const meter = `${mb.timeSignatureNumerator}/${mb.timeSignatureDenominator}`;
++				const shortTwelve = meter === "12/8" && mb.gtsPerformedBarTicks === 5520 && voices?.length === 1 && voices[0] === 5520;
++				const short = meter === "4/4" && mb.gtsPerformedBarTicks === 3360 && voices?.length === 1 && voices[0] === 3360;
++				const long = meter === "7/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 2 && voices[0] === 3360 && voices[1] === 3840;
++				const wholeVoice = meter === "6/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 1 && voices[0] === 3840 ? bar.voices.find(v => !v.isEmpty) : null;
++				const wholeBeat = wholeVoice?.beats.length === 1 ? wholeVoice.beats[0] : null;
++				const wholeInSix = wholeBeat?.duration === 1 && wholeBeat.dots === 0 && wholeBeat.graceType === 0 && wholeBeat.notes.length === 1 && wholeBeat.notes[0].isStringed;
++				if ((!short && !long && !wholeInSix && !shortTwelve) || mb.index === 0 || !mb.nextMasterBar || mb.isAnacrusis || mb.isFreeTime ||
++					mb.tripletFeel !== 0 || mb.directions?.size || bar.simileMark !== 0) {
++					throw new FormatError("Invalid explicit GP measure playback length.");
++				}
+ 			}
+ 		}
+ 		/**
+@@ -6214,6 +6239,8 @@
+ 		* Gets a value indicating whether the note is left hand tapped.
+ 		*/
+ 		isLeftHandTapped = false;
++		/** Note-specific right-hand tapping. Legacy beat-wide taps use Beat.tap. */
++		isRightHandTapped = false;
+ 		/**
+ 		* Gets or sets whether this note starts a hammeron or pulloff.
+ 		*/
+@@ -6271,6 +6298,17 @@
+ 		* Gets or sets whether this note has a let-ring effect.
+ 		*/
+ 		isLetRing = false;
++		ghostReleaseAtBeatEnd = false;
++		// Exact GPIF midpoint for the qualified written quarter-tone ramp.
++		gtsFineBendMidpoint = 0;
++		gtsSlidePlayback = 0;
++		gtsSourceArticulation = 0;
++		gtsRepeatTieRelease = false;
++		gtsTiedBend = false;
++		gtsFallingTie = false;
++		gtsWrittenVibrato = false;
++		gtsTappedHarmonicTicks = 0;
++		gtsPinchHarmonicSemitones = 0;
+ 		/**
+ 		* Gets or sets the destination note for the let-ring effect.
+ 		* @clone_ignore
+@@ -6491,6 +6529,12 @@
+ 		* and therefore need a string, the other types are an interval above the played note on any pitched note.
+ 		*/
+ 		get harmonicPitch() {
++			// Explicit captured interval; unmarked physical-node GP harmonics stay native.
++			if (this.gtsPinchHarmonicSemitones === 5 && this.isStringed &&
++				this.harmonicType === 3 && this.harmonicValue === 5) return 5;
++			// GtsTappedHarmonicTicks -2 selects the captured pitch with native note duration.
++			if (this.gtsTappedHarmonicTicks && this.isStringed && this.harmonicType === 4 &&
++				([3.2, 5, 7, 12].includes(this.harmonicValue) || this.gtsTappedHarmonicTicks === -2 && this.harmonicValue === 4)) return Math.trunc(this.harmonicValue);
+ 			const hasHarmonicPitch = this.isStringed || this.isPiano && this.harmonicType !== 1;
+ 			if (this.harmonicType === 0 || !hasHarmonicPitch) return 0;
+ 			return ModelUtils.harmonicValueToPitch(this.harmonicValue);
+@@ -6639,7 +6683,10 @@
+ 				const isContinuedBend = this.isTieDestination && this.tieOrigin.hasBend;
+ 				this.isContinuedBend = isContinuedBend;
+ 			} else this.bendType = 0;
+-			if (hasBend && this.bendType === 1) {
++			// An explicit interior valley is not a monotonic pre-bend/release.
++			const hasBendValley = hasBend && (points.length === 3 || points.length === 4 && points[1].value === points[2].value) &&
++				points[1].value < Math.min(points[0].value, points[points.length - 1].value);
++			if (hasBend && this.bendType === 1 && !hasBendValley) {
+ 				if (points.length === 4) {
+ 					const origin = points[0];
+ 					const middle1 = points[1];
+@@ -8148,6 +8195,7 @@
+ 			clone.percussionArticulation = original.percussionArticulation;
+ 			clone.isVisible = original.isVisible;
+ 			clone.isLeftHandTapped = original.isLeftHandTapped;
++			clone.isRightHandTapped = original.isRightHandTapped;
+ 			clone.isHammerPullOrigin = original.isHammerPullOrigin;
+ 			clone.isSlurDestination = original.isSlurDestination;
+ 			clone.harmonicType = original.harmonicType;
+@@ -8167,6 +8215,16 @@
+ 			clone.trillSpeed = original.trillSpeed;
+ 			clone.isTrillStart = original.isTrillStart;
+ 			clone.durationPercent = original.durationPercent;
++			clone.ghostReleaseAtBeatEnd = original.ghostReleaseAtBeatEnd;
++			clone.gtsFineBendMidpoint = original.gtsFineBendMidpoint;
++			clone.gtsSlidePlayback = original.gtsSlidePlayback;
++			clone.gtsSourceArticulation = original.gtsSourceArticulation;
++			clone.gtsRepeatTieRelease = original.gtsRepeatTieRelease;
++			clone.gtsTiedBend = original.gtsTiedBend;
++			clone.gtsFallingTie = original.gtsFallingTie;
++			clone.gtsWrittenVibrato = original.gtsWrittenVibrato;
++			clone.gtsTappedHarmonicTicks = original.gtsTappedHarmonicTicks;
++			clone.gtsPinchHarmonicSemitones = original.gtsPinchHarmonicSemitones === 5 ? 5 : 0;
+ 			clone.accidentalMode = original.accidentalMode;
+ 			clone.dynamics = original.dynamics;
+ 			clone.ornament = original.ornament;
+@@ -20454,7 +20512,6 @@
+ 		_rhythmById;
+ 		_noteById;
+ 		_notesOfBeat;
+-		_tappedNotes;
+ 		_lyricsByTrack;
+ 		_soundsByTrack;
+ 		_hasAnacrusis = false;
+@@ -20483,7 +20540,6 @@
+ 			this._rhythmById = /* @__PURE__ */ new Map();
+ 			this._notesOfBeat = /* @__PURE__ */ new Map();
+ 			this._noteById = /* @__PURE__ */ new Map();
+-			this._tappedNotes = /* @__PURE__ */ new Set();
+ 			this._lyricsByTrack = /* @__PURE__ */ new Map();
+ 			this._soundsByTrack = /* @__PURE__ */ new Map();
+ 			this._skipApplyLyrics = false;
+@@ -21254,6 +21310,10 @@
+ 					masterBar.timeSignatureNumerator = GpifParser._parseIntSafe(timeParts[0], 4);
+ 					masterBar.timeSignatureDenominator = GpifParser._parseIntSafe(timeParts[1], 4);
+ 					break;
++				case "GtsPerformedBarTicks":
++					if (c.innerText !== "3360" && c.innerText !== "3840" && c.innerText !== "5520" && c.innerText !== "4440") throw new FormatError("Invalid explicit GP measure playback length.");
++					masterBar.gtsPerformedBarTicks = Number(c.innerText);
++					break;
+ 				case "FreeTime":
+ 					masterBar.isFreeTime = true;
+ 					break;
+@@ -21892,7 +21952,7 @@
+ 			const noteId = node.getAttribute("id");
+ 			for (const c of node.childElements()) switch (c.localName) {
+ 				case "Properties":
+-					this._parseNoteProperties(c, note, noteId);
++					this._parseNoteProperties(c, note);
+ 					break;
+ 				case "AntiAccent":
+ 					if (c.innerText.toLowerCase() === "normal") note.isGhost = true;
+@@ -21974,7 +22034,7 @@
+ 			}
+ 			this._noteById.set(noteId, note);
+ 		}
+-		_parseNoteProperties(node, note, noteId) {
++		_parseNoteProperties(node, note) {
+ 			let isBended = false;
+ 			let bendOrigin = null;
+ 			let bendMiddleValue = null;
+@@ -22001,8 +22061,45 @@
+ 					case "Variation":
+ 						variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
+ 						break;
+-					case "Tapped":
+-						this._tappedNotes.add(noteId);
++					case "GtsPinchHarmonicSemitones": {
++							const value = Number(c.findChildElement("Number")?.innerText);
++							note.gtsPinchHarmonicSemitones = value === 5 ? 5 : 0;
++							break;
++						}
++						case "GtsTappedHarmonicTicks": {
++							const ticks = Number(c.findChildElement("Number")?.innerText);
++							note.gtsTappedHarmonicTicks = [-2, -1, 320, 960, 1600, 5760].includes(ticks) ? ticks : 0;
++							break;
++						}
++						case "GtsWrittenVibrato":
++							note.gtsWrittenVibrato = c.findChildElement("Enable") !== null;
++							break;
++						case "GtsFallingTie":
++								note.gtsFallingTie = c.findChildElement("Enable") !== null;
++								break;
++							case "GtsTiedBend":
++							note.gtsTiedBend = c.findChildElement("Enable") !== null;
++							break;
++						case "GtsRepeatTieRelease":
++							note.gtsRepeatTieRelease = c.findChildElement("Enable") !== null;
++							break;
++						case "GtsSourceArticulation": {
++							const value = Number(c.findChildElement("Number")?.innerText);
++							note.gtsSourceArticulation = Number.isInteger(value) && value >= 1 && value <= 32 ? value : 0;
++							break;
++						}
++						case "GtsSlidePlayback":
++							const slidePlayback = c.findChildElement("Number")?.innerText;
++							note.gtsSlidePlayback = slidePlayback === "1" ? 1 : slidePlayback === "2" ? 2 : slidePlayback === "3" ? 3 : slidePlayback === "4" ? 4 : 0;
++							break;
++						case "GtsFineBendMidpoint":
++							note.gtsFineBendMidpoint = c.findChildElement("Number")?.innerText === "12" ? 12 : 0;
++							break;
++						case "GtsGhostReleaseAtBeatEnd":
++							note.ghostReleaseAtBeatEnd = !!c.findChildElement("Enable");
++							break;
++						case "Tapped":
++						note.isRightHandTapped = true;
+ 						break;
+ 					case "HarmonicType":
+ 						const htype = c.findChildElement("HType");
+@@ -22104,9 +22201,9 @@
+ 				if (!bendOrigin) bendOrigin = new BendPoint(0, 0);
+ 				if (!bendDestination) bendDestination = new BendPoint(BendPoint.MaxPosition, 0);
+ 				note.addBendPoint(bendOrigin);
+-				if (bendMiddleOffset1 && bendMiddleValue) note.addBendPoint(new BendPoint(bendMiddleOffset1, bendMiddleValue));
+-				if (bendMiddleOffset2 && bendMiddleValue) note.addBendPoint(new BendPoint(bendMiddleOffset2, bendMiddleValue));
+-				if (!bendMiddleOffset1 && !bendMiddleOffset2 && bendMiddleValue) note.addBendPoint(new BendPoint(BendPoint.MaxPosition / 2 | 0, bendMiddleValue));
++				if (bendMiddleOffset1 && bendMiddleValue !== null) note.addBendPoint(new BendPoint(bendMiddleOffset1, bendMiddleValue));
++				if (bendMiddleOffset2 && bendMiddleValue !== null) note.addBendPoint(new BendPoint(bendMiddleOffset2, bendMiddleValue));
++				if (!bendMiddleOffset1 && !bendMiddleOffset2 && bendMiddleValue !== null) note.addBendPoint(new BendPoint(BendPoint.MaxPosition / 2 | 0, bendMiddleValue));
+ 				note.addBendPoint(bendDestination);
+ 			}
+ 			if (element !== -1 && variation !== -1) note.percussionArticulation = PercussionMapper.articulationFromElementVariation(element, variation);
+@@ -22249,7 +22346,6 @@
+ 			if (staff.isPercussion) note.fret = NaN;
+ 			else note.percussionArticulation = NaN;
+ 			beat.addNote(note);
+-			if (this._tappedNotes.has(noteId)) beat.tap = true;
+ 			if (staff.isPercussion && note.percussionArticulation >= 0) {
+ 				const trackArticulations = staff.track.percussionArticulations;
+ 				let known = null;
+@@ -77366,7 +79050,16 @@
+ 				this._writeSimplePropertyNode(properties, "Tone", "Step", note.tone.toString());
+ 				this._writeSimplePropertyNode(properties, "Midi", "Number", note.realValue.toString());
+ 			}
+-			if (note.beat.tap) this._writeSimplePropertyNode(properties, "Tapped", "Enable", null);
++			if (note.isRightHandTapped || note.beat.tap) this._writeSimplePropertyNode(properties, "Tapped", "Enable", null);
++			if (note.ghostReleaseAtBeatEnd) this._writeSimplePropertyNode(properties, "GtsGhostReleaseAtBeatEnd", "Enable", null);
++			if (note.gtsRepeatTieRelease) this._writeSimplePropertyNode(properties, "GtsRepeatTieRelease", "Enable", null);
++			if (note.gtsTiedBend) this._writeSimplePropertyNode(properties, "GtsTiedBend", "Enable", null);
++			if (note.gtsFallingTie) this._writeSimplePropertyNode(properties, "GtsFallingTie", "Enable", null);
++			if (note.gtsWrittenVibrato) this._writeSimplePropertyNode(properties, "GtsWrittenVibrato", "Enable", null);
++			if (note.gtsTappedHarmonicTicks) this._writeSimplePropertyNode(properties, "GtsTappedHarmonicTicks", "Number", note.gtsTappedHarmonicTicks.toString());
++			if (note.gtsPinchHarmonicSemitones === 5) this._writeSimplePropertyNode(properties, "GtsPinchHarmonicSemitones", "Number", "5");
++			if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3 || note.gtsSlidePlayback === 4) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
++			if (Number.isInteger(note.gtsSourceArticulation) && note.gtsSourceArticulation >= 1 && note.gtsSourceArticulation <= 32) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
+ 			if (note.harmonicType !== 0) {
+ 				switch (note.harmonicType) {
+ 					case 1:
+@@ -77458,9 +79151,10 @@
+ 			pitch.addElement("Octave").innerText = octave;
+ 		}
+ 		_writeBend(properties, note) {
+-			if (note.hasBend && note.bendPoints.length <= 4) this._writeStandardBend(properties, note.bendPoints);
++			if (note.hasBend && note.bendPoints.length <= 4) this._writeStandardBend(properties, note.bendPoints, note.gtsFineBendMidpoint);
+ 		}
+-		_writeStandardBend(properties, bendPoints) {
++		_writeStandardBend(properties, bendPoints, gtsFineBendMidpoint = 0) {
++			if (gtsFineBendMidpoint === 12) this._writeSimplePropertyNode(properties, "GtsFineBendMidpoint", "Number", "12");
+ 			this._writeSimplePropertyNode(properties, "Bended", "Enable", null);
+ 			const bendOrigin = bendPoints[0];
+ 			const bendDestination = bendPoints[bendPoints.length - 1];
+@@ -77483,7 +79177,7 @@
+ 			this._writeSimplePropertyNode(properties, "BendDestinationValue", "Float", this._toBendValue(bendDestination.value).toString());
+ 			this._writeSimplePropertyNode(properties, "BendMiddleOffset1", "Float", this._toBendOffset(bendMiddle1.offset).toString());
+ 			this._writeSimplePropertyNode(properties, "BendMiddleOffset2", "Float", this._toBendOffset(bendMiddle2.offset).toString());
+-			this._writeSimplePropertyNode(properties, "BendMiddleValue", "Float", this._toBendValue(bendMiddle1.value).toString());
++			this._writeSimplePropertyNode(properties, "BendMiddleValue", "Float", (gtsFineBendMidpoint === 12 ? 12 : this._toBendValue(bendMiddle1.value)).toString());
+ 			this._writeSimplePropertyNode(properties, "BendOriginOffset", "Float", this._toBendOffset(bendOrigin.offset).toString());
+ 			this._writeSimplePropertyNode(properties, "BendOriginValue", "Float", this._toBendValue(bendOrigin.value).toString());
+ 		}
+@@ -78183,6 +79877,7 @@
+ 			masterBarNode.addElement("Time").innerText = `${masterBar.timeSignatureNumerator}/${masterBar.timeSignatureDenominator}`;
+ 			if (masterBar.actualBeamingRules) this._writeBarXProperties(masterBarNode, masterBar);
+ 			if (masterBar.isFreeTime) masterBarNode.addElement("FreeTime");
++			if (masterBar.gtsPerformedBarTicks) masterBarNode.addElement("GtsPerformedBarTicks").innerText = masterBar.gtsPerformedBarTicks.toString();
+ 			const bars = [];
+ 			for (const tracks of masterBar.score.tracks) for (const staves of tracks.staves) bars.push(staves.bars[masterBar.index].id.toString());
+ 			masterBarNode.addElement("Bars").innerText = bars.join(" ");
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -2662,6 +2662,7 @@ class MasterBar {
+ 	* Gets or sets a value indicating whether the master bar is an anacrusis (aka. pickup bar)
+ 	*/
+ 	isAnacrusis = false;
++	gtsPerformedBarTicks = 0;
+ 	/**
+ 	* The position in the nominal meter (unit: midi ticks) at which the first tick of this bar sits.
+ 	* @remarks
+@@ -2690,6 +2691,7 @@ class MasterBar {
+ 	* Calculates the time spent in this bar. (unit: midi ticks)
+ 	*/
+ 	calculateDuration(respectAnacrusis = true) {
++		if (respectAnacrusis && this.gtsPerformedBarTicks) return this.gtsPerformedBarTicks;
+ 		if (this.isAnacrusis && respectAnacrusis) {
+ 			let duration = 0;
+ 			for (const track of this.score.tracks) for (const staff of track.staves) {
+@@ -3780,6 +3782,29 @@ class Score {
+ 				barNumber++;
+ 			}
+ 			mb.finish(sharedDataBag);
++			if (!mb.gtsPerformedBarTicks) continue;
++                // Explicit terminal clock only; unmarked GP keeps native timing.
++                if (mb.gtsPerformedBarTicks === 4440) {
++                    const terminalBars = this.tracks.length >= 1 && this.tracks.length <= 8 && this.tracks.every(t => t.staves.length === 1 && t.staves[0].tuning.length >= 4 && t.staves[0].tuning.length <= 6) ? this.tracks.map(t => t.staves[0].bars[mb.index]) : [];
++                    const terminalLengths = terminalBars.map(b => b.voices.filter(v => !v.isEmpty).map(v => v.calculateDuration()));
++                    const terminalTail = terminalBars.every(b => b.voices.every(v => v.beats.every(e => e.playbackStart < 3840 || e.graceType === 0 && (e.isRest || e.notes.every(n => n.isTieDestination && n.tieOrigin && n.tieOrigin.tieDestination === n && n.tieOrigin.beat.absolutePlaybackStart + n.tieOrigin.beat.playbackDuration === e.absolutePlaybackStart)))));
++                    if (mb.index === 0 || mb.nextMasterBar || mb.timeSignatureNumerator !== 4 || mb.timeSignatureDenominator !== 4 || mb.isAnacrusis || mb.isFreeTime || mb.isRepeatStart || mb.isRepeatEnd || mb.alternateEndings || mb.tripletFeel !== 0 || mb.directions?.size || !terminalBars.length || !terminalTail || terminalBars.some(b => b.simileMark !== 0) || terminalLengths.some(v => v.length !== 1 || v[0] < 3840 || v[0] > 4440) || Math.max(...terminalLengths.flat()) !== 4440) throw new FormatError("Invalid explicit GP terminal playback length.");
++                    continue;
++                }
++			const staves = this.tracks.length === 1 ? this.tracks[0].staves : [];
++			const bar = staves.length === 1 ? staves[0].bars[mb.index] : null;
++			const voices = bar?.voices.filter(v => !v.isEmpty).map(v => v.calculateDuration());
++			const meter = `${mb.timeSignatureNumerator}/${mb.timeSignatureDenominator}`;
++			const shortTwelve = meter === "12/8" && mb.gtsPerformedBarTicks === 5520 && voices?.length === 1 && voices[0] === 5520;
++				const short = meter === "4/4" && mb.gtsPerformedBarTicks === 3360 && voices?.length === 1 && voices[0] === 3360;
++			const long = meter === "7/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 2 && voices[0] === 3360 && voices[1] === 3840;
++			const wholeVoice = meter === "6/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 1 && voices[0] === 3840 ? bar.voices.find(v => !v.isEmpty) : null;
++			const wholeBeat = wholeVoice?.beats.length === 1 ? wholeVoice.beats[0] : null;
++			const wholeInSix = wholeBeat?.duration === 1 && wholeBeat.dots === 0 && wholeBeat.graceType === 0 && wholeBeat.notes.length === 1 && wholeBeat.notes[0].isStringed;
++			if ((!short && !long && !wholeInSix && !shortTwelve) || mb.index === 0 || !mb.nextMasterBar || mb.isAnacrusis || mb.isFreeTime ||
++				mb.tripletFeel !== 0 || mb.directions?.size || bar.simileMark !== 0) {
++				throw new FormatError("Invalid explicit GP measure playback length.");
++			}
+ 		}
+ 	}
+ 	/**
+@@ -6210,6 +6235,8 @@ class Note {
+ 	* Gets a value indicating whether the note is left hand tapped.
+ 	*/
+ 	isLeftHandTapped = false;
++	/** Note-specific right-hand tapping. Legacy beat-wide taps use Beat.tap. */
++	isRightHandTapped = false;
+ 	/**
+ 	* Gets or sets whether this note starts a hammeron or pulloff.
+ 	*/
+@@ -6267,6 +6294,17 @@ class Note {
+ 	* Gets or sets whether this note has a let-ring effect.
+ 	*/
+ 	isLetRing = false;
++	ghostReleaseAtBeatEnd = false;
++	// Exact GPIF midpoint for the qualified written quarter-tone ramp.
++	gtsFineBendMidpoint = 0;
++	gtsSlidePlayback = 0;
++	gtsSourceArticulation = 0;
++	gtsRepeatTieRelease = false;
++	gtsTiedBend = false;
++	gtsFallingTie = false;
++	gtsWrittenVibrato = false;
++	gtsTappedHarmonicTicks = 0;
++		gtsPinchHarmonicSemitones = 0;
+ 	/**
+ 	* Gets or sets the destination note for the let-ring effect.
+ 	* @clone_ignore
+@@ -6487,6 +6525,12 @@ class Note {
+ 	* and therefore need a string, the other types are an interval above the played note on any pitched note.
+ 	*/
+ 	get harmonicPitch() {
++			// Explicit captured interval; unmarked physical-node GP harmonics stay native.
++			if (this.gtsPinchHarmonicSemitones === 5 && this.isStringed &&
++				this.harmonicType === 3 && this.harmonicValue === 5) return 5;
++		// GtsTappedHarmonicTicks -2 selects the captured pitch with native note duration.
++		if (this.gtsTappedHarmonicTicks && this.isStringed && this.harmonicType === 4 &&
++			([3.2, 5, 7, 12].includes(this.harmonicValue) || this.gtsTappedHarmonicTicks === -2 && this.harmonicValue === 4)) return Math.trunc(this.harmonicValue);
+ 		const hasHarmonicPitch = this.isStringed || this.isPiano && this.harmonicType !== 1;
+ 		if (this.harmonicType === 0 || !hasHarmonicPitch) return 0;
+ 		return ModelUtils.harmonicValueToPitch(this.harmonicValue);
+@@ -6635,7 +6679,10 @@ class Note {
+ 			const isContinuedBend = this.isTieDestination && this.tieOrigin.hasBend;
+ 			this.isContinuedBend = isContinuedBend;
+ 		} else this.bendType = 0;
+-		if (hasBend && this.bendType === 1) {
++		// An explicit interior valley is not a monotonic pre-bend/release.
++			const hasBendValley = hasBend && (points.length === 3 || points.length === 4 && points[1].value === points[2].value) &&
++				points[1].value < Math.min(points[0].value, points[points.length - 1].value);
++			if (hasBend && this.bendType === 1 && !hasBendValley) {
+ 			if (points.length === 4) {
+ 				const origin = points[0];
+ 				const middle1 = points[1];
+@@ -8144,6 +8191,7 @@ class NoteCloner {
+ 		clone.percussionArticulation = original.percussionArticulation;
+ 		clone.isVisible = original.isVisible;
+ 		clone.isLeftHandTapped = original.isLeftHandTapped;
++		clone.isRightHandTapped = original.isRightHandTapped;
+ 		clone.isHammerPullOrigin = original.isHammerPullOrigin;
+ 		clone.isSlurDestination = original.isSlurDestination;
+ 		clone.harmonicType = original.harmonicType;
+@@ -8163,6 +8211,16 @@ class NoteCloner {
+ 		clone.trillSpeed = original.trillSpeed;
+ 		clone.isTrillStart = original.isTrillStart;
+ 		clone.durationPercent = original.durationPercent;
++		clone.ghostReleaseAtBeatEnd = original.ghostReleaseAtBeatEnd;
++		clone.gtsFineBendMidpoint = original.gtsFineBendMidpoint;
++		clone.gtsSlidePlayback = original.gtsSlidePlayback;
++		clone.gtsSourceArticulation = original.gtsSourceArticulation;
++		clone.gtsRepeatTieRelease = original.gtsRepeatTieRelease;
++		clone.gtsTiedBend = original.gtsTiedBend;
++		clone.gtsFallingTie = original.gtsFallingTie;
++		clone.gtsWrittenVibrato = original.gtsWrittenVibrato;
++		clone.gtsTappedHarmonicTicks = original.gtsTappedHarmonicTicks;
++			clone.gtsPinchHarmonicSemitones = original.gtsPinchHarmonicSemitones === 5 ? 5 : 0;
+ 		clone.accidentalMode = original.accidentalMode;
+ 		clone.dynamics = original.dynamics;
+ 		clone.ornament = original.ornament;
+@@ -20450,7 +20508,6 @@ class GpifParser {
+ 	_rhythmById;
+ 	_noteById;
+ 	_notesOfBeat;
+-	_tappedNotes;
+ 	_lyricsByTrack;
+ 	_soundsByTrack;
+ 	_hasAnacrusis = false;
+@@ -20479,7 +20536,6 @@ class GpifParser {
+ 		this._rhythmById = /* @__PURE__ */ new Map();
+ 		this._notesOfBeat = /* @__PURE__ */ new Map();
+ 		this._noteById = /* @__PURE__ */ new Map();
+-		this._tappedNotes = /* @__PURE__ */ new Set();
+ 		this._lyricsByTrack = /* @__PURE__ */ new Map();
+ 		this._soundsByTrack = /* @__PURE__ */ new Map();
+ 		this._skipApplyLyrics = false;
+@@ -21255,6 +21311,10 @@ class GpifParser {
+ 				masterBar.timeSignatureNumerator = GpifParser._parseIntSafe(timeParts[0], 4);
+ 				masterBar.timeSignatureDenominator = GpifParser._parseIntSafe(timeParts[1], 4);
+ 				break;
++			case "GtsPerformedBarTicks":
++				if (c.innerText !== "3360" && c.innerText !== "3840" && c.innerText !== "5520" && c.innerText !== "4440") throw new FormatError("Invalid explicit GP measure playback length.");
++				masterBar.gtsPerformedBarTicks = Number(c.innerText);
++				break;
+ 			case "FreeTime":
+ 				masterBar.isFreeTime = true;
+ 				break;
+@@ -21893,7 +21953,7 @@ class GpifParser {
+ 		const noteId = node.getAttribute("id");
+ 		for (const c of node.childElements()) switch (c.localName) {
+ 			case "Properties":
+-				this._parseNoteProperties(c, note, noteId);
++				this._parseNoteProperties(c, note);
+ 				break;
+ 			case "AntiAccent":
+ 				if (c.innerText.toLowerCase() === "normal") note.isGhost = true;
+@@ -21975,7 +22035,7 @@ class GpifParser {
+ 		}
+ 		this._noteById.set(noteId, note);
+ 	}
+-	_parseNoteProperties(node, note, noteId) {
++	_parseNoteProperties(node, note) {
+ 		let isBended = false;
+ 		let bendOrigin = null;
+ 		let bendMiddleValue = null;
+@@ -22002,8 +22062,45 @@ class GpifParser {
+ 				case "Variation":
+ 					variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
+ 					break;
+-				case "Tapped":
+-					this._tappedNotes.add(noteId);
++				case "GtsPinchHarmonicSemitones": {
++							const value = Number(c.findChildElement("Number")?.innerText);
++							note.gtsPinchHarmonicSemitones = value === 5 ? 5 : 0;
++							break;
++						}
++						case "GtsTappedHarmonicTicks": {
++						const ticks = Number(c.findChildElement("Number")?.innerText);
++						note.gtsTappedHarmonicTicks = [-2, -1, 320, 960, 1600, 5760].includes(ticks) ? ticks : 0;
++						break;
++					}
++					case "GtsWrittenVibrato":
++						note.gtsWrittenVibrato = c.findChildElement("Enable") !== null;
++						break;
++					case "GtsFallingTie":
++							note.gtsFallingTie = c.findChildElement("Enable") !== null;
++							break;
++						case "GtsTiedBend":
++						note.gtsTiedBend = c.findChildElement("Enable") !== null;
++						break;
++					case "GtsRepeatTieRelease":
++						note.gtsRepeatTieRelease = c.findChildElement("Enable") !== null;
++						break;
++					case "GtsSourceArticulation": {
++						const value = Number(c.findChildElement("Number")?.innerText);
++						note.gtsSourceArticulation = Number.isInteger(value) && value >= 1 && value <= 32 ? value : 0;
++						break;
++					}
++					case "GtsSlidePlayback":
++						const slidePlayback = c.findChildElement("Number")?.innerText;
++						note.gtsSlidePlayback = slidePlayback === "1" ? 1 : slidePlayback === "2" ? 2 : slidePlayback === "3" ? 3 : slidePlayback === "4" ? 4 : 0;
++						break;
++					case "GtsFineBendMidpoint":
++						note.gtsFineBendMidpoint = c.findChildElement("Number")?.innerText === "12" ? 12 : 0;
++						break;
++					case "GtsGhostReleaseAtBeatEnd":
++						note.ghostReleaseAtBeatEnd = !!c.findChildElement("Enable");
++						break;
++					case "Tapped":
++					note.isRightHandTapped = true;
+ 					break;
+ 				case "HarmonicType":
+ 					const htype = c.findChildElement("HType");
+@@ -22105,9 +22202,9 @@ class GpifParser {
+ 			if (!bendOrigin) bendOrigin = new BendPoint(0, 0);
+ 			if (!bendDestination) bendDestination = new BendPoint(BendPoint.MaxPosition, 0);
+ 			note.addBendPoint(bendOrigin);
+-			if (bendMiddleOffset1 && bendMiddleValue) note.addBendPoint(new BendPoint(bendMiddleOffset1, bendMiddleValue));
+-			if (bendMiddleOffset2 && bendMiddleValue) note.addBendPoint(new BendPoint(bendMiddleOffset2, bendMiddleValue));
+-			if (!bendMiddleOffset1 && !bendMiddleOffset2 && bendMiddleValue) note.addBendPoint(new BendPoint(BendPoint.MaxPosition / 2 | 0, bendMiddleValue));
++			if (bendMiddleOffset1 && bendMiddleValue !== null) note.addBendPoint(new BendPoint(bendMiddleOffset1, bendMiddleValue));
++			if (bendMiddleOffset2 && bendMiddleValue !== null) note.addBendPoint(new BendPoint(bendMiddleOffset2, bendMiddleValue));
++			if (!bendMiddleOffset1 && !bendMiddleOffset2 && bendMiddleValue !== null) note.addBendPoint(new BendPoint(BendPoint.MaxPosition / 2 | 0, bendMiddleValue));
+ 			note.addBendPoint(bendDestination);
+ 		}
+ 		if (element !== -1 && variation !== -1) note.percussionArticulation = PercussionMapper.articulationFromElementVariation(element, variation);
+@@ -22250,7 +22347,6 @@ class GpifParser {
+ 		if (staff.isPercussion) note.fret = NaN;
+ 		else note.percussionArticulation = NaN;
+ 		beat.addNote(note);
+-		if (this._tappedNotes.has(noteId)) beat.tap = true;
+ 		if (staff.isPercussion && note.percussionArticulation >= 0) {
+ 			const trackArticulations = staff.track.percussionArticulations;
+ 			let known = null;
+@@ -77370,7 +79054,16 @@ class GpifWriter {
+ 			this._writeSimplePropertyNode(properties, "Tone", "Step", note.tone.toString());
+ 			this._writeSimplePropertyNode(properties, "Midi", "Number", note.realValue.toString());
+ 		}
+-		if (note.beat.tap) this._writeSimplePropertyNode(properties, "Tapped", "Enable", null);
++		if (note.isRightHandTapped || note.beat.tap) this._writeSimplePropertyNode(properties, "Tapped", "Enable", null);
++		if (note.ghostReleaseAtBeatEnd) this._writeSimplePropertyNode(properties, "GtsGhostReleaseAtBeatEnd", "Enable", null);
++		if (note.gtsRepeatTieRelease) this._writeSimplePropertyNode(properties, "GtsRepeatTieRelease", "Enable", null);
++		if (note.gtsTiedBend) this._writeSimplePropertyNode(properties, "GtsTiedBend", "Enable", null);
++		if (note.gtsFallingTie) this._writeSimplePropertyNode(properties, "GtsFallingTie", "Enable", null);
++		if (note.gtsWrittenVibrato) this._writeSimplePropertyNode(properties, "GtsWrittenVibrato", "Enable", null);
++		if (note.gtsTappedHarmonicTicks) this._writeSimplePropertyNode(properties, "GtsTappedHarmonicTicks", "Number", note.gtsTappedHarmonicTicks.toString());
++			if (note.gtsPinchHarmonicSemitones === 5) this._writeSimplePropertyNode(properties, "GtsPinchHarmonicSemitones", "Number", "5");
++		if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3 || note.gtsSlidePlayback === 4) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
++		if (Number.isInteger(note.gtsSourceArticulation) && note.gtsSourceArticulation >= 1 && note.gtsSourceArticulation <= 32) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
+ 		if (note.harmonicType !== 0) {
+ 			switch (note.harmonicType) {
+ 				case 1:
+@@ -77462,9 +79155,10 @@ class GpifWriter {
+ 		pitch.addElement("Octave").innerText = octave;
+ 	}
+ 	_writeBend(properties, note) {
+-		if (note.hasBend && note.bendPoints.length <= 4) this._writeStandardBend(properties, note.bendPoints);
++		if (note.hasBend && note.bendPoints.length <= 4) this._writeStandardBend(properties, note.bendPoints, note.gtsFineBendMidpoint);
+ 	}
+-	_writeStandardBend(properties, bendPoints) {
++	_writeStandardBend(properties, bendPoints, gtsFineBendMidpoint = 0) {
++		if (gtsFineBendMidpoint === 12) this._writeSimplePropertyNode(properties, "GtsFineBendMidpoint", "Number", "12");
+ 		this._writeSimplePropertyNode(properties, "Bended", "Enable", null);
+ 		const bendOrigin = bendPoints[0];
+ 		const bendDestination = bendPoints[bendPoints.length - 1];
+@@ -77487,7 +79181,7 @@ class GpifWriter {
+ 		this._writeSimplePropertyNode(properties, "BendDestinationValue", "Float", this._toBendValue(bendDestination.value).toString());
+ 		this._writeSimplePropertyNode(properties, "BendMiddleOffset1", "Float", this._toBendOffset(bendMiddle1.offset).toString());
+ 		this._writeSimplePropertyNode(properties, "BendMiddleOffset2", "Float", this._toBendOffset(bendMiddle2.offset).toString());
+-		this._writeSimplePropertyNode(properties, "BendMiddleValue", "Float", this._toBendValue(bendMiddle1.value).toString());
++		this._writeSimplePropertyNode(properties, "BendMiddleValue", "Float", (gtsFineBendMidpoint === 12 ? 12 : this._toBendValue(bendMiddle1.value)).toString());
+ 		this._writeSimplePropertyNode(properties, "BendOriginOffset", "Float", this._toBendOffset(bendOrigin.offset).toString());
+ 		this._writeSimplePropertyNode(properties, "BendOriginValue", "Float", this._toBendValue(bendOrigin.value).toString());
+ 	}
+@@ -78187,6 +79881,7 @@ class GpifWriter {
+ 		masterBarNode.addElement("Time").innerText = `${masterBar.timeSignatureNumerator}/${masterBar.timeSignatureDenominator}`;
+ 		if (masterBar.actualBeamingRules) this._writeBarXProperties(masterBarNode, masterBar);
+ 		if (masterBar.isFreeTime) masterBarNode.addElement("FreeTime");
++		if (masterBar.gtsPerformedBarTicks) masterBarNode.addElement("GtsPerformedBarTicks").innerText = masterBar.gtsPerformedBarTicks.toString();
+ 		const bars = [];
+ 		for (const tracks of masterBar.score.tracks) for (const staves of tracks.staves) bars.push(staves.bars[masterBar.index].id.toString());
+ 		masterBarNode.addElement("Bars").innerText = bars.join(" ");

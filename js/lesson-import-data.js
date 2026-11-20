@@ -1,13 +1,40 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Bridge payload, timing conversion and import snapshots; no native/player calls.
 import {mediaUrl,validatePoints} from './media-sync.js';
+import {validateDraft} from './draft-timing.js';
+import {validateTimingPlan} from './explanation-timing.js';
 export function validateLesson(data) {
-  if(data?.format!=='gts-lesson' || ![1,2,3].includes(data.version) || typeof data.title!=='string' || data.title.length>240)
+  if(data?.format!=='gts-lesson' || ![1,2,3,4,5,6].includes(data.version) || typeof data.title!=='string' || data.title.length>240)
     throw new Error('Unsupported Lesson Bridge payload.');
+  if(data.version===6){
+    if(data.recordingMode!=='reference-only'||!data.score||!data.recording||Object.keys(data).some(k=>!['format','version','title','lessonUrl','score','recording','recordingMode'].includes(k))||Object.keys(data.score).some(k=>!['fileName','base64'].includes(k))||Object.keys(data.recording).some(k=>!(data.recording.kind==='local-choice'?['kind']:['url','label']).includes(k)))throw new Error('A reference lesson needs only its score and independent recording, without timing.');
+    const resources=validateLesson({format:data.format,version:3,title:data.title,lessonUrl:data.lessonUrl,score:data.score,recording:data.recording});
+    return {...resources,recordingMode:'reference-only'};
+  }
+  if(Object.hasOwn(data,'recordingMode'))throw new Error('Independent reference recording requires a version-6 lesson.');
+  const explanationTiming=data.version===4;
+  const isDraft=data.version===5;
+  if(!isDraft && Object.hasOwn(data,'draftTiming'))throw new Error('Draft timing requires a version-5 lesson.');
+  if(isDraft) {
+    const allowed=['format','version','title','lessonUrl','score','recording','draftTiming'];
+    if(Object.keys(data).some(k=>!allowed.includes(k))||!data.score||!data.recording||!data.draftTiming)throw new Error('A draft lesson needs original score, recording and draftTiming only.');
+    const draftTiming=validateDraft(data.draftTiming);
+    // Reuse existing strict resource policy without interpreting the draft as a plan.
+    if(Object.keys(data.score).some(k=>!['fileName','base64'].includes(k))||Object.keys(data.recording).some(k=>!(data.recording.kind==='local-choice'?['kind','id']:['url','label','id']).includes(k)))throw new Error('Invalid draft resources.');
+    if(data.recording.id!==draftTiming.recordingId)throw new Error('Draft recording identity differs.');
+    const recording={...data.recording};delete recording.id;
+    const resources=validateLesson({format:data.format,version:3,title:data.title,lessonUrl:data.lessonUrl,score:data.score,recording});
+    return {...resources,recording:{...resources.recording,id:draftTiming.recordingId},draftTiming};
+  }
+  if(!explanationTiming && Object.hasOwn(data,'timingPlan'))throw new Error('Explanation timing requires a version-4 lesson.');
+  if(explanationTiming && (Object.hasOwn(data,'syncPoints') || !data.score || !data.recording || !data.timingPlan || data.keepRecording===true ||
+      Object.keys(data).some(key=>!['format','version','title','lessonUrl','score','recording','timingPlan','keepRecording'].includes(key))))
+    throw new Error('A version-4 lesson requires its original score, recording and timingPlan, without legacy syncPoints or recording retention.');
   if(data.version>=2 && data.keepRecording!==undefined && typeof data.keepRecording!=='boolean')throw new Error('Invalid recording retention choice.');
   let score=null;
   if(data.score) {
     const fileName=data.score?.fileName,encoded=data.score?.base64;
+    if(explanationTiming && Object.keys(data.score).some(key=>!['fileName','base64'].includes(key)))throw new Error('Invalid original score fields.');
     if(typeof fileName!=='string' || fileName.length>240 || /[\\/\x00-\x1f]/.test(fileName) || !/\.(gp[3-5]?|gpx|xml|musicxml|mxl)$/i.test(fileName) ||
         typeof encoded!=='string' || !encoded.length || encoded.length>16*1024*1024 || !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded) || encoded.length%4)
       throw new Error('Choose a supported score of at most 12 MB.');
@@ -17,14 +44,18 @@ export function validateLesson(data) {
     score={fileName,bytes};
   } else if(data.version===1)throw new Error('A version-1 lesson needs a score.');
   const lessonUrl=mediaUrl(data.lessonUrl);
+  const timingPlan=explanationTiming?validateTimingPlan(data.timingPlan):null;
   let recording=null;
   if(data.recording?.kind==='local-choice') {
-    if(data.version!==3 || data.keepRecording===true || Object.keys(data.recording).some(key=>key!=='kind'))throw new Error('Invalid local recording request.');
-    recording={kind:'local-choice'};
+    const fields=explanationTiming?['kind','id']:['kind'];
+    if(![3,4].includes(data.version) || data.keepRecording===true || Object.keys(data.recording).some(key=>!fields.includes(key)))throw new Error('Invalid local recording request.');
+    recording={kind:'local-choice',...(explanationTiming?{id:data.recording.id}:{})};
   } else if(data.recording) {
     if(data.recording.kind!==undefined)throw new Error('Unsupported recording kind.');
-    recording={url:mediaUrl(data.recording.url),label:String(data.recording.label || data.title).slice(0,240)};
+    if(explanationTiming && Object.keys(data.recording).some(key=>!['url','label','id'].includes(key)))throw new Error('Invalid recording fields.');
+    recording={url:mediaUrl(data.recording.url),label:String(data.recording.label || data.title).slice(0,240),...(explanationTiming?{id:data.recording.id}:{})};
   }
+  if(explanationTiming && recording.id!==timingPlan.recordingId)throw new Error('The recording identity does not match this timing plan.');
   const hasTiming=data.syncPoints!==null && data.syncPoints!==undefined;
   if(data.version===1 && hasTiming && !recording)throw new Error('Timing needs a selected recording.');
   const keepRecording=data.version>=2 && (data.keepRecording===true || (!score && !recording));
@@ -34,7 +65,17 @@ export function validateLesson(data) {
     try{syncPoints=validateSoundslice(data.syncPoints);}
     catch(error){timingIssue={timingWarning:error.message,rejectedSyncPoints:rejectedTimingCopy(data.syncPoints)};}
   }
-  return {title:data.title,lessonUrl,score,recording,syncPoints,keepRecording,...timingIssue};
+  return {title:data.title,lessonUrl,score,recording,syncPoints,keepRecording,...timingIssue,...(explanationTiming?{timingPlan}:{})};
+}
+
+// Verify the exact original bytes before opening review/loading a score. No file
+// path, recording bytes or remote resource is needed to establish this binding.
+export async function verifyLessonScoreHash(lesson) {
+  const binding=lesson.timingPlan??lesson.draftTiming;
+  if(!binding)return;
+  const digest=await crypto.subtle.digest('SHA-256',lesson.score.bytes);
+  const hash=[...new Uint8Array(digest)].map(value=>value.toString(16).padStart(2,'0')).join('');
+  if(hash!==binding.scoreSha256)throw new Error('The timing plan does not match the original score bytes.');
 }
 
 // Keep ordinary rejected timing available for manual repair without retaining

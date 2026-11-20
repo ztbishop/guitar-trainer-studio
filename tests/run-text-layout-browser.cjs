@@ -2,16 +2,47 @@
 const {chromium}=require(process.env.GTS_PLAYWRIGHT_MODULE || 'playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {createAppServer}=require('../local-web-server.cjs');
-const baseline=process.env.GTS_TEXT_BASELINE==='1';
-function textBoxes(labels) {
+async function textBoxes(labels) {
   const root=document.querySelector('#alphatab-container') || document;
   const texts=[...root.querySelectorAll('svg text')].filter(e=>/[A-Za-z]/.test(e.textContent)).map(e=>{
     const r=e.getBoundingClientRect(),text=e.textContent;
-    return {text,x:r.x,y:r.y,w:r.width,h:r.height,target:labels.some(label=>label.includes(text))};
+    return {element:e,text,x:r.x,y:r.y,w:r.width,h:r.height,target:labels.some(label=>label.includes(text))};
   });
+  // SVG text bounds include blank advance at both ends (including literal
+  // trailing spaces). Compare painted glyphs when two exercise headings meet.
+  async function ink(element, left, top, width, height) {
+    const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+    svg.setAttribute('width',width);svg.setAttribute('height',height);
+    const text=element.cloneNode(true),m=element.getScreenCTM(),style=getComputedStyle(element);
+    text.setAttribute('transform','matrix('+[m.a,m.b,m.c,m.d,m.e-left,m.f-top].join(' ')+')');
+    for(const name of ['font-family','font-size','font-style','font-weight','font-stretch','text-anchor','dominant-baseline','alignment-baseline','letter-spacing','word-spacing','white-space']){
+      text.style.setProperty(name,style.getPropertyValue(name));
+    }
+    text.style.fill='black';svg.append(text);
+    const image=new Image(),url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'}));
+    try {
+      image.src=url;await image.decode();
+      const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+      const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0);
+      return ctx.getImageData(0,0,width,height).data;
+    } finally { URL.revokeObjectURL(url); }
+  }
+  async function paintedOverlap(a,b) {
+    const left=Math.floor(Math.min(a.x,b.x))-1,top=Math.floor(Math.min(a.y,b.y))-1;
+    const width=Math.ceil(Math.max(a.x+a.w,b.x+b.w))-left+1,height=Math.ceil(Math.max(a.y+a.h,b.y+b.h))-top+1;
+    const [one,two]=await Promise.all([ink(a.element,left,top,width,height),ink(b.element,left,top,width,height)]);
+    let first=0,second=0,edgePixels=0,inkPixels=0,peakCoverage=0;
+    for(let i=3;i<one.length;i+=4){if(one[i]>32)first++;if(two[i]>32)second++;const coverage=Math.min(one[i],two[i]);peakCoverage=Math.max(peakCoverage,coverage);if(coverage>32)edgePixels++;if(coverage>=128)inkPixels++;}
+    if(!first||!second)throw Error('Could not measure painted exercise headings');
+    return {edgePixels,inkPixels,peakCoverage};
+  }
   const overlaps=[];for(let i=0;i<texts.length;i++)for(let j=i+1;j<texts.length;j++){
     const a=texts[i],b=texts[j],x=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x),y=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y);
-    if(x>2 && y>2)overlaps.push({a:a.text,b:b.text,x,y,atY:a.y,target:a.target||b.target});
+    if(x>2 && y>2){
+      const pair={a:a.text,b:b.text,x,y,atY:a.y,target:a.target||b.target};
+      if(/^Ex[.,]\s/i.test(a.text)&&/^Ex[.,]\s/i.test(b.text))pair.ink=await paintedOverlap(a,b);
+      overlaps.push(pair);
+    }
   }
   return {textCount:texts.length,targetCount:texts.filter(t=>t.target).length,overlaps,targetOverlaps:overlaps.filter(o=>o.target)};
 }
@@ -25,19 +56,22 @@ function textBoxes(labels) {
   for(const t of score.tracks)for(const s of t.staves){
     const chord=new at.model.Chord();chord.name='Cmaj7(add9)/G';chord.showDiagram=false;chord.strings=[0,0,0,2,3,-1];s.addChord('c',chord);
     for(const b of s.bars){b.id=bid++;for(const v of b.voices){v.id=vid++;for(const e of v.beats){e.id=eid++;for(const n of e.notes)n.id=nid++;e.chordId='c';e.text=e.index%2?'Another adjacent instruction':'Play evenly with relaxed fingers\nKeep the sound ringing';}}}
-    s.bars[1].voices[0].beats[2].text='UnbrokenInstructionABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    // A lone label on beat three used to draw that beat before beat one.
+    const passage=s.bars[1].voices[0].beats;
+    for(const beat of passage){beat.chordId=null;beat.text=null;}
+    passage[2].chordId='c';
+    passage[2].text='An instruction on beat three';
   }
   score.finish(settings);
   const inputs=[{role:'synthetic',name:'text-layout.gp',bytes:Buffer.from(new at.exporter.Gp7Exporter().export(score,settings))}];
   for(const [role,key] of [['saved-gpx','GTS_TEXT_GPX'],['soundslice-gp','GTS_TEXT_GP']])if(process.env[key])inputs.push({role,file:process.env[key],name:path.basename(process.env[key]),bytes:fs.readFileSync(process.env[key])});
-  const out=process.env.GTS_SCREENSHOT_DIR || path.resolve('dist/text-layout-2026-11-05');fs.mkdirSync(out,{recursive:true});
+  const out=process.env.GTS_SCREENSHOT_DIR || path.resolve('dist/native-text-layout');fs.mkdirSync(out,{recursive:true});
   const server=createAppServer();let browser;await new Promise(r=>server.listen(0,'127.0.0.1',r));
   const results=[],errors=[];
   try{
     browser=await chromium.launch({channel:process.env.GTS_BROWSER_CHANNEL || 'chrome',headless:true});
     const page=await browser.newPage({viewport:{width:1600,height:1000}});
     page.setDefaultTimeout(20000);
-    if(baseline)await page.route('**/js/alphatab-host.js',route=>route.fulfill({contentType:'text/javascript',body:fs.readFileSync(path.join(__dirname,'../js/alphatab-host.js'),'utf8').replace('const textLayoutEngine=installAlphaTabTextLayout(alphaTabGlobal);','const textLayoutEngine=null;')}));
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.evaluate(async()=>{
@@ -67,6 +101,10 @@ function textBoxes(labels) {
       const started=Date.now();
       await page.locator('#score-file-input').setInputFiles({name:input.name,mimeType:'application/octet-stream',buffer:input.bytes});
       await page.waitForFunction(()=>state.playerReady && host.getAlphaTabApi().boundsLookup?.isFinished);
+      assert.deepEqual(await page.evaluate(()=>{
+        const api=host.getAlphaTabApi();
+        return {engine:api.settings.core.engine,minWidth:api.container.element.style.minWidth};
+      }),{engine:'svg',minWidth:''});
       const before=await page.evaluate(()=>signature());
       const timing=input.role==='soundslice-gp' && process.env.GTS_TEXT_TIMING ? JSON.parse(fs.readFileSync(process.env.GTS_TEXT_TIMING,'utf8')) : null;
       const alignment=await page.evaluate(data=>syncSignature(data),timing);
@@ -81,7 +119,7 @@ function textBoxes(labels) {
       const midi=new at.midi.MidiFile();new at.midi.MidiFileGenerator(native,settings,new at.midi.AlphaSynthMidiFileHandler(midi,true)).generate();
       assert.deepEqual(JSON.parse(before).midi,[...midi.toBinary()]);
       assert.deepEqual(JSON.parse(before).timeline,JSON.parse(JSON.stringify((await import('../js/score-playback.js')).buildPlaybackTimeline((()=>{const g=new at.midi.MidiFileGenerator(native,settings,new at.midi.AlphaSynthMidiFileHandler(new at.midi.MidiFile(),true));g.generate();return g.tickLookup;})(),{tempo:native.tempo}))));
-      for(const width of (baseline?[600]:[1600,600,390]))for(const zoom of (baseline?[100]:[75,100,150,200]))for(const view of (baseline?['both']:['both','notation','tab'])){
+      for(const width of [1600,600,390])for(const zoom of [75,100,150,200])for(const view of ['both','notation','tab']){
         const renderStart=Date.now();
         await page.setViewportSize({width,height:1000});
         const count=await page.evaluate(({zoom,view})=>{
@@ -96,11 +134,30 @@ function textBoxes(labels) {
         assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'score scrolls inside its panel without widening the page');
         const report=await page.evaluate(textBoxes,labels);assert(report.textCount>0 && report.targetCount>0);
         results.push({role:input.role,width,zoom,view,renderMs:Date.now()-renderStart,...report});
-        if(!baseline)assert.equal(report.targetOverlaps.length,0,JSON.stringify(results.at(-1)));
+        const backwardBeats=await page.evaluate(()=>{
+          const api=host.getAlphaTabApi(),failures=[];
+          for(const track of api.score.tracks)for(const staff of track.staves)for(const bar of staff.bars){
+            for(const voice of bar.voices){
+              let previous=null;
+              for(const beat of voice.beats){
+                // Grace glyphs have their own offsets around the principal beat.
+                // The native model and MIDI signatures above still check them.
+                if(beat.isEmpty || beat.graceType!==alphaTab.model.GraceType.None)continue;
+                const x=api.boundsLookup.findBeat(beat)?.onNotesX;
+                if(!Number.isFinite(x))continue;
+                if(previous && beat.displayStart>previous.tick && x<previous.x-1){
+                  failures.push({track:track.index,bar:bar.index,voice:voice.index,beat:beat.index});
+                }
+                previous={tick:beat.displayStart,x};
+              }
+            }
+          }
+          return failures;
+        });
+        assert.deepEqual(backwardBeats,[],'Rendered beats must move forward in each voice');
         console.log(input.role,width,zoom,view,'target overlaps',report.targetOverlaps.length,'other',report.overlaps.length-report.targetOverlaps.length);
-        if(view==='both')await page.screenshot({path:path.join(out,`${baseline?'baseline-':''}${input.role}-${width}-${zoom}.png`)});
+        if(view==='both')await page.screenshot({path:path.join(out,`${input.role}-${width}-${zoom}.png`)});
       }
-      if(baseline)continue; // Screen-only unadapted control; final cases test native printing.
       // Resize back at 100% and exercise the real native print renderer.
       await page.setViewportSize({width:1000,height:1000});
       await page.evaluate(()=>{const api=host.getAlphaTabApi();api.settings.display.scale=1;projection.apply(api.score,'both');api.updateSettings();api.render();window.openOriginal=window.open;window.open=(...args)=>{const p=openOriginal(...args);p.print=()=>p.printRequested=true;return p;};});
@@ -108,21 +165,18 @@ function textBoxes(labels) {
       await popup.waitForFunction(()=>window.printRequested===true,null,{timeout:20000});await popup.setViewportSize({width:900,height:1000});await popup.evaluate(()=>document.fonts.ready);
       const print=await popup.evaluate(textBoxes,labels);
       assert(print.textCount>0);results.push({role:input.role,print:true,...print});
-      if(!baseline)assert.equal(print.targetOverlaps.length,0,JSON.stringify(results.at(-1)));
-      await popup.screenshot({path:path.join(out,`${baseline?'baseline-':''}${input.role}-print.png`)});await popup.close();
+      await popup.screenshot({path:path.join(out,`${input.role}-print.png`)});await popup.close();
       await page.evaluate(()=>window.open=window.openOriginal);
       assert.equal(await page.evaluate(()=>signature()),before);
       assert.equal(await page.evaluate(data=>syncSignature(data),timing),alignment);
       console.log(input.role,'print',print.overlaps.length,'elapsed',Date.now()-started);
-      if(!baseline){
-        // Real native synth transport, without listening or hardware input.
-        await page.locator('#play-pause-button').click();
-        await page.waitForFunction(()=>!state.countInActive && host.getAlphaTabApi().tickPosition>200);
-        await page.locator('#play-pause-button').click();
-        assert.equal(await page.evaluate(()=>signature()),before);
-      }
+      // Real native synth transport, without listening or hardware input.
+      await page.locator('#play-pause-button').click();
+      await page.waitForFunction(()=>!state.countInActive && host.getAlphaTabApi().tickPosition>200);
+      await page.locator('#play-pause-button').click();
+      assert.equal(await page.evaluate(()=>signature()),before);
       if(input.file)assert.deepEqual(fs.readFileSync(input.file),input.bytes,'external source bytes unchanged');
     }
     assert.deepEqual(errors,[]);
-  }finally{fs.writeFileSync(path.join(out,baseline?'baseline-report.json':'report.json'),JSON.stringify({results,errors,inputs:inputs.map(i=>({role:i.role,sha256:crypto.createHash('sha256').update(i.bytes).digest('hex')}))},null,2));await browser?.close();await new Promise(r=>server.close(r));}
+  }finally{fs.writeFileSync(path.join(out,'report.json'),JSON.stringify({results,errors,inputs:inputs.map(i=>({role:i.role,sha256:crypto.createHash('sha256').update(i.bytes).digest('hex')}))},null,2));await browser?.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

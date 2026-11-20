@@ -9,7 +9,7 @@ import {initLoopControls} from '../js/loop-controls.js';
 test('drag activation notifies once, enabled range changes stay silent, and loop indicators clear when disabled',()=>{
   const previous={document:globalThis.document,setTimeout:globalThis.setTimeout,clearTimeout:globalThis.clearTimeout};
   const saved={playbackTimeline:AppState.playbackTimeline,playerReady:AppState.playerReady,practiceLoop:AppState.practiceLoop,media:AppState.media};
-  const elements=new Map(),pending=new Map();let nextId=0;
+  const elements=new Map(),pending=new Map();let nextId=0,rejectSelection=false;
   const get=id=>{
     if(!elements.has(id)) {
       const classes=new Set();
@@ -24,8 +24,13 @@ test('drag activation notifies once, enabled range changes stay silent, and loop
   const flush=()=>{const [id,{fn}]=pending.entries().next().value;pending.delete(id);fn();};
   try {
     AppState.playerReady=true;AppState.playbackTimeline={measures};AppState.practiceLoop={enabled:false,countIn:false,startIndex:0,endIndex:3,range:null};
-    const controls=initLoopControls(loop=>{AppState.practiceLoop=loop;});controls.sync();
+    const controls=initLoopControls(loop=>{if(rejectSelection)return 'This section is omitted from the recording.';AppState.practiceLoop=loop;});controls.sync();
     const notice=get('loop-enabled-notice'),button=get('btn-looper');
+    rejectSelection=true;const beforeRejected=structuredClone(AppState.practiceLoop);
+    controls.selectByDrag({startIndex:1,endIndex:2});
+    assert.deepEqual(AppState.practiceLoop,beforeRejected);assert.match(get('loop-controls-status').textContent,/omitted/);
+    assert.equal(notice.textContent,'');assert.equal(pending.size,0);assert.equal(button.classList.contains('is-loop-enabled'),false);
+    rejectSelection=false;
     controls.selectByDrag({startIndex:1,endIndex:2});
     assert.equal(notice.textContent,'Loop enabled: measures 2–3');assert.ok(notice.classList.contains('is-visible'));
     assert.ok(button.classList.contains('is-loop-enabled'));assert.ok(get('btn-more').classList.contains('has-enabled-loop'));

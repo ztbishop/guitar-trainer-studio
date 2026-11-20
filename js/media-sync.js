@@ -1,5 +1,6 @@
 // Score/media alignment data only. No alphaTab, player, MIDI or grading calls.
 import {tickToTimeMs} from './score-playback.js';
+import {validateTimingPlan,validateTimingPlanDuration} from './explanation-timing.js';
 
 export const MEDIA_PROFILE_FORMAT='guitar-trainer-media-sync';
 export const MEDIA_LAYOUTS=['above','below','left','right'];
@@ -112,12 +113,21 @@ export function validateProfile(data) {
   if(!data || typeof data.id!=='string' || !data.id || data.id.length>100 || !/^[a-f0-9]{64}$/.test(data.scoreHash || '') ||
     typeof data.name!=='string' || !data.name.trim() || !finite(data.durationMs) || data.durationMs<=0 || data.durationMs>86400000)
     throw new Error('Invalid sync profile metadata.');
+  const metadata={id:data.id,scoreHash:data.scoreHash,scoreName:String(data.scoreName || 'Score').slice(0,240),name:data.name.trim().slice(0,240),source:validateSource(data.source),
+    durationMs:data.durationMs,layout:MEDIA_LAYOUTS.includes(data.layout)?data.layout:'left'};
+  if(Object.hasOwn(data,'timingPlan')) {
+    if(Object.hasOwn(data,'points'))throw new Error('Explanation profiles cannot contain ordinary sync points.');
+    const timingPlan=validateTimingPlan(data.timingPlan);
+    if(timingPlan.scoreSha256!==data.scoreHash)throw new Error('Explanation profile belongs to a different score.');
+    validateTimingPlanDuration(timingPlan,data.durationMs);
+    return {...metadata,timingPlan};
+  }
   if(!Array.isArray(data.points) || data.points.length<2)throw new Error('A sync profile needs at least a start and end point.');
-  return {id:data.id,scoreHash:data.scoreHash,scoreName:String(data.scoreName || 'Score').slice(0,240),name:data.name.trim().slice(0,240),source:validateSource(data.source),
-    durationMs:data.durationMs,points:validatePoints(data.points),layout:MEDIA_LAYOUTS.includes(data.layout)?data.layout:'left'};
+  return {...metadata,points:validatePoints(data.points)};
 }
 export function parseProfileExport(data) {
-  if(data?.format!==MEDIA_PROFILE_FORMAT || data.version!==1 || !Array.isArray(data.profiles) || data.profiles.length>5000)
-    throw new Error('Choose a Guitar Trainer media sync backup (version 1).');
+  if(data?.format!==MEDIA_PROFILE_FORMAT || ![1,2].includes(data.version) || !Array.isArray(data.profiles) || data.profiles.length>5000)
+    throw new Error('Choose a Guitar Trainer media sync backup (version 1 or 2).');
+  if(data.version===1 && data.profiles.some(p=>Object.hasOwn(p??{},'timingPlan')))throw new Error('Explanation profiles need a version-2 sync backup.');
   return data.profiles.map(validateProfile);
 }

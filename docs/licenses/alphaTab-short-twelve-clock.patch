@@ -1,0 +1,71 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -3578,12 +3578,13 @@
+ 				const bar = staves.length === 1 ? staves[0].bars[mb.index] : null;
+ 				const voices = bar?.voices.filter(v => !v.isEmpty).map(v => v.calculateDuration());
+ 				const meter = `${mb.timeSignatureNumerator}/${mb.timeSignatureDenominator}`;
++				const shortTwelve = meter === "12/8" && mb.gtsPerformedBarTicks === 5520 && voices?.length === 1 && voices[0] === 5520;
+ 				const short = meter === "4/4" && mb.gtsPerformedBarTicks === 3360 && voices?.length === 1 && voices[0] === 3360;
+ 				const long = meter === "7/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 2 && voices[0] === 3360 && voices[1] === 3840;
+ 				const wholeVoice = meter === "6/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 1 && voices[0] === 3840 ? bar.voices.find(v => !v.isEmpty) : null;
+ 				const wholeBeat = wholeVoice?.beats.length === 1 ? wholeVoice.beats[0] : null;
+ 				const wholeInSix = wholeBeat?.duration === Duration.Whole && wholeBeat.dots === 0 && wholeBeat.graceType === GraceType.None && wholeBeat.notes.length === 1 && wholeBeat.notes[0].isStringed;
+-				if ((!short && !long && !wholeInSix) || mb.index === 0 || !mb.nextMasterBar || mb.isAnacrusis || mb.isFreeTime ||
++				if ((!short && !long && !wholeInSix && !shortTwelve) || mb.index === 0 || !mb.nextMasterBar || mb.isAnacrusis || mb.isFreeTime ||
+ 					mb.tripletFeel !== TripletFeel.NoTripletFeel || mb.directions?.size || bar.simileMark !== SimileMark.None) {
+ 					throw new FormatError("Invalid explicit GP measure playback length.");
+ 				}
+@@ -20361,7 +20362,7 @@
+ 					masterBar.timeSignatureDenominator = GpifParser._parseIntSafe(timeParts[1], 4);
+ 					break;
+ 				case "GtsPerformedBarTicks":
+-					if (c.innerText !== "3360" && c.innerText !== "3840") throw new FormatError("Invalid explicit GP measure playback length.");
++					if (c.innerText !== "3360" && c.innerText !== "3840" && c.innerText !== "5520") throw new FormatError("Invalid explicit GP measure playback length.");
+ 					masterBar.gtsPerformedBarTicks = Number(c.innerText);
+ 					break;
+ 				case "FreeTime":
+@@ -31117,7 +31118,7 @@
+ 					obj.start = v;
+ 					return true;
+ 				case "gtsperformedbarticks":
+-					obj.gtsPerformedBarTicks = v === 3360 || v === 3840 ? v : 0;
++					obj.gtsPerformedBarTicks = v === 3360 || v === 3840 || v === 5520 ? v : 0;
+ 					return true;
+ 				case "isanacrusis":
+ 					obj.isAnacrusis = v;
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -3574,12 +3574,13 @@
+ 			const bar = staves.length === 1 ? staves[0].bars[mb.index] : null;
+ 			const voices = bar?.voices.filter(v => !v.isEmpty).map(v => v.calculateDuration());
+ 			const meter = `${mb.timeSignatureNumerator}/${mb.timeSignatureDenominator}`;
+-			const short = meter === "4/4" && mb.gtsPerformedBarTicks === 3360 && voices?.length === 1 && voices[0] === 3360;
++			const shortTwelve = meter === "12/8" && mb.gtsPerformedBarTicks === 5520 && voices?.length === 1 && voices[0] === 5520;
++				const short = meter === "4/4" && mb.gtsPerformedBarTicks === 3360 && voices?.length === 1 && voices[0] === 3360;
+ 			const long = meter === "7/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 2 && voices[0] === 3360 && voices[1] === 3840;
+ 			const wholeVoice = meter === "6/8" && mb.gtsPerformedBarTicks === 3840 && voices?.length === 1 && voices[0] === 3840 ? bar.voices.find(v => !v.isEmpty) : null;
+ 			const wholeBeat = wholeVoice?.beats.length === 1 ? wholeVoice.beats[0] : null;
+ 			const wholeInSix = wholeBeat?.duration === Duration.Whole && wholeBeat.dots === 0 && wholeBeat.graceType === GraceType.None && wholeBeat.notes.length === 1 && wholeBeat.notes[0].isStringed;
+-			if ((!short && !long && !wholeInSix) || mb.index === 0 || !mb.nextMasterBar || mb.isAnacrusis || mb.isFreeTime ||
++			if ((!short && !long && !wholeInSix && !shortTwelve) || mb.index === 0 || !mb.nextMasterBar || mb.isAnacrusis || mb.isFreeTime ||
+ 				mb.tripletFeel !== TripletFeel.NoTripletFeel || mb.directions?.size || bar.simileMark !== SimileMark.None) {
+ 				throw new FormatError("Invalid explicit GP measure playback length.");
+ 			}
+@@ -20357,7 +20358,7 @@
+ 				masterBar.timeSignatureDenominator = GpifParser._parseIntSafe(timeParts[1], 4);
+ 				break;
+ 			case "GtsPerformedBarTicks":
+-				if (c.innerText !== "3360" && c.innerText !== "3840") throw new FormatError("Invalid explicit GP measure playback length.");
++				if (c.innerText !== "3360" && c.innerText !== "3840" && c.innerText !== "5520") throw new FormatError("Invalid explicit GP measure playback length.");
+ 				masterBar.gtsPerformedBarTicks = Number(c.innerText);
+ 				break;
+ 			case "FreeTime":
+@@ -31113,7 +31114,7 @@
+ 				obj.start = v;
+ 				return true;
+ 			case "gtsperformedbarticks":
+-				obj.gtsPerformedBarTicks = v === 3360 || v === 3840 ? v : 0;
++				obj.gtsPerformedBarTicks = v === 3360 || v === 3840 || v === 5520 ? v : 0;
+ 				return true;
+ 			case "isanacrusis":
+ 				obj.isAnacrusis = v;

@@ -18,8 +18,9 @@ export function decodeBytes(text) {
 }
 
 export async function validateBackup(data) {
-  if(data?.format!==LIBRARY_FORMAT || ![1,2].includes(data.version) || !Array.isArray(data.folders) || !Array.isArray(data.scores))throw new Error('Choose a Guitar Trainer library backup (version 1 or 2).');
-  if(data.version===2 && !Array.isArray(data.mediaProfiles))throw new Error('The backup is missing media sync profiles.');
+  if(data?.format!==LIBRARY_FORMAT || ![1,2,3].includes(data.version) || !Array.isArray(data.folders) || !Array.isArray(data.scores))throw new Error('Choose a Guitar Trainer library backup (version 1, 2 or 3).');
+  if(data.version>=2 && !Array.isArray(data.mediaProfiles))throw new Error('The backup is missing media sync profiles.');
+  if(data.version<3 && data.mediaProfiles?.some(p=>Object.hasOwn(p??{},'timingPlan')))throw new Error('Explanation profiles need a version-3 library backup.');
   const mediaProfiles=(data.mediaProfiles || []).map(validateProfile);
   if(new Set(mediaProfiles.map(profile=>profile.id)).size!==mediaProfiles.length)throw new Error('Duplicate sync profile IDs.');
   const folderIds=new Set(),scoreIds=new Set();
@@ -174,7 +175,7 @@ export class LibraryStore {
       const hashes=new Set(scores.map(score=>score.hash));
       mediaProfiles=mediaProfiles.filter(profile=>hashes.has(profile.scoreHash));
     }
-    return {format:LIBRARY_FORMAT,version:2,exportedAt:new Date().toISOString(),folders,mediaProfiles,
+    return {format:LIBRARY_FORMAT,version:mediaProfiles.some(p=>p.timingPlan)?3:2,exportedAt:new Date().toISOString(),folders,mediaProfiles,
       scores:scores.map(({bytes,...score})=>({...score,data:encodeBytes(bytes)}))};
   }
   async merge(data) {

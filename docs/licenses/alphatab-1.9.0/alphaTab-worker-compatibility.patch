@@ -1,0 +1,350 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -34206,6 +34303,7 @@
+ 					data[i + 3] = note.channel;
+ 					data[i + 4] = note.noteKey;
+ 					data[i + 5] = note.noteVelocity;
++					if (e.type === 128) data[i + 6] = note.sampleOffsetMs || 0;
+ 					break;
+ 				case 176:
+ 					const cc = e;
+@@ -34259,7 +34357,7 @@
+ 				case 88: return new TimeSignatureEvent(track, tick, data[i + 3], data[i + 4], data[i + 5], data[i + 6]);
+ 				case 241: return new AlphaTabRestEvent(track, tick, data[i + 3]);
+ 				case 242: return new AlphaTabMetronomeEvent(track, tick, data[i + 3], data[i + 4], data[i + 5]);
+-				case 128: return new NoteOnEvent(track, tick, data[i + 3], data[i + 4], data[i + 5]);
++				case 128: return new NoteOnEvent(track, tick, data[i + 3], data[i + 4], data[i + 5], data[i + 6]);
+ 				case 144: return new NoteOffEvent(track, tick, data[i + 3], data[i + 4], data[i + 5]);
+ 				case 176: return new ControlChangeEvent(track, tick, data[i + 3], data[i + 4], data[i + 5]);
+ 				case 192: return new ProgramChangeEvent(track, tick, data[i + 3], data[i + 4]);
+@@ -34495,11 +34593,17 @@
+ 			"isanacrusis",
+ 			"displayscale",
+ 			"displaywidth",
+-			"directions"
+-		]);
++			"directions",
++				"gtsperformedbarticks"
++			]);
+ 		static read(obj, reader) {
+ 			reader.readRecord(MasterBarSerializer._fields, (id, k, r) => {
+ 				switch (id) {
++					case 23: {
++						const v = r.readValue();
++						obj.gtsPerformedBarTicks = v === 3360 || v === 3840 || v === 5520 || v === 4440 ? v : 0;
++						return true;
++					}
+ 					case 0:
+ 						obj.alternateEndings = r.readNumber();
+ 						return true;
+@@ -34658,7 +34762,8 @@
+ 				for (const v of obj.directions) a.push(v);
+ 				w.valueField(22, a);
+ 			}
+-			w.endObject();
++			if (obj.gtsPerformedBarTicks) w.numberField(23, obj.gtsPerformedBarTicks);
++				w.endObject();
+ 		}
+ 	};
+ 	// src/generated/model/BendPointSerializer.ts
+@@ -34783,11 +34888,77 @@
+ 			"accidentalmode",
+ 			"dynamics",
+ 			"ornament",
+-			"style"
+-		]);
++			"style",
++				"isrighthandtapped",
++				"ghostreleaseatbeatend",
++				"gtsfinebendmidpoint",
++				"gtsslideplayback",
++				"gtssourcearticulation",
++				"gtsrepeattierelease",
++				"gtstiedbend",
++				"gtsfallingtie",
++				"gtswrittenvibrato",
++				"gtstappedharmonicticks",
++				"gtspinchharmonicsemitones"
++			]);
+ 		static read(obj, reader) {
+ 			reader.readRecord(NoteSerializer._fields, (id, k, r) => {
+ 				switch (id) {
++					case 37: {
++						const v = r.readValue();
++						obj.isRightHandTapped = v === true;
++						return true;
++					}
++					case 38: {
++						const v = r.readValue();
++						obj.ghostReleaseAtBeatEnd = v === true;
++						return true;
++					}
++					case 39: {
++						const v = r.readValue();
++						obj.gtsFineBendMidpoint = v === 12 ? 12 : 0;
++						return true;
++					}
++					case 40: {
++						const v = r.readValue();
++						obj.gtsSlidePlayback = v === 1 || v === 2 || v === 3 || v === 4 ? v : 0;
++						return true;
++					}
++					case 41: {
++						const v = r.readValue();
++						obj.gtsSourceArticulation = Number.isInteger(v) && v >= 1 && v <= 32 ? v : 0;
++						return true;
++					}
++					case 42: {
++						const v = r.readValue();
++						obj.gtsRepeatTieRelease = v === true;
++						return true;
++					}
++					case 43: {
++						const v = r.readValue();
++						obj.gtsTiedBend = v === true;
++						return true;
++					}
++					case 44: {
++						const v = r.readValue();
++						obj.gtsFallingTie = v === true;
++						return true;
++					}
++					case 45: {
++						const v = r.readValue();
++						obj.gtsWrittenVibrato = v === true;
++						return true;
++					}
++					case 46: {
++						const v = r.readValue();
++						obj.gtsTappedHarmonicTicks = [-2, -1, 320, 960, 1600, 5760].includes(v) ? v : 0;
++						return true;
++					}
++					case 47: {
++						const v = r.readValue();
++						obj.gtsPinchHarmonicSemitones = v === 5 ? 5 : 0;
++						return true;
++					}
+ 					case 0:
+ 						obj.id = r.readNumber();
+ 						return true;
+@@ -34969,7 +35140,18 @@
+ 				NoteStyleSerializer.write(obj.style, w);
+ 			}
+ 			obj.toJson(w);
+-			w.endObject();
++			if (obj.isRightHandTapped) w.booleanField(37, obj.isRightHandTapped);
++				if (obj.ghostReleaseAtBeatEnd) w.booleanField(38, obj.ghostReleaseAtBeatEnd);
++				if (obj.gtsFineBendMidpoint) w.numberField(39, obj.gtsFineBendMidpoint);
++				if (obj.gtsSlidePlayback) w.numberField(40, obj.gtsSlidePlayback);
++				if (obj.gtsSourceArticulation) w.numberField(41, obj.gtsSourceArticulation);
++				if (obj.gtsRepeatTieRelease) w.booleanField(42, obj.gtsRepeatTieRelease);
++				if (obj.gtsTiedBend) w.booleanField(43, obj.gtsTiedBend);
++				if (obj.gtsFallingTie) w.booleanField(44, obj.gtsFallingTie);
++				if (obj.gtsWrittenVibrato) w.booleanField(45, obj.gtsWrittenVibrato);
++				if (obj.gtsTappedHarmonicTicks) w.numberField(46, obj.gtsTappedHarmonicTicks);
++				if (obj.gtsPinchHarmonicSemitones) w.numberField(47, obj.gtsPinchHarmonicSemitones);
++				w.endObject();
+ 		}
+ 	};
+ 	// src/generated/model/TremoloPickingEffectSerializer.ts
+@@ -37675,7 +37857,7 @@
+ 				case 88: return new TimeSignatureEvent(track, tick, JsonHelper.getValue(midiEvent, "numerator"), JsonHelper.getValue(midiEvent, "denominatorIndex"), JsonHelper.getValue(midiEvent, "midiClocksPerMetronomeClick"), JsonHelper.getValue(midiEvent, "thirdySecondNodesInQuarter"));
+ 				case 241: return new AlphaTabRestEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"));
+ 				case 242: return new AlphaTabMetronomeEvent(track, tick, JsonHelper.getValue(midiEvent, "metronomeNumerator"), JsonHelper.getValue(midiEvent, "metronomeDurationInTicks"), JsonHelper.getValue(midiEvent, "metronomeDurationInMilliseconds"));
+-				case 128: return new NoteOnEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "noteKey"), JsonHelper.getValue(midiEvent, "noteVelocity"));
++				case 128: return new NoteOnEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "noteKey"), JsonHelper.getValue(midiEvent, "noteVelocity"), JsonHelper.getValue(midiEvent, "sampleOffsetMs"));
+ 				case 144: return new NoteOffEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "noteKey"), JsonHelper.getValue(midiEvent, "noteVelocity"));
+ 				case 176: return new ControlChangeEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "controller"), JsonHelper.getValue(midiEvent, "value"));
+ 				case 192: return new ProgramChangeEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "program"));
+@@ -37740,6 +37922,7 @@
+ 					o.set("channel", midiEvent.channel);
+ 					o.set("noteKey", midiEvent.noteKey);
+ 					o.set("noteVelocity", midiEvent.noteVelocity);
++					if (midiEvent.sampleOffsetMs) o.set("sampleOffsetMs", midiEvent.sampleOffsetMs);
+ 					break;
+ 				case 176:
+ 					o.set("channel", midiEvent.channel);
+@@ -38264,7 +38447,7 @@
+ 		/**
+ 		* A hash of the field ids, keys and types of all serialized classes (50 classes).
+ 		*/
+-		static fingerprint = 2898612401;
++		static fingerprint = 2774956954;
+ 	};
+ 	/**
+ 	* Writes the object model as MessagePack (https://github.com/msgpack/msgpack/blob/master/spec.md): records as
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -34207,6 +34304,7 @@ class MidiFileWire {
+ 				data[i + 3] = note.channel;
+ 				data[i + 4] = note.noteKey;
+ 				data[i + 5] = note.noteVelocity;
++				if (e.type === 128) data[i + 6] = note.sampleOffsetMs || 0;
+ 				break;
+ 			case 176:
+ 				const cc = e;
+@@ -34260,7 +34358,7 @@ class MidiFileWire {
+ 			case 88: return new TimeSignatureEvent(track, tick, data[i + 3], data[i + 4], data[i + 5], data[i + 6]);
+ 			case 241: return new AlphaTabRestEvent(track, tick, data[i + 3]);
+ 			case 242: return new AlphaTabMetronomeEvent(track, tick, data[i + 3], data[i + 4], data[i + 5]);
+-			case 128: return new NoteOnEvent(track, tick, data[i + 3], data[i + 4], data[i + 5]);
++			case 128: return new NoteOnEvent(track, tick, data[i + 3], data[i + 4], data[i + 5], data[i + 6]);
+ 			case 144: return new NoteOffEvent(track, tick, data[i + 3], data[i + 4], data[i + 5]);
+ 			case 176: return new ControlChangeEvent(track, tick, data[i + 3], data[i + 4], data[i + 5]);
+ 			case 192: return new ProgramChangeEvent(track, tick, data[i + 3], data[i + 4]);
+@@ -34496,11 +34594,17 @@ class MasterBarSerializer {
+ 		"isanacrusis",
+ 		"displayscale",
+ 		"displaywidth",
+-		"directions"
+-	]);
++		"directions",
++			"gtsperformedbarticks"
++		]);
+ 	static read(obj, reader) {
+ 		reader.readRecord(MasterBarSerializer._fields, (id, k, r) => {
+ 			switch (id) {
++				case 23: {
++					const v = r.readValue();
++					obj.gtsPerformedBarTicks = v === 3360 || v === 3840 || v === 5520 || v === 4440 ? v : 0;
++					return true;
++				}
+ 				case 0:
+ 					obj.alternateEndings = r.readNumber();
+ 					return true;
+@@ -34659,7 +34763,8 @@ class MasterBarSerializer {
+ 			for (const v of obj.directions) a.push(v);
+ 			w.valueField(22, a);
+ 		}
+-		w.endObject();
++		if (obj.gtsPerformedBarTicks) w.numberField(23, obj.gtsPerformedBarTicks);
++			w.endObject();
+ 	}
+ }
+ // src/generated/model/BendPointSerializer.ts
+@@ -34784,11 +34889,77 @@ class NoteSerializer {
+ 		"accidentalmode",
+ 		"dynamics",
+ 		"ornament",
+-		"style"
+-	]);
++		"style",
++			"isrighthandtapped",
++			"ghostreleaseatbeatend",
++			"gtsfinebendmidpoint",
++			"gtsslideplayback",
++			"gtssourcearticulation",
++			"gtsrepeattierelease",
++			"gtstiedbend",
++			"gtsfallingtie",
++			"gtswrittenvibrato",
++			"gtstappedharmonicticks",
++			"gtspinchharmonicsemitones"
++		]);
+ 	static read(obj, reader) {
+ 		reader.readRecord(NoteSerializer._fields, (id, k, r) => {
+ 			switch (id) {
++				case 37: {
++					const v = r.readValue();
++					obj.isRightHandTapped = v === true;
++					return true;
++				}
++				case 38: {
++					const v = r.readValue();
++					obj.ghostReleaseAtBeatEnd = v === true;
++					return true;
++				}
++				case 39: {
++					const v = r.readValue();
++					obj.gtsFineBendMidpoint = v === 12 ? 12 : 0;
++					return true;
++				}
++				case 40: {
++					const v = r.readValue();
++					obj.gtsSlidePlayback = v === 1 || v === 2 || v === 3 || v === 4 ? v : 0;
++					return true;
++				}
++				case 41: {
++					const v = r.readValue();
++					obj.gtsSourceArticulation = Number.isInteger(v) && v >= 1 && v <= 32 ? v : 0;
++					return true;
++				}
++				case 42: {
++					const v = r.readValue();
++					obj.gtsRepeatTieRelease = v === true;
++					return true;
++				}
++				case 43: {
++					const v = r.readValue();
++					obj.gtsTiedBend = v === true;
++					return true;
++				}
++				case 44: {
++					const v = r.readValue();
++					obj.gtsFallingTie = v === true;
++					return true;
++				}
++				case 45: {
++					const v = r.readValue();
++					obj.gtsWrittenVibrato = v === true;
++					return true;
++				}
++				case 46: {
++					const v = r.readValue();
++					obj.gtsTappedHarmonicTicks = [-2, -1, 320, 960, 1600, 5760].includes(v) ? v : 0;
++					return true;
++				}
++				case 47: {
++					const v = r.readValue();
++					obj.gtsPinchHarmonicSemitones = v === 5 ? 5 : 0;
++					return true;
++				}
+ 				case 0:
+ 					obj.id = r.readNumber();
+ 					return true;
+@@ -34970,7 +35141,18 @@ class NoteSerializer {
+ 			NoteStyleSerializer.write(obj.style, w);
+ 		}
+ 		obj.toJson(w);
+-		w.endObject();
++		if (obj.isRightHandTapped) w.booleanField(37, obj.isRightHandTapped);
++			if (obj.ghostReleaseAtBeatEnd) w.booleanField(38, obj.ghostReleaseAtBeatEnd);
++			if (obj.gtsFineBendMidpoint) w.numberField(39, obj.gtsFineBendMidpoint);
++			if (obj.gtsSlidePlayback) w.numberField(40, obj.gtsSlidePlayback);
++			if (obj.gtsSourceArticulation) w.numberField(41, obj.gtsSourceArticulation);
++			if (obj.gtsRepeatTieRelease) w.booleanField(42, obj.gtsRepeatTieRelease);
++			if (obj.gtsTiedBend) w.booleanField(43, obj.gtsTiedBend);
++			if (obj.gtsFallingTie) w.booleanField(44, obj.gtsFallingTie);
++			if (obj.gtsWrittenVibrato) w.booleanField(45, obj.gtsWrittenVibrato);
++			if (obj.gtsTappedHarmonicTicks) w.numberField(46, obj.gtsTappedHarmonicTicks);
++			if (obj.gtsPinchHarmonicSemitones) w.numberField(47, obj.gtsPinchHarmonicSemitones);
++			w.endObject();
+ 	}
+ }
+ // src/generated/model/TremoloPickingEffectSerializer.ts
+@@ -37676,7 +37858,7 @@ class JsonConverter {
+ 			case 88: return new TimeSignatureEvent(track, tick, JsonHelper.getValue(midiEvent, "numerator"), JsonHelper.getValue(midiEvent, "denominatorIndex"), JsonHelper.getValue(midiEvent, "midiClocksPerMetronomeClick"), JsonHelper.getValue(midiEvent, "thirdySecondNodesInQuarter"));
+ 			case 241: return new AlphaTabRestEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"));
+ 			case 242: return new AlphaTabMetronomeEvent(track, tick, JsonHelper.getValue(midiEvent, "metronomeNumerator"), JsonHelper.getValue(midiEvent, "metronomeDurationInTicks"), JsonHelper.getValue(midiEvent, "metronomeDurationInMilliseconds"));
+-			case 128: return new NoteOnEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "noteKey"), JsonHelper.getValue(midiEvent, "noteVelocity"));
++			case 128: return new NoteOnEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "noteKey"), JsonHelper.getValue(midiEvent, "noteVelocity"), JsonHelper.getValue(midiEvent, "sampleOffsetMs"));
+ 			case 144: return new NoteOffEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "noteKey"), JsonHelper.getValue(midiEvent, "noteVelocity"));
+ 			case 176: return new ControlChangeEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "controller"), JsonHelper.getValue(midiEvent, "value"));
+ 			case 192: return new ProgramChangeEvent(track, tick, JsonHelper.getValue(midiEvent, "channel"), JsonHelper.getValue(midiEvent, "program"));
+@@ -37741,6 +37923,7 @@ class JsonConverter {
+ 				o.set("channel", midiEvent.channel);
+ 				o.set("noteKey", midiEvent.noteKey);
+ 				o.set("noteVelocity", midiEvent.noteVelocity);
++				if (midiEvent.sampleOffsetMs) o.set("sampleOffsetMs", midiEvent.sampleOffsetMs);
+ 				break;
+ 			case 176:
+ 				o.set("channel", midiEvent.channel);
+@@ -38265,7 +38448,7 @@ class SerializerSchema {
+ 	/**
+ 	* A hash of the field ids, keys and types of all serialized classes (50 classes).
+ 	*/
+-	static fingerprint = 2898612401;
++	static fingerprint = 2774956954;
+ }
+ /**
+ * Writes the object model as MessagePack (https://github.com/msgpack/msgpack/blob/master/spec.md): records as

@@ -306,16 +306,56 @@
         "alphaTab.core.mjs"
       ],
       "description": "Swung connected-grace clock"
+    },
+    {
+      "file": "alphaTab-pinch-harmonic-interval.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Source-marked pinch harmonic interval preserving native TAB and ties"
+    },
+    {
+      "file": "alphaTab-short-twelve-clock.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Marked short internal 12/8 clock preserving written meter and ties"
+    },
+    {
+      "file": "alphaTab-bend-valley.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Explicit zero bend midpoints and native custom valleys"
+    },
+    {
+      "file": "alphaTab-terminal-clock.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Validated terminal multi-part sustain clock preserving notes and ties"
+    },
+    {
+      "file": "alphaTab-tap-node-four.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Marked native-duration tapped node-4 practice pitch; unmarked GP stays native"
     }
   ],
   "bundles": {
     "alphaTab.js": {
       "upstream": "e1a395dd116dcd7e940729c4b970e1efa8d9221e82f878551689ce6778eb144b",
-      "patched": "5e9b27d1e268db94e8dd3b9eb39b32b7a06627a6beb7c66377bc622abd3b7843"
+      "patched": "3fcee3ba1d91e46f24dc628819bcbf80120330a3f48caaee91146369985d4ed4"
     },
     "alphaTab.core.mjs": {
       "upstream": "7330a805eab246bd329927e895ac46eb8eae1da4d27375c66e223c91dd1a5817",
-      "patched": "a87be3c03c79b2f0343d0cc97a8883d54d066aaa49daf9f52a6593d24b208e75"
+      "patched": "6024aae317bbc49786f529efc289b8a13b98b93dc9af42116da659f5e3cc294d"
     }
   }
 }

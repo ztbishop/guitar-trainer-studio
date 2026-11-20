@@ -1,0 +1,136 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -6014,6 +6014,7 @@
+ 		gtsFallingTie = false;
+ 		gtsWrittenVibrato = false;
+ 		gtsTappedHarmonicTicks = 0;
++		gtsPinchHarmonicSemitones = 0;
+ 		/**
+ 		* Gets or sets the destination note for the let-ring effect.
+ 		* @clone_ignore
+@@ -6202,6 +6203,9 @@
+ 			return 0;
+ 		}
+ 		get harmonicPitch() {
++			// Explicit captured interval; unmarked physical-node GP harmonics stay native.
++			if (this.gtsPinchHarmonicSemitones === 5 && this.isStringed &&
++				this.harmonicType === HarmonicType.Pinch && this.harmonicValue === 5) return 5;
+ 			// GtsTappedHarmonicTicks -2 selects the captured pitch with native note duration.
+ 			if (this.gtsTappedHarmonicTicks && this.isStringed && this.harmonicType === HarmonicType.Tap &&
+ 				[3.2, 5, 7, 12].includes(this.harmonicValue)) return Math.trunc(this.harmonicValue);
+@@ -7854,6 +7858,7 @@
+ 			clone.gtsFallingTie = original.gtsFallingTie;
+ 			clone.gtsWrittenVibrato = original.gtsWrittenVibrato;
+ 			clone.gtsTappedHarmonicTicks = original.gtsTappedHarmonicTicks;
++			clone.gtsPinchHarmonicSemitones = original.gtsPinchHarmonicSemitones === 5 ? 5 : 0;
+ 			clone.accidentalMode = original.accidentalMode;
+ 			clone.dynamics = original.dynamics;
+ 			clone.ornament = original.ornament;
+@@ -21196,6 +21201,11 @@
+ 						case "Variation":
+ 							variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
+ 							break;
++						case "GtsPinchHarmonicSemitones": {
++							const value = Number(c.findChildElement("Number")?.innerText);
++							note.gtsPinchHarmonicSemitones = value === 5 ? 5 : 0;
++							break;
++						}
+ 						case "GtsTappedHarmonicTicks": {
+ 							const ticks = Number(c.findChildElement("Number")?.innerText);
+ 							note.gtsTappedHarmonicTicks = [-2, -1, 320, 960, 1600, 5760].includes(ticks) ? ticks : 0;
+@@ -31249,6 +31259,7 @@
+ 			if (obj.gtsFallingTie) o.set("gtsfallingtie", true);
+ 			if (obj.gtsWrittenVibrato) o.set("gtswrittenvibrato", true);
+ 			if (obj.gtsTappedHarmonicTicks) o.set("gtstappedharmonicticks", obj.gtsTappedHarmonicTicks);
++			if (obj.gtsPinchHarmonicSemitones === 5) o.set("gtspinchharmonicsemitones", 5);
+ 			o.set("accidentalmode", obj.accidentalMode);
+ 			o.set("dynamics", obj.dynamics);
+ 			o.set("ornament", obj.ornament);
+@@ -31360,6 +31371,9 @@
+ 					return true;
+ 				case "trillspeed":
+ 					obj.trillSpeed = JsonHelper.parseEnum(v, Duration);
++					return true;
++				case "gtspinchharmonicsemitones":
++					obj.gtsPinchHarmonicSemitones = v === 5 ? 5 : 0;
+ 					return true;
+ 				case "gtstappedharmonicticks":
+ 					obj.gtsTappedHarmonicTicks = [-2, -1, 320, 960, 1600, 5760].includes(v) ? v : 0;
+@@ -68258,6 +68272,7 @@
+ 			if (note.gtsFallingTie) this._writeSimplePropertyNode(properties, "GtsFallingTie", "Enable", null);
+ 			if (note.gtsWrittenVibrato) this._writeSimplePropertyNode(properties, "GtsWrittenVibrato", "Enable", null);
+ 			if (note.gtsTappedHarmonicTicks) this._writeSimplePropertyNode(properties, "GtsTappedHarmonicTicks", "Number", note.gtsTappedHarmonicTicks.toString());
++			if (note.gtsPinchHarmonicSemitones === 5) this._writeSimplePropertyNode(properties, "GtsPinchHarmonicSemitones", "Number", "5");
+ 			if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3 || note.gtsSlidePlayback === 4) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+ 			if (Number.isInteger(note.gtsSourceArticulation) && note.gtsSourceArticulation >= 1 && note.gtsSourceArticulation <= 32) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
+ 			if (note.harmonicType !== HarmonicType.None) {
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -6010,6 +6010,7 @@
+ 	gtsFallingTie = false;
+ 	gtsWrittenVibrato = false;
+ 	gtsTappedHarmonicTicks = 0;
++		gtsPinchHarmonicSemitones = 0;
+ 	/**
+ 	* Gets or sets the destination note for the let-ring effect.
+ 	* @clone_ignore
+@@ -6198,6 +6199,9 @@
+ 		return 0;
+ 	}
+ 	get harmonicPitch() {
++			// Explicit captured interval; unmarked physical-node GP harmonics stay native.
++			if (this.gtsPinchHarmonicSemitones === 5 && this.isStringed &&
++				this.harmonicType === HarmonicType.Pinch && this.harmonicValue === 5) return 5;
+ 		// GtsTappedHarmonicTicks -2 selects the captured pitch with native note duration.
+ 		if (this.gtsTappedHarmonicTicks && this.isStringed && this.harmonicType === HarmonicType.Tap &&
+ 			[3.2, 5, 7, 12].includes(this.harmonicValue)) return Math.trunc(this.harmonicValue);
+@@ -7850,6 +7854,7 @@
+ 		clone.gtsFallingTie = original.gtsFallingTie;
+ 		clone.gtsWrittenVibrato = original.gtsWrittenVibrato;
+ 		clone.gtsTappedHarmonicTicks = original.gtsTappedHarmonicTicks;
++			clone.gtsPinchHarmonicSemitones = original.gtsPinchHarmonicSemitones === 5 ? 5 : 0;
+ 		clone.accidentalMode = original.accidentalMode;
+ 		clone.dynamics = original.dynamics;
+ 		clone.ornament = original.ornament;
+@@ -21192,7 +21197,12 @@
+ 					case "Variation":
+ 						variation = GpifParser._parseIntSafe(c.findChildElement("Variation")?.innerText, 0);
+ 						break;
+-					case "GtsTappedHarmonicTicks": {
++					case "GtsPinchHarmonicSemitones": {
++							const value = Number(c.findChildElement("Number")?.innerText);
++							note.gtsPinchHarmonicSemitones = value === 5 ? 5 : 0;
++							break;
++						}
++						case "GtsTappedHarmonicTicks": {
+ 						const ticks = Number(c.findChildElement("Number")?.innerText);
+ 						note.gtsTappedHarmonicTicks = [-2, -1, 320, 960, 1600, 5760].includes(ticks) ? ticks : 0;
+ 						break;
+@@ -31245,6 +31255,7 @@
+ 		if (obj.gtsFallingTie) o.set("gtsfallingtie", true);
+ 		if (obj.gtsWrittenVibrato) o.set("gtswrittenvibrato", true);
+ 		if (obj.gtsTappedHarmonicTicks) o.set("gtstappedharmonicticks", obj.gtsTappedHarmonicTicks);
++			if (obj.gtsPinchHarmonicSemitones === 5) o.set("gtspinchharmonicsemitones", 5);
+ 		o.set("accidentalmode", obj.accidentalMode);
+ 		o.set("dynamics", obj.dynamics);
+ 		o.set("ornament", obj.ornament);
+@@ -31357,7 +31368,10 @@
+ 			case "trillspeed":
+ 				obj.trillSpeed = JsonHelper.parseEnum(v, Duration);
+ 				return true;
+-			case "gtstappedharmonicticks":
++			case "gtspinchharmonicsemitones":
++					obj.gtsPinchHarmonicSemitones = v === 5 ? 5 : 0;
++					return true;
++				case "gtstappedharmonicticks":
+ 				obj.gtsTappedHarmonicTicks = [-2, -1, 320, 960, 1600, 5760].includes(v) ? v : 0;
+ 				return true;
+ 			case "gtswrittenvibrato":
+@@ -68254,6 +68268,7 @@
+ 		if (note.gtsFallingTie) this._writeSimplePropertyNode(properties, "GtsFallingTie", "Enable", null);
+ 		if (note.gtsWrittenVibrato) this._writeSimplePropertyNode(properties, "GtsWrittenVibrato", "Enable", null);
+ 		if (note.gtsTappedHarmonicTicks) this._writeSimplePropertyNode(properties, "GtsTappedHarmonicTicks", "Number", note.gtsTappedHarmonicTicks.toString());
++			if (note.gtsPinchHarmonicSemitones === 5) this._writeSimplePropertyNode(properties, "GtsPinchHarmonicSemitones", "Number", "5");
+ 		if (note.gtsSlidePlayback === 1 || note.gtsSlidePlayback === 2 || note.gtsSlidePlayback === 3 || note.gtsSlidePlayback === 4) this._writeSimplePropertyNode(properties, "GtsSlidePlayback", "Number", note.gtsSlidePlayback.toString());
+ 		if (Number.isInteger(note.gtsSourceArticulation) && note.gtsSourceArticulation >= 1 && note.gtsSourceArticulation <= 32) this._writeSimplePropertyNode(properties, "GtsSourceArticulation", "Number", note.gtsSourceArticulation.toString());
+ 		if (note.harmonicType !== HarmonicType.None) {

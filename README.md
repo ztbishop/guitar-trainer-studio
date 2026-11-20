@@ -247,7 +247,15 @@ While editing, the fretboard is temporarily hidden to leave room for the timelin
 
 **Drag / nudge** starts with **Move one point**. Choose **Move all** to shift every saved point together, or **Move selected section** and choose its first and last points. Drag a point in that group or use the 50 ms buttons; the group's spacing stays the same. Points cannot cross a fixed neighbor or leave the recording. If Start and End already fill the recording, Move all has no room: adjust those boundaries individually first. One Undo reverses the whole move. There is no locked target or stretching control.
 
-If imported timing does not fit, valid score and recording files can still load. The sync editor opens with a warning so you can align them manually. The rejected timing is not applied or automatically stretched; ordinary rejected point data is available under **Load / options → Paste sync points** for reference. A failed timing-only update leaves the existing alignment unchanged. Review the alignment before finishing editing and saving a profile.
+If ordinary imported sync points do not fit, valid score and recording files can still load. The sync editor opens with a warning so you can align them manually. The rejected timing is not applied or automatically stretched; ordinary rejected point data is available under **Load / options → Paste sync points** for reference. A failed timing-only update leaves the existing alignment unchanged. Review the alignment before finishing editing and saving a profile.
+
+Lessons imported with explicit explanation timing can play their spoken breaks without grading. The score waits until the music resumes; **Skip to music** jumps past the break. In Media Sync, choose a break and **Listen to explanation** to hear it in Preview. Wait mode stays silent and moves directly between musical targets. Import review shows the lesson, score, recording and any repeat adjustment. **Import lesson** confirms the selected recording; local recordings require choosing a file first. This timing is read-only in the point editor; import a revised lesson to change it. **Save profile** preserves the full plan, and switching to Synth audio restores the original score playback. Unsupported or mismatched explanation plans are rejected instead of guessed.
+
+**Settings → Lesson imports → Import helper lessons automatically** starts on. The Lesson imports section starts collapsed; expand it to change the option. Your choice is saved in this browser, including turning it off. When enabled, incoming lessons replace the open score and unsaved alignment after validation. Local recordings still require choosing a file and clicking Import. Playback stays paused and saving remains your choice; an import failure shows what needs attention.
+
+An explicitly imported **Draft timing** opens an optional recovery panel in Media Sync. Play the recording continuously beside the score, drag section boundaries or anchors, and use Undo/Redo. Amber score tracking is an unverified editing preview; missing endpoints stay unplaced. Missing endpoints and unresolved passages stay ungraded; choose **Use reviewed timing** only after review and validation. **Export draft** keeps the original timing/evidence and your edits. Ordinary imports do not show this panel.
+
+Matched lessons can also contain **Unscored breaks** that are separate from spoken explanations. Listen through them or choose **Skip to music**; grading pauses during the break. Verified silent score measures may be skipped for that recording only. The original score and its synthesized playback stay intact, and notes are never stretched across these breaks.
 
 Clicking notation or tab also chooses that score target in the sync editor while preserving the red dashed recording time. The black line follows playback/seeking. Clicking a timeline triangle selects that specific measure/beat and repeat pass, moves the sheet cursor and black playhead to its mapped recording time, and preserves the red dashed time. Sheet clicks follow native repeat navigation; check the Measure selector and choose a numbered repeat triangle if needed. Add/Update pairs that target with the red time.
 
@@ -291,7 +299,7 @@ Updates are manual; the app does not check for new versions or replace your file
 - **Port already in use?** Close the other Guitar Trainer launcher. Advanced users can set `GTS_PORT` to another port before starting; that address has its own browser library/preferences.
 - **Guide or app will not load from disk?** Use the website, launcher or Live Server instead of double-clicking an HTML file.
 
-The current stable release is **v1.0.1**. Compatibility depends on score contents, browser and MIDI device behavior. Automated checks do not establish physical MIDI accuracy or every score/provider combination.
+The current stable release is **v1.0.2**. Compatibility depends on score contents, browser and MIDI device behavior. Automated checks do not establish physical MIDI accuracy or every score/provider combination.
 
 ## Appendix: MIDI input options
 

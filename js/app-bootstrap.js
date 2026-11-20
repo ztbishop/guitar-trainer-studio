@@ -50,11 +50,13 @@ import {initPitchControls} from './pitch-controls.js';
 import {readPracticePreferences,savePracticePreferences,FEEDBACK_PREFERENCE_KEYS} from './practice-preferences.js';
 import {readDisplayPreferences,saveDisplayPreferences} from './display-preferences.js';
 import {initMediaControls} from './media-controls.js';
+import {practiceEvents,planPracticeRange,practiceTimingPlan} from './media-practice.js';
 import {initLessonImport} from './lesson-import.js';
+import {initPracticeReference} from './practice-reference.js';
 import {initWorkspacePanels} from './workspace-panels.js';
 import {readPitchRange,savePitchRange,validPitchRange} from './midi-pitch.js';
 import {frameTask} from './frame-task.js';
-import {beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTime,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setMediaEditing,revealMediaScoreTarget} from './alphatab-host.js';
+import {beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTime,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setMediaEditing,revealMediaScoreTarget,showDraftPosition} from './alphatab-host.js';
 
 let transportControls=null;
 let chordControls=null;
@@ -98,14 +100,36 @@ function stepFretboard(direction) {
 }
 
 function configureWaitSession() {
-  waitController.configure(AppState.expectedEvents,AppState.practiceLoop.range?.endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,extraStringTolerance:AppState.extraStringTolerance,heldNoteTolerance:AppState.heldNoteTolerance,filterHexSpikes:AppState.filterHexSpikes,filterScoreRange:AppState.filterScoreRange,allowWrittenBendRanges:AppState.allowWrittenBendRanges,ignoreBriefErrors:AppState.midi.ignoreBriefErrors,minErrorMs:AppState.midi.minErrorMs,rangeStaves:AppState.tracks.find((track,index)=>String(track.index??index)===String(AppState.practiceTrackId))?.staves??[],pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
+  waitController.configure(practiceEvents(AppState),AppState.practiceLoop.range?.endTick ?? practiceTimingPlan(AppState)?.visits.at(-1).endTick ?? AppState.playbackTimeline?.endTick ?? 0,AppState.inputMode==='hex-6ch',AppState.practiceLoop.enabled,{...AppState.waitChord,extraStringTolerance:AppState.extraStringTolerance,heldNoteTolerance:AppState.heldNoteTolerance,filterHexSpikes:AppState.filterHexSpikes,filterScoreRange:AppState.filterScoreRange,allowWrittenBendRanges:AppState.allowWrittenBendRanges,ignoreBriefErrors:AppState.midi.ignoreBriefErrors,minErrorMs:AppState.midi.minErrorMs,rangeStaves:AppState.tracks.find((track,index)=>String(track.index??index)===String(AppState.practiceTrackId))?.staves??[],pitchBendRange:AppState.midi.pitchBendRange},AppState.practiceLoop.countIn);
+}
+
+function projectedPracticeLoop(loop) {
+  const range=planPracticeRange(AppState,loop.range);
+  if(loop.range && !range)return null;
+  if(!range || range.startTick===loop.range.startTick && range.endTick===loop.range.endTick)return loop;
+  const measures=AppState.playbackTimeline.measures;
+  return {...loop,range,startIndex:measures.findIndex(measure=>measure.startTick===range.startTick),
+    endIndex:measures.findIndex(measure=>measure.endTick===range.endTick)};
 }
 
 function changePracticeLoop(loop) {
+  const projected=projectedPracticeLoop(loop);
+  if(!projected)return 'This section is omitted from the recording. Choose a section with music included in this lesson.';
   waitController.stop();pauseWaitTransport();
-  AppState.practiceLoop=loop;applyPracticeLoop(loop.range);
-  if(loop.range)AppState.tickPosition=loop.range.startTick;
+  AppState.practiceLoop={...projected,notice:''};applyPracticeLoop(projected.range);
+  if(projected.range)AppState.tickPosition=projected.range.startTick;
   clearActiveMidiNotes();syncTrainerFoundation();
+}
+
+function reconcileMediaPracticeLoop() {
+  if(!AppState.playerReady || AppState.media.returning)return false;
+  const previous=AppState.practiceLoop,projected=projectedPracticeLoop(previous);
+  if(projected===previous)return false;
+  AppState.practiceLoop=projected??{...previous,enabled:false,range:null,
+    notice:'Loop turned off: that section is omitted from the recording.'};
+  applyPracticeLoop(AppState.practiceLoop.range);
+  buildExpectedEventsFromPracticeTrack();
+  return true;
 }
 
 function wireTempoAndLoopControls() {
@@ -243,6 +267,7 @@ function wireFilePicker() {
 
 function wireTransportButtons() {
   document.getElementById('play-pause-button')?.addEventListener('click', () => {
+    if(mediaControls?.draftTransport('toggle'))return;
     const starting=AppState.mode==='wait' && !AppState.media.editing ? !waitController.active || waitController.phase==='paused' : !AppState.isPlaying && !AppState.countInActive;
     if(starting && AppState.playerReady && AppState.ui.fullscreenOnPlay && !document.fullscreenElement) {
       document.documentElement.requestFullscreen?.().catch(error=>console.error('Could not enter fullscreen.',error));
@@ -251,6 +276,7 @@ function wireTransportButtons() {
     else play();
   });
   document.getElementById('stop-button')?.addEventListener('click', () => {
+    if(mediaControls?.draftTransport('reset'))return;
     waitController.stop();
     stop();
     const start=AppState.practiceLoop.range?.startTick ?? 0;
@@ -765,7 +791,7 @@ async function bootstrap() {
   initDemoScores(loadScoreFile);
   audioControls=initAudioControls((kind,value)=>{if(kind==='master')applyMasterVolume();else if(kind==='media')mediaControls?.setVolume(value);else applyTrackMixer();});
   pitchControls=initPitchControls(applyPlaybackPitchOffset);
-  mediaControls=initMediaControls({beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTime,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setMediaEditing,revealMediaScoreTarget,setSpeed:setPlaybackSpeed},
+  mediaControls=initMediaControls({beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTime,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setMediaEditing,revealMediaScoreTarget,showDraftPosition,setSpeed:setPlaybackSpeed},
     {closeMenu:toolbar.closeAllPopups,beforeEdit(){if(waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);if(AppState.mode==='wait')pauseWaitTransport();clearActiveMidiNotes();},afterEdit(){clearActiveMidiNotes();configureWaitSession();resetRealtimeSession('sync-editor-closed');renderTrainerUi();},beforeListen(){if(AppState.mode==='wait' && waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);pauseWaitTransport();clearActiveMidiNotes();},afterPractice(){clearActiveMidiNotes();if(AppState.mode==='realtime' && !AppState.media.editing)handlePlaybackState();renderTrainerUi();}});
   initFretboard(document.getElementById('fretboard-content'),document.getElementById('fretboard-help-status'));
   const displayControls=wireScoreStageUi();
@@ -781,7 +807,8 @@ async function bootstrap() {
   wireMidiControls();
   initMidiCaptureControls(()=>renderTrainerUi());
 
-  const lessonImport=initLessonImport({loadFile:loadScoreFile,mediaControls,state:AppState});
+  const practiceReference=initPracticeReference();
+  const lessonImport=initLessonImport({loadFile:loadScoreFile,mediaControls,state:AppState,practiceReference});
   try {
     await initAlphaTab(document.getElementById('alphatab-container'), {
       onScoreLoaded: () => {
@@ -825,7 +852,7 @@ async function bootstrap() {
       onMetronomeError: () => renderTrainerUi(),
       onCountInChanged: () => renderTrainerUi(),
       onLoopSelection: selection => {if(!AppState.media.preview)transportControls?.selectLoopByDrag(selection);},
-      onMediaChanged: () => {mediaControls?.mediaChanged();if(!AppState.media.editing)resetRealtimeSession('media-source-or-alignment');renderTrainerUi();},
+      onMediaChanged: () => {mediaControls?.mediaChanged();if(AppState.playerReady && !AppState.media.editing && !AppState.media.returning){reconcileMediaPracticeLoop();configureWaitSession();resetRealtimeSession('media-source-or-alignment');}renderTrainerUi();},
       onMediaScoreTarget: target => mediaControls?.scoreTargetSelected(target),
     });
   } catch (error) {

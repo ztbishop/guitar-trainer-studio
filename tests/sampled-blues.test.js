@@ -86,6 +86,7 @@ test('sampled blues slides and releases round-trip with independent unison chann
   assert.deepEqual(trace(library,score,true),trace(library,load(unmarked),true));
   score.masterBars[2].repeatCount=2;
   score.masterBars[3].repeatCount=0;
+  score.rebuildRepeatGroups();
   assert(!trace(library,score).some(e=>e[0]===11376&&e[4]===200));
  }
 });

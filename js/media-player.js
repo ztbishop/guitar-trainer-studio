@@ -1,6 +1,6 @@
 // Browser/provider playback only. The host consumes this public handler shape.
 export function htmlMediaPlayer(element,url,{onState=()=>{},onError=()=>{}}={}) {
-  let destroyed=false,cancelReady=()=>{},playGeneration=0,pendingSeek=null;
+  let destroyed=false,cancelReady=()=>{},playGeneration=0,pendingSeek=null,reloading=false,cancelReload=()=>{};
   const ready=new Promise((resolve,reject)=>{
     const timer=setTimeout(()=>reject(new Error('Recording did not load. Check the link, access and browser format support.')),20000);
     const cleanup=()=>{clearTimeout(timer);element.removeEventListener('loadedmetadata',loaded);element.removeEventListener('loadeddata',loaded);element.removeEventListener('error',failed);};
@@ -11,29 +11,53 @@ export function htmlMediaPlayer(element,url,{onState=()=>{},onError=()=>{}}={}) 
     element.addEventListener('loadeddata',loaded);
     element.addEventListener('error',failed,{once:true});
   });
-  const state=()=>{if(!destroyed)onState(element.ended?'ended':element.paused?'paused':element.readyState<3?'buffering':'playing');};
+  const failure=()=>new Error(element.error?.code===2?'The recording could not read video or audio data from its source. Reload recording to retry; your timing is retained.':element.error?.code===3?'The browser could not decode this recording. Reload recording to retry; your timing is retained.':element.error?.code===4?'The recording link or format is unavailable. Reload recording to retry; your timing is retained.':'Recording playback failed. Reload recording to retry; your timing is retained.');
+  const state=()=>{if(!destroyed && !reloading && !element.error)onState(element.ended?'ended':element.paused?'paused':element.readyState<3?'buffering':'playing');};
   const rateChanged=()=>{if(!destroyed)onState('ratechange');};element.addEventListener('ratechange',rateChanged);
   const seek=(target)=>{if(Math.abs(element.currentTime-target)>0.000001)element.currentTime=target;};
   const seeked=()=>{
-    if(destroyed)return;
+    if(destroyed || reloading || element.error)return;
     if(pendingSeek!==null){const target=pendingSeek;pendingSeek=null;seek(target);if(element.seeking)return;}
     state();
   };
   element.addEventListener('seeked',seeked);
   for(const type of ['playing','pause','waiting','ended'])element.addEventListener(type,state);
-  const error=()=>{if(!destroyed)onError(new Error('Recording playback failed.'));};element.addEventListener('error',error);
+  const error=()=>{if(!destroyed){pendingSeek=null;onError(failure());}};element.addEventListener('error',error);
   element.preload='auto';element.controls=false;element.playsInline=true;element.src=url;element.load();
   return {
     ready,
     get backingTrackDuration(){return Number.isFinite(element.duration)?element.duration*1000:0;},
     get currentTime(){return element.currentTime*1000;},
-    get playing(){return !element.paused && !element.ended;},
+    get playing(){return !destroyed && !reloading && !element.error && !element.paused && !element.ended;},
     get playbackRate(){return element.playbackRate;},set playbackRate(value){element.playbackRate=value;},
     get masterVolume(){return element.volume;},set masterVolume(value){element.volume=value;},
-    seekTo(ms){const target=Math.max(0,Math.min(element.duration || 0,ms/1000));if(element.seeking)pendingSeek=target;else seek(target);},
-    play(){const token=++playGeneration;element.play().catch(err=>{if(!destroyed && token===playGeneration)onError(err);});},
+    seekTo(ms){if(destroyed || reloading || element.error)return;const target=Math.max(0,Math.min(element.duration || 0,ms/1000));if(element.seeking)pendingSeek=target;else seek(target);},
+    play(){const token=++playGeneration;const attempt=element.error?Promise.reject(failure()):element.play();attempt.catch(err=>{if(!destroyed && token===playGeneration)onError(element.error?failure():err);});},
     pause(){playGeneration++;element.pause();},
-    destroy(){destroyed=true;pendingSeek=null;cancelReady();element.pause();for(const type of ['playing','pause','waiting','ended'])element.removeEventListener(type,state);element.removeEventListener('seeked',seeked);element.removeEventListener('ratechange',rateChanged);element.removeEventListener('error',error);element.removeAttribute('src');element.load();},
+    // Explicit retry reloads only this media element, retaining its identity,
+    // playhead and controls. No score/plan mutation, autoplay or automatic retry.
+    reload(){
+      if(destroyed)return Promise.reject(new Error('Recording was unloaded.'));
+      const position=element.currentTime,rate=element.playbackRate,volume=element.volume,muted=element.muted;
+      cancelReload();playGeneration++;pendingSeek=null;reloading=true;element.pause();
+      return new Promise((resolve,reject)=>{
+        let positioned=false,settled=false;
+        const cleanup=()=>{settled=true;clearTimeout(timer);for(const type of ['loadedmetadata','loadeddata','canplay','seeked'])element.removeEventListener(type,loaded);element.removeEventListener('error',failed);cancelReload=()=>{};reloading=false;};
+        const failed=()=>{if(settled)return;cleanup();reject(failure());};
+        const loaded=()=>{
+          if(settled || element.readyState<1)return;
+          if(!Number.isFinite(element.duration) || element.duration<=0){cleanup();reject(new Error('The reloaded recording has no finite duration. Timing is retained.'));return;}
+          if(position>element.duration+0.001){cleanup();reject(new Error('The reloaded recording ends before the retained playhead. Timing is retained; check the recording source.'));return;}
+          if(!positioned){positioned=true;element.playbackRate=rate;element.volume=volume;element.muted=muted;seek(Math.max(0,Math.min(element.duration,position)));}
+          if(!element.seeking && element.readyState>=2){cleanup();resolve();}
+        };
+        const timer=setTimeout(()=>{cleanup();reject(new Error('Recording reload did not finish. Check the source connection or link. Timing is retained.'));},20000);
+        cancelReload=()=>{if(!settled){cleanup();reject(new Error('Recording reload cancelled.'));}};
+        for(const type of ['loadedmetadata','loadeddata','canplay','seeked'])element.addEventListener(type,loaded);
+        element.addEventListener('error',failed);try{element.load();}catch(error){cleanup();reject(error);}
+      });
+    },
+    destroy(){destroyed=true;pendingSeek=null;cancelReload();cancelReady();element.pause();for(const type of ['playing','pause','waiting','ended'])element.removeEventListener(type,state);element.removeEventListener('seeked',seeked);element.removeEventListener('ratechange',rateChanged);element.removeEventListener('error',error);element.removeAttribute('src');element.load();},
   };
 }
 

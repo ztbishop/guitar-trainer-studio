@@ -1,0 +1,272 @@
+--- a/assets/vendor/alphatab/alphaTab.js
++++ b/assets/vendor/alphatab/alphaTab.js
+@@ -62483,6 +64091,9 @@
+ 		},
+ 		placementCategory: 1
+ 	};
++	function usesBeatRightHandTap(beat) {
++		return beat.tap || (!beat.slap && !beat.pop && beat.notes.length > 0 && beat.notes.every(n => n.isRightHandTapped));
++	}
+ 	// src/rendering/effects/TapEffectInfo.ts
+ 	/**
+ 	* @internal
+@@ -62493,7 +64104,7 @@
+ 		hideOnMultiTrack: false,
+ 		sizingMode: 1,
+ 		shouldCreateGlyph: (_renderer, beat) => {
+-			return beat.slap || beat.pop || beat.tap;
++			return beat.slap || beat.pop || usesBeatRightHandTap(beat);
+ 		},
+ 		createNewGlyph: (renderer, beat) => {
+ 			const res = renderer.resources;
+@@ -65845,6 +67456,62 @@
+ 			}
+ 		}
+ 	};
++	var RightHandTapGlyph = class extends Glyph {
++		marks = [];
++		constructor(parent, notes, view) {
++			super(0, 0);
++			this.parent = parent;
++			this.notes = notes;
++			this.view = view;
++		}
++		static addTo(parent, view, hasHead) {
++			const beat = parent.container.beat;
++			if (!parent.renderer.settings.notation.isNotationElementVisible(32) ||
++				beat.deadSlapped || usesBeatRightHandTap(beat)) return;
++			const notes = beat.notes.filter(n => n.isRightHandTapped && n.isVisible && hasHead(n));
++			if (notes.length === 0) return;
++			const glyph = new RightHandTapGlyph(parent, notes, view);
++			parent.addEffect(glyph);
++			return glyph;
++		}
++		doLayout() {
++			const canvas = this.renderer.scoreRenderer.canvas;
++			const font = this.renderer.resources.elementFonts.get(32);
++			this.font = font.withSize(Math.min(font.size, 10));
++			const oldFont = canvas.font;
++			canvas.font = this.font;
++			this.width = 0;
++			this.marks = [];
++			for (const note of this.notes) {
++				const y = this.parent.getNoteY(note, 2);
++				const tuning = note.beat.voice.bar.staff.tuning;
++				// Add a string number only when two written noteheads share a row.
++				const sameRow = this.view === "score" && note.isStringed && note.beat.notes.some(other =>
++					other !== note && other.isVisible && this.parent.getNoteY(other, 2) === y);
++				const label = sameRow ? `T${tuning.length - note.string + 1}` : "T";
++				const width = canvas.measureText(label).width;
++				let x = 3;
++				for (const mark of this.marks) if (Math.abs(mark.y - y) < this.font.size * 1.25) x = Math.max(x, mark.x + mark.width + 3);
++				this.marks.push({ note, label, x, y, width });
++				this.width = Math.max(this.width, x + width + 2);
++			}
++			canvas.font = oldFont;
++		}
++		paint(cx, cy, canvas) {
++			const oldFont = canvas.font, oldAlign = canvas.textAlign, oldBaseline = canvas.textBaseline;
++			canvas.font = this.font;
++			canvas.textAlign = 0;
++			canvas.textBaseline = 1;
++			for (const mark of this.marks) {
++				canvas.beginGroup(`at-right-hand-tap at-right-hand-tap-${this.view} at-right-hand-tap-note-${mark.note.id}`);
++				canvas.fillText(mark.label, cx + this.x + mark.x, cy + this.y + mark.y);
++				canvas.endGroup();
++			}
++			canvas.font = oldFont;
++			canvas.textAlign = oldAlign;
++			canvas.textBaseline = oldBaseline;
++		}
++	};
+ 	// src/rendering/glyphs/BeatOnNoteGlyphBase.ts
+ 	/**
+ 	* @internal
+@@ -66424,6 +68091,7 @@
+ 	var TabBeatGlyph = class TabBeatGlyph extends BeatOnNoteGlyphBase {
+ 		slash = null;
+ 		noteNumbers = null;
++		rightHandTap = null;
+ 		restGlyph = null;
+ 		get mainGlyph() {
+ 			if (this.slash) return this.slash;
+@@ -66529,6 +68197,7 @@
+ 				restGlyph.renderer = this.renderer;
+ 				if (this.container.beat.dots > 0 && tabRenderer.showRests) for (let i = 0; i < this.container.beat.dots; i++) this.addEffect(new AugmentationDotGlyph(0, y));
+ 			}
++			this.rightHandTap = this.noteNumbers ? RightHandTapGlyph.addTo(this, "tab", n => this.noteNumbers.getNoteGlyphForString(n.string)?.note === n) : null;
+ 			if (this.isEmpty) return;
+ 			super.doLayout();
+ 			if (this.container.beat.isEmpty) this.onTimeX = this.width / 2;
+@@ -68754,6 +70423,13 @@
+ 			for (let v = 0, nv = voices.length; v < nv; v++) {
+ 				const voice = voices[v];
+ 				for (let b = 0, nb = voice.length; b < nb; b++) {
++					const tap = voice[b].onNotes.rightHandTap;
++					if (tap) for (const mark of tap.marks) {
++						const line = tuningLen - mark.note.string;
++						if (line >= 0 && line < drawnLineCount) {
++							bucketCount[line]++; total++;
++						}
++					}
+ 					const noteNumbers = voice[b].onNotes.noteNumbers;
+ 					if (noteNumbers) {
+ 						const noteGlyphs = noteNumbers.noteGlyphs;
+@@ -68795,6 +70471,13 @@
+ 					const bg = voice[b];
+ 					const noteNumbers = bg.onNotes.noteNumbers;
+ 					if (noteNumbers) {
++						const tap = bg.onNotes.rightHandTap;
++						if (tap) for (const mark of tap.marks) {
++							const line = tuningLen - mark.note.string;
++							if (line >= 0 && line < drawnLineCount) {
++								const idx = fwdCursor[line]++; relXAndWidth[idx * 2] = tap.x + mark.x - padding; relXAndWidth[idx * 2 + 1] = mark.width + padding * 2; beatRefs[idx] = bg;
++							}
++						}
+ 						const relativeXBase = noteNumbers.x - padding;
+ 						const fullWidth = noteNumbers.width + padding * 2;
+ 						const noteGlyphs = noteNumbers.noteGlyphs;
+@@ -73447,6 +75130,7 @@
+ 				}
+ 				this.addEffect(group);
+ 			}
++			if (!this.container.beat.slashed) RightHandTapGlyph.addTo(this, "score", n => noteHeads.getNoteGlyph(n));
+ 			if (this.renderer.bar.isMultiVoice) {
+ 				let highestNotePosition = 0;
+ 				let lowestNotePosition = 0;
+--- a/assets/vendor/alphatab/alphaTab.core.mjs
++++ b/assets/vendor/alphatab/alphaTab.core.mjs
+@@ -62486,6 +64094,9 @@ var tabWhammyEffectInfo = {
+ 	},
+ 	placementCategory: 1
+ };
++function usesBeatRightHandTap(beat) {
++	return beat.tap || (!beat.slap && !beat.pop && beat.notes.length > 0 && beat.notes.every(n => n.isRightHandTapped));
++}
+ // src/rendering/effects/TapEffectInfo.ts
+ /**
+ * @internal
+@@ -62496,7 +64107,7 @@ var tapEffectInfo = {
+ 	hideOnMultiTrack: false,
+ 	sizingMode: 1,
+ 	shouldCreateGlyph: (_renderer, beat) => {
+-		return beat.slap || beat.pop || beat.tap;
++		return beat.slap || beat.pop || usesBeatRightHandTap(beat);
+ 	},
+ 	createNewGlyph: (renderer, beat) => {
+ 		const res = renderer.resources;
+@@ -65848,6 +67459,62 @@ class BeatGlyphBase extends GlyphGroup {
+ 		}
+ 	}
+ }
++var RightHandTapGlyph = class extends Glyph {
++	marks = [];
++	constructor(parent, notes, view) {
++		super(0, 0);
++		this.parent = parent;
++		this.notes = notes;
++		this.view = view;
++	}
++	static addTo(parent, view, hasHead) {
++		const beat = parent.container.beat;
++		if (!parent.renderer.settings.notation.isNotationElementVisible(32) ||
++			beat.deadSlapped || usesBeatRightHandTap(beat)) return;
++		const notes = beat.notes.filter(n => n.isRightHandTapped && n.isVisible && hasHead(n));
++		if (notes.length === 0) return;
++		const glyph = new RightHandTapGlyph(parent, notes, view);
++		parent.addEffect(glyph);
++		return glyph;
++	}
++	doLayout() {
++		const canvas = this.renderer.scoreRenderer.canvas;
++		const font = this.renderer.resources.elementFonts.get(32);
++		this.font = font.withSize(Math.min(font.size, 10));
++		const oldFont = canvas.font;
++		canvas.font = this.font;
++		this.width = 0;
++		this.marks = [];
++		for (const note of this.notes) {
++			const y = this.parent.getNoteY(note, 2);
++			const tuning = note.beat.voice.bar.staff.tuning;
++			// Add a string number only when two written noteheads share a row.
++			const sameRow = this.view === "score" && note.isStringed && note.beat.notes.some(other =>
++				other !== note && other.isVisible && this.parent.getNoteY(other, 2) === y);
++			const label = sameRow ? `T${tuning.length - note.string + 1}` : "T";
++			const width = canvas.measureText(label).width;
++			let x = 3;
++			for (const mark of this.marks) if (Math.abs(mark.y - y) < this.font.size * 1.25) x = Math.max(x, mark.x + mark.width + 3);
++			this.marks.push({ note, label, x, y, width });
++			this.width = Math.max(this.width, x + width + 2);
++		}
++		canvas.font = oldFont;
++	}
++	paint(cx, cy, canvas) {
++		const oldFont = canvas.font, oldAlign = canvas.textAlign, oldBaseline = canvas.textBaseline;
++		canvas.font = this.font;
++		canvas.textAlign = 0;
++		canvas.textBaseline = 1;
++		for (const mark of this.marks) {
++			canvas.beginGroup(`at-right-hand-tap at-right-hand-tap-${this.view} at-right-hand-tap-note-${mark.note.id}`);
++			canvas.fillText(mark.label, cx + this.x + mark.x, cy + this.y + mark.y);
++			canvas.endGroup();
++		}
++		canvas.font = oldFont;
++		canvas.textAlign = oldAlign;
++		canvas.textBaseline = oldBaseline;
++	}
++};
+ // src/rendering/glyphs/BeatOnNoteGlyphBase.ts
+ /**
+ * @internal
+@@ -66427,6 +68094,7 @@ class TremoloPickingGlyph extends MusicFontGlyph {
+ class TabBeatGlyph extends BeatOnNoteGlyphBase {
+ 	slash = null;
+ 	noteNumbers = null;
++	rightHandTap = null;
+ 	restGlyph = null;
+ 	get mainGlyph() {
+ 		if (this.slash) return this.slash;
+@@ -66533,6 +68201,7 @@ class TabBeatGlyph extends BeatOnNoteGlyphBase {
+ 			restGlyph.renderer = this.renderer;
+ 			if (this.container.beat.dots > 0 && tabRenderer.showRests) for (let i = 0; i < this.container.beat.dots; i++) this.addEffect(new AugmentationDotGlyph(0, y));
+ 		}
++		this.rightHandTap = this.noteNumbers ? RightHandTapGlyph.addTo(this, "tab", n => this.noteNumbers.getNoteGlyphForString(n.string)?.note === n) : null;
+ 		if (this.isEmpty) return;
+ 		super.doLayout();
+ 		if (this.container.beat.isEmpty) this.onTimeX = this.width / 2;
+@@ -68758,6 +70427,13 @@ class TabBarRenderer extends LineBarRenderer {
+ 		for (let v = 0, nv = voices.length; v < nv; v++) {
+ 			const voice = voices[v];
+ 			for (let b = 0, nb = voice.length; b < nb; b++) {
++				const tap = voice[b].onNotes.rightHandTap;
++				if (tap) for (const mark of tap.marks) {
++					const line = tuningLen - mark.note.string;
++					if (line >= 0 && line < drawnLineCount) {
++						bucketCount[line]++; total++;
++					}
++				}
+ 				const noteNumbers = voice[b].onNotes.noteNumbers;
+ 				if (noteNumbers) {
+ 					const noteGlyphs = noteNumbers.noteGlyphs;
+@@ -68799,6 +70475,13 @@ class TabBarRenderer extends LineBarRenderer {
+ 				const bg = voice[b];
+ 				const noteNumbers = bg.onNotes.noteNumbers;
+ 				if (noteNumbers) {
++					const tap = bg.onNotes.rightHandTap;
++					if (tap) for (const mark of tap.marks) {
++						const line = tuningLen - mark.note.string;
++						if (line >= 0 && line < drawnLineCount) {
++							const idx = fwdCursor[line]++; relXAndWidth[idx * 2] = tap.x + mark.x - padding; relXAndWidth[idx * 2 + 1] = mark.width + padding * 2; beatRefs[idx] = bg;
++						}
++					}
+ 					const relativeXBase = noteNumbers.x - padding;
+ 					const fullWidth = noteNumbers.width + padding * 2;
+ 					const noteGlyphs = noteNumbers.noteGlyphs;
+@@ -73451,6 +75134,7 @@ class ScoreBeatGlyph extends BeatOnNoteGlyphBase {
+ 			}
+ 			this.addEffect(group);
+ 		}
++		if (!this.container.beat.slashed) RightHandTapGlyph.addTo(this, "score", n => noteHeads.getNoteGlyph(n));
+ 		if (this.renderer.bar.isMultiVoice) {
+ 			let highestNotePosition = 0;
+ 			let lowestNotePosition = 0;

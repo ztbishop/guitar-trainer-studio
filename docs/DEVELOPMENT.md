@@ -1,4 +1,32 @@
+## Qualifying an alphaTab update
+
+Use the [versioned staging command and rollback procedure](ALPHATAB-UPGRADES.md#qualifying-19-and-later-releases). It checks saved scores, real Trainer imports, worker compatibility, timing controls and native layout before replacing assets. [1.9.0 result](DEV-NOTES.md).
+
+## Nonadjacent grace-tie regression scope
+
+Run `tests/nonadjacent-grace-tie.test.js` with the related written-bend timeline, tie-hold-boundary, Wait chord, repeat-release and explicit-playback tests. The new suite uses native classic/core/worker scores and verifies full sustains, unchanged attacks, repeated occurrences and missing-event/rest/reattack/mixed-kind guards. The private Bridge's `tools/verify-nonadjacent-grace.cjs` compares complete frozen normal and Wait imports against this runtime and its retained previous module; `tests/run-grace-tie-browser.cjs` verifies current/old cached receiver behavior. Configure its `GTS_GRACE_GAP_EVIDENCE`, `GTS_TRAINER_ROOT`, `GTS_STOCK_READER` and optional old-module/browser paths as documented there. Private captures stay outside this project. [Evidence and limits](DEV-NOTES.md#shared-nonadjacent-grace-tie-sustain--2026-11-16-local-only).
+
+## Coordinated tremolo and beam readback
+
+The private Bridge project's `tools/verify-tremolo-beam-readback.cjs` checks complete saved generated scores through this current classic/core reader, stock reader and worker JSON roundtrips. Its expected repeated attacks come from hash-checked saved provider kernels independently of production expansion. It checks every pitch/string/fret/chord, tie, clock, sustained endpoint and grace slide. Configure `GTS_ORNAMENT_EVIDENCE`, `GTS_PROVIDER_PLAYER`, `GTS_TRAINER_ROOT` and `GTS_STOCK_READER`; private data stays in Bridge's ignored evidence. The existing practice-parts browser runner verifies real Prepare/Send/import and every Wait group. [Acceptance](DEV-NOTES.md#shared-tremolo-and-beam-practice-acceptance--2026-11-16-local-only). Runtime/vendor files here remain unchanged.
+
+## Coordinated grace-tie readback
+
+The private Bridge project's `tools/verify-grace-tie-readback.cjs` verifies complete saved GP outputs against raw captures through this current classic/core reader, stock pinned reader and worker-style JSON roundtrips. It checks all source notes/ties, clocks, sustained endpoints, initial pre-bent pitches and real Wait acceptance/negative controls. Configure `GTS_TRAINER_ROOT`, `GTS_STOCK_READER`, `GTS_GRACE_INVENTORY`, `GTS_GRACE_RESULTS`, and fresh `GTS_GRACE_OUT`; private inputs remain in Bridge's ignored evidence directory. Its retained practice-parts browser runner verifies the real import and every Wait attack. Runtime/vendor files here remain unchanged. [Qualification scope](DEV-NOTES.md#shared-native-grace-tie-acceptance--2026-11-16-local-only).
+
+## Coordinated practice-part acceptance
+
+For the source-side multi-part/short-grace fallback, the private Bridge project's retained `tests/run-practice-parts-browser.cjs` serves this unchanged application into isolated Chrome. It compares every included source note/tie/tuning/capo, runs every Wait attack, confirms exact imported bytes, and tests correct no-offer guards. `GTS_TRAINER_ROOT` selects this current local tree; no runtime/vendor files are generated here. Bridge's frozen inventory/audit results and `GTS_PARTS_*` settings bound the cases. Preserve the 17-case saved acceptance and explicit original/generated/timing distinctions. Physical MIDI, real provider media and installed extension permissions remain separate acceptance. See [development record](DEV-NOTES.md#shared-practice-part-and-short-grace-imports--2026-11-16-local-only).
+
 # Development setup and checks
+
+## Broad finite-carry regression evidence
+
+The coordinated saved timing inventory checks 375 source lessons/244 original pairs through the existing private Bridge runners, without provider collection or screen use. Trainer's `tie-hold-boundary.test.js` additionally takes optional external `GTS_FINITE_CARRY_GPX`/`GTS_FINITE_CARRY_PLAN` for 98063. Set the earlier 97483 and explanation-control inputs for the complete 89-case affected suite. Preserve source/plan identities, whole native event comparisons and the distinction between valid timing and explicit drafts. Do not add private captures to public fixtures or turn a single-lesson task into this broad run automatically. [Results and retained limitations](DEV-NOTES.md#shared-finite-carry-audit-across-saved-lessons--2026-11-16-local-only).
+
+## Finite tie recording-boundary checks
+
+Run `tests/tie-hold-boundary.test.js` with native rest/timeline, interval/explanation/practice, draft, profile and receiver regressions. Optional read-only `GTS_HOLD_GPX` and `GTS_HOLD_PLAN` enable the supplied complete score/strict-plan case. `tests/run-tie-hold-browser.cjs` uses the same inputs, `GTS_PLAYWRIGHT_MODULE` and a fresh `GTS_HOLD_OUT`; without inputs it generates a finite-tie/rest-omission fixture. Optional `GTS_BRIDGE_ROOT` additionally runs the existing Bridge native preflight without editing Bridge. Retain the explanation playback/Wait browser control. Private inputs and output stay outside distributable fixtures. See [results and the separate interval-runner limitation](DEV-NOTES.md#finite-native-ties-at-recording-breaks--2026-11-16-local-only). No whole-catalog replay is needed for this bounded tie fix.
 
 ## alphaTab maintenance
 
@@ -10,13 +38,11 @@ Run `node --test tests/right-hand-tap.test.js` and `node tests/run-right-hand-ta
 
 The tests inspect the actual GP archive's raw note masks independently of the importer, then reopen it and check note addresses, flags, musical connections, MIDI and repeated visits. The browser checks the rendered T against its notehead/fret bounds, native printing, and the real renderer worker. No test runs Lesson Bridge's converter or changes its saved inputs. An owner can hard-refresh Live Server and open a saved GPX to check the T beside the intended notes; legacy whole-beat T and left-hand marks still have their familiar forms. Physical MIDI, actual print destinations and audible playback are separate checks.
 
-## Score text spacing checks
+## Native score layout checks
 
-Run `node --test tests/*.test.js` and `node tests/run-text-layout-browser.cjs`, using the existing `GTS_PLAYWRIGHT_MODULE` and optional `GTS_BROWSER_CHANNEL` settings. The runner creates an original dense two-track GP fixture in memory and uses an isolated browser/profile and temporary loopback server. `GTS_TEXT_GPX` and `GTS_TEXT_GP` optionally point to existing external saved GPX/converted GP files; `GTS_TEXT_TIMING` optionally points to the GP's matching Soundslice timing JSON. These files are read only and are not copied into the repository. `GTS_SCREENSHOT_DIR` selects artifact output; the default is ignored `dist/text-layout-2026-11-05`. Outputs from external scores are private visual evidence, not redistributable fixtures.
+Run `node tests/run-text-layout-browser.cjs` with `GTS_PLAYWRIGHT_MODULE` and optional `GTS_BROWSER_CHANNEL`. The synthetic two-track score includes a bar whose first label occurs on beat three. The regression tests left-to-right principal beat order with staff, TAB and both, at widths 390, 600 and 1600 and zoom 75, 100, 150 and 200 percent. It also checks original labels, score clocks, pitches, ties, MIDI, native playback timelines, nonlinear sync mappings, synth Play/Pause and native printing. Grace glyphs have independent placement rules and remain part of musical readback.
 
-The matrix covers 390/600/1600px, 75/100/150/200% zoom, notation/TAB/both, all source tracks, native clean printing and synth Play/Pause. Assertions compare original source/native MIDI and playback timelines, exact model labels/pitches/frets/ties/clocks across renders, nonlinear tick/time mappings and optional supplied timing. Text bounding boxes classify target-label intersections separately from unrelated header/footer/tuning intersections. Screenshots need visual review. `GTS_TEXT_BASELINE=1` disables installation through a test-only route response, running three screen controls at 600px/100%; it never edits production source and deliberately excludes printing. Keep existing display, sync/practice, Realtime, full-recording and import-timeline browser regressions applicable.
-
-Owner acceptance: hard-refresh the normal Live Server/browser, open both affected scores, and check usual zoom/window sizes plus staff/TAB/combined and multiple visible tracks. At high zoom in a narrow window, use the score panel's horizontal scroll. Check Print / Save PDF with the actual destination, audible score/recording alignment, seeking/loops and Fishman feedback. Record this separately from automated synthetic input/audio. Header/footer/tuning collisions, composite chord diagrams and a general engraving rewrite remain outside this fix; large-score responsiveness should be assessed during ordinary use. This update is local only, without commit or publication.
+`GTS_TEXT_GPX` can point to the saved Hummingbird 101143 original. `GTS_TEXT_GP` can point to the saved label-dense 98063 export, with optional matching `GTS_TEXT_TIMING`. Keep private inputs and screenshots outside tracked files. `GTS_SCREENSHOT_DIR` overrides the default ignored `dist/native-text-layout`. Bounding-box intersections are reported as diagnostic evidence for future renderer qualification. Native 1.8.4 annotation crowding is expected in the dense fixtures.
 
 ## Full recording boundary acceptance
 

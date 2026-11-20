@@ -57,6 +57,7 @@ function painted(view){
       await page.locator('#score-file-input').setInputFiles({name:fileName,mimeType:'application/octet-stream',buffer:input.bytes});
       await page.waitForFunction(({fileName,count})=>state.currentScoreFile?.fileName===fileName&&state.playerReady&&api.boundsLookup?.isFinished&&markIds('tab').length===count,{fileName,count});
       assert.deepEqual(await page.evaluate(()=>marks()),expected);
+      await page.waitForFunction(count=>markIds('score').length===count && markIds('tab').length===count && JSON.stringify(markIds('score'))===JSON.stringify(markIds('tab')),count);
       const ids=await page.evaluate(()=>markIds('score'));
       assert.equal(ids.length,count);
       assert.deepEqual(await page.evaluate(()=>markIds('tab')),ids);
@@ -80,8 +81,7 @@ function painted(view){
       if(input.file)assert.deepEqual(fs.readFileSync(input.file),input.bytes);
       console.log(`${input.id}: ${count} selected mixed-chord note marks per staff/TAB and print`);
     }
-    // A separate native SVG API actually serializes the score to a renderer
-    // worker. The trainer's text-layout SVG uses the main thread by design.
+    // Explicitly exercise score serialization through a native SVG worker.
     const worker=await page.evaluate(async bytes=>{
       const at=window.alphaTab,element=document.createElement('div');element.style.width='900px';document.body.append(element);
       const render=new at.AlphaTabApi(element,{core:{engine:'svg',useWorkers:true,enableLazyLoading:false,scriptFile:api.settings.core.scriptFile},player:{enablePlayer:false}});

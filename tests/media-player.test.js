@@ -122,3 +122,36 @@ for(const outcome of ['metadata','cancel','provider error'])test(`YouTube iframe
     }
   } finally {for(const [key,value] of Object.entries(saved)){if(value===undefined)delete globalThis[key];else globalThis[key]=value;}}
 });
+
+test('terminal read errors cannot masquerade as playing or queue seeks, and explicit reload retains controls without autoplay',async()=>{
+  const element=new MediaElement(),errors=[],states=[];let plays=0;
+  element.play=()=>{plays++;element.paused=false;return Promise.resolve();};
+  const handler=htmlMediaPlayer(element,'blob:fixture',{onError:e=>errors.push(e),onState:s=>states.push(s)});await handler.ready;
+  handler.seekTo(3500);handler.playbackRate=.5;handler.masterVolume=.3;element.muted=true;element.paused=false;element.seeking=true;handler.seekTo(7000);element.error={code:2,message:'Private source details'};
+  element.dispatchEvent(new Event('error'));element.dispatchEvent(new Event('seeked'));element.dispatchEvent(new Event('playing'));assert.equal(element.currentTime,3.5);
+  assert.equal(handler.playing,false);assert.deepEqual(states,[]);assert.match(errors[0].message,/read.*data/);assert.doesNotMatch(errors[0].message,/Private/);
+  handler.seekTo(8000);assert.equal(element.currentTime,3.5);handler.play();await Promise.resolve();assert.equal(plays,0);assert.equal(errors.length,2);
+  element.load=()=>{element.error=null;element.seeking=false;element.currentTime=0;element.readyState=1;queueMicrotask(()=>{element.dispatchEvent(new Event('loadedmetadata'));element.readyState=4;element.dispatchEvent(new Event('loadeddata'));});};
+  await handler.reload();assert.equal(element.src,'blob:fixture');assert.equal(element.currentTime,3.5);assert.equal(element.paused,true);assert.equal(plays,0);assert.equal(handler.playbackRate,.5);assert.equal(handler.masterVolume,.3);assert.equal(element.muted,true);
+  handler.play();await Promise.resolve();assert.equal(plays,1);assert.equal(handler.playing,true);handler.destroy();
+});
+
+test('reload failure retains the requested position and can be retried without restoring an old queued seek',async()=>{
+  const element=new MediaElement(),handler=htmlMediaPlayer(element,'blob:fixture');await handler.ready;handler.seekTo(4500);element.seeking=true;handler.seekTo(9000);
+  element.load=()=>{element.error={code:2};queueMicrotask(()=>element.dispatchEvent(new Event('error')));};
+  await assert.rejects(handler.reload(),/read.*data/);assert.equal(element.currentTime,4.5);
+  element.load=()=>{element.error=null;element.currentTime=0;element.seeking=false;queueMicrotask(()=>element.dispatchEvent(new Event('loadedmetadata')));};
+  await handler.reload();element.dispatchEvent(new Event('seeked'));assert.equal(element.currentTime,4.5,'old pending seek is discarded');assert.equal(element.paused,true);handler.destroy();
+});
+
+test('unloading cancels a pending recording reload and removes its position-restoring listeners',async()=>{
+  const element=new MediaElement(),handler=htmlMediaPlayer(element,'blob:fixture');await handler.ready;handler.seekTo(4500);element.load=()=>{};
+  const pending=handler.reload(),cancelled=assert.rejects(pending,/cancelled/);handler.destroy();await cancelled;
+  element.currentTime=0;element.dispatchEvent(new Event('loadedmetadata'));assert.equal(element.currentTime,0);assert.equal(handler.playing,false);assert.equal(element.src,'');
+});
+
+test('a reloaded shorter recording cannot silently clamp the retained playhead',async()=>{
+  const element=new MediaElement(),handler=htmlMediaPlayer(element,'blob:fixture');await handler.ready;handler.seekTo(8500);
+  element.load=()=>{element.duration=5;element.currentTime=0;queueMicrotask(()=>element.dispatchEvent(new Event('loadedmetadata')));};
+  await assert.rejects(handler.reload(),/ends before the retained playhead/);assert.equal(element.paused,true);handler.destroy();
+});

@@ -1,0 +1,51 @@
+{
+  "qualifiedVersion": "1.9.0",
+  "patchSet": "1.9.0",
+  "installApproved": true,
+  "referencePatches": [],
+  "patches": [
+    {
+      "file": "alphaTab-marked-scores.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "GPIF import/export and score model for marked harmonics, ties, bends, sustains and measure clocks"
+    },
+    {
+      "file": "alphaTab-marked-playback.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Practice MIDI and synthesis for registered expressive notes, repeats and sustained playback"
+    },
+    {
+      "file": "alphaTab-worker-compatibility.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "JSON and binary worker score compatibility for saved marked scores and MIDI note offsets"
+    },
+    {
+      "file": "alphaTab-native-tapping.patch",
+      "targets": [
+        "alphaTab.js",
+        "alphaTab.core.mjs"
+      ],
+      "description": "Note-specific right-hand tapping in standard notation, TAB and print"
+    }
+  ],
+  "bundles": {
+    "alphaTab.js": {
+      "upstream": "8c650d7a869d4eba0c3e8a3c5e861e2c61a6aa222facaa4f1d33be5a24086304",
+      "patched": "0e41d6772be91036fb90055ffc52d3cd8d7d0bdb72c6dc10b599eb3545504ee6"
+    },
+    "alphaTab.core.mjs": {
+      "upstream": "7d5e9412c6d0a692c569f4b8a1afda0ef76be044f2538e6f8f43e907a2cf588e",
+      "patched": "a3e9145a5d50c6ce46c177318a93a26b0251b171930e33f854dc5e718ffd9ee0"
+    }
+  },
+  "integrity": "sha512-pG/Um03DdiTW7i9KR+rPTRRnzIW5oJBWs67altBXtCkxGvUG1RuvkgRTZO3GIaOD2vATjcw+5OevMZl9I2/T+Q=="
+}
