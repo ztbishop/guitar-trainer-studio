@@ -122,7 +122,10 @@ function soundingOmission(payload) {
     await page.waitForFunction(()=>document.querySelector('#media-audio').currentTime>3.2);
     await page.evaluate(()=>{sendIntervalMidi([0x90,81,100]);sendIntervalMidi([0x80,81,0]);});await page.waitForTimeout(150);
     assert.equal(await page.evaluate(()=>s.trainer.results.wrong),0);assert.equal(await page.evaluate(()=>s.trainer.results.missed),0);
-    await click('play-pause-button');await page.waitForFunction(()=>!s.isPlaying);await click('media-player-skip-explanation');
+    await click('play-pause-button');await page.waitForFunction(()=>!s.isPlaying);
+    await change('media-wide-timeline',true);
+    assert(await page.locator('#media-timeline-bar #media-seek').evaluate(el=>el.style.background.includes('linear-gradient')));
+    await page.locator('#media-timeline-bar #media-player-skip-explanation').click();
     await page.waitForFunction(()=>Math.abs(document.querySelector('#media-audio').currentTime-6)<0.025);
     assert.equal(await page.evaluate(()=>s.trainer.results.correct),1,'Skip source break retains earlier musical results');
     await click('play-pause-button');await page.waitForFunction(()=>s.isPlaying && !s.countInActive);await attack(1);

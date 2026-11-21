@@ -29,6 +29,30 @@ const assert=require('node:assert/strict'),path=require('node:path'),{execFileSy
         const input=document.querySelector('#media-file');input.files=transfer.files;input.dispatchEvent(new Event('change'));
       });
       try {await page.waitForFunction(()=>!document.querySelector('#media-player-panel').hidden);} catch(e){console.log(await page.locator('#media-status').textContent());throw e;}
+      const setWide=value=>page.locator('#media-wide-timeline').evaluate((control,value)=>{
+        control.checked=value;control.dispatchEvent(new Event('change'));
+      },value);
+      assert(await page.locator('#media-timeline-bar').isHidden());
+      assert(await page.locator('#media-recording-label').isHidden());
+      await page.getByRole('button',{name:'Recording info'}).click();
+      assert.equal(await page.locator('#media-recording-label').innerText(),'layout.webm');
+      assert(await page.locator('#media-pip').isVisible());
+      await page.getByRole('button',{name:'Recording info'}).press('Enter');
+      assert(await page.locator('#media-recording-label').isHidden());
+      await setWide(true);
+      const slider=page.locator('#media-timeline-bar #media-seek');
+      assert((await slider.boundingBox()).width>width*.8,'timeline spans the window beside a left-hand video');
+      await page.locator('#media-close-player').click();
+      assert(await page.locator('#media-player-panel').isHidden());
+      assert(await slider.isVisible(),'closing the video keeps the enabled recording timeline');
+      await page.locator('#media-show-player').evaluate(control=>control.click());
+      await setWide(false);
+      assert(await page.locator('#media-player-panel #media-seek').isVisible());
+      await setWide(true);
+      await page.setViewportSize({width:390,height:844});
+      assert(await slider.isVisible());
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+      await page.setViewportSize({width,height});
       const measure=()=>page.evaluate(()=>{const c=document.querySelector('#fretboard-content'),v=c.querySelector('svg'),scroll=c.querySelector('.fretboard-scroll');return {width:v.getBoundingClientRect().width,h:c.clientHeight,available:scroll.clientWidth,natural:Number(v.dataset.naturalWidth),left:v.getBoundingClientRect().left-scroll.getBoundingClientRect().left,right:scroll.getBoundingClientRect().right-v.getBoundingClientRect().right,saved:localStorage.getItem('gts.workspacePanelSizes')};});
       await page.waitForTimeout(400);let d=await measure();assert(d.width>1250,JSON.stringify(d));assert(Math.abs(d.left-d.right)<2);const before=d.saved;
       for(const theme of ['dark','soft-light','light']) {
@@ -40,6 +64,8 @@ const assert=require('node:assert/strict'),path=require('node:path'),{execFileSy
       // Replace a score while media is attached, then reload without touching the divider.
       await load('first-notes.gp');d=await measure();assert(d.width>1250,JSON.stringify(d));assert.equal(d.saved,before);
       await page.reload();await load('first-notes.gp');d=await measure();assert(d.width>1250,JSON.stringify(d));assert.equal(d.saved,before);
+      assert(await page.locator('#media-wide-timeline').isChecked());
+      assert(await page.locator('#media-timeline-bar').isHidden(),'no strip for a score with no media');
       if(width>3000)assert(d.width<width*.75,'ultrawide cap retained');
       if(process.env.GTS_SCREENSHOT_DIR)await page.locator('#fretboard-container').screenshot({path:path.join(process.env.GTS_SCREENSHOT_DIR,'repaired-neck-'+width+'-'+saved+'.png')});
       console.log('PASS legacy server, themes, initial/reloaded neck and saved height',width,saved,d.width);

@@ -30,6 +30,9 @@ function wav() {
     if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:require('node:path').join(process.env.GTS_SCREENSHOT_DIR,'full-recording-timeline.png')});
     await page.locator('#media-finish-editing').click();
     await page.waitForFunction(()=>!s.media.editing && s.playerReady);
+    await page.locator('#media-wide-timeline').evaluate(control=>control.click());
+    assert(await page.locator('#media-timeline-bar #media-seek').isVisible(),'audio-only recording can use the full-width bar');
+    assert(await page.locator('#media-player-panel').isHidden());
     const seek=async seconds=>{
       await page.evaluate(seconds=>{const c=document.querySelector('#media-seek');c.value=String(seconds);c.dispatchEvent(new Event('input'));},seconds);
       await page.waitForFunction(seconds=>Math.abs(document.querySelector('#media-audio').currentTime-seconds)<0.25,seconds);
@@ -81,6 +84,10 @@ function wav() {
     await seek(2.5);
     await page.waitForFunction(()=>!s.trainer.sessionCompleted && s.isPlaying);
     assert.equal(await page.evaluate(()=>s.trainer.sessionReason),'seek-or-speed-change');
+    const slider=page.locator('#media-timeline-bar #media-seek');
+    await slider.focus();await slider.press('ArrowRight');
+    const position=Number(await slider.inputValue());
+    await page.waitForFunction(time=>Number(document.querySelector('#media-seek').value)>time+0.1,position);
     await page.waitForFunction(()=>document.querySelector('#media-audio').currentTime>4.4 && s.trainer.sessionCompleted);
     await seek(7.5);
     await page.waitForFunction(()=>document.querySelector('#media-audio').ended && !s.isPlaying);

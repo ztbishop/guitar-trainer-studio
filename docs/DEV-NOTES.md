@@ -8,6 +8,10 @@ Speed Trainer lives inside Loop and uses the existing Realtime synth transport. 
 
 The Node suite passed 898 tests with eight optional fixture skips. Isolated Chrome checks used a generated score to exercise continuous looping and measure actual count-in click intervals, and a generated recording to check drag, nudge, fixed endpoints, no-crossing limits, cancellation, Undo/Redo and narrow-screen layout. Listening with the owner’s guitar and recording remains pending.
 
+## Compact video controls and optional full-width recording timeline — 2026-11-20
+
+Recording info beside Edit sync reveals the full title and Float video. The saved **Show timeline below toolbar** setting also works for audio-only recordings and hidden video panels. The strip disappears on unload and score change. Local acceptance is to seek through a familiar lesson with the video on the left, check Skip to music, and reopen the app with the same browser.
+
 ## v1.0.2 release — 2026-11-20
 
 Owner requested committing/pushing the local Trainer changes and a new release with simple public notes, superseding the earlier local-only publication hold. The stable release was published on November 20, 2026 at commit `7cfa56c`. It includes the current qualified alphaTab 1.9.0, native layout and practice fixes, visual draft/explanation timing, independent reference recording and media recovery. Lesson Bridge remains unchanged; no private score/media/capture files are included. Git attributes retain verified vendor LF bytes and upstream patch context. [GitHub release](https://github.com/ztbishop/guitar-trainer-studio/releases/tag/v1.0.2)

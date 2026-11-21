@@ -14,7 +14,6 @@
 .panel-resizer:focus-visible { outline:2px solid #2563eb; outline-offset:-2px; }
 .fretboard-panel .fretboard-scroll { height:100%; overflow-x:auto; overflow-y:hidden; }
 .fretboard-panel .fretboard-scroll svg { min-width:0; max-width:none; display:block; margin-inline:auto; }
-.media-player-heading #media-pip { margin-left:auto; }
 .media-picture { min-height:60px; }
 .media-player-panel.audio-only .media-picture { display:none; }
 .sync-editor-help { margin:6px 0; font-size:12px; }

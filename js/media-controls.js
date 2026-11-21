@@ -69,15 +69,38 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   let zoom=1,waveformBusy=false,waveformGeneration=0,dragging=false,lastTimelineInteraction=0,buffering=false;
   let cancelDrag=null;
   let seekGeneration=0;
-  let layout='left',share=35,showPlayer=true,showEditor=false;
-  try {const saved=JSON.parse(localStorage.getItem('gts.mediaLayout') || '{}');if(MEDIA_LAYOUTS.includes(saved.layout))layout=saved.layout;if(saved.share>=20 && saved.share<=65)share=saved.share;if(typeof saved.showPlayer==='boolean')showPlayer=saved.showPlayer;if(typeof saved.showEditor==='boolean')showEditor=saved.showEditor;}catch{}
+  let layout='left',share=35,showPlayer=true,showEditor=false,wideTimeline=false;
+  try {
+    const saved=JSON.parse(localStorage.getItem('gts.mediaLayout') || '{}');
+    if(MEDIA_LAYOUTS.includes(saved.layout))layout=saved.layout;
+    if(saved.share>=20 && saved.share<=65)share=saved.share;
+    if(typeof saved.showPlayer==='boolean')showPlayer=saved.showPlayer;
+    if(typeof saved.showEditor==='boolean')showEditor=saved.showEditor;
+    wideTimeline=saved.wideTimeline===true;
+  }catch{}
   const message=text=>{get('status').textContent=text;get('action-status').textContent=text;get('action-status').hidden=text.startsWith('Editing sync');};
-  function persistLayout() {try{localStorage.setItem('gts.mediaLayout',JSON.stringify({layout,share,showPlayer,showEditor}));}catch{}}
+  function persistLayout() {try{localStorage.setItem('gts.mediaLayout',JSON.stringify({layout,share,showPlayer,showEditor,wideTimeline}));}catch{}}
+  const scrub=get('seek').closest('.media-scrub'),timelineBar=get('timeline-bar');
+  function placeRecordingTimeline() {
+    timelineBar.hidden=!wideTimeline || !(player?.backingTrackDuration>0);
+    if(wideTimeline && scrub.parentElement!==timelineBar)timelineBar.append(scrub,playerSkip);
+    if(!wideTimeline && scrub.parentElement===timelineBar) {
+      get('video-actions').before(scrub);
+      get('listening-notice').after(playerSkip);
+    }
+    get('wide-timeline').checked=wideTimeline;
+  }
+  function showRecordingInfo(open) {
+    get('info').hidden=!open;
+    get('info-button').setAttribute('aria-expanded',String(open));
+  }
   function renderLayout() {
     if(Boolean(AppState.media.editing)!==showEditor){if(showEditor)beforeEdit();host.setMediaEditing(showEditor);if(!showEditor)afterEdit();else message('Editing sync · Preview only. Choose Finish editing to restore grading and loops.');}
     const workspace=get('workspace'),visible=Boolean(player && showPlayer && !get('player-panel').classList.contains('audio-only'));
     workspace.classList.toggle('has-media',visible);workspace.dataset.layout=layout;workspace.style.setProperty('--media-share',share+'%');
     get('player-panel').hidden=get('divider').hidden=!visible;get('divider').setAttribute('aria-valuenow',String(share));
+    if(!visible)showRecordingInfo(false);
+    placeRecordingTimeline();
     get('divider').setAttribute('aria-orientation',['left','right'].includes(layout) && window.innerWidth>700?'vertical':'horizontal');
     get('editor').hidden=!showEditor;document.body.classList.toggle('media-editor-visible',showEditor);
     get('layout').value=layout;get('show-player').checked=showPlayer;get('show-editor').checked=showEditor;
@@ -160,6 +183,8 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   function disposal() {
     cancelDrag?.();
+    timelineBar.hidden=true;
+    showRecordingInfo(false);
     draftTiming=null;draftEditor.clear();
     player?.destroy();recordingError=null;reloadInProgress=false;buffering=false;player=null;source=null;localFile=null;peaks=[];timingPlan=null;
     resetMovement();
@@ -596,6 +621,11 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   get('unload').addEventListener('click',action(async()=>{await returnToPractice();generation++;disposal();points=[];profileId='';pendingProfile=null;renderPoints();renderLayout();sync();message('Recording unloaded. Saved profiles are kept.');}));
   get('pip').addEventListener('click',action(()=>document.pictureInPictureElement?document.exitPictureInPicture():get('video').requestPictureInPicture()));
   get('close-player').addEventListener('click',()=>{showPlayer=false;renderLayout();persistLayout();document.getElementById('play-pause-button').focus();});
+  get('info-button').addEventListener('click',()=>showRecordingInfo(get('info').hidden));
+  get('wide-timeline').addEventListener('change',()=>{
+    wideTimeline=get('wide-timeline').checked;
+    placeRecordingTimeline();persistLayout();
+  });
   function finishEditing() {
     if(draftTiming){message('Draft timing needs review. Recording grading remains paused.');return;}
     showEditor=false;renderLayout();persistLayout();
@@ -754,7 +784,8 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('clock').textContent=`${clock(time)} / ${clock(duration)}`;
     syncRecordingRegion();
     renderTarget(time);
-    if(document.activeElement!==get('seek'))get('seek').value=String(time/1000);
+    const seek=get('seek');
+    if(document.activeElement!==seek || (player.playing && !seek.matches(':active')))seek.value=String(time/1000);
     const x=duration>0?time/duration*1000:0;playhead?.setAttribute('x1',x);playhead?.setAttribute('x2',x);
     if(showEditor && player.playing && !dragging && performance.now()-lastTimelineInteraction>1000) {
       const scroll=get('timeline').parentElement,position=(x+12)/1024*scroll.clientWidth*zoom;

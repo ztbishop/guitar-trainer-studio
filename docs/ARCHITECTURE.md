@@ -8,6 +8,10 @@ See [Current status and to-do](TODO.md) for the shipped baseline and pending rea
 
 `media-timeline.js` calculates both uniform group moves and proportional stretches from the gesture’s original recording times. Stretch pins the last point and bounds compression using the shortest existing interval. `media-controls.js` uses the same result for drag previews, committed drags, buttons and keyboard nudges. Each commit uses ordinary validated sync points and the editor’s existing history and profile format.
 
+## Recording timeline placement
+
+`media-controls.js` stores `wideTimeline` with the existing `gts.mediaLayout` preferences. It moves the recording clock, seek input and contextual skip button between the video panel and a row below the toolbar. Both placements use the same source clock, timing map and seek handlers. Recording info is a temporary disclosure in the video panel and closes when the video is hidden or replaced.
+
 ## Reviewed draft actions and explicit media reload — 2026-11-17
 
 The alphaTab maintenance command runs outside the browser. Trainer uses native layout, guards synchronous echoes of omitted-bar seeks and cancels obsolete queued audio starts. Saved marked GP scores use a matched classic/core worker schema. [Updater and compatibility details](ALPHATAB-UPGRADES.md).

@@ -441,6 +441,7 @@
       <p class="field-help">Choose Left or Right for side-by-side. Drag the divider to resize; narrow screens stack automatically.</p>
       <p id="media-float-help" class="field-help">Float video is available for local video and direct video URLs when supported by your browser.</p>
       <label class="menu-option"><input id="media-show-player" type="checkbox" checked /><span>Show video panel</span></label>
+      <label class="menu-option"><input id="media-wide-timeline" type="checkbox" /><span>Show timeline below toolbar</span></label>
       <label class="menu-option"><input id="media-show-editor" type="checkbox" /><span>Show sync editor</span></label>
       <button id="media-reset-layout" type="button">Reset panel sizes</button>
       <p class="field-help">Drag panel dividers to resize. Sizes and visibility are remembered. Closing a panel hides it without unloading your work.</p>
@@ -640,6 +641,7 @@
       </div>
     </section>
 
+    <div id="media-timeline-bar" role="group" aria-label="Recording timeline" hidden></div>
     <main class="app-main">
       <div id="media-workspace" class="score-media-workspace">
       <section class="score-stage panel viewer-panel">
@@ -658,10 +660,19 @@
       </section>
       <div id="media-divider" class="media-divider" role="separator" tabindex="0" aria-label="Resize recording panel" aria-valuemin="20" aria-valuemax="65" aria-valuenow="35" hidden></div>
       <section id="media-player-panel" class="panel media-player-panel" aria-label="Video panel" hidden>
-        <div class="media-player-heading"><span id="media-recording-label">Recording</span><button id="media-pip" type="button" disabled aria-describedby="media-float-status">Float video</button><button id="media-close-player" class="panel-close" type="button" aria-label="Hide video panel" title="Hide video panel; source selection is retained">×</button></div><p id="media-float-status" class="field-help" hidden></p>
         <div class="media-picture"><video id="media-video" playsinline></video><div id="media-youtube" hidden></div></div>
         <label class="media-scrub"><span id="media-clock">0:00 / 0:00</span><input id="media-seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Recording position" disabled /></label>
-        <div class="media-actions"><button id="media-edit-sync" type="button" aria-controls="media-editor" aria-expanded="false">Edit sync</button><span id="media-listening-notice" class="field-help">Use main Play/Pause and Tempo. Wait mode keeps playback silent.</span></div>
+        <div id="media-video-actions" class="media-actions">
+          <button id="media-edit-sync" type="button" aria-controls="media-editor" aria-expanded="false">Edit sync</button>
+          <button id="media-info-button" type="button" aria-label="Recording info" title="Recording info" aria-controls="media-info" aria-expanded="false">ⓘ</button>
+          <span id="media-listening-notice" class="field-help">Use main Play/Pause and Tempo. Wait mode keeps playback silent.</span>
+          <button id="media-close-player" class="panel-close" type="button" aria-label="Hide video panel" title="Hide video panel; source selection is retained">×</button>
+        </div>
+        <div id="media-info" hidden>
+          <span id="media-recording-label">Recording</span>
+          <button id="media-pip" type="button" disabled aria-describedby="media-float-status">Float video</button>
+          <p id="media-float-status" class="field-help" hidden></p>
+        </div>
       </section>
       </div>
 

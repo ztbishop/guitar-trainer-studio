@@ -25,6 +25,10 @@ YouTube loading may take a few seconds while the video length becomes available.
 
 ## Video position
 
+For a side-by-side lesson, open **Load / options → Video & editor layout** and turn on **Show timeline below toolbar**. The recording clock and seek bar span the window even with the video hidden or an audio-only recording loaded. Shading marks known breaks and **Skip to music** appears when available. The choice is off on first use and saved in this browser. A score without a recording uses the whole workspace.
+
+Select **ⓘ Recording info** beside **Edit sync** to see the full recording title and **Float video**. Select it again to collapse the details.
+
 Video remains in its separate panel; audio-only sources leave this panel hidden without changing its saved visibility preference. **Edit sync** toggles the editor directly. Selecting Recording or using Play preserves saved visibility; it does not force a hidden panel back on. Video, editor and fretboard have labeled × buttons that hide the panel and update the saved visibility choice without discarding work. Open **Load / options** for visibility and placement controls.
 
 Editor and fretboard now have top-edge dividers: drag, or focus and use Up/Down. Double-click or Home resets an individual auxiliary panel; Media & Sync → Reset panel sizes resets all three sizes. Bounded editor/fretboard preferences are saved in `gts.workspacePanelSizes` and fitted to the viewport while reserving score space. Small screens and opening all panels may require vertical scrolling. The native score, zoomed timelines and readable phone fretboards intentionally remain scrollable; desktop fretboards fit their panel without unnecessary horizontal scrolling.
