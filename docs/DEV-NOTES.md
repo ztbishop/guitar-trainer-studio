@@ -1,5 +1,11 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Audio sync suggestions — 2026-11-21
+
+Implemented an original browser matcher using pitch-class passage search. Local analysis proposes candidate times for each native measure occurrence. The lesson owner chooses takes and reviews gaps before activating the timing. No external library or service is required. [AudioLabs passage-search background](https://www.audiolabs-erlangen.de/resources/MIR/FMP/C7/C7S2_AudioMatching.html)
+
+`node --test tests/audio-sync.test.js` exercises known-time synthesized phrases, slower and extra takes, written repeat order, gaps and no-match inputs. `node tests/run-audio-sync-browser.cjs` covers local files, direct URLs, denied reads, cancellation, auditions, take selection, draft undo and reviewed playback in Chrome. Real lesson accuracy remains an owner listening check.
+
 ## Speed Trainer and proportional sync edits — 2026-11-20
 
 The Loop menu labels the step **Speed increase (%)**. A value of 5 takes playback from 60% to 65% of the score tempo.

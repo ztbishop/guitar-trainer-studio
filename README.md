@@ -239,6 +239,8 @@ Fretboard arrows pause and browse targets while clearing the current attempt. Dr
 
 ### Audio and recordings
 
+In **More → Media Sync → Suggest sync points from audio**, choose **Analyze lesson audio** to match the selected practice track to a recording. Listen to the suggested takes, choose one per written repeat pass, and open the draft to check the timing. Explanations and extra demonstrations can stay in the recording as unscored gaps. [Audio suggestions and supported sources](docs/MEDIA-SYNC.md#suggest-sync-points-from-audio)
+
 Audio has separate synth and synced-recording volumes, practice/backing playback switches, and track volume/mute controls. These control the app's sounds, not your guitar interface's own sounds. Track mix resets for each score; master volumes are remembered.
 
 Synth playback pitch shifts the synthesized sound only. It does not transpose the written score, tab, MIDI targets or recordings.

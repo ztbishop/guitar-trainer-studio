@@ -1,5 +1,6 @@
 // Media UI, browser players and profile intents. Native calls stay in the host.
 import {createDraftEditor} from './draft-controls.js';
+import {createAudioSuggestions} from './audio-sync-controls.js';
 import {validateDraft,checkDraftBinding,DRAFT_CAPABILITY} from './draft-timing.js';
 import {AppState} from './app-state.js';
 import {recordingScoreRange,recordingRegion} from './media-score-range.js';
@@ -81,6 +82,36 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   const message=text=>{get('status').textContent=text;get('action-status').textContent=text;get('action-status').hidden=text.startsWith('Editing sync');};
   function persistLayout() {try{localStorage.setItem('gts.mediaLayout',JSON.stringify({layout,share,showPlayer,showEditor,wideTimeline}));}catch{}}
   const scrub=get('seek').closest('.media-scrub'),timelineBar=get('timeline-bar');
+  const suggestions=createAudioSuggestions({
+    after:get('editor-toolbar'),
+    context:()=>({source,file:localFile,url:blobUrl || source?.url,score:AppState.currentScoreFile,
+      scoreSha256:scoreHash,timeline:AppState.playbackTimeline,trackId:AppState.practiceTrackId,
+      duration:(player?.backingTrackDuration || 0)/1000,generation,hasDraft:Boolean(draftTiming),
+      blocked:busy || recordingError || !player?.backingTrackDuration?'Wait for the recording to be ready.':
+        dirty && !draftTiming?'Save the current alignment before creating another draft.':''}),
+    async preview(take){
+      if(!showEditor || !take)return;
+      if(draftTiming){beforeEdit();player.seekTo(take.start*1000);draftPreviewEnd=take.end*1000;player.play();}
+      else await seekRecording(take.start*1000,{resume:true});
+    },
+    async review(draft,isCurrent){
+      const check=()=>{
+        if(!isCurrent() || !showEditor || busy || recordingError || dirty && !draftTiming)
+          throw Error('Reopen Media Sync and check the current recording before reviewing suggestions.');
+        checkDraftBinding(draft,{timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:draft.recordingId});
+      };
+      check();await returnToPractice();check();stopDraftPreview();player.pause();
+      if(draftTiming)draftEditor.replaceMapping({...draft.candidatePlan,recordingId:draftTiming.recordingId});
+      else {
+        draftTiming=draft;points=[];timingPlan=null;profileId='';selected=-1;undo=[];redo=[];
+        get('profile-name').value=source.label+' · Audio timing';
+        draftEditor.load(draft);
+      }
+      dirty=true;renderExplanationSummary();renderPoints();sync();
+      get('draft-timing').scrollIntoView({block:'nearest'});
+      message('Listen across the suggested boundaries, then choose Use reviewed timing.');
+    }
+  });
   function placeRecordingTimeline() {
     timelineBar.hidden=!wideTimeline || !(player?.backingTrackDuration>0);
     if(wideTimeline && scrub.parentElement!==timelineBar)timelineBar.append(scrub,playerSkip);
@@ -109,6 +140,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     renderPoints();
   }
   function sync() {
+    suggestions.sync();
     document.body.classList.toggle('draft-timing-active',Boolean(draftTiming));
     recovery.hidden=!recordingError;recoveryStatus.textContent=reloadInProgress?'Reloading recording… Timing and score are retained.':recordingError?.message??'';reloadRecording.hidden=!player?.reload;reloadRecording.disabled=busy || reloadInProgress;
     get('finish-editing').disabled=Boolean(draftTiming) || busy || AppState.media.returning;
@@ -182,6 +214,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('local-controls').hidden=kind!=='local';get('link-controls').hidden=!['url','youtube'].includes(kind);get('embedded-controls').hidden=kind!=='embedded';
   }
   function disposal() {
+    suggestions.reset();
     cancelDrag?.();
     timelineBar.hidden=true;
     showRecordingInfo(false);

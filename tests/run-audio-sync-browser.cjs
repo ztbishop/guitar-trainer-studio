@@ -1,0 +1,98 @@
+const assert = require('node:assert/strict');
+const {chromium} = require(process.env.GTS_PLAYWRIGHT_MODULE || 'playwright');
+const {createAppServer} = require('../local-web-server.cjs');
+const alphaTab = require('../assets/vendor/alphatab/alphaTab.js');
+
+async function run() {
+  const {sampleRate,lessonSamples} = await import('./audio-sync-fixture.js');
+  const pcm = lessonSamples(), wav = Buffer.alloc(44+2*pcm.length);
+  wav.write('RIFF'); wav.writeUInt32LE(wav.length-8,4); wav.write('WAVEfmt ',8);
+  wav.writeUInt32LE(16,16); wav.writeUInt16LE(1,20); wav.writeUInt16LE(1,22);
+  wav.writeUInt32LE(sampleRate,24); wav.writeUInt32LE(2*sampleRate,28);
+  wav.writeUInt16LE(2,32); wav.writeUInt16LE(16,34); wav.write('data',36);
+  wav.writeUInt32LE(2*pcm.length,40);
+  pcm.forEach((v,i) => wav.writeInt16LE(Math.round(v*32767),44+i*2));
+  const settings = new alphaTab.Settings(), parser = new alphaTab.importer.AlphaTexImporter();
+  parser.initFromString(String.raw`\tempo 120 . \ro 0.6.4 3.6.4 7.6.4 2.6.4 | \rc 2 10.6.4 5.6.4 8.6.4 12.6.4`,settings);
+  const gp = Buffer.from(new alphaTab.exporter.Gp7Exporter().export(parser.readScore(),settings));
+  const server = createAppServer();
+  await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
+  let browser;
+  try {
+    browser = await chromium.launch({headless:true,channel:process.env.GTS_BROWSER_CHANNEL || 'chrome'});
+    const page = await browser.newPage({viewport:{width:1440,height:1000}});
+    const errors = []; page.on('pageerror',e => errors.push(e.message));
+    await page.goto('http://127.0.0.1:'+server.address().port);
+    await page.locator('#score-file-input').setInputFiles({name:'lesson.gp',mimeType:'application/octet-stream',buffer:gp});
+    await page.waitForFunction(async () => {
+      window.s = (await import('./js/app-state.js')).AppState;
+      return s.playerReady && s.expectedEvents.length;
+    });
+    await page.waitForFunction(() => document.querySelector('#media-status').textContent.includes('Score ready'));
+    await page.waitForTimeout(700); // Let the native selected-track regeneration settle.
+    await page.locator('#media-file').setInputFiles({name:'lesson.wav',mimeType:'audio/wav',buffer:wav});
+    await page.waitForFunction(() => s.media.preview && s.playerReady);
+    await page.locator('#media-show-editor').evaluate(box => {box.checked=true;box.dispatchEvent(new Event('change'));});
+    const panel = page.locator('#media-audio-suggestions');
+    await panel.locator('summary').click();
+    await panel.evaluate(node => {
+      const actions = node.querySelectorAll('button');
+      actions[0].click(); actions[1].click();
+    });
+    assert.match(await panel.innerText(),/canceled/);
+    await panel.getByText('Analyze lesson audio').click();
+    const selects = panel.locator('select');
+    await selects.nth(3).waitFor();
+    assert.equal(await selects.nth(0).locator('option').count(),4);
+    await selects.nth(0).selectOption('0');
+    await panel.getByRole('button',{name:'Continue this take'}).nth(0).click();
+    assert.equal(await selects.nth(1).inputValue(),'0',await panel.innerText());
+    await selects.nth(2).selectOption('2');
+    await panel.getByRole('button',{name:'Continue this take'}).nth(2).click();
+    await panel.getByText('Play from take').nth(2).click();
+    await page.waitForFunction(() => document.querySelector('#media-audio').currentTime > 11.7);
+    await panel.getByText('Review selected takes').click();
+    await page.locator('#media-draft-timing').waitFor();
+    assert(await page.evaluate(() => s.media.editing && !s.media.preview));
+    const plan = JSON.parse(await page.locator('#media-draft-json').inputValue()).candidatePlan;
+    assert.deepEqual(plan.originalPlaybackOrder,[1,2,1,2]);
+    assert(plan.intervals.some(i => i.startSeconds < 5 && i.endSeconds > 11));
+    // Reconsider an instructor take after hearing the draft. Use the draft's
+    // existing Undo history to restore the first selection.
+    await panel.locator('summary').click();
+    await selects.nth(2).selectOption('1');
+    await panel.getByRole('button',{name:'Replace draft mapping with selected takes'}).click();
+    const draftJSON = page.locator('#media-draft-json');
+    await page.waitForFunction(() => JSON.parse(document.querySelector('#media-draft-json').value).candidatePlan.musicalVisits[2].startSeconds < 8);
+    await page.locator('#media-draft-undo').click();
+    assert.deepEqual(JSON.parse(await draftJSON.inputValue()).candidatePlan,plan);
+    await page.locator('#media-draft-use').click();
+    await page.waitForFunction(() => s.media.preview && s.media.timingPlan?.visits.length === 4);
+    // Exercise the link reader independently of local File access. A player
+    // can load a URL even when a separate scripted fetch fails.
+    let deny = true;
+    const mediaUrl = 'http://127.0.0.1:'+server.address().port+'/assets/test-lesson.wav';
+    await page.route(mediaUrl,route => {
+      if (route.request().resourceType() === 'fetch' && deny) return route.abort('accessdenied');
+      return route.fulfill({contentType:'audio/wav',body:wav});
+    });
+    await page.evaluate(url => {
+      const kind = document.querySelector('#media-source-kind'); kind.value='url'; kind.dispatchEvent(new Event('change'));
+      document.querySelector('#media-url').value=url; document.querySelector('#media-load-link').click();
+    },mediaUrl);
+    await page.waitForFunction(() => document.querySelector('#media-audio').src.endsWith('test-lesson.wav') && s.playerReady && s.media.preview && !s.media.timingPlan);
+    await page.locator('#media-show-editor').evaluate(box => {box.checked=true;box.dispatchEvent(new Event('change'));});
+    await panel.locator('summary').click();
+    await panel.getByText('Analyze lesson audio').click();
+    await panel.getByText(/host must allow cross-origin/).waitFor();
+    deny = false;
+    await panel.getByText('Analyze lesson audio').click();
+    await selects.nth(3).waitFor();
+    assert.equal(await selects.nth(2).locator('option').count(),4);
+    assert.deepEqual(errors,[]);
+    console.log('Chrome passed local file, direct link, denied audio fetch, cancel/retry, three takes, both written passes, draft undo and reviewed timing with an internal gap.');
+  } finally {
+    await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
+  }
+}
+run().catch(error => {console.error(error);process.exitCode=1;});

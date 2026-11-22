@@ -19,6 +19,8 @@ The owner previously confirmed basic Hex and Poly input, Wait progression, Realt
 
 ## Still to check in normal use
 
+- [ ] Try **Suggest sync points from audio** on a familiar guitar lesson with spoken breaks and a repeated demonstration. Compare the preferred take and its measure boundaries with independently supplied Soundslice timing. Listen through one break and confirm practice resumes at the chosen pass.
+
 Use v1.0.2 in your usual browser with your usual guitar. A few representative passages are enough to make this useful.
 
 - [ ] **Fishman in Wait and Realtime.** Try a short passage with a repeated note, a chord, and a written bend or pre-bend. Check releases, Pause/Resume and a short loop. Compare Hex and Poly if you use both. For a reproducible mismatch, record the measure, input mode, and expected and actual feedback. [MIDI and practice guide](../README.md#getting-clean-midi-from-a-standard-guitar)
