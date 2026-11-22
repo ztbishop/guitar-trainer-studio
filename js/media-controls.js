@@ -1,3 +1,4 @@
+import {printedMeasure} from './printed-measure.js';
 // Media UI, browser players and profile intents. Native calls stay in the host.
 import {createDraftEditor} from './draft-controls.js';
 import {createAudioSuggestions} from './audio-sync-controls.js';
@@ -54,7 +55,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   let timingPlan=null,draftTiming=null,draftPreviewEnd=null;
   const stopDraftPreview=()=>{if(draftPreviewEnd!==null)player?.pause();draftPreviewEnd=null;};
   const draftEditor=createDraftEditor({container:get('selection').parentElement,
-    options:()=>({timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:draftTiming?.recordingId,durationMs:player?.backingTrackDuration}),
+    options:()=>({notation:AppState.score,timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:draftTiming?.recordingId,durationMs:player?.backingTrackDuration}),
     transport(action,seconds){if(!draftTiming||!player)return;if(action==='pause'){stopDraftPreview();return;}if(action==='seek'){player.seekTo(seconds*1000);return;}beforeEdit();draftPreviewEnd=player.backingTrackDuration;player.play();},
     highlight:(position,reveal)=>host.showDraftPosition(position,reveal),
     stop:stopDraftPreview,exportFile:download,
@@ -85,7 +86,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   const suggestions=createAudioSuggestions({
     after:get('editor-toolbar'),
     playhead:()=> (player?.currentTime ?? 0)/1000,
-    context:()=>({source,file:localFile,url:blobUrl || source?.url,score:AppState.currentScoreFile,
+    context:()=>({notation:AppState.score,source,file:localFile,url:blobUrl || source?.url,score:AppState.currentScoreFile,
       scoreSha256:scoreHash,timeline:AppState.playbackTimeline,trackId:AppState.practiceTrackId,
       duration:(player?.backingTrackDuration || 0)/1000,generation,hasDraft:Boolean(draftTiming),
       blocked:busy || recordingError || !player?.backingTrackDuration?'Wait for the recording to be ready.':
@@ -459,7 +460,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     else next.push(point);
     try{edit(next);}catch(error){if(error.message.includes('move forward'))throw new Error('This time crosses a neighboring point. Choose a time between the previous and next points.');throw error;}
     selectPoint(anchorIndex(points,point,AppState.playbackTimeline));
-    message(`Point ${existing>=0?'updated':'added'}: measure ${point.barIndex+1}${point.barOccurence?`, repeat ${point.barOccurence+1}`:''} at ${clock(point.millisecondOffset)}. Drag it to fine tune; Save profile keeps your edits.`);
+    message(`Point ${existing>=0?'updated':'added'}: measure ${printedMeasure(AppState.score,point.barIndex+1)}${point.barOccurence?`, repeat ${point.barOccurence+1}`:''} at ${clock(point.millisecondOffset)}. Drag it to fine tune; Save profile keeps your edits.`);
   }
   function addPoint() {
     if(!player)return;
@@ -555,7 +556,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       const active=Number(get('measure').value)===guide.measureIndex && Number(get('beat').value)===guide.beat;
       const marker=svg('g',{class:'media-guide'+(active?' is-selected':''),transform:`translate(${x} 0)`,'data-guide':guide.measureIndex,'data-beat':guide.beat,'data-time':guide.millisecondOffset});
       marker.append(svg('line',{x1:0,x2:0,y1:16,y2:active?31:84,'pointer-events':'none'}),svg('rect',{x:-6*unit,y:0,width:12*unit,height:30,fill:'transparent'}),svg('path',{class:guide.beat===1?'':'media-beat-arrow',d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}));
-      if(guide.beat===1)marker.append(svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},`${guide.barIndex+1}${guide.barOccurence?` (${guide.barOccurence+1})`:''}`));
+      if(guide.beat===1)marker.append(svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},`${printedMeasure(AppState.score,guide.barIndex+1)}${guide.barOccurence?` (${guide.barOccurence+1})`:''}`));
       timeline.append(marker);
     }
     points.forEach((point,index)=>{
@@ -588,9 +589,9 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       const button=document.createElement('button');button.type='button';button.setAttribute('aria-pressed',String(index===selected));
       button.classList.toggle('is-moving',isMovingPoint(index));
       const beat=1+point.barPosition*AppState.score.masterBars[point.barIndex].timeSignatureNumerator;
-      const position=pointTick(point,AppState.playbackTimeline)===0?'Start':syncPointLabel(point,AppState.score,AppState.playbackTimeline)==='End'?'End':`Measure ${point.barIndex+1}, beat ${Number(beat.toFixed(2))}`;
+      const position=pointTick(point,AppState.playbackTimeline)===0?'Start':syncPointLabel(point,AppState.score,AppState.playbackTimeline)==='End'?'End':`Measure ${printedMeasure(AppState.score,point.barIndex+1)}, beat ${Number(beat.toFixed(2))}`;
       button.textContent=`${position}${point.barOccurence?` (repeat ${point.barOccurence+1})`:''} → ${clock(point.millisecondOffset)}`;
-      button.title=`Measure ${point.barIndex+1}, beat ${Number(beat.toFixed(2))} matches ${clock(point.millisecondOffset)} in the recording. Click to select.`;
+      button.title=`Measure ${printedMeasure(AppState.score,point.barIndex+1)}, beat ${Number(beat.toFixed(2))} matches ${clock(point.millisecondOffset)} in the recording. Click to select.`;
       button.addEventListener('click',()=>selectPoint(index,{preserveTime:true}));get('point-list').append(button);
     });
   }
@@ -839,7 +840,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       // Do not cache an abandoned hash promise for an otherwise current score.
       const hash=await fingerprint(current);if(current!==scoreBytes)return;scoreHash=hash;
       const select=get('measure');select.replaceChildren();
-      AppState.playbackTimeline.measures.forEach((measure,index)=>select.append(new Option(`Measure ${measure.measureNumber}${measure.occurrence>1?` (repeat ${measure.occurrence})`:''}`,String(index))));
+      AppState.playbackTimeline.measures.forEach((measure,index)=>select.append(new Option(`Measure ${printedMeasure(AppState.score,measure.measureNumber)}${measure.occurrence>1?` (repeat ${measure.occurrence})`:''}`,String(index))));
       await refreshProfiles();if(current!==scoreBytes)return;
       message('Score ready. Choose a recording or a saved profile.');sync();
     })();return timelineReadyPromise;

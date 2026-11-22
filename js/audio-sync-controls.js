@@ -1,3 +1,4 @@
+import {printedMeasure} from './printed-measure.js';
 import {fingerprint} from './library-store.js';
 import {scoreQueries,passageScore,followTake,suggestionDraft} from './audio-sync-score.js';
 import {createPassageRange} from './audio-sync-range.js';
@@ -148,7 +149,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       draw();
       const r = result;
       passage.replaceChildren(createPassageRange(snapshot.timeline.measures,snapshot.duration,playhead,
-        i => r.matches[i][r.choices[i]],refine));
+        i => r.matches[i][r.choices[i]],refine,snapshot.notation));
     } catch (error) { if (job === task) status.textContent = error.message; }
     finally { if (job === task) { job = null; cancel.hidden = true; sync(); } }
   }
@@ -170,7 +171,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       const m = snapshot.timeline.measures[i], row = document.createElement('div');
       row.className = 'media-actions';
       const label = document.createElement('label'), select = document.createElement('select');
-      label.append(`Measure ${m.measureNumber} · pass ${m.occurrence} `,select);
+      label.append(`Measure ${printedMeasure(snapshot.notation,m.measureNumber)} · pass ${m.occurrence} `,select);
       select.add(new Option(takes.length ? 'Leave unmapped' : 'No match','-1'));
       takes.forEach((t,j) => select.add(new Option(`${t.refined ? 'Pinned passage' : 'Take '+(j+1)} · ${time(t.start)}–${time(t.end)}`,String(j))));
       select.value = String(choices[i]); select.disabled = !takes.length;
@@ -204,7 +205,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       const row = document.createElement('div');
       row.className = 'media-actions';
       const measure = snapshot.timeline.measures[i];
-      row.append(`Measure ${measure.measureNumber} · pass ${measure.occurrence} `);
+      row.append(`Measure ${printedMeasure(snapshot.notation,measure.measureNumber)} · pass ${measure.occurrence} `);
       const listen = (name,seconds) => button(name+' '+time(seconds),async () => {
         try {if (current(snapshot)) await preview({start:seconds,end:right.end});}
         catch (error) {status.textContent = error.message;}
@@ -215,7 +216,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
         left.end = right.start = right.alternateStart;
         right.alternateStart = old;
         draw(); sync();
-        status.textContent = `Measure ${measure.measureNumber}, pass ${measure.occurrence} now starts at ${time(right.start)}. Both passage pins are fixed.`;
+        status.textContent = `Measure ${printedMeasure(snapshot.notation,measure.measureNumber)}, pass ${measure.occurrence} now starts at ${time(right.start)}. Both passage pins are fixed.`;
         comparisons.querySelector('summary').focus();
       });
       row.append(listen('Hear selected',right.start),listen('Hear alternate',right.alternateStart),use);

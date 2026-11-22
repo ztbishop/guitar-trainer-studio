@@ -1,5 +1,6 @@
+import {printedMeasure} from './printed-measure.js';
 // Recording bounds belong to one continuous take, including its written passes.
-export function createPassageRange(measures, duration, playhead, selectedTake, refine) {
+export function createPassageRange(measures, duration, playhead, selectedTake, refine, notation) {
   const box = document.createElement('fieldset');
   const legend = document.createElement('legend');
   legend.textContent = 'Refine a continuous passage';
@@ -10,7 +11,7 @@ export function createPassageRange(measures, duration, playhead, selectedTake, r
   function edge(title, initial, property) {
     const row = document.createElement('div'), bar = document.createElement('select');
     row.className = 'media-actions';
-    for (const [i,m] of measures.entries()) bar.add(new Option(`Measure ${m.measureNumber} · pass ${m.occurrence}`,String(i)));
+    for (const [i,m] of measures.entries()) bar.add(new Option(`Measure ${printedMeasure(notation,m.measureNumber)} · pass ${m.occurrence}`,String(i)));
     bar.value = String(initial);
     const time = document.createElement('input');
     time.type = 'number'; time.min = '0'; time.max = String(duration); time.step = 'any';

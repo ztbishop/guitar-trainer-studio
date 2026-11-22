@@ -1,3 +1,4 @@
+import {printedMeasure} from './printed-measure.js';
 // Timeline projections only; no native player or grading calls.
 import {mediaTimeAtTick,pointTick} from './media-sync.js';
 
@@ -21,7 +22,7 @@ export function syncPointLabel(point,score,timeline) {
   const last=timeline?.measures.at(-1);
   if(last && point.barIndex===last.measureNumber-1 && point.barOccurence===last.occurrence-1 && point.barPosition===1)return 'End';
   const beat=1+point.barPosition*score.masterBars[point.barIndex].timeSignatureNumerator;
-  return `${point.barIndex+1}${point.barOccurence?` (${point.barOccurence+1})`:''}${point.barPosition?` · beat ${Number(beat.toFixed(2))}`:''}`;
+  return `${printedMeasure(score,point.barIndex+1)}${point.barOccurence?` (${point.barOccurence+1})`:''}${point.barPosition?` · beat ${Number(beat.toFixed(2))}`:''}`;
 }
 
 export function timelineGuides(score,timeline,points,target=null) {

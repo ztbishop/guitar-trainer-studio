@@ -2,6 +2,8 @@ For the active checklist, see [Current status and to-do](TODO.md). Older entries
 
 ## Automatic timing on a riff lesson
 
+The earlier eight timestamp comparisons did not test score labels or full coverage. The GPX marks its opening riff bar as a pickup. The next printed measure is 1. In draft playback the cursor reached the correct first two bars but the editor showed M1 and M2. Media Sync now labels them M0 and M1. The section marked 4:34 has no selected passage. Draft review describes this audio as unmapped.
+
 On November 22, the original automatic search returned zero candidates for a 415.92-second riff lesson. The single-bar scores peaked at 0.677 against a 0.78 cutoff. The best opening three-bar alignment scored 0.485 against 0.52. A fallback now compares pitch at the expected note times over four sounding measures and tests each measure against its own average pitch profile. Written rests preserve the spacing to the next note. Whole silent visits receive no suggested points.
 
 Chrome loaded the GPX and MP4 with no pins, printed time cues, or reference timing supplied to the matcher. Review opened a draft with 12 selected sounding visits. Four opening starts and four outro starts compared with independently supplied Soundslice entries each differed by less than 60 ms. The other four starts belong to a slower take at 200.28 seconds with no corresponding reference entries. The score expands to 40 visits while the timing file has 16 entries including boundaries. Several written passes share a riff. The eight comparisons verify timing for those passages, while pass attribution and full-lesson alignment still require listening. This lesson informed development of the fallback.

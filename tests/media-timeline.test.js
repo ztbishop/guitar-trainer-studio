@@ -122,3 +122,12 @@ test('ruler uses round, finer intervals at high zoom with viewport-bounded tick 
   assert(fine.ticks.some(t=>/\.\d{3}$/.test(t.label)));
   assert.deepEqual(timelineRuler(0,1280,0,1280).ticks,[]);
 });
+test('sync labels use the printed pickup and following bar numbers on every pass',()=>{
+  const pickup={masterBars:[{isAnacrusis:true,barNumberText:'',timeSignatureNumerator:4},
+    {barNumberText:'1',timeSignatureNumerator:4},{barNumberText:'7a',timeSignatureNumerator:4}]};
+  const marker={barIndex:0,barOccurence:1,barPosition:0};
+  assert.equal(syncPointLabel(marker,pickup), '0 (2)');
+  assert.equal(syncPointLabel({...marker,barIndex:1},pickup), '1 (2)');
+  assert.equal(syncPointLabel({...marker,barIndex:2},pickup), '7a (2)');
+  assert.equal(syncPointLabel({...marker,barOccurence:0},{masterBars:[{barNumberText:'1',timeSignatureNumerator:4}]}),'1');
+});

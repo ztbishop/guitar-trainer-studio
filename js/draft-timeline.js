@@ -1,9 +1,17 @@
+import {printedMeasure} from './printed-measure.js';
 import {copyDraftJson} from './draft-timing.js';
 import {draftPieces,draftPosition,draftAnchors,editDraftPiece,finite} from './draft-alignment.js';
 const node=(tag,text)=>{const e=document.createElement(tag);if(text)e.textContent=text;return e;};
 const svg=(tag,attrs={},text)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(text)e.textContent=text;return e;};
-const label=p=>p.kind==='music'?`M${p.value.scoreMeasure??'?'} · pass ${p.value.occurrence??'?'} · visit ${p.value.originalVisit??'?'}`:`${p.kind==='explanation'?'Explanation':'Ordinary rest'} · ${p.value.label??p.value.id}`;
+function intervalName(kind,label) {
+  if (kind === 'unmatched-source-rest') return 'Ordinary rest';
+  return label === 'Unscored recording gap' ? 'Unmapped audio' : 'Explanation';
+}
 export function createDraftTimeline({container,options,transport,highlight,change,error}) {
+  const written = number => printedMeasure(options().notation,number);
+  const label = p => p.kind === 'music'
+    ? `M${written(p.value.scoreMeasure)} · pass ${p.value.occurrence??'?'} · visit ${p.value.originalVisit??'?'}`
+    : `${intervalName(p.kind,p.value.label)} · ${p.value.label??p.value.id}`;
   let original,working,selected=null,target='startSeconds',current=0,playing=false,extent=1,zoom=1,drag=null,evidencePoints=[],seekDisplayTime=null;
   const controls=node('div');controls.className='media-actions';
   function button(parent,id,text,fn){const e=node('button',text);e.type='button';e.id=id;e.onclick=()=>{try{fn();}catch(err){error(err);}};parent.append(e);return e;}
@@ -15,7 +23,7 @@ export function createDraftTimeline({container,options,transport,highlight,chang
   const seek=node('input');seek.type='range';seek.min=0;seek.step='any';seek.id='media-draft-seek';seek.setAttribute('aria-label','Seek draft recording');seek.oninput=()=>seekTo(Number(seek.value));
   const scroll=node('div');scroll.className='draft-timeline-scroll';
   const chart=svg('svg',{id:'media-draft-timeline',viewBox:'0 0 1000 150',preserveAspectRatio:'none',role:'group','aria-label':'Draft recording alignment. Music, intervals and supplied evidence.'});scroll.append(chart);
-  const legend=node('small','Blue: candidate music · Purple: explanation · Gray: ordinary rest · Amber: unresolved · Dots: original timing evidence');
+  const legend=node('small','Blue: candidate music · Purple: unscored interval · Gray: ordinary rest · Amber: unresolved · Dots: original timing evidence');
   const shelf=node('div');shelf.id='media-draft-unplaced';
   const selectedTools=node('div');selectedTools.className='draft-selected';
   const selection=node('select');selection.id='media-draft-section';selection.setAttribute('aria-label','Selected draft section');selection.onchange=()=>select(selection.value);
@@ -57,7 +65,7 @@ export function createDraftTimeline({container,options,transport,highlight,chang
     if(![...targetSelect.options].some(o=>o.value===target))target='startSeconds';targetSelect.value=target;targetSelect.disabled=scope.value==='move';
     const t=scope.value==='move'?'startSeconds':target;seconds.value=p?(p.value[t]??p.value.anchors?.[Number(t)]?.seconds??''):'';
     map.replaceChildren();const empty=node('option','Select score passage / occurrence…');empty.value='';map.append(empty);
-    for(const [i,n] of (options().timeline?.measures??[]).entries()){const o=node('option',`Measure ${n.measureNumber} · pass ${n.occurrence} · original visit ${i+1}`);o.value=String(i+1);map.append(o);}map.value=String(p?.value.originalVisit??'');map.hidden=p?.kind!=='music';
+    for(const [i,n] of (options().timeline?.measures??[]).entries()){const o=node('option',`Measure ${written(n.measureNumber)} · pass ${n.occurrence} · original visit ${i+1}`);o.value=String(i+1);map.append(o);}map.value=String(p?.value.originalVisit??'');map.hidden=p?.kind!=='music';
     affected.textContent=scope.value==='move'?'Changes this section’s known start, end and every internal anchor by the same amount. Unplaced endpoints stay unplaced.':'Changes only this timestamp. A start/end and its matching boundary anchor move together; other sections stay fixed.';
     for(const e of [scope,targetSelect,seconds,...selectedTools.querySelectorAll('button')])e.disabled=!p||(e===targetSelect&&scope.value==='move');
   }
@@ -69,7 +77,7 @@ export function createDraftTimeline({container,options,transport,highlight,chang
       const row=node('p',`Source measure ${suggestion.sourceMeasure??'?'}: `);
       for(const id of Array.isArray(suggestion.originalVisits)?suggestion.originalVisits:[]) {
         const n=options().timeline?.measures[id-1];if(!n)continue;
-        button(row,'',`M${n.measureNumber}, pass ${n.occurrence} (visit ${id})`,()=>{
+        button(row,'',`M${written(n.measureNumber)}, pass ${n.occurrence} (visit ${id})`,()=>{
           const next=copyDraftJson(working),visits=next.candidatePlan.musicalVisits;
           selected=`music:${visits.length}`;
           visits.push({visit:visits.length+1,originalVisit:id,scoreMeasure:n.measureNumber,occurrence:n.occurrence,startSeconds:null,endSeconds:null,anchors:[]});change(next);reveal();
@@ -91,7 +99,7 @@ export function createDraftTimeline({container,options,transport,highlight,chang
       const color=p.kind==='music'?'#9bc7ef':p.kind==='explanation'?'#ccb2eb':'#bec6cd';
       const partial=p.kind==='music'?draftAnchors(v):[],left=known?v.startSeconds:partial[0]?.seconds,right=known?v.endSeconds:partial.at(-1)?.seconds;
       if(finite(left)&&finite(right)&&right>left){const rect=svg('rect',{x:left/extent*1000,y,width:Math.max(1,(right-left)/extent*1000),height:32,fill:color,stroke:selected===p.key?'#122a44':'#657385','stroke-width':selected===p.key?3:1,'stroke-dasharray':known?'none':'4 3','data-piece':p.key,'data-target':scope.value==='move'?'move':'select'});rect.append(svg('title',{},label(p)+(known?'':' — partial known span')));chart.append(rect);}
-      if(finite(start)&&(!known||(right-left)/extent*1000>24))chart.append(svg('text',{x:start/extent*1000+4,y:y+20,'font-size':11,'pointer-events':'none'},p.kind==='music'?`M${v.scoreMeasure??'?'}${known?'':' ?'}`:p.kind==='explanation'?'Talk':'Rest'));
+      if(finite(start)&&(!known||(right-left)/extent*1000>24))chart.append(svg('text',{x:start/extent*1000+4,y:y+20,'font-size':11,'pointer-events':'none'},p.kind==='music'?`M${written(v.scoreMeasure)}${known?'':' ?'}`:intervalName(p.kind,v.label)));
       for(const [key,value] of [['startSeconds',v.startSeconds],['endSeconds',v.endSeconds],...(v.anchors??[]).map((a,i)=>[String(i),a.seconds])])if(finite(value)) {
         const x=value/extent*1000;const handle=svg('path',{d:`M ${x} ${y-5} l -5 -7 h 10 Z`,fill:known?'#174979':'#a06100',stroke:'#fff','data-piece':p.key,'data-target':key,tabindex:0,role:'button','aria-label':`${label(p)} ${key} ${value} seconds`});
         handle.append(svg('title',{},`${label(p)} · ${key}: ${value} s`));chart.append(handle);
@@ -134,7 +142,7 @@ export function createDraftTimeline({container,options,transport,highlight,chang
     const displayTime=!playing&&finite(seekDisplayTime)&&Math.abs(time-seekDisplayTime)<0.001?seekDisplayTime:time;
     if(playing)seekDisplayTime=null;
     const pos=draftPosition(working.candidatePlan,options().timeline,displayTime);
-    status.textContent=pos.kind==='music'?`Editing preview · M${pos.scoreMeasure}, pass ${pos.occurrence}, visit ${pos.originalVisit}`:pos.kind==='explanation'?'Explanation — no score tracking':pos.kind==='unmatched-source-rest'?'Ordinary rest — no score tracking':'Unresolved — no score tracking';
+    status.textContent=pos.kind==='music'?`Editing preview · M${written(pos.scoreMeasure)}, pass ${pos.occurrence}, visit ${pos.originalVisit}`:pos.kind==='explanation'?`${intervalName(pos.kind,pos.label)} — no score tracking`:pos.kind==='unmatched-source-rest'?'Ordinary rest — no score tracking':'Unresolved — no score tracking';
     highlight(pos,false);
     if(playing&&!drag){const px=current/extent*chart.getBoundingClientRect().width;if(px<scroll.scrollLeft||px>scroll.scrollLeft+scroll.clientWidth)centerPlayhead();}
   }
