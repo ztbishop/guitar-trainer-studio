@@ -4,7 +4,7 @@ import {createDraftEditor} from './draft-controls.js';
 import {createAudioSuggestions} from './audio-sync-controls.js';
 import {validateDraft,checkDraftBinding,DRAFT_CAPABILITY} from './draft-timing.js';
 import {AppState} from './app-state.js';
-import {recordingScoreRange,recordingRegion} from './media-score-range.js';
+import {recordingScoreRange,recordingRegion,nextMusicStart} from './media-score-range.js';
 import {LibraryStore,fingerprint} from './library-store.js';
 import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport,pointTick,mediaTimeAtTick} from './media-sync.js';
 import {htmlMediaPlayer,youtubeMediaPlayer,waveformPeaks} from './media-player.js';
@@ -142,12 +142,15 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   editor.addEventListener('input',stopAudition,true);
   get('seek').addEventListener('input',stopAudition,true);
   function placeRecordingTimeline() {
-    timelineBar.hidden=!wideTimeline || !(player?.backingTrackDuration>0);
+    const standalone=!wideTimeline && get('player-panel').hidden;
+    timelineBar.hidden=!(player?.backingTrackDuration>0) || (!wideTimeline && (!standalone || playerSkip.hidden));
     if(wideTimeline && scrub.parentElement!==timelineBar)timelineBar.append(scrub,playerSkip);
     if(!wideTimeline && scrub.parentElement===timelineBar) {
       get('video-actions').before(scrub);
       get('listening-notice').after(playerSkip);
     }
+    if(standalone && playerSkip.parentElement!==timelineBar)timelineBar.append(playerSkip);
+    if(!wideTimeline && !standalone && playerSkip.parentElement===timelineBar)get('listening-notice').after(playerSkip);
     get('wide-timeline').checked=wideTimeline;
   }
   function showRecordingInfo(open) {
@@ -215,14 +218,37 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     document.body.classList.toggle('media-preview',AppState.media.preview);
     syncRecordingRegion();
   }
+  function recordingSkipTarget() {
+    if(!player || !player.backingTrackDuration || audition || recordingError || AppState.media.returning)return null;
+    const time=player.currentTime;
+    let next=null;
+    if(AppState.media.preview && timingPlan) {
+      next=nextMusicStart(timingPlan.visits,time);
+      if(next===null) {
+        // Keep the existing skip-to-end action during a labeled final break.
+        const interval=planPositionAtTime(timingPlan,time)?.interval;
+        if(interval && !interval.boundary.before)return {ms:interval.endMs,label:interval.kind==='unmatched-source-rest'?'Skip break':'Skip explanation'};
+      }
+    } else if(draftTiming && AppState.media.editing) {
+      next=nextMusicStart(draftEditor.musicRanges,time);
+    } else if(AppState.media.preview) {
+      const range=recordingScoreRange(points,AppState.playbackTimeline,player.backingTrackDuration);
+      if(range && time<range.start)next=range.start;
+    }
+    return next!==null && next<=player.backingTrackDuration ? {ms:next,label:'Skip to music'} : null;
+  }
   function syncRecordingRegion() {
     const duration=player?.backingTrackDuration,range=timingPlan?{start:timingPlan.startMs,end:timingPlan.endMs}:recordingScoreRange(points,AppState.playbackTimeline,duration);
     const position=timingPlan && player?planPositionAtTime(timingPlan,player.currentTime):null;
     const region=range && AppState.media.preview?position?.kind??recordingRegion(points,AppState.playbackTimeline,player.currentTime):'music';
     const interval=position?.interval,isBreak=region==='explanation'||region==='unmatched-source-rest';
-    skipExplanation.disabled=busy || !AppState.media.preview || !isBreak;
-    skipExplanation.textContent=interval?.boundary.before?'Skip to music':region==='unmatched-source-rest'?'Skip break':'Skip explanation';
-    playerSkip.hidden=!timingPlan || !isBreak;playerSkip.disabled=skipExplanation.disabled;playerSkip.textContent=skipExplanation.textContent;
+    const target=recordingSkipTarget();
+    for(const button of [skipExplanation,playerSkip]){
+      button.disabled=busy || !target;
+      const label=target?.label??'Skip to music';
+      if(button.textContent!==label)button.textContent=label;
+    }
+    if(playerSkip.hidden!==!target){playerSkip.hidden=!target;placeRecordingTimeline();}
     get('listening-notice').textContent=recordingError?(player?.reload?'Recording failed to load this position. Choose Reload recording below; timing is retained.':'Recording unavailable. Check the source in Load / options; timing is retained.'):draftTiming?'Draft timing needs review · Recording grading paused.':AppState.media.editing?'Preview only · Grading and loops paused. Choose Finish editing to practice.':
       AppState.mode==='wait'?'Use main Play/Pause and Tempo. Wait mode keeps playback silent.':
       isBreak?`${intervalLabel(interval)} · No grading`:
@@ -477,6 +503,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   async function seekRecording(time,{resume=false,preserveTime=false}={}) {
     const token=++seekGeneration,sourceToken=generation;
+    if(recordingError || reloadInProgress)return;
     await selectRecording();
     if(token!==seekGeneration || sourceToken!==generation || !AppState.media.preview || AppState.media.returning)return;
     host.seekMediaTime(time);if(!preserveTime)selectTime(time);renderTarget(time);sync();
@@ -653,10 +680,11 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     openEditor();await seekRecording(interval.startMs,{resume:true});
   }));
   for(const button of [skipExplanation,playerSkip])button.addEventListener('click',action(()=>{
-    if(!timingPlan || !AppState.media.preview)return;
-    const interval=planPositionAtTime(timingPlan,player.currentTime).interval;if(!interval)return;
-    const next=interval.boundary.before?timingPlan.visits[interval.boundary.before.visit-1]:null;
-    host.seekMediaTime(next?.startMs??interval.endMs,{planTransition:true});sync();
+    const target=recordingSkipTarget();
+    if(!target || busy)return;
+    if(AppState.media.preview)host.seekMediaTime(target.ms,{planTransition:Boolean(timingPlan)});
+    else player.seekTo(target.ms);
+    sync();
   }));
   get('source-kind').addEventListener('change',sourceControls);
   get('choose-file').addEventListener('click',()=>{get('file').value='';get('file').click();});
@@ -666,7 +694,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     return loadRecording(kind==='youtube'?{kind,videoId:youtubeId(value),label:'YouTube '+youtubeId(value)}:{kind:'url',url:mediaUrl(value),label:mediaUrl(value)});
   }));
   get('load-embedded').addEventListener('click',action(()=>loadRecording({kind:'embedded',label:'Embedded backing audio'})));
-  reloadRecording.addEventListener('click',action(async()=>{
+  async function reloadSource(resume=false){
     if(!player?.reload || busy || reloadInProgress)return;
     const selectedPlayer=player,token=generation;
     stopDraftPreview();host.pauseMediaPlayback();selectedPlayer.pause();reloadInProgress=true;busy=true;sync();
@@ -677,10 +705,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       else if(points.length)validatePoints(points,AppState.playbackTimeline,player.backingTrackDuration);
       recordingError=null;buffering=false;
       if(AppState.media.preview)host.seekMediaTime(selectedPlayer.currentTime);
-      message('Recording reloaded. Timing and score are unchanged. Press Play to resume; Wait mode remains silent.');
+      if(resume && AppState.media.preview && !AppState.media.returning && AppState.mode==='realtime' && !AppState.isPlaying)host.toggleMediaPlayback();
+      else message('Recording reloaded. Timing and score are unchanged. Press Play to resume; Wait mode remains silent.');
     } catch(error) {if(token===generation){recordingError=error;message(error.message);}}
     finally {if(token===generation){reloadInProgress=false;busy=false;sync();}}
-  }));
+  }
+  reloadRecording.addEventListener('click',action(()=>reloadSource()));
   get('listen').addEventListener('click',action(selectRecording));
   get('practice').addEventListener('click',action(async()=>{await returnToPractice();message('Practice restored with synthesized audio. Recording alignment is retained.');}));
   get('unload').addEventListener('click',action(async()=>{await returnToPractice();generation++;disposal();points=[];profileId='';pendingProfile=null;renderPoints();renderLayout();sync();message('Recording unloaded. Saved profiles are kept.');}));
@@ -879,7 +909,13 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   renderLayout();sourceControls();sync();refreshProfiles().catch(error=>message(error.message));
   return {sync,timelineReady,finishEditing,
-    draftTransport(action){if(audition){stopAudition();if(action!=='reset')return true;}if(!draftTiming||!player)return false;if(action==='reset'){stopDraftPreview();player.seekTo(0);}else if(player.playing)stopDraftPreview();else{beforeEdit();draftPreviewEnd=player.backingTrackDuration;player.play();}return true;},
+    draftTransport(action){
+      if(action==='toggle' && AppState.media.preview && AppState.mode==='realtime' && (recordingError || reloadInProgress)){
+        if(!reloadInProgress && player?.reload)void reloadSource(true);
+        else if(!reloadInProgress)message(recordingError.message);
+        return true;
+      }
+      if(audition){stopAudition();if(action!=='reset')return true;}if(!draftTiming||!player)return false;if(action==='reset'){stopDraftPreview();player.seekTo(0);}else if(player.playing)stopDraftPreview();else{beforeEdit();draftPreviewEnd=player.backingTrackDuration;player.play();}return true;},
     draftTimingCapability:DRAFT_CAPABILITY,
     async importDraft(recording,input){
       const draft=validateDraft(input),score=AppState.currentScoreFile,initial=generation;

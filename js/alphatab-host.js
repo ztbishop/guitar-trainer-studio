@@ -128,9 +128,9 @@ function finishMediaScore() {
     hostCallbacks.onMediaScoreFinished?.();
   }
 }
-// Native Pause snaps the score cursor to a beat. Keep an outside recording
-// position independent of that snap, including delayed provider notifications.
-function pauseOutsideRecording() {
+// Native Pause snaps to a score beat, which can belong to another take.
+// Preserve the recording clock through both immediate and delayed native seeks.
+function pauseAtRecordingTime() {
   const time=mediaHandler.currentTime;
   mediaPausePosition=time;
   beginManualPause();alphaTabApi.pause();
@@ -370,12 +370,10 @@ export function endMediaPlayback() {
 export function toggleMediaPlayback() {
   if(!AppState.media.preview || AppState.media.returning || !AppState.playerReady)return false;
   if(AppState.mode==='wait' && !AppState.media.editing)return false;
-  if(!AppState.isPlaying)mediaPausePosition=null;
-  if(fullRecordingRegion()!=='music') {
-    if(AppState.isPlaying)pauseOutsideRecording();
-    else {mediaPausePosition=mediaTimingPlan?mediaHandler.currentTime:null;cancelCountIn();applyMasterVolume();alphaTabApi.play();}
-    return true;
-  }
+  const outside=fullRecordingRegion()!=='music';
+  if(AppState.isPlaying && (mediaTimingPlan || outside)){pauseAtRecordingTime();return true;}
+  if(!AppState.isPlaying)mediaPausePosition=mediaTimingPlan?mediaHandler.currentTime:null;
+  if(outside){cancelCountIn();applyMasterVolume();alphaTabApi.play();return true;}
   applyMasterVolume();
   alphaTabApi.playPause();return true;
 }
@@ -385,7 +383,7 @@ export function pauseMediaPlayback({ended=false}={}) {
     const range=mediaTimingPlan?{end:mediaTimingPlan.visits.at(-1).endMs}:recordingScoreRange(mediaPoints,AppState.playbackTimeline);
     if(range && mediaHandler.currentTime>=range.end-1)finishMediaScore();
   }
-  if(AppState.isPlaying && fullRecordingRegion()!=='music')pauseOutsideRecording();
+  if(AppState.isPlaying && (mediaTimingPlan || fullRecordingRegion()!=='music'))pauseAtRecordingTime();
   else if(AppState.media.preview || AppState.media.editing)alphaTabApi?.pause();
 }
 export function updateMediaPosition(timeMs,playing=mediaHandler?.playing ?? AppState.isPlaying) {
@@ -1604,7 +1602,7 @@ export function applyPracticeLoop(range,{retainMediaPosition=false}={}) {
 }
 
 export function pause() {
-  if(AppState.isPlaying && fullRecordingRegion()!=='music'){pauseOutsideRecording();return true;}
+  if(AppState.isPlaying && (mediaTimingPlan || fullRecordingRegion()!=='music')){pauseAtRecordingTime();return true;}
   if(AppState.countInActive){cancelCountIn();return true;}
   if (!alphaTabApi || !AppState.playerReady || !AppState.isPlaying) return false;
   beginManualPause();

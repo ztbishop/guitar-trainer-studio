@@ -2,6 +2,8 @@ For the active checklist, see [Current status and to-do](TODO.md). Older entries
 
 ## Automatic timing on a riff lesson
 
+The *Devil Inside* intro had a known music start but no labeled explanation interval. Skip now uses musical coverage. In Chrome, the player jumped from 0:12.5 to 1:11.64 while paused and from an internal gap to 3:20.28 during playback. Pausing that second take previously snapped the recording to the first take. The host now retains recording time across native Pause and resume with a timing plan. A simulated read error exercised Play-triggered reload. The intermittent failure in the owner’s original tab remains unconfirmed.
+
 A separate browser check reproduced a misleading pre-review audition. At 71.85 seconds, the selected take belonged to the opening pickup while the ordinary recording cursor was on the second written bar, pass 2. Take auditions now project the chosen visit from its proposed recording bounds and stop at its end.
 
 The earlier eight timestamp comparisons did not test score labels or full coverage. The GPX marks its opening riff bar as a pickup. The next printed measure is 1. In draft playback the cursor reached the correct first two bars but the editor showed M1 and M2. Media Sync now labels them M0 and M1. The section marked 4:34 has no selected passage. Draft review describes this audio as unmapped.

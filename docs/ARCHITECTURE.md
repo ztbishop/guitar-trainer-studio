@@ -2,6 +2,8 @@
 
 ## Optional audio-based sync suggestions
 
+Skip navigation uses the ordered timed visits or the ordinary first score anchor. The draft editor caches unambiguous music spans on each edit. Navigation uses the active recording transport and preserves grading across a timed-plan gap.
+
 A take audition owns a bounded recording preview while the editor is open. Its score overlay uses the chosen measure visit and time bounds. The ordinary recording cursor is hidden and its clock updates resume after the audition.
 
 Media Sync uses the printed bar label for display in the timeline, matcher and draft review. An unnumbered opening pickup is shown as 0. The underlying score measure and repeat visit keep their existing identities.

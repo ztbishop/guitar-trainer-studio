@@ -16,6 +16,30 @@ export function draftAnchors(visit) {
   if(anchors.some(a=>a.offset480===0&&finite(visit.startSeconds)&&a.seconds!==visit.startSeconds||a.offset480===480&&finite(visit.endSeconds)&&a.seconds!==visit.endSeconds))return [];
   return anchors;
 }
+// Build once per draft edit. Match the preview's unique musical coverage,
+// including partial anchors and overlaps with another passage or interval.
+export function draftMusicRanges(plan,timeline) {
+  const edges=[];
+  function span(start,end,music,interval) {
+    if(!finite(start)||!finite(end)||start>=end)return;
+    edges.push({ms:start*1000,music,interval},{ms:end*1000,music:-music,interval:-interval});
+  }
+  for(const visit of plan.musicalVisits) {
+    const native=timeline?.measures[visit.originalVisit-1];
+    if(!native || native.measureNumber!==visit.scoreMeasure || native.occurrence!==visit.occurrence)continue;
+    const anchors=draftAnchors(visit);
+    if(anchors.length>=2)span(anchors[0].seconds,anchors.at(-1).seconds,1,0);
+  }
+  for(const v of plan.intervals??plan.explanations??[])span(v.startSeconds,v.endSeconds,0,1);
+  edges.sort((a,b)=>a.ms-b.ms);
+  const ranges=[];
+  let music=0,interval=0,previous=0;
+  for(const edge of edges) {
+    if(previous<edge.ms && music===1 && !interval)ranges.push({startMs:previous,endMs:edge.ms});
+    music+=edge.music;interval+=edge.interval;previous=edge.ms;
+  }
+  return ranges;
+}
 export function draftPosition(plan,timeline,seconds) {
   const intervals=(plan.intervals??plan.explanations??[]).filter(v=>finite(v?.startSeconds)&&finite(v?.endSeconds)&&seconds>=v.startSeconds&&seconds<v.endSeconds);
   const candidates=[];

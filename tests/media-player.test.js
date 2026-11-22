@@ -53,6 +53,13 @@ test('rapid native seeks are coalesced until the active seek finishes, retaining
   element.seeking=false;element.dispatchEvent(new Event('seeked'));assert.equal(element.currentTime,3.5);
   handler.destroy();element.dispatchEvent(new Event('seeked'));assert.equal(element.src,'');
 });
+test('a completed paused timeline seek does not issue a transport Pause',async()=>{
+  const element=new MediaElement(),states=[];
+  const handler=htmlMediaPlayer(element,'blob:fixture',{onState:s=>states.push(s)});
+  await handler.ready;handler.seekTo(1500);element.dispatchEvent(new Event('seeked'));
+  assert.deepEqual(states,[]);handler.play();element.dispatchEvent(new Event('playing'));
+  handler.pause();assert.deepEqual(states,['playing','paused']);handler.destroy();
+});
 test('metadata alone does not enable local playback before media data is available',async()=>{
   const element=new MediaElement();element.readyState=1;
   const handler=htmlMediaPlayer(element,'blob:fixture');let ready=false;handler.ready.then(()=>{ready=true;});
@@ -138,8 +145,8 @@ test('terminal read errors cannot masquerade as playing or queue seeks, and expl
 
 test('reload failure retains the requested position and can be retried without restoring an old queued seek',async()=>{
   const element=new MediaElement(),handler=htmlMediaPlayer(element,'blob:fixture');await handler.ready;handler.seekTo(4500);element.seeking=true;handler.seekTo(9000);
-  element.load=()=>{element.error={code:2};queueMicrotask(()=>element.dispatchEvent(new Event('error')));};
-  await assert.rejects(handler.reload(),/read.*data/);assert.equal(element.currentTime,4.5);
+  element.load=()=>{element.currentTime=0;element.error={code:2};queueMicrotask(()=>element.dispatchEvent(new Event('error')));};
+  await assert.rejects(handler.reload(),/read.*data/);
   element.load=()=>{element.error=null;element.currentTime=0;element.seeking=false;queueMicrotask(()=>element.dispatchEvent(new Event('loadedmetadata')));};
   await handler.reload();element.dispatchEvent(new Event('seeked'));assert.equal(element.currentTime,4.5,'old pending seek is discarded');assert.equal(element.paused,true);handler.destroy();
 });

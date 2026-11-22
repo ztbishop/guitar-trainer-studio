@@ -85,7 +85,7 @@ function wav(seconds=12) {
     };
     await change('midi-input-select','explanation-test');
     const capabilities=await page.evaluate(()=>deliverExplanationMessage('gts-lesson-capabilities-request'));
-    assert.deepEqual(capabilities.lessonVersions,[1,2,3,4,5]);
+    assert.deepEqual(capabilities.lessonVersions,[1,2,3,4,5,6]);
     assert.deepEqual(capabilities.timingPlans.find(plan=>plan.format==='musical-visits-and-explanations'),
       {format:'musical-visits-and-explanations',version:1,capability:'explanation-timing-v1'});
     assert.deepEqual(capabilities.timingPlans.find(plan=>plan.format==='musical-visits-and-intervals'),

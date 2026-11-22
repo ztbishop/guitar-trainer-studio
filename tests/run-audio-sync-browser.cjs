@@ -99,6 +99,23 @@ async function run() {
     assert.deepEqual(JSON.parse(await draftJSON.inputValue()).candidatePlan,plan);
     await page.locator('#media-draft-use').click();
     await page.waitForFunction(() => s.media.preview && s.media.timingPlan?.visits.length === 4);
+    const skipMusic=page.locator('#media-player-skip-explanation'), mainPlay=page.locator('#play-pause-button');
+    const scrubTo=seconds=>page.locator('#media-seek').evaluate((el,t)=>{el.value=t;el.dispatchEvent(new Event('input'));},seconds);
+    await scrubTo(0);
+    await skipMusic.click(); // Audio-only, with both video and wide timeline hidden.
+    await page.waitForFunction(t=>Math.abs(document.querySelector('#media-audio').currentTime-t)<0.025,plan.musicalVisits[0].startSeconds);
+    assert(await page.locator('#media-audio').evaluate(el=>el.paused));
+    await scrubTo(8);
+    await skipMusic.click();
+    await mainPlay.click();
+    await page.waitForFunction(()=>document.querySelector('#media-audio').currentTime>12.3);
+    await mainPlay.click();
+    await page.waitForTimeout(150);
+    const paused=await page.locator('#media-audio').evaluate(el=>el.currentTime);
+    assert.ok(paused>12.2 && paused<14,'Pause must retain the second take');
+    await mainPlay.click();
+    await page.waitForFunction(t=>document.querySelector('#media-audio').currentTime>t+.2,paused);
+    await mainPlay.click();
     // Exercise the link reader independently of local File access. A player
     // can load a URL even when a separate scripted fetch fails.
     let deny = true;

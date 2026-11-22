@@ -19,6 +19,8 @@ The owner previously confirmed basic Hex and Poly input, Wait progression, Realt
 
 ## Still to check in normal use
 
+- [ ] Confirm that scrubbing the owner’s streamed lesson in Realtime, skipping its intro and resuming the later take all work in the normal browser session.
+
 - [ ] In a lesson with repeated pickups, audition two takes and compare the highlighted bar with draft review.
 
 - [ ] Check coverage of the 4:34 verse section in *Devil Inside*. Measure-label checks and eight matched timestamps do not establish coverage across the lesson.

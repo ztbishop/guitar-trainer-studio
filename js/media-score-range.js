@@ -15,6 +15,16 @@ export function recordingRegion(points,timeline,time,timingPlan=null) {
   const range=recordingScoreRange(points,timeline);
   return !range || !Number.isFinite(time)?'music':time<range.start?'before':time>=range.end?'after':'music';
 }
+// Ranges are ordered, disjoint recording spans with a tracked score position.
+export function nextMusicStart(ranges,timeMs) {
+  let low=0,high=ranges.length;
+  while(low<high) {
+    const mid=(low+high)>>>1;
+    if(ranges[mid].endMs<=timeMs)low=mid+1;else high=mid;
+  }
+  const next=ranges[low];
+  return next && timeMs<next.startMs ? next.startMs : null;
+}
 export function fullRecordingPractice(state) {
   return Boolean(state.media?.preview && !state.media.returning && !state.media.editing &&
     state.mode==='realtime' && !state.practiceLoop?.enabled);

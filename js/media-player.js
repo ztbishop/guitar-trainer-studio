@@ -1,6 +1,6 @@
 // Browser/provider playback only. The host consumes this public handler shape.
 export function htmlMediaPlayer(element,url,{onState=()=>{},onError=()=>{}}={}) {
-  let destroyed=false,cancelReady=()=>{},playGeneration=0,pendingSeek=null,reloading=false,cancelReload=()=>{};
+  let destroyed=false,cancelReady=()=>{},playGeneration=0,pendingSeek=null,reloadPosition=null,reloading=false,cancelReload=()=>{};
   const ready=new Promise((resolve,reject)=>{
     const timer=setTimeout(()=>reject(new Error('Recording did not load. Check the link, access and browser format support.')),20000);
     const cleanup=()=>{clearTimeout(timer);element.removeEventListener('loadedmetadata',loaded);element.removeEventListener('loadeddata',loaded);element.removeEventListener('error',failed);};
@@ -18,7 +18,9 @@ export function htmlMediaPlayer(element,url,{onState=()=>{},onError=()=>{}}={}) 
   const seeked=()=>{
     if(destroyed || reloading || element.error)return;
     if(pendingSeek!==null){const target=pendingSeek;pendingSeek=null;seek(target);if(element.seeking)return;}
-    state();
+    // Seeking a paused recording is a position update. Reporting another Pause
+    // here can cancel Play as the native transport starts.
+    if(!element.paused)state();
   };
   element.addEventListener('seeked',seeked);
   for(const type of ['playing','pause','waiting','ended'])element.addEventListener(type,state);
@@ -38,18 +40,19 @@ export function htmlMediaPlayer(element,url,{onState=()=>{},onError=()=>{}}={}) 
     // playhead and controls. No score/plan mutation, autoplay or automatic retry.
     reload(){
       if(destroyed)return Promise.reject(new Error('Recording was unloaded.'));
-      const position=element.currentTime,rate=element.playbackRate,volume=element.volume,muted=element.muted;
-      cancelReload();playGeneration++;pendingSeek=null;reloading=true;element.pause();
+      const position=reloadPosition??element.currentTime,rate=element.playbackRate,volume=element.volume,muted=element.muted;
+      cancelReload();reloadPosition=position;playGeneration++;pendingSeek=null;reloading=true;element.pause();
       return new Promise((resolve,reject)=>{
         let positioned=false,settled=false;
         const cleanup=()=>{settled=true;clearTimeout(timer);for(const type of ['loadedmetadata','loadeddata','canplay','seeked'])element.removeEventListener(type,loaded);element.removeEventListener('error',failed);cancelReload=()=>{};reloading=false;};
         const failed=()=>{if(settled)return;cleanup();reject(failure());};
         const loaded=()=>{
+          if(element.error){failed();return;}
           if(settled || element.readyState<1)return;
           if(!Number.isFinite(element.duration) || element.duration<=0){cleanup();reject(new Error('The reloaded recording has no finite duration. Timing is retained.'));return;}
           if(position>element.duration+0.001){cleanup();reject(new Error('The reloaded recording ends before the retained playhead. Timing is retained; check the recording source.'));return;}
           if(!positioned){positioned=true;element.playbackRate=rate;element.volume=volume;element.muted=muted;seek(Math.max(0,Math.min(element.duration,position)));}
-          if(!element.seeking && element.readyState>=2){cleanup();resolve();}
+          if(!element.seeking && element.readyState>=2){cleanup();reloadPosition=null;resolve();}
         };
         const timer=setTimeout(()=>{cleanup();reject(new Error('Recording reload did not finish. Check the source connection or link. Timing is retained.'));},20000);
         cancelReload=()=>{if(!settled){cleanup();reject(new Error('Recording reload cancelled.'));}};

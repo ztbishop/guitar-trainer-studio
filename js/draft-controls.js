@@ -1,5 +1,6 @@
 // Draft-only editor. The immutable incoming draft and editable working copy are separate.
 import {copyDraftJson,inspectDraft} from './draft-timing.js';
+import {draftMusicRanges} from './draft-alignment.js';
 import {createDraftTimeline} from './draft-timeline.js';
 export function createDraftEditor({container,options,transport,highlight,stop,apply,exportFile}) {
   const panel=document.createElement('section');panel.id='media-draft-timing';panel.hidden=true;
@@ -36,7 +37,9 @@ export function createDraftEditor({container,options,transport,highlight,stop,ap
   const diagnostics=document.createElement('details'),diagnosticTitle=document.createElement('summary');diagnosticTitle.textContent='Review issues';diagnostics.append(diagnosticTitle,issues);panel.append(title,warning,reviewActions,reviewStatus,rows,diagnostics,advanced,actions,file,evidence);container.append(panel);
   function showError(error){reviewStatus.textContent=error.message;diagnostics.open=true;issues.replaceChildren();const li=document.createElement('li');li.textContent=error.message;issues.append(li);use.disabled=true;}
   function change(next){inspectDraft(original,next,options());stop();undo.push(copyDraftJson(working));redo=[];working=copyDraftJson(next);render();}
+  let musicRanges=[];
   function render(){
+    musicRanges=draftMusicRanges(working.candidatePlan,options().timeline);
     revision++;stop();text.value=JSON.stringify(working,null,2);issues.replaceChildren();visual.render(original,working);document.querySelector('#media-draft-timing').dataset.revision=revision;
     const report=inspectDraft(original,working,options());
     for(const issue of report.issues){const li=document.createElement('li');li.textContent=issue;issues.append(li);}
@@ -53,7 +56,7 @@ export function createDraftEditor({container,options,transport,highlight,stop,ap
     diagnosticTitle.textContent=report.issues.length?`Review issues (${report.issues.length})`:'Checks pass — ready for review';
   }
   commit.addEventListener('click',()=>{try{const next=copyDraftJson(JSON.parse(text.value));if(!next.candidatePlan||!Array.isArray(next.unresolved))throw Error('Keep candidatePlan and unresolved.');change(next);}catch(e){showError(e);}});
-  return {replaceMapping(candidatePlan) {
+  return {get musicRanges(){return musicRanges;},replaceMapping(candidatePlan) {
     change({candidatePlan,unresolved:[]});
   },update(time,playing){if(original&&!rows.hidden)visual.update(time,playing);},load(draft){reviewActions.hidden=reviewStatus.hidden=false;title.textContent='Draft timing — needs review';warning.hidden=rows.hidden=advanced.hidden=false;for(const b of actions.children)b.hidden=false;original=copyDraftJson(draft);working={candidatePlan:copyDraftJson(draft.candidatePlan),unresolved:copyDraftJson(draft.unresolved)};undo=[];redo=[];evidenceText.value=JSON.stringify(original,null,2);panel.hidden=false;render();},complete(){stop();visual.clear();revision++;reviewActions.hidden=reviewStatus.hidden=true;title.textContent='Reviewed timing — original draft retained';warning.hidden=rows.hidden=advanced.hidden=true;issues.replaceChildren();for(const b of actions.children)b.hidden=b!==exportButton;},clear(){stop();original=null;working=null;revision++;panel.hidden=true;visual.clear();},get active(){return !panel.hidden;}};
 }
