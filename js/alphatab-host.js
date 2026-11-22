@@ -143,8 +143,8 @@ let editingCountIn=null;
 let draftCursor=null,draftCursorBar=null;
 // Display-only draft projection. Never seek/play the synth, change its clock,
 // feed practice callbacks, or install an incomplete native timing plan.
-export function showDraftPosition(position,reveal=false) {
-  if(!AppState.media.editing || AppState.media.preview || !position || position.kind!=='music') {
+export function showDraftPosition(position,reveal=false,audition=false) {
+  if(!AppState.media.editing || (AppState.media.preview && !audition) || !position || position.kind!=='music') {
     draftCursor?.replaceChildren();draftCursorBar=null;return false;
   }
   const native=AppState.playbackTimeline?.measures[position.originalVisit-1];

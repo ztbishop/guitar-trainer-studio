@@ -19,6 +19,8 @@ The owner previously confirmed basic Hex and Poly input, Wait progression, Realt
 
 ## Still to check in normal use
 
+- [ ] In a lesson with repeated pickups, audition two takes and compare the highlighted bar with draft review.
+
 - [ ] Check coverage of the 4:34 verse section in *Devil Inside*. Measure-label checks and eight matched timestamps do not establish coverage across the lesson.
 
 - [ ] Try the longer riff search on another previously unmatched lesson. For *Devil Inside*, listen to the slower take around 3:20 and confirm which written pass you want to follow.

@@ -63,6 +63,10 @@ async function run() {
     await panel.getByRole('button',{name:'Continue this take'}).nth(2).click();
     await panel.getByText('Play from take').nth(2).click();
     await page.waitForFunction(() => document.querySelector('#media-audio').currentTime > 11.7);
+    await page.waitForFunction(()=>document.querySelector('#draft-score-cursor')?.dataset.originalVisit==='3' &&
+      document.body.classList.contains('media-take-audition') && getComputedStyle(document.querySelector('.at-cursor-beat')).visibility==='hidden');
+    await page.waitForFunction(()=>!document.body.classList.contains('media-take-audition'));
+    assert(await page.locator('#media-audio').evaluate(el=>el.paused && Math.abs(el.currentTime-14)<0.3));
     const range = panel.locator('fieldset');
     await range.getByLabel('Start measure').selectOption('2');
     await range.getByLabel('End measure').selectOption('3');

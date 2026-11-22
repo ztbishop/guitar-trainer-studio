@@ -2,6 +2,8 @@
 
 ## Optional audio-based sync suggestions
 
+A take audition owns a bounded recording preview while the editor is open. Its score overlay uses the chosen measure visit and time bounds. The ordinary recording cursor is hidden and its clock updates resume after the audition.
+
 Media Sync uses the printed bar label for display in the timeline, matcher and draft review. An unnumbered opening pickup is shown as 0. The underlying score measure and repeat visit keep their existing identities.
 
 The `js/audio-sync-*.js` modules own score queries, spectral analysis, the background worker and take selection. The worker combines single-measure matches with three-measure subsequence dynamic time warping. Playback-order ranking can skip visits and recording gaps. The controls retain pitch features for the current analysis so a new worker can refine a selected passage between exact recording pins using pitches and changes in pitch strength. Workers terminate on completion or cancellation. A written repeat has one row per native visit. Extra takes are alternatives for those rows. Accepted gaps and points use the existing editable draft and undo history.

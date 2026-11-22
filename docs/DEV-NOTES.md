@@ -2,6 +2,8 @@ For the active checklist, see [Current status and to-do](TODO.md). Older entries
 
 ## Automatic timing on a riff lesson
 
+A separate browser check reproduced a misleading pre-review audition. At 71.85 seconds, the selected take belonged to the opening pickup while the ordinary recording cursor was on the second written bar, pass 2. Take auditions now project the chosen visit from its proposed recording bounds and stop at its end.
+
 The earlier eight timestamp comparisons did not test score labels or full coverage. The GPX marks its opening riff bar as a pickup. The next printed measure is 1. In draft playback the cursor reached the correct first two bars but the editor showed M1 and M2. Media Sync now labels them M0 and M1. The section marked 4:34 has no selected passage. Draft review describes this audio as unmapped.
 
 On November 22, the original automatic search returned zero candidates for a 415.92-second riff lesson. The single-bar scores peaked at 0.677 against a 0.78 cutoff. The best opening three-bar alignment scored 0.485 against 0.52. A fallback now compares pitch at the expected note times over four sounding measures and tests each measure against its own average pitch profile. Written rests preserve the spacing to the next note. Whole silent visits receive no suggested points.

@@ -448,6 +448,7 @@
 .draft-timing-active #media-finish-editing { display:none !important; }
 .draft-timing-active #media-editor { height:min(52vh,510px) !important; }
 .draft-timing-active #media-editor-toolbar { margin-bottom:2px; }
+.media-take-audition .at-cursor-bar, .media-take-audition .at-cursor-beat,
 .draft-timing-active .at-cursor-bar, .draft-timing-active .at-cursor-beat { visibility:hidden; }
 .draft-score-cursor { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; z-index:5; }
 #media-draft-timing h3 { margin:4px 0; font-size:1rem; }

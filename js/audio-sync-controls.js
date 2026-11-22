@@ -176,7 +176,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       takes.forEach((t,j) => select.add(new Option(`${t.refined ? 'Pinned passage' : 'Take '+(j+1)} · ${time(t.start)}–${time(t.end)}`,String(j))));
       select.value = String(choices[i]); select.disabled = !takes.length;
       const listen = button('Play from take',async () => {
-        try { if (current(snapshot)) await preview(takes[choices[i]]); }
+        try { if (current(snapshot)) await preview(takes[choices[i]],i); }
         catch (error) { status.textContent = error.message; }
       });
       const follow = button('Continue this take',() => {
@@ -207,7 +207,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       const measure = snapshot.timeline.measures[i];
       row.append(`Measure ${printedMeasure(snapshot.notation,measure.measureNumber)} · pass ${measure.occurrence} `);
       const listen = (name,seconds) => button(name+' '+time(seconds),async () => {
-        try {if (current(snapshot)) await preview({start:seconds,end:right.end});}
+        try {if (current(snapshot)) await preview({start:seconds,end:right.end},i);}
         catch (error) {status.textContent = error.message;}
       });
       const use = button('Use alternate start',() => {

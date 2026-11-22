@@ -53,7 +53,21 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   let sectionFirst=0,sectionLast=0,movementPositions='';
   let player=null,source=null,localFile=null,blobUrl=null,points=[],peaks=[],selected=-1,undo=[],redo=[],profiles=[],scoreHash='',profileId='',pendingProfile=null;
   let timingPlan=null,draftTiming=null,draftPreviewEnd=null;
-  const stopDraftPreview=()=>{if(draftPreviewEnd!==null)player?.pause();draftPreviewEnd=null;};
+  let audition=null;
+  function stopAudition() {
+    if(!audition)return;
+    audition=null;
+    player?.pause();
+    host.showDraftPosition(null);
+    document.body.classList.remove('media-take-audition');
+  }
+  function drawAudition(seconds) {
+    const {take,measure,index}=audition;
+    const fraction=Math.max(0,Math.min(1,(seconds-take.start)/(take.end-take.start)));
+    host.showDraftPosition({kind:'music',scoreMeasure:measure.measureNumber,occurrence:measure.occurrence,
+      originalVisit:index+1,fraction,tick:measure.startTick+fraction*(measure.endTick-measure.startTick)},false,true);
+  }
+  const stopDraftPreview=()=>{stopAudition();if(draftPreviewEnd!==null)player?.pause();draftPreviewEnd=null;};
   const draftEditor=createDraftEditor({container:get('selection').parentElement,
     options:()=>({notation:AppState.score,timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:draftTiming?.recordingId,durationMs:player?.backingTrackDuration}),
     transport(action,seconds){if(!draftTiming||!player)return;if(action==='pause'){stopDraftPreview();return;}if(action==='seek'){player.seekTo(seconds*1000);return;}beforeEdit();draftPreviewEnd=player.backingTrackDuration;player.play();},
@@ -91,10 +105,17 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       duration:(player?.backingTrackDuration || 0)/1000,generation,hasDraft:Boolean(draftTiming),
       blocked:busy || recordingError || !player?.backingTrackDuration?'Wait for the recording to be ready.':
         dirty && !draftTiming?'Save the current alignment before creating another draft.':''}),
-    async preview(take){
-      if(!showEditor || !take)return;
-      if(draftTiming){beforeEdit();player.seekTo(take.start*1000);draftPreviewEnd=take.end*1000;player.play();}
-      else await seekRecording(take.start*1000,{resume:true});
+    preview(take,index){
+      const measure=AppState.playbackTimeline?.measures[index];
+      if(!showEditor || !player || !measure || !(take?.end>take.start))return;
+      stopDraftPreview();
+      host.pauseMediaPlayback();
+      beforeEdit();
+      audition={take,measure,index};
+      document.body.classList.add('media-take-audition');
+      player.seekTo(take.start*1000);
+      drawAudition(take.start);
+      player.play();
     },
     async review(draft,isCurrent){
       const check=()=>{
@@ -114,6 +135,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       message('Listen across the suggested boundaries, then choose Use reviewed timing.');
     }
   });
+  // A new editor action owns the transport, including scrubbing and selecting
+  // a different suggestion. Capture runs before its own seek or play action.
+  const editor=get('editor');
+  editor.addEventListener('click',stopAudition,true);
+  editor.addEventListener('input',stopAudition,true);
+  get('seek').addEventListener('input',stopAudition,true);
   function placeRecordingTimeline() {
     timelineBar.hidden=!wideTimeline || !(player?.backingTrackDuration>0);
     if(wideTimeline && scrub.parentElement!==timelineBar)timelineBar.append(scrub,playerSkip);
@@ -128,6 +155,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('info-button').setAttribute('aria-expanded',String(open));
   }
   function renderLayout() {
+    if(!showEditor)stopAudition();
     if(Boolean(AppState.media.editing)!==showEditor){if(showEditor)beforeEdit();host.setMediaEditing(showEditor);if(!showEditor)afterEdit();else message('Editing sync · Preview only. Choose Finish editing to restore grading and loops.');}
     const workspace=get('workspace'),visible=Boolean(player && showPlayer && !get('player-panel').classList.contains('audio-only'));
     workspace.classList.toggle('has-media',visible);workspace.dataset.layout=layout;workspace.style.setProperty('--media-share',share+'%');
@@ -216,6 +244,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('local-controls').hidden=kind!=='local';get('link-controls').hidden=!['url','youtube'].includes(kind);get('embedded-controls').hidden=kind!=='embedded';
   }
   function disposal() {
+    stopAudition();
     suggestions.reset();
     cancelDrag?.();
     timelineBar.hidden=true;
@@ -247,6 +276,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       get('profile-name').value=source.label;message('Loading recording…');
       const events={isCurrent:()=>token===generation,onState(state){
         if(token!==generation || reloadInProgress || recordingError)return;
+        if(audition)return;
         if(draftTiming){if(draftPreviewEnd===null)player?.pause();return;}
         if(!AppState.media.preview) {player?.pause();return;}
         buffering=state==='buffering';
@@ -814,8 +844,10 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   window.addEventListener('resize',()=>{renderLayout();if(!dragging)renderPoints();});
   setInterval(()=>{
     if(!player)return;const duration=player.backingTrackDuration,time=player.currentTime;
+    if(audition && (time>=audition.take.end*1000 || AppState.playbackTimeline?.measures[audition.index]!==audition.measure))stopAudition();
     if(draftPreviewEnd!==null && time>=draftPreviewEnd)stopDraftPreview();
     if(draftTiming){draftEditor.update(time/1000,player.playing);const b=document.getElementById('play-pause-button');b.textContent=player.playing?'Pause editing preview':'Preview recording';b.setAttribute('aria-label',b.textContent);}
+    if(audition)drawAudition(time/1000);
     get('clock').textContent=`${clock(time)} / ${clock(duration)}`;
     syncRecordingRegion();
     renderTarget(time);
@@ -826,7 +858,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       const scroll=get('timeline').parentElement,position=(x+12)/1024*scroll.clientWidth*zoom;
       if(position<scroll.scrollLeft || position>scroll.scrollLeft+scroll.clientWidth)scroll.scrollLeft=Math.max(0,position-scroll.clientWidth/2);
     }
-    if(AppState.media.preview && !AppState.media.returning) {
+    if(!audition && AppState.media.preview && !AppState.media.returning) {
       host.updateMediaPosition(Math.min(time,duration-0.1),player.playing && !buffering);
     }
   },50);
@@ -847,7 +879,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   renderLayout();sourceControls();sync();refreshProfiles().catch(error=>message(error.message));
   return {sync,timelineReady,finishEditing,
-    draftTransport(action){if(!draftTiming||!player)return false;if(action==='reset'){stopDraftPreview();player.seekTo(0);}else if(player.playing)stopDraftPreview();else{beforeEdit();draftPreviewEnd=player.backingTrackDuration;player.play();}return true;},
+    draftTransport(action){if(audition){stopAudition();if(action!=='reset')return true;}if(!draftTiming||!player)return false;if(action==='reset'){stopDraftPreview();player.seekTo(0);}else if(player.playing)stopDraftPreview();else{beforeEdit();draftPreviewEnd=player.backingTrackDuration;player.play();}return true;},
     draftTimingCapability:DRAFT_CAPABILITY,
     async importDraft(recording,input){
       const draft=validateDraft(input),score=AppState.currentScoreFile,initial=generation;
