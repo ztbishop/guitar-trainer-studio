@@ -1,5 +1,11 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Automatic timing on a riff lesson
+
+On November 22, the original automatic search returned zero candidates for a 415.92-second riff lesson. The single-bar scores peaked at 0.677 against a 0.78 cutoff. The best opening three-bar alignment scored 0.485 against 0.52. A fallback now compares pitch at the expected note times over four sounding measures and tests each measure against its own average pitch profile. Written rests preserve the spacing to the next note. Whole silent visits receive no suggested points.
+
+Chrome loaded the GPX and MP4 with no pins, printed time cues, or reference timing supplied to the matcher. Review opened a draft with 12 selected sounding visits. Four opening starts and four outro starts compared with independently supplied Soundslice entries each differed by less than 60 ms. The other four starts belong to a slower take at 200.28 seconds with no corresponding reference entries. The score expands to 40 visits while the timing file has 16 entries including boundaries. Several written passes share a riff. The eight comparisons verify timing for those passages, while pass attribution and full-lesson alignment still require listening. This lesson informed development of the fallback.
+
 ## Pinned passage comparison across three lessons
 
 With the correct passage and exact outer pins, the existing browser matcher, trackswitch and equal spacing respectively placed 16/17, 17/17 and 17/17 interior starts within 250 ms on a repeated guitar exercise. Both matchers placed all eight second-pass starts within that tolerance across seven pin settings. On two interrupted lessons the exact-pin counts were 18/31, 21/31 and 18/31, and 48/56, 50/56 and 18/56. Errors use all reference interior starts as the denominator. Pins came from reference passage boundaries; these are assisted refinement results.

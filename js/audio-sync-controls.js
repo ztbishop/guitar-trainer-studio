@@ -75,7 +75,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     status.textContent = 'Analysis canceled.';
   });
   const apply = button('Review selected takes',openDraft);
-  panel.append(title,help,start,cancel,status,rows,passage,comparisons,apply); after.after(panel);
+  panel.append(title,help,start,cancel,status,apply,rows,passage,comparisons); after.after(panel);
   let job = null, result = null, applying = false;
 
   function current(snapshot) {
@@ -158,9 +158,12 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     passage.firstChild?.dispatchEvent(new Event('takeschanged'));
     drawComparisons();
     const found = matches.filter(t => t.length).length;
-    status.textContent = found
-      ? `Matches for ${found} of ${matches.length} measure visits. A suggested sequence is selected in playback order. Listen to compare takes or leave a visit unmapped.`
-      : 'No convincing matches. Check the practice track, tuning and recording, or place the points manually.';
+    function showCount() {
+      status.textContent = found
+        ? `Found takes for ${found} of ${matches.length} measure visits. You have ${choices.filter(c => c >= 0).length} selected for draft review. Listen to compare or change takes below.`
+        : 'Analyze found 0 suggested sync points. The timeline still shows its previous alignment. You can try another practice track or pin a passage you recognize below.';
+    }
+    showCount();
     apply.hidden = !found;
     if (!found) return;
     for (const [i,takes] of matches.entries()) {
@@ -182,6 +185,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       });
       select.onchange = () => {
         choices[i] = Number(select.value); result.locked[i] = true;
+        showCount();
         listen.disabled = follow.disabled = choices[i] < 0;
         passage.firstChild?.dispatchEvent(new Event('takeschanged')); drawComparisons(); sync();
       };

@@ -1,5 +1,6 @@
 import {matchSingleMeasures,recordingFeatures,SAMPLE_RATE} from './audio-sync-match.js';
 import {phraseMatches,orderedChoices,refinePassage,alternativeStarts} from './audio-sync-passages.js';
+import {rhythmicMatches} from './audio-sync-rhythm.js';
 
 self.onmessage = ({data}) => {
   try {
@@ -13,8 +14,12 @@ self.onmessage = ({data}) => {
     const features = recordingFeatures(data.samples), duration = data.samples.length/SAMPLE_RATE;
     const singles = matchSingleMeasures(data.bars,features,duration,(done,total) =>
       self.postMessage({phase:'Searching measures',done,total}));
-    const matches = phraseMatches(data.score,features,duration,singles,(done,total) =>
+    let matches = phraseMatches(data.score,features,duration,singles,(done,total) =>
       self.postMessage({phase:'Searching three-measure passages',done,total}));
+    if (!matches.some(row => row.length)) {
+      self.postMessage({phase:'Checking longer riffs',done:0,total:1});
+      matches = rhythmicMatches(data.score,features,duration);
+    }
     self.postMessage({matches,choices:orderedChoices(matches),features},[features.buffer]);
   } catch (error) {
     self.postMessage({error:error.message});

@@ -19,6 +19,8 @@ The owner previously confirmed basic Hex and Poly input, Wait progression, Realt
 
 ## Still to check in normal use
 
+- [ ] Try the longer riff search on another previously unmatched lesson. For *Devil Inside*, listen to the slower take around 3:20 and confirm which written pass you want to follow.
+
 - [ ] Try **Suggest sync points from audio** on a familiar guitar lesson with spoken breaks and a repeated demonstration. Compare the preferred take and its measure boundaries with independently supplied Soundslice timing. Listen through one break and confirm practice resumes at the chosen pass.
 
 Use v1.0.2 in your usual browser with your usual guitar. A few representative passages are enough to make this useful.
