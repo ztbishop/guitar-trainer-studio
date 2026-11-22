@@ -34,7 +34,8 @@ async function run() {
     await page.waitForFunction(() => s.media.preview && s.playerReady);
     await page.locator('#media-show-editor').evaluate(box => {box.checked=true;box.dispatchEvent(new Event('change'));});
     const panel = page.locator('#media-audio-suggestions');
-    await panel.locator('summary').click();
+    const toggle = panel.locator(':scope > summary');
+    await toggle.click();
     await panel.evaluate(node => {
       const actions = node.querySelectorAll('button');
       actions[0].click(); actions[1].click();
@@ -85,7 +86,7 @@ async function run() {
     assert(Math.abs(plan.musicalVisits[3].startSeconds-14)<0.15);
     // Reconsider an instructor take after hearing the draft. Use the draft's
     // existing Undo history to restore the first selection.
-    await panel.locator('summary').click();
+    await toggle.click();
     await selectTakeNear(2,7);
     await panel.getByRole('button',{name:'Replace draft mapping with selected takes'}).click();
     const draftJSON = page.locator('#media-draft-json');
@@ -97,10 +98,25 @@ async function run() {
     // Exercise the link reader independently of local File access. A player
     // can load a URL even when a separate scripted fetch fails.
     let deny = true;
+    // A separate take holds the fourth note for three seconds. Both measures
+    // still appear once; the audible second downbeat is 4.5 seconds in.
+    const {phrases} = await import('./audio-sync-fixture.js');
+    const linkWav = Buffer.alloc(wav.length + Math.ceil(7*sampleRate)*2);
+    wav.copy(linkWav);
+    linkWav.writeUInt32LE(linkWav.length-8,4); linkWav.writeUInt32LE(linkWav.length-44,40);
+    let onset = pcm.length;
+    for (const [i,pitch] of phrases.flat().entries()) {
+      const length = Math.round((i===3 ? 3 : 0.5)*sampleRate);
+      for (let n = 0; n < length; n++) {
+        const sample = Math.sin(2*Math.PI*440*2**((pitch-69)/12)*n/sampleRate)*14000;
+        linkWav.writeInt16LE(Math.round(sample),44+(onset+n)*2);
+      }
+      onset += length;
+    }
     const mediaUrl = 'http://127.0.0.1:'+server.address().port+'/assets/test-lesson.wav';
     await page.route(mediaUrl,route => {
       if (route.request().resourceType() === 'fetch' && deny) return route.abort('accessdenied');
-      return route.fulfill({contentType:'audio/wav',body:wav});
+      return route.fulfill({contentType:'audio/wav',body:linkWav});
     });
     await page.evaluate(url => {
       const kind = document.querySelector('#media-source-kind'); kind.value='url'; kind.dispatchEvent(new Event('change'));
@@ -108,15 +124,35 @@ async function run() {
     },mediaUrl);
     await page.waitForFunction(() => document.querySelector('#media-audio').src.endsWith('test-lesson.wav') && s.playerReady && s.media.preview && !s.media.timingPlan);
     await page.locator('#media-show-editor').evaluate(box => {box.checked=true;box.dispatchEvent(new Event('change'));});
-    await panel.locator('summary').click();
+    await toggle.click();
     await panel.getByText('Analyze lesson audio').click();
     await panel.getByText(/host must allow cross-origin/).waitFor();
     deny = false;
     await panel.getByText('Analyze lesson audio').click();
     await selects.nth(3).waitFor();
     await selectTakeNear(2,7);
+    for (let i=0;i<4;i++) await selects.nth(i).selectOption('-1');
+    await range.getByLabel('Start measure').selectOption('0');
+    await range.getByLabel('End measure').selectOption('1');
+    await range.getByLabel('Start time (s)').fill('17');
+    await range.getByLabel('End time (s)').fill('23.5');
+    await range.getByText('Refine points between pins').click();
+    await panel.getByText('Compare alternate measure starts (1)').click();
+    await panel.getByText('Hear alternate').click();
+    await page.waitForFunction(()=>document.querySelector('#media-audio').currentTime > 21.3);
+    await panel.getByText('Use alternate start').click();
+    await selects.nth(1).selectOption('-1');
+    assert.equal(await panel.getByText(/Compare alternate measure starts/).isVisible(),false);
+    await selects.nth(1).selectOption({label:await selects.nth(1).locator('option').last().textContent()});
+    await panel.getByText('Review selected takes').click();
+    await page.locator('#media-draft-timing').waitFor();
+    const placed = JSON.parse(await draftJSON.inputValue()).candidatePlan.musicalVisits;
+    assert.equal(placed.length,2);
+    assert.equal(placed[0].startSeconds,17); assert.equal(placed[1].endSeconds,23.5);
+    assert(Math.abs(placed[1].startSeconds-21.5)<0.15);
+    assert.equal(placed[0].endSeconds,placed[1].startSeconds);
     assert.deepEqual(errors,[]);
-    console.log('Chrome passed local file, direct link, denied audio fetch, cancel/retry, three takes, both written passes, draft undo and reviewed timing with an internal gap.');
+    console.log('Chrome passed local and direct-link audio, cancel/retry, written repeats, undo, unscored gaps, and auditioning and applying an alternate interior start with both passage pins fixed.');
   } finally {
     await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
   }

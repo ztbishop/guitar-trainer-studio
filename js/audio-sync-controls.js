@@ -64,6 +64,9 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
   help.className = status.className = 'field-help'; status.setAttribute('role','status');
   const rows = document.createElement('div');
   const passage = document.createElement('div');
+  const comparisons = document.createElement('details'), compareTitle = document.createElement('summary');
+  const compareRows = document.createElement('div');
+  comparisons.append(compareTitle,compareRows);
   const start = button('Analyze lesson audio',run);
   const cancel = button('Cancel analysis',() => {
     if (job && result) {
@@ -72,7 +75,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     status.textContent = 'Analysis canceled.';
   });
   const apply = button('Review selected takes',openDraft);
-  panel.append(title,help,start,cancel,status,rows,passage,apply); after.after(panel);
+  panel.append(title,help,start,cancel,status,rows,passage,comparisons,apply); after.after(panel);
   let job = null, result = null, applying = false;
 
   function current(snapshot) {
@@ -83,6 +86,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
   function reset() {
     job?.controller.abort(); job = result = null;
     rows.replaceChildren(); passage.replaceChildren(); status.textContent = ''; apply.hidden = cancel.hidden = true;
+    compareRows.replaceChildren(); comparisons.open = false; comparisons.hidden = true;
     start.disabled = false;
   }
   function sync() {
@@ -98,7 +102,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     help.textContent = reason || 'Matches the selected practice track. Choose a take for each written pass. Unmapped recording time plays without grading.';
     start.disabled = Boolean(reason || job || applying);
     apply.textContent = now.hasDraft ? 'Replace draft mapping with selected takes' : 'Review selected takes';
-    rows.inert = passage.inert = Boolean(reason || job || applying);
+    rows.inert = passage.inert = comparisons.inert = Boolean(reason || job || applying);
     apply.disabled = Boolean(reason || job || applying || !result?.choices.some(c => c >= 0));
     return !reason;
   }
@@ -152,6 +156,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     const {matches,choices,snapshot} = result;
     rows.replaceChildren();
     passage.firstChild?.dispatchEvent(new Event('takeschanged'));
+    drawComparisons();
     const found = matches.filter(t => t.length).length;
     status.textContent = found
       ? `Matches for ${found} of ${matches.length} measure visits. A suggested sequence is selected in playback order. Listen to compare takes or leave a visit unmapped.`
@@ -178,12 +183,43 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       select.onchange = () => {
         choices[i] = Number(select.value); result.locked[i] = true;
         listen.disabled = follow.disabled = choices[i] < 0;
-        passage.firstChild?.dispatchEvent(new Event('takeschanged')); sync();
+        passage.firstChild?.dispatchEvent(new Event('takeschanged')); drawComparisons(); sync();
       };
       listen.disabled = follow.disabled = choices[i] < 0;
       row.append(label); if (takes.length) row.append(listen,follow);
       rows.append(row);
     }
+  }
+  function drawComparisons() {
+    const {snapshot,matches,choices} = result;
+    compareRows.replaceChildren();
+    for (let i = 1; i < choices.length; i++) {
+      const left = matches[i-1][choices[i-1]], right = matches[i][choices[i]];
+      if (!right?.passageKey || left?.passageKey !== right.passageKey ||
+          !(right.alternateStart > left.start && right.alternateStart < right.end)) continue;
+      const row = document.createElement('div');
+      row.className = 'media-actions';
+      const measure = snapshot.timeline.measures[i];
+      row.append(`Measure ${measure.measureNumber} · pass ${measure.occurrence} `);
+      const listen = (name,seconds) => button(name+' '+time(seconds),async () => {
+        try {if (current(snapshot)) await preview({start:seconds,end:right.end});}
+        catch (error) {status.textContent = error.message;}
+      });
+      const use = button('Use alternate start',() => {
+        if (applying || job || !sync() || !current(snapshot)) return;
+        const old = right.start;
+        left.end = right.start = right.alternateStart;
+        right.alternateStart = old;
+        draw(); sync();
+        status.textContent = `Measure ${measure.measureNumber}, pass ${measure.occurrence} now starts at ${time(right.start)}. Both passage pins are fixed.`;
+        comparisons.querySelector('summary').focus();
+      });
+      row.append(listen('Hear selected',right.start),listen('Hear alternate',right.alternateStart),use);
+      compareRows.append(row);
+    }
+    const count = compareRows.childElementCount;
+    comparisons.hidden = !count;
+    compareTitle.textContent = `Compare alternate measure starts (${count})`;
   }
   async function refine(range) {
     if (job || applying || !result || !sync()) return;
@@ -198,16 +234,19 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     status.textContent = 'Matching the passage between your pins…';
     try {
       const features = r.features.slice(Math.floor(start/0.04)*12,Math.ceil(end/0.04)*12);
-      const {points} = await analyze({range,score:r.score,features},features,task.controller.signal);
+      const {points,alternatives} = await analyze({range,score:r.score,features},features,task.controller.signal);
       if (job !== task || result !== r || !current(r.snapshot)) return;
+      const passageKey = Symbol();
       for (let i = first; i <= last; i++) {
         const takes = r.matches[i].filter(t => !t.refined);
         r.choices[i] = takes.length;
         r.locked[i] = true;
-        takes.push({start:points[i-first],end:points[i-first+1],refined:true,pinnedStart:i===first,pinnedEnd:i===last});
+        takes.push({start:points[i-first],end:points[i-first+1],refined:true,pinnedStart:i===first,pinnedEnd:i===last,
+          passageKey,alternateStart:alternatives[i-first]});
         r.matches[i] = takes;
       }
-      draw(); status.textContent = 'Passage selected with both pins fixed. Listen to the result, then review the draft.';
+      draw(); status.textContent = 'Passage selected with both pins fixed. '+(comparisons.hidden
+        ? 'Listen to the result, then review the draft.' : 'Listen to the alternate measure starts below before reviewing the draft.');
     } catch (error) {if (job === task) status.textContent = error.message;}
     finally {if (job === task) {job = null; cancel.hidden = true; sync();}}
   }

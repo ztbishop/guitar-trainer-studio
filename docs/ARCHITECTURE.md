@@ -6,6 +6,8 @@ The `js/audio-sync-*.js` modules own score queries, spectral analysis, the backg
 
 To remove the feature, revert the audio-suggestions commit, including its editor hooks and tests. Previously accepted mappings use the same timing profile format as other reviewed lessons.
 
+After pinned refinement, the worker also aligns recording frames to a pitch-and-attack reference sampled at written tempo. Both alignments use bounded matrices. A difference above 250 ms can produce a review option inside the two neighboring selected measures. The suggestion UI binds that option to the same refinement and updates both sides of the interior boundary together. The choice and alternate times are temporary; the draft receives only the reviewed visits and anchors.
+
 See [Current status and to-do](TODO.md) for the shipped baseline and pending real-world checks. Dated sections here describe the contracts and decisions at each implementation stage.
 
 ## Loop speed training and sync section stretching

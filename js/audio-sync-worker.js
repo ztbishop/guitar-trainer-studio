@@ -1,11 +1,13 @@
 import {matchSingleMeasures,recordingFeatures,SAMPLE_RATE} from './audio-sync-match.js';
-import {phraseMatches,orderedChoices,refinePassage} from './audio-sync-passages.js';
+import {phraseMatches,orderedChoices,refinePassage,alternativeStarts} from './audio-sync-passages.js';
 
 self.onmessage = ({data}) => {
   try {
     if (data.range) {
       const {first,last,start,end} = data.range;
-      self.postMessage({points:refinePassage(data.score,data.features,first,last,start,end)});
+      const points = refinePassage(data.score,data.features,first,last,start,end);
+      const alternatives = alternativeStarts(data.score,data.features,first,last,start,points);
+      self.postMessage({points,alternatives});
       return;
     }
     const features = recordingFeatures(data.samples), duration = data.samples.length/SAMPLE_RATE;

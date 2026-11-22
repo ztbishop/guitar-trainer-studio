@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {matchMeasures,recordingFeatures} from '../js/audio-sync-match.js';
 import {scoreQueries,passageScore,initialChoices,followTake,selectedVisits,suggestionDraft} from '../js/audio-sync-score.js';
-import {phraseMatches,orderedChoices,refinePassage} from '../js/audio-sync-passages.js';
+import {phraseMatches,orderedChoices,refinePassage,alternativeStarts} from '../js/audio-sync-passages.js';
 import {validateTimingPlan} from '../js/explanation-timing.js';
 import {draftPosition} from '../js/draft-alignment.js';
 import {phrases,lessonSamples,sampleRate} from './audio-sync-fixture.js';
@@ -77,6 +77,26 @@ test('refinement follows a changing tempo inside exact pins and rejects unrelate
   const visits = selectedVisits(timeline().measures,[[{start:0,end:2,pinnedEnd:true}],
     [{start:2.04,end:4}],[],[]],[0,0,-1,-1]);
   assert.equal(visits[0].endSeconds,2); assert.equal(visits[1].startSeconds,2.04);
+});
+
+test('a held last note yields an audible alternate for the next measure and preserves both pins',() => {
+  const score = passageScore(timeline(),'0');
+  const durations = [0.5,0.5,0.5,3,0.5,0.5,0.5,0.5];
+  const end = 6.5, features = new Float32Array(Math.ceil(end/0.04)*12);
+  let start = 0;
+  for (const [i,duration] of durations.entries()) {
+    for (let frame = Math.round(start/0.04); frame < Math.round((start+duration)/0.04); frame++)
+      features[frame*12+score.notes[i].pitch] = 1;
+    start += duration;
+  }
+  const points = refinePassage(score,features,0,1,0,end);
+  const original = [...points];
+  const [first,alternate,last] = alternativeStarts(score,features,0,1,0,points);
+  assert.equal(first,null); assert.equal(last,null);
+  assert(Math.abs(alternate-4.5)<0.08);
+  assert(Math.abs(alternate-points[1])>0.25);
+  assert.deepEqual(points,original);
+  assert.deepEqual(alternativeStarts(score,features,0,1,0,[0,alternate,end]),[null,null,null]);
 });
 
 test('strummed chords tolerate staggered strings and modest timing variation',() => {

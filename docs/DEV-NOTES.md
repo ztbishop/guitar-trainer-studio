@@ -1,8 +1,14 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Pinned passage comparison across three lessons
+
+With the correct passage and exact outer pins, the existing browser matcher, trackswitch and equal spacing respectively placed 16/17, 17/17 and 17/17 interior starts within 250 ms on a repeated guitar exercise. Both matchers placed all eight second-pass starts within that tolerance across seven pin settings. On two interrupted lessons the exact-pin counts were 18/31, 21/31 and 18/31, and 48/56, 50/56 and 18/56. Errors use all reference interior starts as the denominator. Pins came from reference passage boundaries; these are assisted refinement results.
+
+A second original browser alignment works at written tempo and can sustain a score or recording frame across a longer pause. When it offers a materially different interior boundary the player can hear either start and change the shared edge of two adjacent selected measures. Both passage pins remain fixed. Trials with timing penalties and local smoothing gave mixed results. The UI retains the existing automatic choice. Chrome checks cover listening, selection changes and handing the adjusted pair to the draft editor.
+
 ## Passage timing drafts — 2026-11-22
 
-Media Sync searches up to three played measures at once and ranks candidates in playback order. The continuous-passage editor pins both recording edges and uses an original pitch-and-attack alignment to propose the interior points. No external matcher code or model is bundled. The earlier trackswitch measurements used a different implementation. The browser version needs a separate real-lesson accuracy check.
+Media Sync searches up to three played measures at once and ranks candidates in playback order. The continuous-passage editor pins both recording edges and uses an original pitch-and-attack alignment to propose the interior points. No external matcher code or model is bundled.
 
 Synthetic regressions cover independent takes, ordered repeats, silence, explanation gaps and a tempo change inside exact pins. The Chrome workflow exercises playhead pins, invalid ranges, a repeated take, review, undo, accepted gap playback, local files, readable links and denied reads.
 

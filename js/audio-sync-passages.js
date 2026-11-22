@@ -211,3 +211,63 @@ export function refinePassage(score, features, first, last, start, end) {
   if (points.some((p,i) => i && p <= points[i-1])) throw Error('The recording does not separate these measure boundaries.');
   return points;
 }
+
+// Compare the confirmed take with the score at its written tempo. A horizontal
+// or vertical step allows a held pitch or pause to occupy more recording time.
+// The selected refinement remains the default when the two estimates disagree.
+export function alternativeStarts(score, features, first, last, start, points) {
+  const alternatives = points.map(() => null);
+  if (last <= first) return alternatives;
+  const stride = Math.max(1,Math.ceil(features.length/12 / Math.sqrt(CELL_LIMIT)));
+  const recording = recordingGrid(features,stride);
+  const cols = recording.length/12;
+  const span = score.edges[last+1]-score.edges[first];
+  const rows = Math.min(Math.floor(CELL_LIMIT/cols),Math.round(span/(FRAME*stride)));
+  if (rows < points.length || cols < points.length) return alternatives;
+  const query = scoreGrid(score.notes,score.edges[first],score.edges[last+1],rows);
+  const path = writtenTempoPath(query,recording);
+  for (let i = 1; i < points.length-1; i++) {
+    const fraction = (score.edges[first+i]-score.edges[first])/span;
+    const time = (Math.floor(start/FRAME)+(mappedFrame(path,fraction)+0.5)*stride)*FRAME;
+    if (Math.abs(time-points[i]) > 0.25 && time > points[0] && time < points.at(-1)) alternatives[i] = time;
+  }
+  return alternatives;
+}
+
+function writtenTempoPath(query,recording) {
+  const rows = query.length/12, cols = recording.length/12;
+  const attacks = changes(query), rises = changes(recording);
+  const direction = new Uint8Array(rows*cols);
+  let previous = new Float64Array(cols).fill(Infinity), current = new Float64Array(cols);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      let similarity = 0, attackDifference = 0;
+      for (let p = 0; p < 12; p++) {
+        similarity += query[r*12+p]*recording[c*12+p];
+        attackDifference += (attacks[r*12+p]-rises[c*12+p])**2;
+      }
+      const diagonal = r && c ? previous[c-1] : Infinity;
+      const up = previous[c]+0.5, left = c ? current[c-1]+0.5 : Infinity;
+      const best = Math.min(diagonal,up,left);
+      direction[r*cols+c] = best === diagonal ? 0 : best === up ? 1 : 2;
+      const cost = Math.max(0,1-similarity)+0.5*Math.sqrt(attackDifference);
+      current[c] = (r || c ? best : 0)+cost;
+    }
+    [previous,current] = [current,previous];
+  }
+  // Interpolate only between points that advance in both timelines.
+  const path = new Float64Array(rows);
+  let r = rows-1, c = cols-1, nextRow = r, nextCol = c;
+  path[r] = c;
+  while (r || c) {
+    const step = direction[r*cols+c];
+    if (step !== 2) r--;
+    if (step !== 1) c--;
+    if (r < nextRow && c < nextCol) {
+      for (let j = r; j < nextRow; j++) path[j] = c+(nextCol-c)*(j-r)/(nextRow-r);
+      nextRow = r; nextCol = c;
+    }
+  }
+  for (let j = 0; j < nextRow; j++) path[j] = j*nextCol/nextRow;
+  return path;
+}
