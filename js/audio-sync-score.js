@@ -3,6 +3,17 @@ import {INTERVAL_TIMING_FORMAT} from './explanation-timing.js';
 import {DRAFT_FORMAT,validateDraft} from './draft-timing.js';
 import {fingerprint} from './library-store.js';
 
+// Absolute seconds in the native repeat-expanded performance, before media sync.
+export function passageScore(timeline, trackId) {
+  const edges = timeline.measures.map(m => tickToTimeMs(timeline,m.startTick)/1000);
+  edges.push(tickToTimeMs(timeline,timeline.measures.at(-1)?.endTick ?? 0)/1000);
+  const notes = timeline.events.filter(e => e.trackId === String(trackId)).flatMap(e =>
+    e.notes.filter(n => n.attack !== false && !n.isDead && Number.isFinite(n.midi)).map(n => ({
+      start:(n.startTimeMs ?? e.startTimeMs)/1000, end:(n.endTimeMs ?? e.endTimeMs)/1000, pitch:n.midi%12
+    })));
+  return {edges,notes};
+}
+
 export function scoreQueries(timeline, trackId) {
   const groups = timeline.measures.map(() => new Map());
   for (const event of timeline.events) {
@@ -70,14 +81,14 @@ export function initialChoices(matches) {
   return choices;
 }
 
-export function followTake(matches, choices, index) {
+export function followTake(matches, choices, index, locked = choices.map(c => c >= 0)) {
   const result = [...choices];
   let take = matches[index][result[index]];
   if (!take) return result;
   for (let i = index+1; i < matches.length; i++) {
     const adjacent = matches[i].map((candidate,j) => ({candidate,j})).filter(({candidate}) =>
       compatible(take,candidate) && Math.abs(candidate.start-take.end) <= 0.20);
-    if (adjacent.length !== 1 || (result[i] >= 0 && result[i] !== adjacent[0].j)) break;
+    if (adjacent.length !== 1 || (locked[i] && result[i] !== adjacent[0].j)) break;
     result[i] = adjacent[0].j;
     take = adjacent[0].candidate;
   }
@@ -90,15 +101,18 @@ export function selectedVisits(measures,matches,choices) {
     if (choices[i] < 0) continue;
     const take = matches[i][choices[i]];
     const previous = visits.at(-1);
-    if (previous && !compatible({start:previous.startSeconds,end:previous.endSeconds},take))
+    if (previous && (!compatible({start:previous.startSeconds,end:previous.endSeconds},take) ||
+        previous.pinnedEnd && take.start < previous.endSeconds && take.pinnedStart))
       throw Error(`Measure ${measure.measureNumber}, pass ${measure.occurrence} overlaps or precedes your earlier take. Choose another take or leave one unmapped.`);
-    if (previous && (previous.endSeconds > take.start ||
-        (previous.originalVisit === i && take.start-previous.endSeconds <= 0.08))) previous.endSeconds = take.start;
+    let start = take.start;
+    if (previous && previous.endSeconds > start && previous.pinnedEnd) start = previous.endSeconds;
+    else if (previous && (previous.endSeconds > start ||
+        (!previous.pinnedEnd && previous.originalVisit === i && start-previous.endSeconds <= 0.08))) previous.endSeconds = start;
     visits.push({visit:visits.length+1,originalVisit:i+1,scoreMeasure:measure.measureNumber,
-      occurrence:measure.occurrence,startSeconds:take.start,endSeconds:take.end});
+      occurrence:measure.occurrence,startSeconds:start,endSeconds:take.end,pinnedEnd:take.pinnedEnd});
   }
   if (!visits.length) throw Error('Choose at least one take.');
-  return visits.map(v => ({...v,anchors:[{offset480:0,seconds:v.startSeconds},{offset480:480,seconds:v.endSeconds}]}));
+  return visits.map(({pinnedEnd,...v}) => ({...v,anchors:[{offset480:0,seconds:v.startSeconds},{offset480:480,seconds:v.endSeconds}]}));
 }
 
 export async function suggestionDraft({measures,matches,choices,trackId,scoreSha256,sourceSha256}) {
@@ -117,5 +131,5 @@ export async function suggestionDraft({measures,matches,choices,trackId,scoreSha
   const candidatePlan = {format:INTERVAL_TIMING_FORMAT,version:1,scoreSha256,sourceSha256,timingSha256,recordingId,
     originalPlaybackOrder,musicalVisits,intervals,scoreOmissions:[],repeatResolution:{kind:'unchanged',omittedOriginalVisits:[]}};
   return validateDraft({format:DRAFT_FORMAT,version:1,scoreSha256,recordingId,originalPlaybackOrder,
-    originalTimingText,matchingEvidence:{method:'audio-passage-search-v1',trackId},candidatePlan,unresolved:[]});
+    originalTimingText,matchingEvidence:{method:'audio-passage-search-v2',trackId},candidatePlan,unresolved:[]});
 }

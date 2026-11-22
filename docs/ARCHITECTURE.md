@@ -2,7 +2,7 @@
 
 ## Optional audio-based sync suggestions
 
-The four `js/audio-sync-*.js` modules own the score queries, spectral analysis, background worker and take-selection interface. The matcher uses the selected track's normalized played measures, pitch classes and onset timing. A written repeat has one row per native visit. Extra recorded takes are candidates for those rows. Recording gaps become ordinary unscored intervals in the existing editable draft. The Media Sync controller supplies the current source and handles audition and handoff. The draft editor accepts replacement mappings through its existing undo history.
+The `js/audio-sync-*.js` modules own score queries, spectral analysis, the background worker and take selection. The worker combines single-measure matches with three-measure subsequence dynamic time warping. Playback-order ranking can skip visits and recording gaps. The controls retain pitch features for the current analysis so a new worker can refine a selected passage between exact recording pins using pitches and changes in pitch strength. Workers terminate on completion or cancellation. A written repeat has one row per native visit. Extra takes are alternatives for those rows. Accepted gaps and points use the existing editable draft and undo history.
 
 To remove the feature, revert the audio-suggestions commit, including its editor hooks and tests. Previously accepted mappings use the same timing profile format as other reviewed lessons.
 

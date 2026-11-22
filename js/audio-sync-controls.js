@@ -1,5 +1,6 @@
 import {fingerprint} from './library-store.js';
-import {scoreQueries,initialChoices,followTake,suggestionDraft} from './audio-sync-score.js';
+import {scoreQueries,passageScore,followTake,suggestionDraft} from './audio-sync-score.js';
+import {createPassageRange} from './audio-sync-range.js';
 import {SAMPLE_RATE} from './audio-sync-match.js';
 
 const MAX_BYTES = 256 * 1024 * 1024;
@@ -31,7 +32,7 @@ async function readRecording({file,url}, signal) {
   return new Blob(chunks).arrayBuffer();
 }
 
-function analyze(bars,samples,signal,progress) {
+function analyze(request,transfer,signal,progress) {
   signal.throwIfAborted();
   const worker = new Worker(new URL('./audio-sync-worker.js',import.meta.url),{type:'module'});
   let cancel;
@@ -40,11 +41,11 @@ function analyze(bars,samples,signal,progress) {
     signal.addEventListener('abort',cancel,{once:true});
     worker.onmessage = ({data}) => {
       if (data.error) reject(Error(data.error));
-      else if (data.matches) resolve(data.matches);
-      else progress(data.done,data.total);
+      else if (data.matches || data.points) resolve(data);
+      else progress(data);
     };
     worker.onerror = () => reject(Error('The audio analysis worker could not finish.'));
-    worker.postMessage({bars,samples},[samples.buffer]);
+    worker.postMessage(request,[transfer.buffer]);
   }).finally(() => {signal.removeEventListener('abort',cancel);worker.terminate();});
 }
 
@@ -55,17 +56,23 @@ const button = (label,handler) => {
   return node;
 };
 
-export function createAudioSuggestions({after,context,preview,review}) {
+export function createAudioSuggestions({after,context,playhead,preview,review}) {
   const panel = document.createElement('details');
   panel.id = 'media-audio-suggestions'; panel.className = 'sync-editor-help';
   const title = document.createElement('summary'); title.textContent = 'Suggest sync points from audio';
   const help = document.createElement('p'), status = document.createElement('p');
   help.className = status.className = 'field-help'; status.setAttribute('role','status');
   const rows = document.createElement('div');
+  const passage = document.createElement('div');
   const start = button('Analyze lesson audio',run);
-  const cancel = button('Cancel analysis',() => {reset(); status.textContent = 'Analysis canceled.';});
+  const cancel = button('Cancel analysis',() => {
+    if (job && result) {
+      job.controller.abort(); job = null; cancel.hidden = true; sync();
+    } else reset();
+    status.textContent = 'Analysis canceled.';
+  });
   const apply = button('Review selected takes',openDraft);
-  panel.append(title,help,start,cancel,status,rows,apply); after.after(panel);
+  panel.append(title,help,start,cancel,status,rows,passage,apply); after.after(panel);
   let job = null, result = null, applying = false;
 
   function current(snapshot) {
@@ -75,7 +82,7 @@ export function createAudioSuggestions({after,context,preview,review}) {
   }
   function reset() {
     job?.controller.abort(); job = result = null;
-    rows.replaceChildren(); status.textContent = ''; apply.hidden = cancel.hidden = true;
+    rows.replaceChildren(); passage.replaceChildren(); status.textContent = ''; apply.hidden = cancel.hidden = true;
     start.disabled = false;
   }
   function sync() {
@@ -91,7 +98,8 @@ export function createAudioSuggestions({after,context,preview,review}) {
     help.textContent = reason || 'Matches the selected practice track. Choose a take for each written pass. Unmapped recording time plays without grading.';
     start.disabled = Boolean(reason || job || applying);
     apply.textContent = now.hasDraft ? 'Replace draft mapping with selected takes' : 'Review selected takes';
-    apply.disabled = Boolean(reason || applying || !result?.choices.some(c => c >= 0));
+    rows.inert = passage.inert = Boolean(reason || job || applying);
+    apply.disabled = Boolean(reason || job || applying || !result?.choices.some(c => c >= 0));
     return !reason;
   }
   async function run() {
@@ -104,7 +112,8 @@ export function createAudioSuggestions({after,context,preview,review}) {
     cancel.hidden = false; sync();
     try {
       const bars = scoreQueries(snapshot.timeline,snapshot.trackId);
-      if (!bars.some(b => b.probes.length)) throw Error('This track has too little pitch variation for a reliable match. Use manual sync points or choose another track.');
+      const score = passageScore(snapshot.timeline,snapshot.trackId);
+      if (!score.notes.length) throw Error('This track has no pitched notes to match. Choose another track.');
       status.textContent = 'Reading recording audio…';
       const bytes = await readRecording(snapshot,signal);
       check();
@@ -126,21 +135,26 @@ export function createAudioSuggestions({after,context,preview,review}) {
         if (energy > highest) { samples = channel; highest = energy; }
       }
       status.textContent = 'Listening for pitch patterns…';
-      const matches = await analyze(bars,samples.slice(0,Math.floor(snapshot.duration*SAMPLE_RATE)),signal,(done,total) => {
-        if (job === task) status.textContent = `Searching measure visits · ${done} of ${total}`;
+      samples = samples.slice(0,Math.floor(snapshot.duration*SAMPLE_RATE));
+      const analysis = await analyze({bars,score,samples},samples,signal,({phase,done,total}) => {
+        if (job === task) status.textContent = `${phase} · ${done} of ${total}`;
       });
       check();
-      result = {snapshot,sourceSha256,matches,choices:initialChoices(matches)};
+      result = {snapshot,sourceSha256,score,...analysis,locked:bars.map(() => false)};
       draw();
+      const r = result;
+      passage.replaceChildren(createPassageRange(snapshot.timeline.measures,snapshot.duration,playhead,
+        i => r.matches[i][r.choices[i]],refine));
     } catch (error) { if (job === task) status.textContent = error.message; }
     finally { if (job === task) { job = null; cancel.hidden = true; sync(); } }
   }
   function draw() {
     const {matches,choices,snapshot} = result;
     rows.replaceChildren();
+    passage.firstChild?.dispatchEvent(new Event('takeschanged'));
     const found = matches.filter(t => t.length).length;
     status.textContent = found
-      ? `Matches for ${found} of ${matches.length} measure visits. Listen to compare takes. Continue this take selects adjacent matches until the next break or ambiguity.`
+      ? `Matches for ${found} of ${matches.length} measure visits. A suggested sequence is selected in playback order. Listen to compare takes or leave a visit unmapped.`
       : 'No convincing matches. Check the practice track, tuning and recording, or place the points manually.';
     apply.hidden = !found;
     if (!found) return;
@@ -150,20 +164,52 @@ export function createAudioSuggestions({after,context,preview,review}) {
       const label = document.createElement('label'), select = document.createElement('select');
       label.append(`Measure ${m.measureNumber} · pass ${m.occurrence} `,select);
       select.add(new Option(takes.length ? 'Leave unmapped' : 'No match','-1'));
-      takes.forEach((t,j) => select.add(new Option(`Take ${j+1} · ${time(t.start)}–${time(t.end)}`,String(j))));
+      takes.forEach((t,j) => select.add(new Option(`${t.refined ? 'Pinned passage' : 'Take '+(j+1)} · ${time(t.start)}–${time(t.end)}`,String(j))));
       select.value = String(choices[i]); select.disabled = !takes.length;
       const listen = button('Play from take',async () => {
         try { if (current(snapshot)) await preview(takes[choices[i]]); }
         catch (error) { status.textContent = error.message; }
       });
       const follow = button('Continue this take',() => {
-        result.choices = followTake(matches,choices,i); draw(); sync();
+        result.choices = followTake(matches,choices,i,result.locked);
+        result.choices.forEach((choice,j) => {if (choice !== choices[j]) result.locked[j] = true;});
+        draw(); sync();
       });
-      select.onchange = () => { choices[i] = Number(select.value); listen.disabled = follow.disabled = choices[i] < 0; sync(); };
+      select.onchange = () => {
+        choices[i] = Number(select.value); result.locked[i] = true;
+        listen.disabled = follow.disabled = choices[i] < 0;
+        passage.firstChild?.dispatchEvent(new Event('takeschanged')); sync();
+      };
       listen.disabled = follow.disabled = choices[i] < 0;
       row.append(label); if (takes.length) row.append(listen,follow);
       rows.append(row);
     }
+  }
+  async function refine(range) {
+    if (job || applying || !result || !sync()) return;
+    const r = result, {first,last,start,end} = range;
+    if (first > last || !Number.isFinite(start) || !Number.isFinite(end) ||
+        start < 0 || end <= start || end > r.snapshot.duration) {
+      status.textContent = 'Choose measures in playback order and enter a start and a later end within the recording.';
+      return;
+    }
+    const task = {snapshot:r.snapshot,controller:new AbortController()};
+    job = task; cancel.hidden = false; sync();
+    status.textContent = 'Matching the passage between your pins…';
+    try {
+      const features = r.features.slice(Math.floor(start/0.04)*12,Math.ceil(end/0.04)*12);
+      const {points} = await analyze({range,score:r.score,features},features,task.controller.signal);
+      if (job !== task || result !== r || !current(r.snapshot)) return;
+      for (let i = first; i <= last; i++) {
+        const takes = r.matches[i].filter(t => !t.refined);
+        r.choices[i] = takes.length;
+        r.locked[i] = true;
+        takes.push({start:points[i-first],end:points[i-first+1],refined:true,pinnedStart:i===first,pinnedEnd:i===last});
+        r.matches[i] = takes;
+      }
+      draw(); status.textContent = 'Passage selected with both pins fixed. Listen to the result, then review the draft.';
+    } catch (error) {if (job === task) status.textContent = error.message;}
+    finally {if (job === task) {job = null; cancel.hidden = true; sync();}}
   }
   async function openDraft() {
     if (!sync() || !result || applying) return;

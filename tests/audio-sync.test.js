@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {matchMeasures} from '../js/audio-sync-match.js';
-import {scoreQueries,initialChoices,followTake,selectedVisits,suggestionDraft} from '../js/audio-sync-score.js';
+import {matchMeasures,recordingFeatures} from '../js/audio-sync-match.js';
+import {scoreQueries,passageScore,initialChoices,followTake,selectedVisits,suggestionDraft} from '../js/audio-sync-score.js';
+import {phraseMatches,orderedChoices,refinePassage} from '../js/audio-sync-passages.js';
 import {validateTimingPlan} from '../js/explanation-timing.js';
 import {draftPosition} from '../js/draft-alignment.js';
 import {phrases,lessonSamples,sampleRate} from './audio-sync-fixture.js';
@@ -41,6 +42,41 @@ test('silent recording, absent track, and isolated uninformative bar yield no ma
   assert(scoreQueries(score,'1').every(bar => !bar.probes.length));
   score.measures = score.measures.slice(0,1); score.events = score.events.slice(0,1);
   assert.equal(scoreQueries(score,'0')[0].probes.length,0);
+});
+
+test('passage search alone finds an ordered repeat across an unscored break',() => {
+  const score = timeline(), reference = passageScore(score,'0'), features = recordingFeatures(lessonSamples());
+  const empty = score.measures.map(() => []);
+  // Two adjacent measures make one uninterrupted query. Reuse the same
+  // search on both visits to verify that order can distinguish the takes.
+  const pair = phraseMatches({...reference,edges:[0,2,4]},features,17,[[],[]]);
+  const matches = [...pair,...pair], choices = orderedChoices(matches);
+  const visits = selectedVisits(score.measures,matches,choices);
+  assert.equal(visits.length,4);
+  [0.8,2.8,12,14].forEach((t,i) => assert(Math.abs(visits[i].startSeconds-t)<0.17));
+  assert.deepEqual(phraseMatches(reference,new Float32Array(features.length),17,empty),empty);
+  const three = phraseMatches(reference,features,17,empty);
+  assert(three.some(row => row.length));
+  assert(three.every(row => row.length <= 5));
+  assert(three.flat().every(t => t.start >= 0 && t.end <= 17 && t.start < t.end));
+});
+
+test('refinement follows a changing tempo inside exact pins and rejects unrelated silence',() => {
+  const score = passageScore(timeline(),'0'), full = recordingFeatures(lessonSamples());
+  // Stretch the first bar of one take to three seconds and shorten the last
+  // bar to one second. Straight interpolation would put the boundary at 2 s.
+  const features = new Float32Array(100*12);
+  for (let i = 0; i < 100; i++) {
+    const source = 20+Math.floor(i<75 ? i*50/75 : 50+(i-75)*2);
+    features.set(full.subarray(source*12,source*12+12),i*12);
+  }
+  const points = refinePassage(score,features,0,1,0.007,3.997);
+  assert.equal(points[0],0.007); assert.equal(points[2],3.997);
+  assert(Math.abs(points[1]-3)<0.17,JSON.stringify(points));
+  assert.throws(() => refinePassage(score,new Float32Array(features.length),0,1,0,4),/Weak pitch match/);
+  const visits = selectedVisits(timeline().measures,[[{start:0,end:2,pinnedEnd:true}],
+    [{start:2.04,end:4}],[],[]],[0,0,-1,-1]);
+  assert.equal(visits[0].endSeconds,2); assert.equal(visits[1].startSeconds,2.04);
 });
 
 test('strummed chords tolerate staggered strings and modest timing variation',() => {

@@ -41,26 +41,52 @@ async function run() {
     });
     assert.match(await panel.innerText(),/canceled/);
     await panel.getByText('Analyze lesson audio').click();
-    const selects = panel.locator('select');
+    const selects = panel.locator('label').filter({hasText:/^Measure \d/}).locator('select');
+    async function selectTakeNear(row,seconds) {
+      const value = await selects.nth(row).locator('option').evaluateAll((options,target) => {
+        const found = options.find(o => {
+          const parts = o.textContent.match(/· (\d+):(\d+\.\d+)–/);
+          return parts && Math.abs(60*Number(parts[1])+Number(parts[2])-target)<0.15;
+        });
+        return found?.value;
+      },seconds);
+      assert(value !== undefined,`Missing take near ${seconds}s`);
+      await selects.nth(row).selectOption(value);
+    }
     await selects.nth(3).waitFor();
-    assert.equal(await selects.nth(0).locator('option').count(),4);
-    await selects.nth(0).selectOption('0');
+    assert.notEqual(await selects.nth(0).inputValue(),'-1');
+    await selectTakeNear(0,0.8);
     await panel.getByRole('button',{name:'Continue this take'}).nth(0).click();
     assert.equal(await selects.nth(1).inputValue(),'0',await panel.innerText());
-    await selects.nth(2).selectOption('2');
+    await selectTakeNear(2,12);
     await panel.getByRole('button',{name:'Continue this take'}).nth(2).click();
     await panel.getByText('Play from take').nth(2).click();
     await page.waitForFunction(() => document.querySelector('#media-audio').currentTime > 11.7);
+    const range = panel.locator('fieldset');
+    await range.getByLabel('Start measure').selectOption('2');
+    await range.getByLabel('End measure').selectOption('3');
+    await range.getByText('Use playhead for start').click();
+    assert(Number(await range.getByLabel('Start time (s)').inputValue()) > 11);
+    await range.getByLabel('Start time (s)').fill('12.013');
+    await range.getByLabel('End time (s)').fill('11');
+    await range.getByText('Refine points between pins').click();
+    await panel.getByText(/enter a start and a later end/).waitFor();
+    await range.getByLabel('End time (s)').fill('16.006');
+    await range.getByText('Refine points between pins').click();
+    await panel.getByText(/both pins fixed/).waitFor();
     await panel.getByText('Review selected takes').click();
     await page.locator('#media-draft-timing').waitFor();
     assert(await page.evaluate(() => s.media.editing && !s.media.preview));
     const plan = JSON.parse(await page.locator('#media-draft-json').inputValue()).candidatePlan;
     assert.deepEqual(plan.originalPlaybackOrder,[1,2,1,2]);
     assert(plan.intervals.some(i => i.startSeconds < 5 && i.endSeconds > 11));
+    assert.equal(plan.musicalVisits[2].startSeconds,12.013);
+    assert.equal(plan.musicalVisits[3].endSeconds,16.006);
+    assert(Math.abs(plan.musicalVisits[3].startSeconds-14)<0.15);
     // Reconsider an instructor take after hearing the draft. Use the draft's
     // existing Undo history to restore the first selection.
     await panel.locator('summary').click();
-    await selects.nth(2).selectOption('1');
+    await selectTakeNear(2,7);
     await panel.getByRole('button',{name:'Replace draft mapping with selected takes'}).click();
     const draftJSON = page.locator('#media-draft-json');
     await page.waitForFunction(() => JSON.parse(document.querySelector('#media-draft-json').value).candidatePlan.musicalVisits[2].startSeconds < 8);
@@ -88,7 +114,7 @@ async function run() {
     deny = false;
     await panel.getByText('Analyze lesson audio').click();
     await selects.nth(3).waitFor();
-    assert.equal(await selects.nth(2).locator('option').count(),4);
+    await selectTakeNear(2,7);
     assert.deepEqual(errors,[]);
     console.log('Chrome passed local file, direct link, denied audio fetch, cancel/retry, three takes, both written passes, draft undo and reviewed timing with an internal gap.');
   } finally {

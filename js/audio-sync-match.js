@@ -106,10 +106,14 @@ function findTakes(bar, features, duration) {
 }
 
 export function matchMeasures(bars, samples, progress = () => {}) {
-  const features = recordingFeatures(samples), cache = new Map();
+  return matchSingleMeasures(bars,recordingFeatures(samples),samples.length / SAMPLE_RATE,progress);
+}
+
+export function matchSingleMeasures(bars, features, duration, progress = () => {}) {
+  const cache = new Map();
   return bars.map((bar, i) => {
     const key = JSON.stringify([bar.duration,bar.probes]);
-    if (!cache.has(key)) cache.set(key,findTakes(bar, features, samples.length / SAMPLE_RATE));
+    if (!cache.has(key)) cache.set(key,findTakes(bar, features, duration));
     progress(i+1, bars.length);
     if (bar.span === undefined) return cache.get(key);
     return cache.get(key).map(t => {

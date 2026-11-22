@@ -1,5 +1,11 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Passage timing drafts — 2026-11-22
+
+Media Sync searches up to three played measures at once and ranks candidates in playback order. The continuous-passage editor pins both recording edges and uses an original pitch-and-attack alignment to propose the interior points. No external matcher code or model is bundled. The earlier trackswitch measurements used a different implementation. The browser version needs a separate real-lesson accuracy check.
+
+Synthetic regressions cover independent takes, ordered repeats, silence, explanation gaps and a tempo change inside exact pins. The Chrome workflow exercises playhead pins, invalid ranges, a repeated take, review, undo, accepted gap playback, local files, readable links and denied reads.
+
 ## Audio sync suggestions — 2026-11-21
 
 Implemented an original browser matcher using pitch-class passage search. Local analysis proposes candidate times for each native measure occurrence. The lesson owner chooses takes and reviews gaps before activating the timing. No external library or service is required. [AudioLabs passage-search background](https://www.audiolabs-erlangen.de/resources/MIR/FMP/C7/C7S2_AudioMatching.html)

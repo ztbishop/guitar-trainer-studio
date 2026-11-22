@@ -84,6 +84,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   const scrub=get('seek').closest('.media-scrub'),timelineBar=get('timeline-bar');
   const suggestions=createAudioSuggestions({
     after:get('editor-toolbar'),
+    playhead:()=> (player?.currentTime ?? 0)/1000,
     context:()=>({source,file:localFile,url:blobUrl || source?.url,score:AppState.currentScoreFile,
       scoreSha256:scoreHash,timeline:AppState.playbackTimeline,trackId:AppState.practiceTrackId,
       duration:(player?.backingTrackDuration || 0)/1000,generation,hasDraft:Boolean(draftTiming),
