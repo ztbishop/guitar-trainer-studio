@@ -141,16 +141,8 @@ let cursorRevealTick=null,cursorRevealGeneration=0;
 let cursorRevealFollowOnly=false;
 let editingCountIn=null;
 let draftCursor=null,draftCursorBar=null;
-let draftBeatId=null,draftGlyphs=[];
-function highlightDraftBeat(id){
-  if(id===draftBeatId && (id===null || draftGlyphs.length && draftGlyphs.every(g=>g.isConnected)))return;
-  for(const g of draftGlyphs)g.classList.remove('draft-playing-note');
-  draftBeatId=id;
-  draftGlyphs=id==null?[]:Array.from(notationContainer.getElementsByClassName('b'+id));
-  for(const g of draftGlyphs)g.classList.add('draft-playing-note');
-}
 function clearDraftCursor(){
-  highlightDraftBeat(null);draftCursor?.replaceChildren();draftCursorBar=null;
+  draftCursor?.replaceChildren();draftCursorBar=null;
   return false;
 }
 // Display-only draft projection. Never seek/play the synth, change its clock,
@@ -170,11 +162,15 @@ export function showDraftPosition(position,reveal=false,audition=false) {
   const next=beats.find(b=>b.beat.playbackStart>beat.beat.playbackStart),end=next?.beat.playbackStart??native.endTick-native.startTick;
   const fraction=Math.max(0,Math.min(1,(offset-beat.beat.playbackStart)/Math.max(1,end-beat.beat.playbackStart)));
   const x=beat.onNotesX+fraction*((next?.onNotesX??bounds.x+bounds.w)-beat.onNotesX);
-  if(!draftCursor)draftCursor=svgElement('svg',{id:'draft-score-cursor',class:'draft-score-cursor','aria-label':'Unverified editing score position'});
+  if(!draftCursor){
+    draftCursor=document.createElement('div');draftCursor.id='draft-score-cursor';draftCursor.className='draft-score-cursor';
+    draftCursor.setAttribute('aria-hidden','true');
+  }
   if(draftCursor.parentNode!==notationContainer)notationContainer.append(draftCursor);
   draftCursor.dataset.originalVisit=String(position.originalVisit);draftCursor.dataset.tick=String(position.tick);
-  highlightDraftBeat(beat.beat.id);
-  draftCursor.replaceChildren(svgElement('rect',{x:x-2,y:bounds.y,width:4,height:bounds.h,fill:'#4daeea','fill-opacity':0.55}));
+  let marker=draftCursor.firstElementChild;
+  if(!marker){marker=document.createElement('div');marker.className='draft-beat-marker';draftCursor.append(marker);}
+  marker.style.left=x+'px';marker.style.top=bounds.y+'px';marker.style.height=bounds.h+'px';
   if(reveal||draftCursorBar!==position.originalVisit){revealMediaScoreTarget({barIndex:position.scoreMeasure-1,barPosition:position.fraction});draftCursorBar=position.originalVisit;}
   return true;
 }

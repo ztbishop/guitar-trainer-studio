@@ -1,5 +1,7 @@
 # Guitar Trainer Studio status and to-do
 
+Check Auto-sync on a familiar lesson, then reopen Edit sync and time a missing measure.
+
 Local listening check: audition the backward suggestion for Jazz Discovery measure 2 and check a score click on a familiar repeated pass.
 
 Local acceptance for audio timing: click a missed measure on the score, set its first beat from the video, then check the colors and the following measure in playback.

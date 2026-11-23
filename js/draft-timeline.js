@@ -16,7 +16,7 @@ export function createDraftTimeline({container,options,transport,highlight,chang
   let original,working,selected=null,target='startSeconds',current=0,playing=false,extent=1,zoom=1,drag=null,evidencePoints=[],seekDisplayTime=null;
   const controls=node('div');controls.className='media-actions';
   function button(parent,id,text,fn){const e=node('button',text);e.type='button';e.id=id;e.onclick=()=>{try{fn();}catch(err){error(err);}};parent.append(e);return e;}
-  const play=button(controls,'media-draft-play','Play recording',()=>transport(playing?'pause':'play'));
+  const play=button(controls,'media-draft-play','▶ Play',()=>transport(playing?'pause':'play'));
   button(controls,'media-draft-zoom-out','−',()=>{zoom=Math.max(1,zoom/2);draw();centerPlayhead();});
   button(controls,'media-draft-zoom-in','+',()=>{zoom=Math.min(32,zoom*2);draw();centerPlayhead();});
   const clock=node('output');clock.id='media-draft-clock';controls.append(clock);
@@ -158,7 +158,7 @@ export function createDraftTimeline({container,options,transport,highlight,chang
   chart.addEventListener('pointercancel',()=>{drag=null;draw();fields();});
   chart.addEventListener('keydown',event=>{const hit=event.target.closest('[data-piece]');if(hit&&['Enter',' '].includes(event.key)){event.preventDefault();select(hit.dataset.piece);target=hit.dataset.target;fields();}});
   function update(time,isPlaying){
-    current=time;playing=isPlaying;play.textContent=playing?'Pause recording':'Play recording';clock.textContent=`${time.toFixed(2)} / ${(options().durationMs/1000).toFixed(2)} s`;
+    current=time;playing=isPlaying;play.textContent=playing?'⏸ Pause':'▶ Play';clock.textContent=`${time.toFixed(2)} / ${(options().durationMs/1000).toFixed(2)} s`;
     if(document.activeElement!==seek)seek.value=String(time);
     const x=current/extent*1000,h=chart.querySelector('#media-draft-playhead');h?.setAttribute('x1',x);h?.setAttribute('x2',x);
     if(!working)return;

@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+Blind rerun of the production worker on the same GPX and recording hashes with the saved measure/pass timings withheld. Connecting Intervals kept 30 of 40 selections. Each unselected row already had alternatives. Low Bass Note kept 17 of 19 selections. Neither lesson gained a backward suggestion. On Connecting Intervals seven existing selections had midpoints in a different reference visit, including 14 and 15. On Low Bass Note all 17 midpoints landed in the expected visit.
+
+With each preceding bar hidden in turn and the analyzer’s own next downbeat held fixed, Connecting Intervals recovered 2 of 29 opportunities (38 and 39, starts 0.14 and 0.26 s late). Low Bass Note recovered 16 of 17, including all eight second passes. Second-pass start errors ranged from 0.57 s early to 0.49 s late. None of these 18 recovered spans intersected a reference gap or landed on another take by midpoint. This measures recovery when the following downbeat has been selected. It does not measure general speech detection.
+
 Jazz Discovery 98027 in Chrome: the opening score measure is silent. Measure 2 scored 0.499 in the single-bar search (minimum 0.78). The opening three-bar phrase scored 0.469 (minimum 0.52). A bounded backward pitch search proposed 44.701 s to 47.207 s. This is an audio-derived estimate. Clicking notes in measures 2 and 3 sought the recording in both review and local reviewed playback.
 
 Chrome check with Jazz Discovery lesson 98027: analysis left measure 2 open and placed measure 3 at 47.2067 s. Clicking measure 2 in the score selected its timing form. Inserting a test start, undoing and redoing preserved later measure times. The video seek bar showed mapped coverage during selection, review and reviewed playback. The test start was chosen to exercise editing.

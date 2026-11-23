@@ -1193,7 +1193,8 @@ body.has-score .alphatab-wrapper {
   box-shadow: none;
 }
 
-.at-cursor-beat::before {
+.draft-beat-marker { position:absolute; width:16px; transform:translateX(-50%); }
+.at-cursor-beat::before, .draft-beat-marker::before {
   content: "";
   position: absolute;
   left: 50%;
@@ -1201,8 +1202,6 @@ body.has-score .alphatab-wrapper {
   width: 16px;
   height: 100%;
   margin-left: -8px;
-  /* alphaTab scales this cursor element down by 100 after layout. Cancel that scale for the halo width. */
-  transform: scaleX(100);
   transform-origin: center;
   border-radius: 4px;
   pointer-events: none;
@@ -1211,7 +1210,9 @@ body.has-score .alphatab-wrapper {
     linear-gradient(to bottom, rgba(77, 174, 234, 0.04) 0%, rgba(77, 174, 234, 0.2) 18%, rgba(77, 174, 234, 0.28) 50%, rgba(77, 174, 234, 0.2) 82%, rgba(77, 174, 234, 0.04) 100%);
 }
 
-.at-highlight *, .draft-playing-note * {
+.at-cursor-beat::before { transform:scaleX(100); } /* Counter alphaTab’s native cursor scale. */
+
+.at-highlight * {
   fill: rgba(46, 204, 113, 0.92) !important;
   stroke: rgba(46, 204, 113, 0.92) !important;
 }

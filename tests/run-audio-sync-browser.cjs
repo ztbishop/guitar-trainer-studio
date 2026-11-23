@@ -107,6 +107,23 @@ async function run() {
     assert.deepEqual(JSON.parse(await draftJSON.inputValue()).candidatePlan,plan);
     await page.locator('#media-draft-use').click();
     await page.waitForFunction(() => s.media.preview && s.media.timingPlan?.visits.length === 4);
+    await page.locator('#media-show-editor').evaluate(box=>{box.checked=true;box.dispatchEvent(new Event('change'));});
+    await page.locator('#media-edit-timed-measures').click();
+    await page.locator('#media-draft-use').waitFor();
+    assert.deepEqual(JSON.parse(await draftJSON.inputValue()).candidatePlan,plan);
+    await page.locator('#media-draft-use').click();
+    await page.waitForFunction(()=>s.media.preview && s.media.timingPlan?.visits.length===4 && !s.media.editing);
+    // A saved analyzer profile must also be editable after restoring it from storage.
+    await page.locator('#media-show-editor').evaluate(box=>{box.checked=true;box.dispatchEvent(new Event('change'));});
+    await page.locator('#media-save-profile').click();
+    await page.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('profile saved'));
+    await page.locator('#media-profile-select').evaluate(select=>{select.value=[...select.options].find(o=>o.value).value;select.dispatchEvent(new Event('change'));});
+    await page.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('Saved alignment restored'));
+    await page.locator('#media-edit-timed-measures').click();
+    await page.locator('#media-draft-use').waitFor();
+    assert.deepEqual(JSON.parse(await draftJSON.inputValue()).candidatePlan.musicalVisits,plan.musicalVisits);
+    await page.locator('#media-draft-use').click();
+    await page.waitForFunction(()=>s.media.preview && !s.media.editing);
     const skipMusic=page.locator('#media-player-skip-explanation'), mainPlay=page.locator('#play-pause-button');
     const scrubTo=seconds=>page.locator('#media-seek').evaluate((el,t)=>{el.value=t;el.dispatchEvent(new Event('input'));},seconds);
     await scrubTo(0);

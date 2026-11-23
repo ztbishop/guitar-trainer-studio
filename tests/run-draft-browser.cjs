@@ -24,11 +24,12 @@ function wav(){const b=Buffer.alloc(44+22050*2*15);b.write('RIFF');b.writeUInt32
  await page.locator('#media-draft-section').selectOption('music:0');
  await page.locator('#play-pause-button').click();
  await page.waitForFunction(()=>document.querySelector('#media-audio').currentTime>1.2);
- await page.waitForFunction(()=>document.querySelector('#draft-score-cursor rect'));
- await page.waitForFunction(()=>Array.from(document.querySelectorAll('.draft-playing-note *')).some(g=>getComputedStyle(g).fill.includes('46, 204, 113')));
- const x1=await page.locator('#draft-score-cursor rect').last().getAttribute('x');
+ await page.waitForFunction(()=>document.querySelector('#draft-score-cursor .draft-beat-marker'));
+ const cursorStyle=await page.locator('.draft-beat-marker').evaluate(e=>{const normal=getComputedStyle(document.querySelector('.at-cursor-beat'),'::before'),draft=getComputedStyle(e,'::before');return [normal.width,normal.backgroundImage,draft.width,draft.backgroundImage];});
+ assert.equal(cursorStyle[0],cursorStyle[2]);assert.equal(cursorStyle[1],cursorStyle[3]);
+ const x1=await page.locator('#draft-score-cursor .draft-beat-marker').last().evaluate(e=>e.style.left);
  await page.waitForTimeout(350);
- const x2=await page.locator('#draft-score-cursor rect').last().getAttribute('x');assert.notEqual(x1,x2);
+ const x2=await page.locator('#draft-score-cursor .draft-beat-marker').last().evaluate(e=>e.style.left);assert.notEqual(x1,x2);
  assert.equal(await page.locator('#draft-score-cursor').getAttribute('data-original-visit'),'2');
  const scores=await page.evaluate(()=>({realtime:s.trainer.results,wait:s.waitTrainer.results}));await page.evaluate(()=>{sendDraftMidi([0x90,40,100]);sendDraftMidi([0x80,40,0]);sendDraftMidi([0x90,81,100]);sendDraftMidi([0x80,81,0]);});
  assert.deepEqual(await page.evaluate(()=>({realtime:s.trainer.results,wait:s.waitTrainer.results})),scores);
@@ -36,7 +37,7 @@ function wav(){const b=Buffer.alloc(44+22050*2*15);b.write('RIFF');b.writeUInt32
  assert(await page.evaluate(()=>s.media.editing&&!s.isPlaying&&!s.media.preview));await page.locator('#media-draft-stop').click();
  await page.locator('#media-draft-seek').evaluate(e=>{e.value='4.5';e.dispatchEvent(new Event('input',{bubbles:true}));});
  await page.waitForFunction(()=>document.querySelector('#media-draft-position').textContent.startsWith('Explanation'));
- assert.equal(await page.locator('#draft-score-cursor rect').count(),0);
+ assert.equal(await page.locator('#draft-score-cursor .draft-beat-marker').count(),0);
  assert.equal(await page.locator('.draft-playing-note').count(),0);
  await page.locator('#media-draft-section').selectOption('music:3');
  assert.equal(await page.locator('#media-draft-seconds').inputValue(),'11');

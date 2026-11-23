@@ -657,7 +657,7 @@ function renderTrainerUi() {
   setNotationFeedback(AppState.media.editing?[]:marks,{notation:AppState.ui.showNotationFeedback,tabCircles:AppState.ui.showTabCircles,tabFrets:AppState.ui.showTabMistakes});
   renderPracticeFretboard(trainer);
   const playButton=document.getElementById('play-pause-button');
-  if(playButton) {
+  if(playButton && !(AppState.media.editing && (document.body.classList.contains('draft-timing-active') || document.body.classList.contains('media-take-audition')))) {
     const running=AppState.countInActive || (AppState.mode==='wait' && !AppState.media.editing ? trainer.active && trainer.phase!=='paused' : AppState.isPlaying);
     playButton.textContent=AppState.media.editing?(running?'⏸ Pause preview':'▶ Preview'):(running?'⏸ Pause':'▶ Play');
     const action=AppState.media.editing?(running?'Pause sync preview':'Preview sync · Grading and loops paused; choose Finish editing to practice'):(running?'Pause practice':'Start or resume practice');

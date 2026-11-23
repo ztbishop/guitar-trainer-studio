@@ -51,7 +51,9 @@ In **Video & editor layout**, choose Above, Below, Left or Right of score. First
 
 ### Suggest sync points from audio
 
-**Matched from next measure** is an editable take. The analyzer holds the following downbeat fixed and checks the missing measure’s own pitches at nearby tempos. Click a timed note on the staff or tab to seek the recording to that beat. Green notes show the current beat during preview.
+Choose **Auto-sync** in the Media Sync toolbar to analyze the recording and use the selected takes in one step. Playback starts when you press **Play**. To change the result, choose **Edit sync**. If you see **Edit timed measures**, click it to reopen the working map, including an analyzer map restored from a saved profile. Choose a missing measure and pass, set its start and end, and click **Add timed measure**. The full review workflow below also remains available.
+
+**Matched from next measure** is an editable take. The analyzer holds the following downbeat fixed and checks the missing measure’s own pitches at nearby tempos. Click a timed note on the staff or tab to seek the recording to that beat. A translucent blue playhead follows the beat in preview.
 
 Blue on the video seek bar marks timed measures. Gray is recording time with no measure mapped yet and can include music the analyzer missed. To recover a missing measure, choose **Set measure timing** in its analyzer row, or click the measure in the score during draft review. In **Time a missing measure**, check the pass, seek to its first beat, and choose **Use playhead for start**. If the next measure is already timed and follows immediately, keep its start as the proposed end. Otherwise set the end from the recording. Choose **Add timed measure**. The reviewer supports **Undo draft edit**.
 

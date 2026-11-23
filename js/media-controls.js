@@ -2,6 +2,7 @@ import {printedMeasure} from './printed-measure.js';
 // Media UI, browser players and profile intents. Native calls stay in the host.
 import {createDraftEditor} from './draft-controls.js';
 import {createAudioSuggestions} from './audio-sync-controls.js';
+import {draftPosition} from './draft-alignment.js';
 import {validateDraft,checkDraftBinding,DRAFT_CAPABILITY} from './draft-timing.js';
 import {AppState} from './app-state.js';
 import {recordingScoreRange,recordingRegion,nextMusicStart} from './media-score-range.js';
@@ -52,7 +53,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   let projectedGuides=[],timelineFrame=0;
   let sectionFirst=0,sectionLast=0,movementPositions='';
   let player=null,source=null,localFile=null,blobUrl=null,points=[],peaks=[],selected=-1,undo=[],redo=[],profiles=[],scoreHash='',profileId='',pendingProfile=null;
-  let timingPlan=null,draftTiming=null,draftPreviewEnd=null;
+  let timingPlan=null,draftTiming=null,draftPreviewEnd=null,reviewedPlayback=null;
   let audition=null;
   function stopAudition() {
     if(!audition)return;
@@ -68,17 +69,46 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       originalVisit:index+1,fraction,tick:measure.startTick+fraction*(measure.endTick-measure.startTick)},false,true);
   }
   const stopDraftPreview=()=>{stopAudition();if(draftPreviewEnd!==null)player?.pause();draftPreviewEnd=null;};
+  let acceptedAudioDraft=null;
+  const editMeasures=document.createElement('button');editMeasures.type='button';
+  editMeasures.textContent='Edit timed measures';editMeasures.id='media-edit-timed-measures';
+  get('editor-toolbar').append(editMeasures);
+  function audioPlan(plan){
+    return plan?.sourceSha256 && plan.recordingId==='audio-'+plan.sourceSha256;
+  }
+  editMeasures.addEventListener('click',action(async()=>{
+    const previous=timingPlan,plan=previous?.plan,token=generation;
+    if(!audioPlan(plan)||busy||draftTiming)return;
+    const retained=acceptedAudioDraft?.compiled===previous;
+    const draft=retained?acceptedAudioDraft.original:validateDraft({
+      format:'draft-recording-timing',version:1,scoreSha256:plan.scoreSha256,recordingId:plan.recordingId,
+      originalPlaybackOrder:plan.originalPlaybackOrder,originalTimingText:JSON.stringify(plan),
+      matchingEvidence:{method:'audio-passage-search-v2',source:'saved profile'},
+      candidatePlan:{...plan,format:INTERVAL_TIMING_FORMAT},unresolved:[]
+    });
+    await returnToPractice();
+    if(token!==generation || previous!==timingPlan || !showEditor)return;
+    draftTiming=draft;timingPlan=null;
+    if(retained)draftEditor.reopen();else draftEditor.load(draft);
+    renderExplanationSummary();renderPoints();sync();get('draft-timing').scrollIntoView({block:'nearest'});
+  }));
   const draftEditor=createDraftEditor({container:get('selection').parentElement,
     options:()=>({notation:AppState.score,timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:draftTiming?.recordingId,durationMs:player?.backingTrackDuration}),
     transport(action,seconds){if(!draftTiming||!player)return;if(action==='pause'){stopDraftPreview();return;}if(action==='seek'){player.seekTo(seconds*1000);return;}beforeEdit();draftPreviewEnd=player.backingTrackDuration;player.play();},
     highlight:(position,reveal)=>host.showDraftPosition(position,reveal),
     stop:stopDraftPreview,exportFile:download,
-    async apply(compiled,isCurrent){
+    async apply(compiled,isCurrent,reviewedPlan){
       if(!draftTiming||!player||!isCurrent())throw new Error('Draft changed. Preview the current edits again.');
+      if(!compiled){
+        stopDraftPreview();reviewedPlayback=reviewedPlan;showEditor=false;renderLayout();sync();
+        message('Reviewed timing accepted for playback. Press Play. Open Edit sync to adjust or export this draft.');
+        document.getElementById('play-pause-button').focus();return;
+      }
       const token=generation,originalDraft=draftTiming;
       stopDraftPreview();timingPlan=compiled;points=[];
       try{await selectRecording();if(token!==generation||!isCurrent()||!AppState.media.preview||AppState.media.timingPlan!==compiled)throw new Error('Recording selection changed. Review the draft again.');}
       catch(error){if(token===generation){await returnToPractice();timingPlan=null;draftTiming=originalDraft;openEditor();sync();}throw error;}
+      acceptedAudioDraft=audioPlan(compiled.plan)?{compiled,original:originalDraft}:null;
       draftTiming=null;draftEditor.complete();dirty=true;renderExplanationSummary();renderPoints();finishEditing();sync();message('Reviewed timing applied. Press Play to practice. Save profile is optional; Export draft retains original evidence.');
     }});
   let generation=0,scoreBytes=null,busy=false,pendingDelete=null,playhead=null,dirty=false;
@@ -102,7 +132,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     playhead:()=> (player?.currentTime ?? 0)/1000,
     context:()=>({notation:AppState.score,source,file:localFile,url:blobUrl || source?.url,score:AppState.currentScoreFile,
       scoreSha256:scoreHash,timeline:AppState.playbackTimeline,trackId:AppState.practiceTrackId,
-      duration:(player?.backingTrackDuration || 0)/1000,generation,hasDraft:Boolean(draftTiming),
+      duration:(player?.backingTrackDuration || 0)/1000,generation,hasDraft:Boolean(draftTiming),hasPlan:Boolean(timingPlan),
       blocked:busy || recordingError || !player?.backingTrackDuration?'Wait for the recording to be ready.':
         dirty && !draftTiming?'Save the current alignment before creating another draft.':''}),
     preview(take,index,scoreFraction){
@@ -119,7 +149,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       drawAudition(seconds);
       if(play)player.play();
     },
-    async review(draft,isCurrent){
+    async review(draft,isCurrent,automatic){
       const check=()=>{
         if(!isCurrent() || !showEditor || busy || recordingError || dirty && !draftTiming)
           throw Error('Reopen Media Sync and check the current recording before reviewing suggestions.');
@@ -135,6 +165,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       dirty=true;renderExplanationSummary();renderPoints();sync();
       get('draft-timing').scrollIntoView({block:'nearest'});
       message('Listen across the suggested boundaries, then choose Use reviewed timing.');
+      if(automatic && !await draftEditor.acceptIfReady())message('Auto-sync found takes. Preview them here and review the listed timing issues.');
     }
   });
   // A new editor action owns the transport, including scrubbing and selecting
@@ -158,7 +189,9 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   function renderLayout() {
     if(!showEditor)stopAudition();
-    if(Boolean(AppState.media.editing)!==showEditor){if(showEditor)beforeEdit();host.setMediaEditing(showEditor);if(!showEditor)afterEdit();else message('Editing sync · Preview only. Choose Finish editing to restore grading and loops.');}
+    if(showEditor && reviewedPlayback){stopDraftPreview();reviewedPlayback=null;}
+    const pauseGrading=showEditor || Boolean(reviewedPlayback);
+    if(Boolean(AppState.media.editing)!==pauseGrading){if(pauseGrading)beforeEdit();host.setMediaEditing(pauseGrading);if(!pauseGrading)afterEdit();else message('Editing sync · Preview only. Choose Finish editing to restore grading and loops.');}
     const workspace=get('workspace'),visible=Boolean(player && showPlayer && !get('player-panel').classList.contains('audio-only'));
     workspace.classList.toggle('has-media',visible);workspace.dataset.layout=layout;workspace.style.setProperty('--media-share',share+'%');
     get('player-panel').hidden=get('divider').hidden=!visible;get('divider').setAttribute('aria-valuenow',String(share));
@@ -173,6 +206,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   function sync() {
     suggestions.sync();
+    editMeasures.hidden=Boolean(draftTiming || !audioPlan(timingPlan?.plan));editMeasures.disabled=busy;
     document.body.classList.toggle('draft-timing-active',Boolean(draftTiming));
     recovery.hidden=!recordingError;recoveryStatus.textContent=reloadInProgress?'Reloading recording… Timing and score are retained.':recordingError?.message??'';reloadRecording.hidden=!player?.reload;reloadRecording.disabled=busy || reloadInProgress;
     get('finish-editing').disabled=Boolean(draftTiming) || busy || AppState.media.returning;
@@ -249,7 +283,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       if(button.textContent!==label)button.textContent=label;
     }
     if(playerSkip.hidden!==!target){playerSkip.hidden=!target;placeRecordingTimeline();}
-    get('listening-notice').textContent=recordingError?(player?.reload?'Recording failed to load this position. Choose Reload recording below; timing is retained.':'Recording unavailable. Check the source in Load / options; timing is retained.'):draftTiming?'Draft timing needs review · Recording grading paused.':AppState.media.editing?'Preview only · Grading and loops paused. Choose Finish editing to practice.':
+    get('listening-notice').textContent=recordingError?(player?.reload?'Recording failed to load this position. Choose Reload recording below; timing is retained.':'Recording unavailable. Check the source in Load / options; timing is retained.'):reviewedPlayback?'Reviewed playback · Grading off':draftTiming?'Draft timing needs review · Recording grading paused.':AppState.media.editing?'Preview only · Grading and loops paused. Choose Finish editing to practice.':
       AppState.mode==='wait'?'Use main Play/Pause and Tempo. Wait mode keeps playback silent.':
       isBreak?`${intervalLabel(interval)} · No grading`:
       region==='before'?'Before synced music · No grading':region==='after'?'After synced music · No grading':'Use main Play/Pause and Tempo.';
@@ -285,11 +319,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   function disposal() {
     stopAudition();
+    acceptedAudioDraft=null;
     suggestions.reset();
     cancelDrag?.();
     timelineBar.hidden=true;
     showRecordingInfo(false);
-    draftTiming=null;draftEditor.clear();
+    reviewedPlayback=null;draftTiming=null;draftEditor.clear();
     player?.destroy();recordingError=null;reloadInProgress=false;buffering=false;player=null;source=null;localFile=null;peaks=[];timingPlan=null;
     resetMovement();
     get('point-time').value='0.000';seekGeneration++;
@@ -726,7 +761,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   reloadRecording.addEventListener('click',action(()=>reloadSource()));
   get('listen').addEventListener('click',action(selectRecording));
-  get('practice').addEventListener('click',action(async()=>{await returnToPractice();message('Practice restored with synthesized audio. Recording alignment is retained.');}));
+  get('practice').addEventListener('click',action(async()=>{if(reviewedPlayback){reviewedPlayback=null;renderLayout();sync();}await returnToPractice();message('Practice restored with synthesized audio. Recording alignment is retained.');}));
   get('unload').addEventListener('click',action(async()=>{await returnToPractice();generation++;disposal();points=[];profileId='';pendingProfile=null;renderPoints();renderLayout();sync();message('Recording unloaded. Saved profiles are kept.');}));
   get('pip').addEventListener('click',action(()=>document.pictureInPictureElement?document.exitPictureInPicture():get('video').requestPictureInPicture()));
   get('close-player').addEventListener('click',()=>{showPlayer=false;renderLayout();persistLayout();document.getElementById('play-pause-button').focus();});
@@ -890,7 +925,17 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     if(!player)return;const duration=player.backingTrackDuration,time=player.currentTime;
     if(audition && (time>=audition.take.end*1000 || AppState.playbackTimeline?.measures[audition.index]!==audition.measure))stopAudition();
     if(draftPreviewEnd!==null && time>=draftPreviewEnd)stopDraftPreview();
-    if(draftTiming){draftEditor.update(time/1000,player.playing);const b=document.getElementById('play-pause-button');b.textContent=player.playing?'Pause editing preview':'Preview recording';b.setAttribute('aria-label',b.textContent);}
+    if(draftTiming && (showEditor || reviewedPlayback)){
+      if(reviewedPlayback)host.showDraftPosition(draftPosition(reviewedPlayback,AppState.playbackTimeline,time/1000),false);
+      else draftEditor.update(time/1000,player.playing);
+    }
+
+    if((draftTiming && AppState.media.editing) || audition){
+      const button=document.getElementById('play-pause-button'),label=player.playing?'Pause':'Play';
+      const text=player.playing?'⏸ Pause':'▶ Play';
+      if(button.textContent!==text)button.textContent=text;
+      if(button.title!==label){button.title=label;button.setAttribute('aria-label',label);}
+    }
     if(audition)drawAudition(time/1000);
     get('clock').textContent=`${clock(time)} / ${clock(duration)}`;
     syncRecordingRegion();
@@ -933,7 +978,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
         else if(!reloadInProgress)message(recordingError.message);
         return true;
       }
-      if(audition){stopAudition();if(action!=='reset')return true;}if(!draftTiming||!player)return false;if(action==='reset'){stopDraftPreview();player.seekTo(0);}else if(player.playing)stopDraftPreview();else{beforeEdit();draftPreviewEnd=player.backingTrackDuration;player.play();}return true;},
+      if(audition){stopAudition();if(action!=='reset')return true;}if(!draftTiming||!player||(!showEditor&&!reviewedPlayback))return false;if(action==='reset'){stopDraftPreview();player.seekTo(0);}else if(player.playing)stopDraftPreview();else{beforeEdit();draftPreviewEnd=player.backingTrackDuration;player.play();}return true;},
     draftTimingCapability:DRAFT_CAPABILITY,
     async importDraft(recording,input){
       const draft=validateDraft(input),score=AppState.currentScoreFile,initial=generation;

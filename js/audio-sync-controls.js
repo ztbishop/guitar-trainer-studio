@@ -76,7 +76,13 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     } else reset();
     status.textContent = 'Analysis canceled.';
   });
-  const apply = button('Review selected takes',openDraft);
+  const apply = button('Review selected takes',()=>openDraft(false));
+  const auto=button('Auto-sync',async()=>{
+    panel.open=true;
+    const analyzed=await run();
+    if(analyzed && analyzed===result && analyzed.choices.some(c=>c>=0))await openDraft(true);
+  });
+  auto.id='media-auto-sync';after.append(auto);
   const manual=createMissingMeasureForm({
     measures:()=>result.snapshot.timeline.measures,notation:()=>result.snapshot.notation,playhead,
     visit:number=>{
@@ -122,6 +128,8 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     else if (now.blocked) reason = now.blocked;
     help.textContent = reason || 'Matches the selected practice track. Choose a take for each written pass. Unmapped recording time plays without grading.';
     start.disabled = Boolean(reason || job || applying);
+    auto.disabled=start.disabled;auto.hidden=Boolean(now.hasDraft || now.hasPlan);
+    auto.title=reason || 'Analyze the recording and use the suggested timing. You can edit it afterward.';
     apply.textContent = now.hasDraft ? 'Replace draft mapping with selected takes' : 'Review selected takes';
     manual.box.inert = rows.inert = passage.inert = comparisons.inert = Boolean(reason || job || applying);
     apply.disabled = Boolean(reason || job || applying || !result?.choices.some(c => c >= 0));
@@ -170,6 +178,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       const r = result;
       passage.replaceChildren(createPassageRange(snapshot.timeline.measures,snapshot.duration,playhead,
         i => r.matches[i][r.choices[i]],refine,snapshot.notation));
+      return r;
     } catch (error) { if (job === task) status.textContent = error.message; }
     finally { if (job === task) { job = null; cancel.hidden = true; sync(); } }
   }
@@ -278,7 +287,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     } catch (error) {if (job === task) status.textContent = error.message;}
     finally {if (job === task) {job = null; cancel.hidden = true; sync();}}
   }
-  async function openDraft() {
+  async function openDraft(automatic) {
     if (!sync() || !result || applying) return;
     const r = result, s = r.snapshot;
     const choices = [...r.choices];
@@ -288,7 +297,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       const draft = await suggestionDraft({measures:s.timeline.measures,matches:r.matches,choices,
         scoreSha256:s.scoreSha256,sourceSha256:r.sourceSha256,trackId:s.trackId});
       if (!unchanged()) throw Error('The recording or selection changed. Review the current takes.');
-      await review(draft,unchanged);
+      await review(draft,unchanged,automatic);
       if (result === r) panel.open = false;
     } catch (error) { status.textContent = error.message; }
     finally { applying = false; sync(); }

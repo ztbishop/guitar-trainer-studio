@@ -17,10 +17,14 @@ export function createDraftEditor({container,options,transport,highlight,stop,ap
   const reviewStatus=document.createElement('p');reviewStatus.id='media-draft-review-status';reviewStatus.setAttribute('role','status');
   const button=(id,label,fn)=>{const b=document.createElement('button');b.type='button';b.id=id;b.textContent=label;b.addEventListener('click',()=>{try{fn();}catch(e){showError(e);}});actions.append(b);return b;};
   let original=null,working=null,undo=[],redo=[],revision=0;
-  const use=button('media-draft-use','Use reviewed timing',()=>{
-    const report=inspectDraft(original,working,options());if(!report.compiled)throw Error('Resolve the listed issues first.');
-    use.disabled=true;const token=revision;Promise.resolve(apply(report.compiled,()=>revision===token)).catch(showError);
-  });
+  const use=button('media-draft-use','Use reviewed timing',()=>acceptIfReady().catch(showError));
+  async function acceptIfReady(){
+    if(use.disabled)return false;
+    const choice=inspectDraft(original,working,options()),token=revision;
+    use.disabled=true;
+    try{await apply(choice.compiled,()=>revision===token,working.candidatePlan);return true;}
+    finally{if(revision===token)use.disabled=false;}
+  }
   const clearNotices=button('media-draft-clear-notices','Clear reviewed notices',()=>change({...working,unresolved:[]}));
   clearNotices.title='Acknowledge notices you have reviewed. Timestamps stay unchanged and timing checks still run.';
   use.setAttribute('aria-describedby',reviewStatus.id);clearNotices.setAttribute('aria-describedby',reviewStatus.id);
@@ -52,11 +56,18 @@ export function createDraftEditor({container,options,transport,highlight,stop,ap
       : report.compiled ? 'Ready to accept: choose Use reviewed timing, then Play.'
         : 'Use reviewed timing is unavailable until the timing issues listed below are fixed.';
     diagnostics.open=Boolean(report.issues.length);
-    use.disabled=!report.compiled;back.disabled=!undo.length;forward.disabled=!redo.length;
+    const audioPreview=original.matchingEvidence?.method==='audio-passage-search-v2' && !working.unresolved.length && musicRanges.length>0;
+    if(audioPreview && !report.compiled)reviewStatus.textContent='Play the timed measures with grading off. Edit sync reopens this draft.';
+    use.disabled=!report.compiled && !audioPreview;back.disabled=!undo.length;forward.disabled=!redo.length;
     diagnosticTitle.textContent=report.issues.length?`Review issues (${report.issues.length})`:'Checks pass — ready for review';
   }
   commit.addEventListener('click',()=>{try{const next=copyDraftJson(JSON.parse(text.value));if(!next.candidatePlan||!Array.isArray(next.unresolved))throw Error('Keep candidatePlan and unresolved.');change(next);}catch(e){showError(e);}});
-  return {selectMeasure:visual.selectMeasure,get musicRanges(){return musicRanges;},replaceMapping(candidatePlan) {
+  function showWorking(){
+    reviewActions.hidden=reviewStatus.hidden=false;title.textContent='Draft timing — needs review';
+    warning.hidden=rows.hidden=advanced.hidden=false;for(const b of actions.children)b.hidden=false;
+    panel.hidden=false;render();
+  }
+  return {reopen:showWorking,acceptIfReady,selectMeasure:visual.selectMeasure,get musicRanges(){return musicRanges;},replaceMapping(candidatePlan) {
     change({candidatePlan,unresolved:[]});
-  },update(time,playing){if(original&&!rows.hidden)visual.update(time,playing);},load(draft){reviewActions.hidden=reviewStatus.hidden=false;title.textContent='Draft timing — needs review';warning.hidden=rows.hidden=advanced.hidden=false;for(const b of actions.children)b.hidden=false;original=copyDraftJson(draft);working={candidatePlan:copyDraftJson(draft.candidatePlan),unresolved:copyDraftJson(draft.unresolved)};undo=[];redo=[];evidenceText.value=JSON.stringify(original,null,2);panel.hidden=false;render();},complete(){stop();visual.clear();revision++;reviewActions.hidden=reviewStatus.hidden=true;title.textContent='Reviewed timing — original draft retained';warning.hidden=rows.hidden=advanced.hidden=true;issues.replaceChildren();for(const b of actions.children)b.hidden=b!==exportButton;},clear(){stop();original=null;working=null;revision++;panel.hidden=true;visual.clear();},get active(){return !panel.hidden;}};
+  },update(time,playing){if(original&&!rows.hidden)visual.update(time,playing);},load(draft){original=copyDraftJson(draft);working={candidatePlan:copyDraftJson(draft.candidatePlan),unresolved:copyDraftJson(draft.unresolved)};undo=[];redo=[];evidenceText.value=JSON.stringify(original,null,2);showWorking();},complete(){stop();visual.clear();revision++;reviewActions.hidden=reviewStatus.hidden=true;title.textContent='Reviewed timing — original draft retained';warning.hidden=rows.hidden=advanced.hidden=true;issues.replaceChildren();for(const b of actions.children)b.hidden=b!==exportButton;},clear(){stop();original=null;working=null;revision++;panel.hidden=true;visual.clear();},get active(){return !panel.hidden;}};
 }
