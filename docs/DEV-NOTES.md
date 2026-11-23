@@ -1,5 +1,19 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Choosing the final take from the preceding chord progression
+
+Compared one-click Auto-sync with `af8c809` using the original scores and recordings. The matcher received no reference times. The earlier matcher could prefer adjacent bar candidates in a later demonstration while overlooking another performance of the same chord changes closer to the preceding scored phrase. On Chord Scale 1 the jump began at measure 8. On Chord Scales 5 and 8 the whole second variation moved to a later demonstration and displaced the final variation too.
+
+| Final measure | Previous recording time | Updated recording time | Accepted Lesson Bridge time | Absolute start / end error |
+| --- | --- | --- | --- | --- |
+| Chord Scale 1, M10 | 230.228–233.840 s | 54.200–57.840 s | 54.168–57.780 s | 32 / 60 ms |
+| Chord Scale 5, M24 | 163.827–167.680 s | 128.680–131.657 s | 128.720–131.847 s | 40 / 190 ms |
+| Chord Scale 8, M16 | 132.307–136.400 s | 111.720–115.040 s | 111.743–115.145 s | 23 / 105 ms |
+
+Across the three lessons, 26 previously placed visits changed performances. Both boundaries moved closer on all 26. Measure 16 of Chord Scale 5 was also recovered. It starts at 97.44 s and the draft stops following the chord at 100.00 s. The reference extends that measure to 107.85 s. The counts with both boundaries within 250 ms rose from 0 to 3, 2 to 17 and 6 to 14 respectively. No mapped time overlapped a reference interval labeled explanation in these three lessons. Combined overlap with unmatched source rests increased from zero to 0.42 s at the edges. The 21 other saved browser controls retained every selected visit and endpoint, including the ringing chords from the preceding update.
+
+Chrome never requested the new search module before Auto-sync. On the three target recordings (158–239 s), three paired runs per lesson alternated the old and new builds. Median time from clicking Auto-sync to receiving the worker's choices, including local media decoding, was 1.57 → 1.64 s, 1.74 → 1.73 s and 0.99 → 1.03 s respectively. These are local timings with ordinary run-to-run variation. Future search changes should repeat the same load check, per-lesson timing and boundary comparison. Streaming download time and other devices were not benchmarked.
+
 ## Ringing chords at the start and end of a lesson
 
 Compared the one-click browser matcher with `5b68fac` on the 20 previously tested lessons and four more saved Open D recordings (Chord Scales 1, 5, 7 and 8). Chrome received only the original score and recording. The accepted Lesson Bridge timing supplied the reference after analysis. Both the raw selections and the measure visits used by the draft editor were compared.

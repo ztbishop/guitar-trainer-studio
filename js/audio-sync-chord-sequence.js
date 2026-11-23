@@ -15,7 +15,7 @@ function chordBar(bar) {
   return {span,beat,chords:attacks.map(p=>p.pitches)};
 }
 
-function strums(samples,from,to) {
+export function strums(samples,from,to,minimumRise=2) {
   const rms=[];
   for (let frame=Math.max(0,Math.floor(from/FRAME)-2);frame<=Math.min(to/FRAME+2,samples.length/HOP-1);frame++) {
     let power=0;
@@ -27,7 +27,7 @@ function strums(samples,from,to) {
     const {frame,level}=rms[i], next=rms[i+1].level;
     if (frame*FRAME<from || frame*FRAME>=to || level+next<0.012) continue;
     const rise=(0.0005+Math.max(level,next))/(0.0005+Math.min(rms[i-1].level,rms[i-2].level));
-    if (rise<2) continue;
+    if (rise<minimumRise) continue;
     const previous=hits.at(-1);
     if (previous && frame-previous.frame<=2) {
       if (rise>previous.rise) {previous.frame=frame;previous.rise=rise;}

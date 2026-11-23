@@ -7,7 +7,8 @@
 - [x] Run a blind comparison on 12 accepted Lesson Bridge pairs from five courses. [Coverage, accuracy and gap overlap](DEV-NOTES.md#blind-auto-sync-comparison-across-five-truefire-courses)
 - [x] Recover missed lead phrases and choose chord demonstrations from neighboring measures. Compared 17 saved lessons and three additional held-out recordings. [Results and remaining errors](DEV-NOTES.md#recovering-melodies-and-chord-changes-from-neighboring-measures)
 - [x] Tighten late opening chords and extrapolated final chord releases. Compared all selected boundaries on 24 saved lessons. [Results and remaining take errors](DEV-NOTES.md#ringing-chords-at-the-start-and-end-of-a-lesson)
-- [ ] Compare the final selected takes in Chord Scales 1, 5 and 8 with the preceding phrases. Keep the existing accurate bar lines and explanation gaps. Evaluate single-note releases separately.
+- [x] Check final takes against the preceding chord progression in Chord Scales 1, 5 and 8. Compared 24 saved lessons and timed old and new Auto-sync builds. [Results and limits](DEV-NOTES.md#choosing-the-final-take-from-the-preceding-chord-progression)
+- [ ] Evaluate single-note releases separately. Retain the saved boundary and runtime comparisons for future searches.
 
 - [ ] With a Fishman in Realtime, play the first attack of the ties in Jazz Discovery 98027 measures 8 and 14. Check that the following gap adds zero misses and the next synced attack earns credit.
 - [ ] Check measure 2 of Quartal Harmony in Lydian Mode (98109) with a physical MIDI guitar. Let its four notes ring through the break and check the next chord in measure 3.
