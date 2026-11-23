@@ -4,6 +4,10 @@ export const EXPLANATION_TIMING_FORMAT='musical-visits-and-explanations';
 export const EXPLANATION_TIMING_VERSION=1;
 export const INTERVAL_TIMING_FORMAT='musical-visits-and-intervals';
 export const INTERVAL_TIMING_VERSION=1;
+// Local reviewed draft/profile only. An incoming verified lesson cannot use it.
+export const REVIEWED_PASSAGES_FORMAT='reviewed-musical-passages';
+// A reviewed recording can score a known attack even when the full written hold cannot be timed.
+export class CrossingSustainError extends Error {}
 const MAX_VISITS=4096,MAX_EXPLANATIONS=4096,MAX_ANCHORS=16384,MAX_SECONDS=86400;
 const fail=message=>{throw new Error('Explanation timing: '+message);};
 const integer=value=>Number.isSafeInteger(value)&&value>0&&value<=MAX_VISITS;
@@ -37,11 +41,12 @@ function reference(value,visits,label) {
   return Object.fromEntries(referenceKeys.map(key=>[key,value[key]]));
 }
 
-export function validateTimingPlan(input) {
-  const extended=input?.format===INTERVAL_TIMING_FORMAT;
+export function validateTimingPlan(input,{allowReviewed=false}={}) {
+  const partial=allowReviewed && input?.format===REVIEWED_PASSAGES_FORMAT;
+  const extended=partial || input?.format===INTERVAL_TIMING_FORMAT;
   object(input,['format','version','scoreSha256','sourceSha256','timingSha256','recordingId',
     'originalPlaybackOrder','musicalVisits','repeatResolution',...(extended?['intervals','scoreOmissions']:['explanations'])],'plan');
-  if(![EXPLANATION_TIMING_FORMAT,INTERVAL_TIMING_FORMAT].includes(input.format)||input.version!==1)fail('Unsupported plan format or version.');
+  if(input.version!==1 || (!partial && ![EXPLANATION_TIMING_FORMAT,INTERVAL_TIMING_FORMAT].includes(input.format)))fail('Unsupported plan format or version.');
   const scoreSha256=hash(input.scoreSha256,'score'),sourceSha256=hash(input.sourceSha256,'source'),timingSha256=hash(input.timingSha256,'timing');
   if(!id(input.recordingId))fail('Recording identity must be a bounded opaque identifier, not a URL or path.');
   array(input.originalPlaybackOrder,1,MAX_VISITS,'original traversal');
@@ -100,7 +105,7 @@ export function validateTimingPlan(input) {
       if(accounted.has(visit))fail('Kept visits, repeat omissions and silent score omissions must be disjoint.');
       accounted.add(visit);
     }
-    if(accounted.size!==originalPlaybackOrder.length)fail('Every original visit must be kept or explicitly omitted exactly once.');
+    if(!partial && accounted.size!==originalPlaybackOrder.length)fail('Every original visit must be kept or explicitly omitted exactly once.');
   } else {
     omitted=originalPlaybackOrder.flatMap((_,index)=>selected.has(index+1)?[]:[index+1]);
     if(resolution.omittedOriginalVisits.length!==omitted.length || omitted.some((visit,index)=>resolution.omittedOriginalVisits[index]!==visit))
@@ -127,7 +132,7 @@ export function validateTimingPlan(input) {
     return {id:explanation.id,...(extended?{kind:explanation.kind}:{}),label:explanation.label,startSeconds:explanation.startSeconds,endSeconds:explanation.endSeconds,boundary:{after,before}};
   });
   const intervals=[...musicalVisits,...explanations].sort((a,b)=>a.startSeconds-b.startSeconds);
-  for(let i=1;i<intervals.length;i++)if(intervals[i].startSeconds!==intervals[i-1].endSeconds)
+  for(let i=1;i<intervals.length;i++)if(intervals[i].startSeconds<intervals[i-1].endSeconds || !partial && intervals[i].startSeconds!==intervals[i-1].endSeconds)
     fail('Music and explanations must cover every internal interval without gaps or overlaps.');
   return freeze({format:input.format,version:input.version,scoreSha256,sourceSha256,timingSha256,
     recordingId:input.recordingId,originalPlaybackOrder,musicalVisits,...(extended?{intervals:explanations,scoreOmissions}:{explanations}),
@@ -155,11 +160,12 @@ function timelineKey(timeline) {
   return JSON.stringify([timeline.ticksPerQuarter,timeline.endTick,measures,tempos]);
 }
 
-function guardBoundaries(timeline,visits,explanations,ambiguousHolds=[]) {
+function guardBoundaries(timeline,visits,explanations,ambiguousHolds,reviewedPassages) {
   const cuts=new Set(),intervalCuts=new Set();
   if(visits[0].startTick>0)cuts.add(visits[0].startTick);
   for(let i=1;i<visits.length;i++)if(visits[i].startMs>visits[i-1].endMs || visits[i].originalVisit!==visits[i-1].originalVisit+1) {
     cuts.add(visits[i-1].endTick);cuts.add(visits[i].startTick);
+    if(visits[i].startMs>visits[i-1].endMs)intervalCuts.add(visits[i-1].endTick);
   }
   if(visits.at(-1).endTick<timeline.endTick)cuts.add(visits.at(-1).endTick);
   for(const explanation of explanations) {
@@ -169,9 +175,13 @@ function guardBoundaries(timeline,visits,explanations,ambiguousHolds=[]) {
   }
   for(const event of timeline.events)for(const note of event.notes??[]) {
     const start=note.startTick??event.startTick,end=note.endTick??event.endTick;
-    if(!Number.isFinite(start)||!Number.isFinite(end))fail('Cannot verify note sustain at explanation boundaries.');
-    for(const cut of cuts)if(start<cut&&end>cut || start===cut&&note.attack===false)
-      fail('A tied or sustained note crosses an explanation or omitted traversal boundary.');
+    if(!Number.isFinite(start)||!Number.isFinite(end)||end<start)fail('Cannot verify note sustain at explanation boundaries.');
+    // Reviewed practice grades the attack and caps its window at the synced passage end.
+    if(reviewedPassages)continue;
+    for(const cut of cuts)if(start<cut&&end>cut || start===cut&&note.attack===false){
+      const side=visits.find(v=>v.endTick===cut)??visits.find(v=>v.startTick===cut);
+      throw new CrossingSustainError('A tied or sustained note crosses the recording boundary near measure '+(side?.scoreMeasure??'?')+'.');
+    }
   }
   // A fresh attack may close a native let-ring range exactly at this tick, but
   // inserting recording time before that attack would delay its termination.
@@ -213,8 +223,8 @@ export function validateTimingPlanDuration(planOrCompiled,durationMs) {
   return true;
 }
 
-export function compileTimingPlan(input,{timeline,scoreSha256,recordingId,durationMs=null}={}) {
-  const plan=validateTimingPlan(input),originalTimelineKey=timelineKey(timeline);
+export function compileTimingPlan(input,{timeline,scoreSha256,recordingId,durationMs=null,allowReviewed=false}={}) {
+  const plan=validateTimingPlan(input,{allowReviewed}),originalTimelineKey=timelineKey(timeline);
   if(plan.scoreSha256!==hash(scoreSha256,'selected score'))fail('The original score bytes do not match this plan.');
   if(plan.recordingId!==recordingId)fail('The selected recording identity does not match this plan.');
   if(plan.originalPlaybackOrder.length!==timeline.measures.length || plan.originalPlaybackOrder.some((measure,index)=>measure!==timeline.measures[index].measureNumber))
@@ -229,9 +239,9 @@ export function compileTimingPlan(input,{timeline,scoreSha256,recordingId,durati
   });
   const intervals=timingPlanIntervals(plan).map(interval=>({...interval,kind:interval.kind??'explanation',startMs:interval.startSeconds*1000,endMs:interval.endSeconds*1000}));
   const explanations=intervals.filter(interval=>interval.kind==='explanation');
-  const ambiguousHolds=plan.format===INTERVAL_TIMING_FORMAT?nativeAmbiguousHolds(timeline):[];
+  const ambiguousHolds=plan.format===EXPLANATION_TIMING_FORMAT?[]:nativeAmbiguousHolds(timeline);
   guardScoreOmissions(timeline,plan.scoreOmissions??[],ambiguousHolds);
-  guardBoundaries(timeline,visits,intervals,ambiguousHolds);
+  guardBoundaries(timeline,visits,intervals,ambiguousHolds,plan.format===REVIEWED_PASSAGES_FORMAT);
   const segments=[...visits.map(visit=>({kind:'music',startMs:visit.startMs,endMs:visit.endMs,visit})),
     ...intervals.map(interval=>({kind:interval.kind,startMs:interval.startMs,endMs:interval.endMs,interval,
       ...(interval.kind==='explanation'?{explanation:interval}:{})}))].sort((a,b)=>a.startMs-b.startMs);
@@ -254,6 +264,11 @@ export function planPositionAtTime(compiled,timeMs) {
   let low=0,high=compiled.segments.length;
   while(low+1<high){const middle=(low+high)>>1;if(compiled.segments[middle].startMs<=timeMs)low=middle;else high=middle;}
   const segment=compiled.segments[low];
+  if(timeMs>=segment.endMs){
+    const previous=compiled.visits.findLast(v=>v.endMs<=timeMs);
+    return {kind:'unmapped',tick:previous?Math.max(previous.startTick,previous.endTick-1):first.startTick,
+      visit:null,interval:null,explanation:null};
+  }
   if(segment.kind==='music')return {kind:'music',tick:interpolate(segment.visit.anchors,timeMs,'timeMs','tick'),visit:segment.visit,interval:null,explanation:null};
   const interval=segment.interval,{after,before}=interval.boundary;
   const previous=after?compiled.visits[after.visit-1]:null,next=before?compiled.visits[before.visit-1]:null;

@@ -58,6 +58,7 @@ export function createDraftEditor({container,options,transport,highlight,stop,ap
     diagnostics.open=Boolean(report.issues.length);
     const audioPreview=original.matchingEvidence?.method==='audio-passage-search-v2' && !working.unresolved.length && musicRanges.length>0;
     if(audioPreview && !report.compiled)reviewStatus.textContent='Play the timed measures with grading off. Edit sync reopens this draft.';
+    if(!checks.compiled && checks.issues.length)reviewStatus.textContent+=' '+checks.issues[0];
     use.disabled=!report.compiled && !audioPreview;back.disabled=!undo.length;forward.disabled=!redo.length;
     diagnosticTitle.textContent=report.issues.length?`Review issues (${report.issues.length})`:'Checks pass — ready for review';
   }

@@ -1,5 +1,8 @@
 # Guitar Trainer Studio status and to-do
 
+- [ ] With a Fishman in Realtime, play the first attack of the ties in Jazz Discovery 98027 measures 8 and 14. Check that the following gap adds zero misses and the next synced attack earns credit.
+- [ ] Evaluate per-passage recovery for conflicting time anchors and per-note recovery for ambiguous expressive holds. The reviewer shows the blocking check beside **Use reviewed timing**.
+
 Check Auto-sync on a familiar lesson, then reopen Edit sync and time a missing measure.
 
 Local listening check: audition the backward suggestion for Jazz Discovery measure 2 and check a score click on a familiar repeated pass.

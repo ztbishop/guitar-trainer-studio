@@ -4,7 +4,9 @@ import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 import * as core from '../assets/vendor/alphatab/alphaTab.core.mjs';
 import {tapProbe} from './right-hand-tap-fixtures.cjs';
-import {buildPlaybackTimeline} from '../js/score-playback.js';
+import {inspectDraft} from '../js/draft-timing.js';
+import {practiceEvents} from '../js/media-practice.js';
+import {buildPlaybackTimeline,getPracticeEvents} from '../js/score-playback.js';
 import {compileTimingPlan} from '../js/explanation-timing.js';
 
 const probe=tapProbe(),classic=probe.at,hash='a'.repeat(64);
@@ -115,4 +117,38 @@ test('saved finite-carry case keeps all bass notes/ties and validates every supp
   assert(targets.some(n=>n.attack&&n.tieDestinationId&&n.startTick===57120&&n.endTick===61440));assert(targets.some(n=>n.hasVibrato&&n.startTick===44160&&n.endTick===46080));
   assert.deepEqual(compileTimingPlan(plan,{timeline,scoreSha256:plan.scoreSha256,recordingId:plan.recordingId}).plan,plan);
  }
+});
+
+
+test('review scores a tied attack once and preserves independent chord attacks after the recording gap',()=>{
+  const {timeline}=generate(core,parse(core,'. 0.6.1 | (-.6 2.5).1 | 2.6.1'));
+  const source=planFor(timeline,{omit:[]}), original=structuredClone(timeline.events);
+  const expected=getPracticeEvents(timeline,'0');
+  const options={timeline,scoreSha256:hash,recordingId:source.recordingId,durationMs:10000};
+  for(const legacy of [false,true]){
+    let candidatePlan=source;
+    if(legacy){
+      const {intervals,scoreOmissions,...rest}=source;
+      candidatePlan={...rest,format:'musical-visits-and-explanations',explanations:intervals.map(({kind,...interval})=>interval)};
+    }
+    const draft={format:'draft-recording-timing',version:1,scoreSha256:hash,recordingId:source.recordingId,
+      originalPlaybackOrder:source.originalPlaybackOrder,originalTimingText:'[]',matchingEvidence:{},candidatePlan,unresolved:[]};
+    const {compiled,issues}=inspectDraft(draft,{candidatePlan,unresolved:[]},options);
+    assert.deepEqual(issues,[]);assert.equal(compiled.plan.format,'reviewed-musical-passages');
+    const events=practiceEvents({media:{preview:true,timingPlan:compiled},playbackTimeline:timeline,expectedEvents:expected});
+    assert.deepEqual(events.map(e=>e.notes.map(n=>n.midi)),[[40],[47],[42]]);
+    assert.equal(events[0].notes[0].endTimeMs,2000);
+    assert.equal(events[1].startTimeMs,5000);
+  }
+  assert.deepEqual(timeline.events,original);
+});
+
+test('a tie starting outside a reviewed passage never becomes an attack on re-entry',()=>{
+  const {timeline}=generate(core,parse(core,'. 0.6.1 | (-.6 2.5).1 | 2.6.1'));
+  const plan=planFor(timeline,{omit:[]});
+  plan.format='reviewed-musical-passages';plan.intervals=[];
+  plan.musicalVisits=plan.musicalVisits.slice(1).map((v,i)=>({...v,visit:i+1}));
+  const compiled=compileTimingPlan(plan,{timeline,scoreSha256:hash,recordingId:plan.recordingId,allowReviewed:true});
+  const events=practiceEvents({media:{preview:true,timingPlan:compiled},playbackTimeline:timeline,expectedEvents:getPracticeEvents(timeline,'0')});
+  assert.deepEqual(events.map(e=>e.notes.map(n=>n.midi)),[[47],[42]]);
 });

@@ -4,6 +4,8 @@ Guitar Trainer Studio v1.0.2 ships the qualified alphaTab 1.9.0 bundles. Use the
 
 ## Qualifying 1.9 and later releases
 
+Check `planCursor` when the recording enters an unmapped span between reviewed measures. Retain the previous passage position until the next synced measure. The local reviewed-passages regression in `tests/draft-timing.test.js` covers both sides of the gap.
+
 Qualify pause and resume after skipping into a later recorded take of the same written bar. Native Pause can issue an asynchronous seek to an earlier beat. The adapter retains recording time and the audio sync browser regression checks the second take.
 
 The display-only score overlay also supports auditioning a proposed take while ordinary recording timing is selected. Verify the chosen occurrence, hidden native cursor and bounded stop with the audio sync browser regression.

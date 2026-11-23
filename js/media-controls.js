@@ -286,7 +286,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('listening-notice').textContent=recordingError?(player?.reload?'Recording failed to load this position. Choose Reload recording below; timing is retained.':'Recording unavailable. Check the source in Load / options; timing is retained.'):reviewedPlayback?'Reviewed playback · Grading off':draftTiming?'Draft timing needs review · Recording grading paused.':AppState.media.editing?'Preview only · Grading and loops paused. Choose Finish editing to practice.':
       AppState.mode==='wait'?'Use main Play/Pause and Tempo. Wait mode keeps playback silent.':
       isBreak?`${intervalLabel(interval)} · No grading`:
-      region==='before'?'Before synced music · No grading':region==='after'?'After synced music · No grading':'Use main Play/Pause and Tempo.';
+      region==='unmapped'?'Unmapped recording passage · No grading':region==='before'?'Before synced music · No grading':region==='after'?'After synced music · No grading':'Use main Play/Pause and Tempo.';
     const seek=get('seek');
     const ranges=draftTiming?draftEditor.musicRanges:showEditor && suggestions.musicRanges || timingPlan?.visits;
     if(ranges && duration>0){
@@ -427,7 +427,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     else (timingPlan?explanationSelect:get('add-point')).focus();
   }
   function compileSavedPlan(profile) {
-    return compileTimingPlan(profile.timingPlan,{timeline:AppState.playbackTimeline,scoreSha256:scoreHash,
+    return compileTimingPlan(profile.timingPlan,{allowReviewed:true,timeline:AppState.playbackTimeline,scoreSha256:scoreHash,
       recordingId:profile.timingPlan.recordingId,durationMs:player.backingTrackDuration});
   }
   function renderExplanationSummary() {
@@ -750,7 +750,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     try {
       await selectedPlayer.reload();if(token!==generation || selectedPlayer!==player)return;
       // Recheck the unchanged accepted contract against the reloaded duration.
-      if(timingPlan)compileTimingPlan(timingPlan.plan,{timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:timingPlan.plan.recordingId,durationMs:player.backingTrackDuration});
+      if(timingPlan)compileTimingPlan(timingPlan.plan,{allowReviewed:true,timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:timingPlan.plan.recordingId,durationMs:player.backingTrackDuration});
       else if(points.length)validatePoints(points,AppState.playbackTimeline,player.backingTrackDuration);
       recordingError=null;buffering=false;
       if(AppState.media.preview)host.seekMediaTime(selectedPlayer.currentTime);
@@ -886,7 +886,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   get('save-profile').addEventListener('click',action(async()=>{
     if(draftTiming)throw new Error('Export the draft to keep unresolved work.');
     const snapshotHash=scoreHash,token=generation,snapshot=JSON.stringify(points),valid=timingPlan?null:validatePoints(points,AppState.playbackTimeline,player.backingTrackDuration);
-    if(timingPlan)compileTimingPlan(timingPlan.plan,{timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:timingPlan.plan.recordingId,durationMs:player.backingTrackDuration});
+    if(timingPlan)compileTimingPlan(timingPlan.plan,{allowReviewed:true,timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:timingPlan.plan.recordingId,durationMs:player.backingTrackDuration});
     const name=get('profile-name').value.trim();if(!name)throw new Error('Enter a profile name.');
     const existing=profiles.find(profile=>profile.id===profileId);
     const profile={id:existing && sourceMatches(existing.source,source)?profileId:crypto.randomUUID(),scoreHash,scoreName:AppState.score.title || AppState.currentScoreFile.fileName,name,source,durationMs:player.backingTrackDuration,...(timingPlan?{timingPlan:timingPlan.plan}:{points:valid}),layout};

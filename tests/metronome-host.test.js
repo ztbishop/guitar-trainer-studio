@@ -36,7 +36,7 @@ test('Wait reuses an audible native click, survives repeated restart, and never 
     changeTrackTranspositionPitch(tracks,semitones){transpositions.push({ids:tracks.map(track=>track.index),semitones});}
     constructor() {
       api=this;this.player={output:{context:audio,activate(){}}};this.metronomeVolume=0;this.midiEventsPlayedFilter=[];
-      for(const name of ['midiEventsPlayed','renderStarted','postRenderFinished','scoreLoaded','midiLoaded','playerReady','playerFinished','playerStateChanged','playerPositionChanged','beatMouseDown','error'])this[name]=new Emitter();
+      for(const name of ['midiEventsPlayed','renderStarted','postRenderFinished','scoreLoaded','midiLoad','midiLoaded','playerReady','playerFinished','playerStateChanged','playerPositionChanged','beatMouseDown','error'])this[name]=new Emitter();
     }
   }
   globalThis.document={getElementById:()=>null,body:{classList:{toggle(){}}}};

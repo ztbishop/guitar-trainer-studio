@@ -169,7 +169,7 @@ test('host settings use bundled alphaTab serializer; loading, transport and play
     constructor(container,settings) {
       api=this; this.settings=new context.alphaTab.Settings(); this.calls=[];this.player={output:{activate:()=>this.calls.push('activate')}};
       this.constructorSettings=settings;
-      for(const name of ['playerFinished','scoreLoaded','midiLoaded','playerReady','playerStateChanged','playerPositionChanged','beatMouseDown','beatMouseMove','beatMouseUp','error','renderStarted','postRenderFinished']) this[name]={on:fn=>this[name].emit=fn};
+      for(const name of ['playerFinished','scoreLoaded','midiLoad','midiLoaded','playerReady','playerStateChanged','playerPositionChanged','beatMouseDown','beatMouseMove','beatMouseUp','error','renderStarted','postRenderFinished']) this[name]={on:fn=>this[name].emit=fn};
     }
     updateSettings(...args) { assert.equal(args.length,0); this.calls.push('update'); }
     render() { this.calls.push('render'); }

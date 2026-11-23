@@ -1,5 +1,5 @@
 // Draft evidence is never an executable timing plan.
-import {compileTimingPlan} from './explanation-timing.js';
+import {compileTimingPlan,CrossingSustainError,INTERVAL_TIMING_FORMAT,REVIEWED_PASSAGES_FORMAT} from './explanation-timing.js';
 export const DRAFT_FORMAT='draft-recording-timing';
 export const DRAFT_CAPABILITY='draft-timing-v1';
 const fail=message=>{throw new Error('Draft timing: '+message);};
@@ -56,11 +56,26 @@ export function inspectDraft(draft,working,options) {
     for(const key of ['startSeconds','endSeconds'])if(!Number.isFinite(interval[key]))issues.push(`Interval ${interval.id??'?'}: missing ${key}.`);else if(interval[key]*1000>options.durationMs+1)issues.push(`Interval ${interval.id??'?'}: ${interval[key]} s is beyond recording duration ${options.durationMs/1000} s.`);
   }
   const kept=new Set(visits.map(v=>v.originalVisit)),omitted=new Set([...(plan?.repeatResolution?.omittedOriginalVisits??[]),...(plan?.scoreOmissions??[]).map(o=>o.originalVisit)]);
-  draft.originalPlaybackOrder.forEach((measure,i)=>{if(!kept.has(i+1)&&!omitted.has(i+1))issues.push(`Unresolved original visit ${i+1}, measure ${measure}: no musical correspondence.`);});
+  const missing=draft.originalPlaybackOrder.filter((_,i)=>!kept.has(i+1)&&!omitted.has(i+1)).length;
+  const spans=[...visits,...(plan.intervals??[])].filter(s=>s && Number.isFinite(s.startSeconds) && Number.isFinite(s.endSeconds)).sort((a,b)=>a.startSeconds-b.startSeconds);
+  const gap=spans.some((s,i)=>i>0 && s.startSeconds>spans[i-1].endSeconds);
+  const partial=plan.format===INTERVAL_TIMING_FORMAT && visits.length>0 && (missing>0||gap);
+  if(missing&&!partial)issues.push(`${missing} original visits have no musical correspondence.`);
   let compiled=null;
   try {
     if(plan?.scoreSha256!==draft.scoreSha256||plan?.recordingId!==draft.recordingId||JSON.stringify(plan?.originalPlaybackOrder)!==JSON.stringify(draft.originalPlaybackOrder))fail('Candidate identity/traversal must remain bound to the original.');
-    compiled=compileTimingPlan(plan,options);
+    let reviewedPlan=plan;
+    if(!partial){
+      try{compiled=compileTimingPlan(plan,options);}
+      catch(error){
+        if(!(error instanceof CrossingSustainError))throw error;
+        if(plan.explanations){
+          const {explanations,...music}=plan;
+          reviewedPlan={...music,intervals:explanations.map(interval=>({...interval,kind:'explanation'})),scoreOmissions:[]};
+        }
+      }
+    }
+    if(!compiled)compiled=compileTimingPlan({...reviewedPlan,format:REVIEWED_PASSAGES_FORMAT},{...options,allowReviewed:true});
   } catch(error){issues.push(error.message);}
-  return {issues,compiled:issues.length?null:compiled};
+  return {issues,partial,compiled:issues.length?null:compiled};
 }

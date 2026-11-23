@@ -1,5 +1,7 @@
 # Draft timing: explicit recovery contract
 
+After **Use reviewed timing**, Realtime grades the first attack of a tie if that attack is inside a synced measure. It stops its hit window at the edge of the synced passage. A tie that begins during unmapped material has no new target when the score reappears. Other attacks in the same chord remain playable. If the draft still plays with grading off, the review status names the first blocking check.
+
 Implemented locally, 2026-11-15. Lesson Bridge is read-only in this task. This optional editor appears only for an explicit draft import. Ordinary Media Sync and verified imports keep their current workflow. Existing v1–v4 payloads are never reinterpreted as drafts.
 
 ## Capability and envelope

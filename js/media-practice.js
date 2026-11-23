@@ -55,9 +55,10 @@ export function practiceEvents(state) {
   return state.expectedEvents.flatMap(event=>{
     const section=sections?.find(section=>event.startTick>=section.startTick && event.startTick<section.endTick);
     if(plan && !section)return [];
-    const endTick=Math.min(event.targetEndTick??event.endTick,rangeEnd??Infinity);
+    const sectionEnd=section?.endTick??Infinity;
+    const endTick=Math.min(event.targetEndTick??event.endTick,rangeEnd??Infinity,sectionEnd);
     const projected={...event,startTimeMs:media?time(event.startTick):event.startTimeMs,
-      endTimeMs:media?time(event.endTick,'end'):event.endTimeMs,
+      endTimeMs:media?time(Math.min(event.endTick,sectionEnd),'end'):event.endTimeMs,
       targetEndTimeMs:Number.isFinite(endTick)?time(endTick,'end'):event.targetEndTimeMs};
     if(section) {
       projected.practiceSectionStartMs=section.startMs;
@@ -65,7 +66,7 @@ export function practiceEvents(state) {
       projected.practiceBreakBefore=previousSection!==null && previousSection!==section;
       previousSection=section;
       projected.notes=event.notes.map(note=>({...note,
-        startTimeMs:time(note.startTick??event.startTick),endTimeMs:time(note.endTick??event.endTick,'end')}));
+        startTimeMs:time(note.startTick??event.startTick),endTimeMs:time(Math.min(note.endTick??event.endTick,sectionEnd),'end')}));
     }
     return [projected];
   });

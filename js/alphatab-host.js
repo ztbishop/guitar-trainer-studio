@@ -68,7 +68,7 @@ function planCursor(time) {
   const interval=position.interval??position.explanation;
   // Keep the cursor on the completed passage during commentary. In particular,
   // the native player must not finish the score while its recording continues.
-  const tick=position.kind==='music'?position.tick:
+  const tick=position.kind==='music'||position.kind==='unmapped'?position.tick:
     position.kind==='before'?mediaTimingPlan.visits[0].startTick:
     position.kind==='after'?mediaTimingPlan.visits.at(-1).endTick-4:
     interval.boundary.after?mediaTimingPlan.visits[interval.boundary.after.visit-1].endTick-4:mediaTimingPlan.visits[0].startTick;

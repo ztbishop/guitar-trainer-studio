@@ -117,7 +117,7 @@ export function validateProfile(data) {
     durationMs:data.durationMs,layout:MEDIA_LAYOUTS.includes(data.layout)?data.layout:'left'};
   if(Object.hasOwn(data,'timingPlan')) {
     if(Object.hasOwn(data,'points'))throw new Error('Explanation profiles cannot contain ordinary sync points.');
-    const timingPlan=validateTimingPlan(data.timingPlan);
+    const timingPlan=validateTimingPlan(data.timingPlan,{allowReviewed:true});
     if(timingPlan.scoreSha256!==data.scoreHash)throw new Error('Explanation profile belongs to a different score.');
     validateTimingPlanDuration(timingPlan,data.durationMs);
     return {...metadata,timingPlan};

@@ -2,6 +2,8 @@
 
 Media Sync projects selected audio takes, editable draft coverage and accepted visits onto the video seek bar. The analyzer and its reviewer share a manual measure form keyed by expanded score visit. Adding a visit in review updates adjacent gap references and goes through draft undo history.
 
+Reviewed recording practice projects attacks into each continuous group of synced measures. Recording hit windows and note endpoints stop at the end of that group. Tied continuations have no attack target. Synth practice still uses the complete written tie chain. Reviewed passages may omit measures. External verified timing retains its own validation.
+
 ## Optional audio-based sync suggestions
 
 Skip navigation uses the ordered timed visits or the ordinary first score anchor. The draft editor caches unambiguous music spans on each edit. Navigation uses the active recording transport and preserves grading across a timed-plan gap.
