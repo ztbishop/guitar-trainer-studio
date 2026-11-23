@@ -60,6 +60,29 @@ export function draftPosition(plan,timeline,seconds) {
   if(intervals.length===1&&!candidates.length)return {kind:intervals[0].kind??'explanation',label:intervals[0].label};
   return {kind:'unresolved'}; // Never extrapolate, choose overlaps or stretch across a gap.
 }
+// Invert the same anchor segments used for drawing the cursor. One printed
+// beat can represent several passes; prefer the one nearest the recording.
+export function draftSeekTarget(plan,timeline,number,fraction,clock) {
+  const measure=timeline?.measures[number-1];
+  if(!measure || !finite(fraction) || fraction<0 || fraction>=1)return null;
+  const offset=fraction*480;
+  let best=null;
+  for(const [index,v] of plan.musicalVisits.entries()){
+    if(v.scoreMeasure!==measure.measureNumber)continue;
+    const anchors=draftAnchors(v);
+    for(let i=1;i<anchors.length;i++){
+      const a=anchors[i-1],b=anchors[i];
+      if(offset<a.offset480 || offset>=b.offset480)continue;
+      const time=a.seconds+(offset-a.offset480)/(b.offset480-a.offset480)*(b.seconds-a.seconds);
+      if(draftPosition(plan,timeline,time).originalVisit!==v.originalVisit)continue;
+      const distance=Math.max(anchors[0].seconds-clock,clock-anchors.at(-1).seconds,0);
+      if(!best || distance<best.distance || distance===best.distance && v.originalVisit===number)
+        best={index,time,distance};
+      break;
+    }
+  }
+  return best;
+}
 export function editDraftPiece(working,key,target,time,duration) {
   if(!finite(time))throw Error('Enter an observed time in seconds.');
   const next=copyDraftJson(working),pieces=draftPieces(next.candidatePlan),piece=pieces.find(p=>p.key===key);

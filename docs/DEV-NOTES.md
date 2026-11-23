@@ -1,5 +1,7 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+Jazz Discovery 98027 in Chrome: the opening score measure is silent. Measure 2 scored 0.499 in the single-bar search (minimum 0.78). The opening three-bar phrase scored 0.469 (minimum 0.52). A bounded backward pitch search proposed 44.701 s to 47.207 s. This is an audio-derived estimate. Clicking notes in measures 2 and 3 sought the recording in both review and local reviewed playback.
+
 Chrome check with Jazz Discovery lesson 98027: analysis left measure 2 open and placed measure 3 at 47.2067 s. Clicking measure 2 in the score selected its timing form. Inserting a test start, undoing and redoing preserved later measure times. The video seek bar showed mapped coverage during selection, review and reviewed playback. The test start was chosen to exercise editing.
 
 ## Automatic timing on a riff lesson

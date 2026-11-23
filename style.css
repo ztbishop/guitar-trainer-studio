@@ -1211,7 +1211,7 @@ body.has-score .alphatab-wrapper {
     linear-gradient(to bottom, rgba(77, 174, 234, 0.04) 0%, rgba(77, 174, 234, 0.2) 18%, rgba(77, 174, 234, 0.28) 50%, rgba(77, 174, 234, 0.2) 82%, rgba(77, 174, 234, 0.04) 100%);
 }
 
-.at-highlight * {
+.at-highlight *, .draft-playing-note * {
   fill: rgba(46, 204, 113, 0.92) !important;
   stroke: rgba(46, 204, 113, 0.92) !important;
 }

@@ -105,17 +105,19 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       duration:(player?.backingTrackDuration || 0)/1000,generation,hasDraft:Boolean(draftTiming),
       blocked:busy || recordingError || !player?.backingTrackDuration?'Wait for the recording to be ready.':
         dirty && !draftTiming?'Save the current alignment before creating another draft.':''}),
-    preview(take,index){
+    preview(take,index,scoreFraction){
       const measure=AppState.playbackTimeline?.measures[index];
       if(!showEditor || !player || !measure || !(take?.end>take.start))return;
+      const fromScore=Number.isFinite(scoreFraction),play=!fromScore || player.playing;
+      const seconds=fromScore?take.start+scoreFraction*(take.end-take.start):take.start;
       stopDraftPreview();
       host.pauseMediaPlayback();
       beforeEdit();
-      audition={take,measure,index};
+      audition={take,measure,index,fromScore};
       document.body.classList.add('media-take-audition');
-      player.seekTo(take.start*1000);
-      drawAudition(take.start);
-      player.play();
+      player.seekTo(seconds*1000);
+      drawAudition(seconds);
+      if(play)player.play();
     },
     async review(draft,isCurrent){
       const check=()=>{
@@ -922,6 +924,10 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   renderLayout();sourceControls();sync();refreshProfiles().catch(error=>message(error.message));
   return {sync,timelineReady,finishEditing,
     draftTransport(action){
+      if(audition?.fromScore && action==='toggle'){
+        if(player.playing)player.pause();else player.play();
+        return true;
+      }
       if(action==='toggle' && AppState.media.preview && AppState.mode==='realtime' && (recordingError || reloadInProgress)){
         if(!reloadInProgress && player?.reload)void reloadSource(true);
         else if(!reloadInProgress)message(recordingError.message);
@@ -1025,11 +1031,15 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     scoreLoading(){generation++;disposal();points=[];undo=[];redo=[];scoreBytes=null;scoreHash='';profileId='';pendingProfile=null;selected=-1;busy=false;dirty=false;renderPoints();renderLayout();sync();},
     mediaChanged(){sync();if(!AppState.media.preview)afterPractice();},
     scoreTargetSelected({measureIndex,barPosition}){
-      if(!showEditor || !player || busy)return;
+      if(!player || busy)return;
+      if(draftTiming && AppState.media.editing){
+        draftEditor.selectMeasure(measureIndex+1,barPosition,player.currentTime/1000,showEditor);
+        return;
+      }
+      if(!showEditor)return;
       seekGeneration++; // A native score click supersedes an unfinished timeline seek.
       const measure=AppState.playbackTimeline?.measures[measureIndex];if(!measure)return;
-      if(draftTiming){draftEditor.selectMeasure(measureIndex+1);return;}
-      if(suggestions.selectMissing(measureIndex+1))return;
+      if(suggestions.selectScoreBeat(measureIndex,barPosition))return;
       const beat=1+barPosition*AppState.score.masterBars[measure.measureNumber-1].timeSignatureNumerator;
       chooseGuide(measureIndex,beat,{reveal:false});renderPoints();
       const guide=projectedGuides.find(g=>g.measureIndex===measureIndex && g.beat===beat);

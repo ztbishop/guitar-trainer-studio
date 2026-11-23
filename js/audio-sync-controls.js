@@ -195,7 +195,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       const label = document.createElement('label'), select = document.createElement('select');
       label.append(`Measure ${printedMeasure(snapshot.notation,m.measureNumber)} · pass ${m.occurrence} `,select);
       select.add(new Option(takes.length ? 'Leave unmapped' : 'No match','-1'));
-      takes.forEach((t,j) => select.add(new Option(`${t.manual ? 'Manually timed' : t.refined ? 'Pinned passage' : 'Take '+(j+1)} · ${time(t.start)}–${time(t.end)}`,String(j))));
+      takes.forEach((t,j) => select.add(new Option(`${t.backward ? 'Matched from next measure' : t.manual ? 'Manually timed' : t.refined ? 'Pinned passage' : 'Take '+(j+1)} · ${time(t.start)}–${time(t.end)}`,String(j))));
       select.value = String(choices[i]); select.disabled = !takes.length;
       const listen = button('Play from take',async () => {
         try { if (current(snapshot)) await preview(takes[choices[i]],i); }
@@ -294,7 +294,11 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     finally { applying = false; sync(); }
   }
   reset();
-  return {sync,reset,get musicRanges(){return musicRanges;},selectMissing(number){
-    return Boolean(result && panel.open && manual.choose(number));
+  return {sync,reset,get musicRanges(){return musicRanges;},selectScoreBeat(index,fraction){
+    if(!result || !panel.open || !current(result.snapshot) || job || applying)return false;
+    const take=result.matches[index]?.[result.choices[index]];
+    if(!take)return manual.choose(index+1);
+    preview(take,index,fraction);
+    return true;
   }};
 }

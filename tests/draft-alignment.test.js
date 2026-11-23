@@ -1,9 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {draftPosition,editDraftPiece} from '../js/draft-alignment.js';
+import {draftPosition,draftSeekTarget,editDraftPiece} from '../js/draft-alignment.js';
 const timeline={measures:[{measureNumber:1,occurrence:1,startTick:0,endTick:3840},{measureNumber:1,occurrence:2,startTick:3840,endTick:7680}]};
 const visit={visit:1,scoreMeasure:1,occurrence:2,originalVisit:2,startSeconds:10,endSeconds:null,anchors:[{offset480:0,seconds:10},{offset480:240,seconds:12}]};
 const working=()=>({candidatePlan:{musicalVisits:[structuredClone(visit)],intervals:[]},unresolved:[]});
+test('a score click uses the nearest timed pass and interpolates only inside its known anchors',()=>{
+ const plan=working().candidatePlan;
+ plan.musicalVisits.unshift({...visit,originalVisit:1,occurrence:1,startSeconds:2,endSeconds:6,anchors:[{offset480:240,seconds:3}]});
+ assert.equal(draftSeekTarget(plan,timeline,1,0.75,4).time,4.5);
+ assert.equal(draftSeekTarget(plan,timeline,1,0.25,12).time,11);
+ plan.musicalVisits.shift();
+ assert.equal(draftSeekTarget(plan,timeline,2,0.75,12),null);
+ plan.intervals.push({kind:'explanation',startSeconds:10.5,endSeconds:11.5});
+ assert.equal(draftSeekTarget(plan,timeline,2,0.25,12),null);
+});
 test('partial candidate tracks only explicit anchor spans, with native repeat identity; no extrapolation across unknown tail',()=>{
  const plan=working().candidatePlan;
  assert.equal(draftPosition(plan,timeline,11).tick,4800);assert.equal(draftPosition(plan,timeline,11).occurrence,2);

@@ -141,28 +141,40 @@ let cursorRevealTick=null,cursorRevealGeneration=0;
 let cursorRevealFollowOnly=false;
 let editingCountIn=null;
 let draftCursor=null,draftCursorBar=null;
+let draftBeatId=null,draftGlyphs=[];
+function highlightDraftBeat(id){
+  if(id===draftBeatId && (id===null || draftGlyphs.length && draftGlyphs.every(g=>g.isConnected)))return;
+  for(const g of draftGlyphs)g.classList.remove('draft-playing-note');
+  draftBeatId=id;
+  draftGlyphs=id==null?[]:Array.from(notationContainer.getElementsByClassName('b'+id));
+  for(const g of draftGlyphs)g.classList.add('draft-playing-note');
+}
+function clearDraftCursor(){
+  highlightDraftBeat(null);draftCursor?.replaceChildren();draftCursorBar=null;
+  return false;
+}
 // Display-only draft projection. Never seek/play the synth, change its clock,
 // feed practice callbacks, or install an incomplete native timing plan.
 export function showDraftPosition(position,reveal=false,audition=false) {
   if(!AppState.media.editing || (AppState.media.preview && !audition) || !position || position.kind!=='music') {
-    draftCursor?.replaceChildren();draftCursorBar=null;return false;
+    return clearDraftCursor();
   }
   const native=AppState.playbackTimeline?.measures[position.originalVisit-1];
-  if(!native||native.measureNumber!==position.scoreMeasure||native.occurrence!==position.occurrence)return false;
+  if(!native||native.measureNumber!==position.scoreMeasure||native.occurrence!==position.occurrence)return clearDraftCursor();
   const bar=alphaTabApi?.boundsLookup?.findMasterBarByIndex(position.scoreMeasure-1),bounds=bar?.visualBounds;
-  if(!bounds||!notationContainer)return false;
+  if(!bounds||!notationContainer)return clearDraftCursor();
   const offset=position.fraction*(native.endTick-native.startTick);
   const beats=(bar.bars?.[0]?.beats??[]).filter(b=>Number.isFinite(b.beat?.playbackStart)).sort((a,b)=>a.beat.playbackStart-b.beat.playbackStart);
   const beat=beats.filter(b=>b.beat.playbackStart<=offset).at(-1)??beats[0];
-  if(!beat)return false;
+  if(!beat)return clearDraftCursor();
   const next=beats.find(b=>b.beat.playbackStart>beat.beat.playbackStart),end=next?.beat.playbackStart??native.endTick-native.startTick;
   const fraction=Math.max(0,Math.min(1,(offset-beat.beat.playbackStart)/Math.max(1,end-beat.beat.playbackStart)));
   const x=beat.onNotesX+fraction*((next?.onNotesX??bounds.x+bounds.w)-beat.onNotesX);
   if(!draftCursor)draftCursor=svgElement('svg',{id:'draft-score-cursor',class:'draft-score-cursor','aria-label':'Unverified editing score position'});
   if(draftCursor.parentNode!==notationContainer)notationContainer.append(draftCursor);
   draftCursor.dataset.originalVisit=String(position.originalVisit);draftCursor.dataset.tick=String(position.tick);
-  draftCursor.replaceChildren(svgElement('rect',{x:beat.onNotesX-6,y:bounds.y,width:Math.max(12,(next?.onNotesX??bounds.x+bounds.w)-beat.onNotesX),height:bounds.h,fill:'#e8ad39','fill-opacity':0.18}),
-    svgElement('rect',{x:x-2,y:bounds.y,width:4,height:bounds.h,fill:'#a76500'}));
+  highlightDraftBeat(beat.beat.id);
+  draftCursor.replaceChildren(svgElement('rect',{x:x-2,y:bounds.y,width:4,height:bounds.h,fill:'#4daeea','fill-opacity':0.55}));
   if(reveal||draftCursorBar!==position.originalVisit){revealMediaScoreTarget({barIndex:position.scoreMeasure-1,barPosition:position.fraction});draftCursorBar=position.originalVisit;}
   return true;
 }

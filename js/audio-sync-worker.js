@@ -1,6 +1,7 @@
 import {matchSingleMeasures,recordingFeatures,SAMPLE_RATE} from './audio-sync-match.js';
 import {phraseMatches,orderedChoices,refinePassage,alternativeStarts} from './audio-sync-passages.js';
 import {rhythmicMatches} from './audio-sync-rhythm.js';
+import {suggestPrecedingMeasures} from './audio-sync-backward.js';
 
 self.onmessage = ({data}) => {
   try {
@@ -20,7 +21,9 @@ self.onmessage = ({data}) => {
       self.postMessage({phase:'Checking longer riffs',done:0,total:1});
       matches = rhythmicMatches(data.score,features,duration);
     }
-    self.postMessage({matches,choices:orderedChoices(matches),features},[features.buffer]);
+    const choices=orderedChoices(matches);
+    suggestPrecedingMeasures(data.bars,matches,choices,features);
+    self.postMessage({matches,choices,features},[features.buffer]);
   } catch (error) {
     self.postMessage({error:error.message});
   }

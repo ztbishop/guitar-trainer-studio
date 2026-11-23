@@ -1,7 +1,7 @@
 import {printedMeasure} from './printed-measure.js';
 import {createMissingMeasureForm,insertTimedMeasure} from './missing-measure.js';
 import {copyDraftJson} from './draft-timing.js';
-import {draftPieces,draftPosition,draftAnchors,editDraftPiece,finite} from './draft-alignment.js';
+import {draftPieces,draftPosition,draftSeekTarget,draftAnchors,editDraftPiece,finite} from './draft-alignment.js';
 const node=(tag,text)=>{const e=document.createElement(tag);if(text)e.textContent=text;return e;};
 const svg=(tag,attrs={},text)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(text)e.textContent=text;return e;};
 function intervalName(kind,label) {
@@ -62,10 +62,16 @@ export function createDraftTimeline({container,options,transport,highlight,chang
     }
   });
   container.append(controls,seek,missing.box,legend,scroll,shelf,selectedTools,add);
-  function selectMeasure(number){
-    const index=working?.candidatePlan.musicalVisits.findIndex(v=>v.originalVisit===number);
-    if(index>=0){select('music:'+index);return true;}
-    return Boolean(working && !missing.box.hidden && missing.choose(number));
+  function selectMeasure(number,fraction,clock,editing){
+    if(!working)return false;
+    const target=draftSeekTarget(working.candidatePlan,options().timeline,number,fraction,clock);
+    if(target){
+      selected='music:'+target.index;
+      if(editing){fields();draw();}
+      seekTo(target.time);
+      return true;
+    }
+    return Boolean(editing && !missing.box.hidden && missing.choose(number));
   }
   function piece(){return working&&draftPieces(working.candidatePlan).find(p=>p.key===selected);}
   function centerPlayhead(){scroll.scrollLeft=Math.max(0,current/extent*chart.getBoundingClientRect().width-scroll.clientWidth/2);}

@@ -25,6 +25,7 @@ function wav(){const b=Buffer.alloc(44+22050*2*15);b.write('RIFF');b.writeUInt32
  await page.locator('#play-pause-button').click();
  await page.waitForFunction(()=>document.querySelector('#media-audio').currentTime>1.2);
  await page.waitForFunction(()=>document.querySelector('#draft-score-cursor rect'));
+ await page.waitForFunction(()=>Array.from(document.querySelectorAll('.draft-playing-note *')).some(g=>getComputedStyle(g).fill.includes('46, 204, 113')));
  const x1=await page.locator('#draft-score-cursor rect').last().getAttribute('x');
  await page.waitForTimeout(350);
  const x2=await page.locator('#draft-score-cursor rect').last().getAttribute('x');assert.notEqual(x1,x2);
@@ -36,6 +37,7 @@ function wav(){const b=Buffer.alloc(44+22050*2*15);b.write('RIFF');b.writeUInt32
  await page.locator('#media-draft-seek').evaluate(e=>{e.value='4.5';e.dispatchEvent(new Event('input',{bubbles:true}));});
  await page.waitForFunction(()=>document.querySelector('#media-draft-position').textContent.startsWith('Explanation'));
  assert.equal(await page.locator('#draft-score-cursor rect').count(),0);
+ assert.equal(await page.locator('.draft-playing-note').count(),0);
  await page.locator('#media-draft-section').selectOption('music:3');
  assert.equal(await page.locator('#media-draft-seconds').inputValue(),'11');
  await page.locator('#media-draft-scope').selectOption('move');
