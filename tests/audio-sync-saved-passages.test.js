@@ -61,11 +61,12 @@ for (const [id,title,published] of [
     assert(Math.abs(matches[8][choices[8]].start-published)<0.25);
     assert(matches[8].includes(old[8]));
     if (id==='98109') {
-      const timed = choices.slice(7,10).map((c,i)=>matches[i+7][c]);
-      const bounds = [timed[0].start,timed[1].start,timed[2].start];
-      [111.262,116.049,121.638].forEach((seconds,i)=>assert(Math.abs(bounds[i]-seconds)<0.16));
+      const timed = choices.slice(7,11).map((c,i)=>matches[i+7][c]);
+      const bounds = timed.map(take=>take.start);
+      [111.262,116.049,121.638,124.447].forEach((seconds,i)=>assert(Math.abs(bounds[i]-seconds)<0.16));
       assert.equal(timed[0].end,timed[1].start);
       assert.equal(timed[1].end,timed[2].start);
+      assert.equal(timed[2].end,timed[3].start);
     } else {
       assert.equal(choices[14],-1);
       for (let i=15;i<old.length;i++) assert.equal(matches[i][choices[i]],old[i]);

@@ -61,10 +61,15 @@ export function refineContextBoundaries(bars,samples,features,matches,choices,or
     const chord = downbeatChord(bars[i]);
     if (!chord) continue;
     const gap = next.start-previous.end;
-    if (moved[i-1] && gap >= 0.16 && gap <= 0.5) {
+    // When searches nearly agree on a sustained chord's downbeat, their
+    // boundary may still follow a weak pitch change before the actual attack.
+    const earlyChord = moved[i-1] && gap > 0 && gap < 0.16 && sustainedChord(bars[i]);
+    if (moved[i-1] && gap <= 0.5 && (gap >= 0.16 || earlyChord)) {
       const finalChord = bars[i-1].probes.at(-1)?.pitches;
-      if (!finalChord || chordAgreement(features,Math.round(previous.end/FRAME),finalChord)<0.75) continue;
-      const time = chordAttack(samples,features,chord,next.start-0.12,next.start+0.5);
+      const tail = Math.round((previous.end-(earlyChord ? 0.12 : 0))/FRAME);
+      if (!finalChord || chordAgreement(features,tail,finalChord)<0.75) continue;
+      const from = next.start+(earlyChord ? 0.16 : -0.12);
+      const time = chordAttack(samples,features,chord,from,next.start+0.5);
       if (time===null || time<previous.end || time>=next.end-0.5) continue;
       const left = matches[i-1][choices[i-1]];
       selectBoundaryTake(matches,choices,i-1,left,{end:time});
