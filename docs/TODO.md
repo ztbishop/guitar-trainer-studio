@@ -9,6 +9,8 @@
 - [x] Tighten late opening chords and extrapolated final chord releases. Compared all selected boundaries on 24 saved lessons. [Results and remaining take errors](DEV-NOTES.md#ringing-chords-at-the-start-and-end-of-a-lesson)
 - [x] Check final takes against the preceding chord progression in Chord Scales 1, 5 and 8. Compared 24 saved lessons and timed old and new Auto-sync builds. [Results and limits](DEV-NOTES.md#choosing-the-final-take-from-the-preceding-chord-progression)
 - [ ] Evaluate single-note releases separately. Retain the saved boundary and runtime comparisons for future searches.
+- [x] Allow a continuous recording's applied audio timing to become a separate set of standard sync points. [Arirang conversion and grading coverage](DEV-NOTES.md#filling-the-gaps-of-a-continuous-performance)
+- [ ] Listen across the four-visit Arirang gap at 2:55.31 and check the interpolated beat positions with a MIDI guitar.
 - [x] Add Continuous music to Auto-sync for uninterrupted performances. [Arirang and saved lesson comparisons](DEV-NOTES.md#continuous-music-in-media-sync)
 - [ ] Listen to the recovered Arirang opening, repeated figures, holds and final chord, and check their grading with a physical MIDI guitar.
 

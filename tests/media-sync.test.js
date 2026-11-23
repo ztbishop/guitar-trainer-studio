@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-import {mediaUrl,youtubeId,validateSource,sourceMatches,matchMediaProfile,validatePoints,pointTick,defaultPoints,tempoAlignedPoints,validateProfile,parseProfileExport,MEDIA_PROFILE_FORMAT,mediaTimeAtTick,tickAtMediaTime} from '../js/media-sync.js';
+import {mediaUrl,youtubeId,validateSource,sourceMatches,matchMediaProfile,validatePoints,pointTick,defaultPoints,tempoAlignedPoints,validateProfile,parseProfileExport,MEDIA_PROFILE_FORMAT,mediaTimeAtTick,tickAtMediaTime,continuousSyncPoints} from '../js/media-sync.js';
 import {validateBackup,LIBRARY_FORMAT,encodeBytes} from '../js/library-store.js';
 import {installAlphaTabCompatibility} from '../js/alphatab-host.js';
 const native=createRequire(import.meta.url)('../assets/vendor/alphatab/alphaTab.js');
@@ -9,6 +9,25 @@ const timeline={endTick:11520,durationMs:6000,ticksPerQuarter:960,tempoMap:[{tic
   measures:[{measureNumber:1,occurrence:1,startTick:0,endTick:3840},{measureNumber:1,occurrence:2,startTick:3840,endTick:7680},{measureNumber:2,occurrence:1,startTick:7680,endTick:11520}]};
 const source={kind:'local',label:'Lesson',fileName:'lesson.mp4',size:300,lastModified:12};
 const profile=()=>({id:'profile',scoreHash:'a'.repeat(64),scoreName:'Song',name:'Performance',source,durationMs:10000,points:tempoAlignedPoints(timeline,10000),layout:'right'});
+
+test('continuous conversion interpolates a missing repeat, preserves rubato and uses the later shared downbeat',()=>{
+  function visit(index,times) {
+    const m=timeline.measures[index],step=(m.endTick-m.startTick)/(times.length-1);
+    return {...m,originalVisit:index+1,scoreMeasure:m.measureNumber,
+      anchors:times.map((timeMs,i)=>({tick:m.startTick+i*step,timeMs}))};
+  }
+  const opening=visit(0,[250,500,2000]),last=visit(2,[5000,8000]);
+  const convert=visits=>continuousSyncPoints({visits},timeline,9000);
+  const sparse=convert([opening,last]);
+  assert.deepEqual(sparse.map(p=>p.millisecondOffset),[250,500,2000,5000,8000]);
+  assert.equal(sparse[2].barOccurence,1);
+  assert.equal(mediaTimeAtTick(sparse,timeline,5760),3500);
+  const middle=visit(1,[2500,4800]);
+  assert.deepEqual(convert([opening,middle,last]).map(p=>p.millisecondOffset),[250,500,2500,5000,8000]);
+  assert.throws(()=>convert([middle,last]),/first and last/);
+  assert.throws(()=>convert([opening,middle]),/first and last/);
+  assert.throws(()=>convert([opening,visit(2,[2000,8000])]),/move forward/);
+});
 
 test('missing profile placement defaults left while valid saved placements remain authoritative',()=>{
   for(const layout of ['above','below','left','right'])assert.equal(validateProfile({...profile(),layout}).layout,layout);

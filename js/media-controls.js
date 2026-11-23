@@ -8,7 +8,7 @@ import {validateDraft,checkDraftBinding,DRAFT_CAPABILITY} from './draft-timing.j
 import {AppState} from './app-state.js';
 import {recordingScoreRange,recordingRegion,nextMusicStart} from './media-score-range.js';
 import {LibraryStore,fingerprint} from './library-store.js';
-import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport,pointTick,mediaTimeAtTick} from './media-sync.js';
+import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport,pointTick,mediaTimeAtTick,continuousSyncPoints} from './media-sync.js';
 import {htmlMediaPlayer,youtubeMediaPlayer,waveformPeaks} from './media-player.js';
 import {timelineGuides,moveAnchors,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel,timelineRuler} from './media-timeline.js';
 import {soundslicePoints,lessonTimelineKey} from './lesson-import-data.js';
@@ -74,6 +74,46 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   const editMeasures=document.createElement('button');editMeasures.type='button';
   editMeasures.textContent='Edit timed measures';editMeasures.id='media-edit-timed-measures';
   get('editor-toolbar').append(editMeasures);
+  let alternateAlignment=null;
+  const switchAlignment=document.createElement('button');
+  switchAlignment.type='button';switchAlignment.id='media-continuous-points';
+  editMeasures.after(switchAlignment);
+  function captureAlignment() {
+    return {timingPlan,points,selected,undo,redo,dirty,profileId,name:get('profile-name').value};
+  }
+  function useAlignment(alignment) {
+    ({timingPlan,points,selected,undo,redo,dirty,profileId}=alignment);
+    get('profile-name').value=alignment.name;
+    get('profile-select').value=profileId;
+  }
+  switchAlignment.addEventListener('click',action(async()=>{
+    if(busy || draftTiming || !player || !showEditor || (!alternateAlignment && !audioPlan(timingPlan?.plan)))return;
+    const token=generation,previous=captureAlignment(),at=player.currentTime;
+    const next=alternateAlignment || {timingPlan:null,
+      points:continuousSyncPoints(timingPlan,AppState.playbackTimeline,player.backingTrackDuration),
+      name:source.label+' · Continuous points',profileId:'',dirty:true,selected:-1,undo:[],redo:[]};
+    busy=true;
+    try {
+      suggestions.reset();sync();
+      await returnToPractice();
+      if(token!==generation)return;
+      useAlignment(next);
+      await selectRecording({loading:true});
+      if(token!==generation)return;
+      if(!AppState.media.preview || recordingError)throw Error('The recording could not be opened with this timing.');
+      host.seekMediaTime(at);
+      alternateAlignment=previous;
+      message(timingPlan?'Timed measures restored.':'Continuous sync points ready. Check the former gaps, then choose Finish editing to practice.');
+    } catch(error) {
+      if(token===generation) {
+        await returnToPractice();
+        if(token===generation)useAlignment(previous);
+      }
+      throw error;
+    } finally {
+      if(token===generation){busy=false;renderExplanationSummary();renderPoints();sync();}
+    }
+  }));
   function audioPlan(plan){
     return plan?.sourceSha256 && plan.recordingId==='audio-'+plan.sourceSha256;
   }
@@ -89,7 +129,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     });
     await returnToPractice();
     if(token!==generation || previous!==timingPlan || !showEditor)return;
-    draftTiming=draft;timingPlan=null;
+    alternateAlignment=null;draftTiming=draft;timingPlan=null;
     if(retained)draftEditor.reopen();else draftEditor.load(draft);
     renderExplanationSummary();renderPoints();sync();get('draft-timing').scrollIntoView({block:'nearest'});
   }
@@ -161,6 +201,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
         checkDraftBinding(draft,{timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:draft.recordingId});
       };
       check();await returnToPractice();check();stopDraftPreview();player.pause();
+      alternateAlignment=null;
       if(draftTiming)draftEditor.replaceMapping({...draft.candidatePlan,recordingId:draftTiming.recordingId});
       else {
         draftTiming=draft;points=[];timingPlan=null;profileId='';selected=-1;undo=[];redo=[];
@@ -212,6 +253,10 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   function sync() {
     suggestions.sync();
     editMeasures.hidden=Boolean(draftTiming || !audioPlan(timingPlan?.plan));editMeasures.disabled=busy;
+    switchAlignment.hidden=Boolean(draftTiming || (!alternateAlignment && !audioPlan(timingPlan?.plan)));
+    switchAlignment.disabled=busy || !AppState.playerReady || Boolean(recordingError);
+    switchAlignment.textContent=timingPlan?'Fill gaps with standard sync points':'Return to timed measures';
+    switchAlignment.title=timingPlan?'Treat the recording between the first and last synced measures as continuous music. You can switch back to compare.':'Restore the audio timing with its original gaps.';
     document.body.classList.toggle('draft-timing-active',Boolean(draftTiming));
     recovery.hidden=!recordingError;recoveryStatus.textContent=reloadInProgress?'Reloading recording… Timing and score are retained.':recordingError?.message??'';reloadRecording.hidden=!player?.reload;reloadRecording.disabled=busy || reloadInProgress;
     get('finish-editing').disabled=Boolean(draftTiming) || busy || AppState.media.returning;
@@ -323,6 +368,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('local-controls').hidden=kind!=='local';get('link-controls').hidden=!['url','youtube'].includes(kind);get('embedded-controls').hidden=kind!=='embedded';
   }
   function disposal() {
+    alternateAlignment=null;
     stopAudition();
     acceptedAudioDraft=null;
     suggestions.reset();
@@ -439,6 +485,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     explanationSelect.replaceChildren();if(!timingPlan)return;
     const omitted=timingPlan.plan.repeatResolution.omittedOriginalVisits.length,rests=timingPlan.intervals.filter(interval=>interval.kind==='unmatched-source-rest').length,silent=timingPlan.plan.scoreOmissions?.length??0;
     explanationSummary.textContent=`${timingPlan.explanations.length} explanation breaks${rests?` · ${rests} unscored breaks`:''}. ${omitted?`${omitted} extra repeat visits are skipped in this recording. `:''}${silent?`${silent} verified silent measure visits are skipped in this recording. `:''}Original score unchanged. This imported timing is read-only; import a revised lesson to change it.`;
+    if(audioPlan(timingPlan.plan))explanationSummary.textContent='Use Edit timed measures to adjust individual matches. For an uninterrupted performance, Fill gaps with standard sync points estimates the timing between matches.';
     explanationSelect.setAttribute('aria-label',rests?'Recording break to listen to':'Explanation to listen to');
     for(const interval of timingPlan.intervals)explanationSelect.append(new Option(`${clock(interval.startMs)} — ${intervalLabel(interval)}`,interval.id));
   }
@@ -898,6 +945,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     await store.saveProfile(profile);if(snapshotHash!==scoreHash || token!==generation)return;profileId=profile.id;dirty=JSON.stringify(points)!==snapshot;await refreshProfiles();message(dirty?'Sync profile saved; newer alignment edits still need saving.':'Sync profile saved. Recordings are not copied into browser storage.');
   }));
   get('profile-select').addEventListener('change',action(async()=>{
+    alternateAlignment=null;
     await returnToPractice();profileId=get('profile-select').value;
     const profile=profiles.find(p=>p.id===profileId);pendingProfile=profile || null;
     if(!profile){sync();return;}
@@ -994,7 +1042,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       else {const url=mediaUrl(recording.url),youtube=['youtube.com','www.youtube.com','youtu.be','www.youtube-nocookie.com'].includes(new URL(url).hostname);await loadRecording(youtube?{kind:'youtube',videoId:youtubeId(url),label:recording.label}:{kind:'url',url,label:recording.label},null,{deferSelection:true});}
       if(token!==generation||score!==AppState.currentScoreFile||!player)throw new Error('Draft import superseded.');
       checkDraftBinding(draft,{timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:recording.id});
-      draftTiming=draft;points=[];timingPlan=null;profileId='';dirty=true;draftEditor.load(draft);openEditor();sync();message('Draft timing needs review. Recording grading is paused. Export draft to keep your work.');
+      alternateAlignment=null;draftTiming=draft;points=[];timingPlan=null;profileId='';dirty=true;draftEditor.load(draft);openEditor();sync();message('Draft timing needs review. Recording grading is paused. Export draft to keep your work.');
       return {readyToPractice:false,draft:true};
     },async returnToPractice(){await returnToPractice();},
     captureRecording() {

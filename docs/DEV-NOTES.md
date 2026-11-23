@@ -1,5 +1,11 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Filling the gaps of a continuous performance
+
+The owner spot-checked the recovered Arirang opening and timing through the end. The resulting draft still omitted 32 visits and had ten gaps between adjacent mapped measures. A local Chrome test converted its 148 mapped visits to 236 standard points. All matched downbeats and interior anchors retained their recording times. The musical boundaries remained 1.32 and 359.28 seconds. All 1,694 expected practice events across the expanded 180 visits became available. The test added a point at beat two of a previously omitted visit, saved the standard profile, restored the original draft and switched back with the edit intact.
+
+The conversion estimates the timing of the missing music. The longest previously unmapped run was about 6.91 seconds starting at 2:55.31. Owner listening through the interpolated runs and physical MIDI grading are pending.
+
 ## Continuous music in Media Sync
 
 Added a checkbox beside Auto-sync for single performances. In a local Chrome run on Yenne Lee’s *Arirang Fantasy*, the ordinary scan selected 127 of 180 measure visits. Continuous music selected 148, with 23 additional candidates available to audition. Mapped time increased from 248.3 to 301.7 seconds. Measures 1, 2 and 3 started at 1.32, 4.75 and 7.94 seconds. The estimated last chord ran from 5:55.00 to 5:59.28. The draft carried 67 interior attack anchors across 40 visits. These are analyzer estimates. A reference timing file was unavailable for this performance.

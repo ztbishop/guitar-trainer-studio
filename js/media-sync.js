@@ -80,6 +80,30 @@ export function defaultPoints(timeline,durationMs) {
     {barIndex:last.measureNumber-1,barOccurence:last.occurrence-1,barPosition:1,millisecondOffset:durationMs},
   ];
 }
+
+// Use the expanded playback order so each written repeat keeps its own time.
+// At a shared bar line ordinary points can hold only one recording time.
+export function continuousSyncPoints(compiled,timeline,durationMs) {
+  const visits=compiled.visits, measures=timeline.measures;
+  if (!visits.length || visits[0].startTick!==0 || visits.at(-1).endTick!==timeline.endTick)
+    throw new Error('Time the first and last played measures in Edit timed measures before filling gaps.');
+  const points=[];
+  for (const visit of visits) {
+    const next=measures[visit.originalVisit];
+    for (const anchor of visit.anchors) {
+      const previous=points.at(-1);
+      // Prefer the following downbeat to the preceding release. This stretches
+      // the end of that bar across a hold or pause in a continuous performance.
+      if (previous && anchor.tick===previous.tick) points.pop();
+      const atNext=anchor.tick===visit.endTick && next?.startTick===anchor.tick && next.endTick>next.startTick;
+      points.push({tick:anchor.tick,barIndex:(atNext?next.measureNumber:visit.scoreMeasure)-1,
+        barOccurence:(atNext?next.occurrence:visit.occurrence)-1,
+        barPosition:atNext?0:(anchor.tick-visit.startTick)/(visit.endTick-visit.startTick),
+        millisecondOffset:anchor.timeMs});
+    }
+  }
+  return validatePoints(points,timeline,durationMs);
+}
 export function tickAtMediaTime(points,timeline,timeMs) {
   const sorted=validatePoints(points,timeline);
   if(sorted.length<2)throw new Error('Add at least a start and end sync point.');
