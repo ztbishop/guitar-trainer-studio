@@ -234,6 +234,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     }
     return next!==null && next<=player.backingTrackDuration ? {ms:next,label:'Skip to music'} : null;
   }
+  let shadedRanges=null,shadedDuration=0;
   function syncRecordingRegion() {
     const duration=player?.backingTrackDuration,range=timingPlan?{start:timingPlan.startMs,end:timingPlan.endMs}:recordingScoreRange(points,AppState.playbackTimeline,duration);
     const position=timingPlan && player?planPositionAtTime(timingPlan,player.currentTime):null;
@@ -251,14 +252,28 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       isBreak?`${intervalLabel(interval)} · No grading`:
       region==='before'?'Before synced music · No grading':region==='after'?'After synced music · No grading':'Use main Play/Pause and Tempo.';
     const seek=get('seek');
+    const ranges=draftTiming?draftEditor.musicRanges:showEditor && suggestions.musicRanges || timingPlan?.visits;
+    if(ranges && duration>0){
+      if(ranges!==shadedRanges || duration!==shadedDuration){
+        const bands=[],gap='#a7adb8',music='#88bdec';
+        let cursor=0;
+        for(const v of [...ranges].sort((a,b)=>a.startMs-b.startMs)){
+          const start=Math.max(0,v.startMs),end=Math.min(duration,v.endMs);
+          if(end<=cursor || end<=start)continue;
+          if(start>cursor)bands.push(`${gap} ${cursor/duration*100}% ${start/duration*100}%`);
+          bands.push(`${music} ${Math.max(start,cursor)/duration*100}% ${end/duration*100}%`);cursor=end;
+        }
+        if(cursor<duration)bands.push(`${gap} ${cursor/duration*100}% 100%`);
+        seek.style.background=`linear-gradient(to right, ${bands.join(', ')})`;
+        seek.title='Blue covers timed music. Gray covers unmapped recording time.';
+        shadedRanges=ranges;shadedDuration=duration;
+      }
+      return;
+    }
+    shadedRanges=null;
     if(range && duration>0) {
       const start=range.start/duration*100,end=range.end/duration*100;
-      if(timingPlan) {
-        const bands=[];let cursor=0;
-        for(const visit of timingPlan.visits){if(visit.startMs>cursor)bands.push(`#a7adb8 ${cursor/duration*100}% ${visit.startMs/duration*100}%`);bands.push(`#dce8f7 ${visit.startMs/duration*100}% ${visit.endMs/duration*100}%`);cursor=visit.endMs;}
-        if(cursor<duration)bands.push(`#a7adb8 ${cursor/duration*100}% 100%`);
-        seek.style.background=`linear-gradient(to right, ${bands.join(', ')})`;
-      } else seek.style.background=`linear-gradient(to right, var(--media-outside-color, #a7adb8) 0% ${start}%, var(--media-music-color, #dce8f7) ${start}% ${end}%, var(--media-outside-color, #a7adb8) ${end}% 100%)`;
+      seek.style.background=`linear-gradient(to right, var(--media-outside-color, #a7adb8) 0% ${start}%, var(--media-music-color, #dce8f7) ${start}% ${end}%, var(--media-outside-color, #a7adb8) ${end}% 100%)`;
       seek.title='Shaded sections have no grading. They remain seekable.';
     } else {seek.style.background='';seek.title='';}
   }
@@ -1013,6 +1028,8 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       if(!showEditor || !player || busy)return;
       seekGeneration++; // A native score click supersedes an unfinished timeline seek.
       const measure=AppState.playbackTimeline?.measures[measureIndex];if(!measure)return;
+      if(draftTiming){draftEditor.selectMeasure(measureIndex+1);return;}
+      if(suggestions.selectMissing(measureIndex+1))return;
       const beat=1+barPosition*AppState.score.masterBars[measure.measureNumber-1].timeSignatureNumerator;
       chooseGuide(measureIndex,beat,{reveal:false});renderPoints();
       const guide=projectedGuides.find(g=>g.measureIndex===measureIndex && g.beat===beat);

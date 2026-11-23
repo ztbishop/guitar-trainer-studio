@@ -3,6 +3,7 @@ import {fingerprint} from './library-store.js';
 import {scoreQueries,passageScore,followTake,suggestionDraft} from './audio-sync-score.js';
 import {createPassageRange} from './audio-sync-range.js';
 import {SAMPLE_RATE} from './audio-sync-match.js';
+import {createMissingMeasureForm} from './missing-measure.js';
 
 const MAX_BYTES = 256 * 1024 * 1024;
 const sizeError = () => Error('Choose a recording under 256 MiB or a smaller audio copy of the same lesson.');
@@ -76,8 +77,26 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     status.textContent = 'Analysis canceled.';
   });
   const apply = button('Review selected takes',openDraft);
-  panel.append(title,help,start,cancel,status,apply,rows,passage,comparisons); after.after(panel);
+  const manual=createMissingMeasureForm({
+    measures:()=>result.snapshot.timeline.measures,notation:()=>result.snapshot.notation,playhead,
+    visit:number=>{
+      const take=result.matches[number-1]?.[result.choices[number-1]];
+      return take && {startSeconds:take.start,endSeconds:take.end};
+    },
+    save(number,start,end){
+      if(!result || !current(result.snapshot) || !sync() || job || applying)return;
+      const i=number-1;
+      if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start||end>result.snapshot.duration)
+        throw Error('Set the first beat and a later end within the recording.');
+      if(result.choices.some((c,j)=>c>=0 && (j<i?result.matches[j][c].end>start:result.matches[j][c].start<end)))
+        throw Error('These times cross another selected take.');
+      result.choices[i]=result.matches[i].push({start,end,manual:true,pinnedStart:true,pinnedEnd:true})-1;
+      result.locked[i]=true;draw();sync();
+    }
+  });
+  panel.append(title,help,start,cancel,status,apply,manual.box,rows,passage,comparisons); after.after(panel);
   let job = null, result = null, applying = false;
+  let musicRanges=null;
 
   function current(snapshot) {
     const now = context();
@@ -86,6 +105,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
   }
   function reset() {
     job?.controller.abort(); job = result = null;
+    musicRanges=null;manual.box.hidden=true;
     rows.replaceChildren(); passage.replaceChildren(); status.textContent = ''; apply.hidden = cancel.hidden = true;
     compareRows.replaceChildren(); comparisons.open = false; comparisons.hidden = true;
     start.disabled = false;
@@ -103,7 +123,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     help.textContent = reason || 'Matches the selected practice track. Choose a take for each written pass. Unmapped recording time plays without grading.';
     start.disabled = Boolean(reason || job || applying);
     apply.textContent = now.hasDraft ? 'Replace draft mapping with selected takes' : 'Review selected takes';
-    rows.inert = passage.inert = comparisons.inert = Boolean(reason || job || applying);
+    manual.box.inert = rows.inert = passage.inert = comparisons.inert = Boolean(reason || job || applying);
     apply.disabled = Boolean(reason || job || applying || !result?.choices.some(c => c >= 0));
     return !reason;
   }
@@ -160,6 +180,8 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     drawComparisons();
     const found = matches.filter(t => t.length).length;
     function showCount() {
+      musicRanges=choices.flatMap((c,i)=>c<0?[]:[{startMs:matches[i][c].start*1000,endMs:matches[i][c].end*1000}]);
+      manual.refresh();
       status.textContent = found
         ? `Found takes for ${found} of ${matches.length} measure visits. You have ${choices.filter(c => c >= 0).length} selected for draft review. Listen to compare or change takes below.`
         : 'Analyze found 0 suggested sync points. The timeline still shows its previous alignment. You can try another practice track or pin a passage you recognize below.';
@@ -173,7 +195,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       const label = document.createElement('label'), select = document.createElement('select');
       label.append(`Measure ${printedMeasure(snapshot.notation,m.measureNumber)} · pass ${m.occurrence} `,select);
       select.add(new Option(takes.length ? 'Leave unmapped' : 'No match','-1'));
-      takes.forEach((t,j) => select.add(new Option(`${t.refined ? 'Pinned passage' : 'Take '+(j+1)} · ${time(t.start)}–${time(t.end)}`,String(j))));
+      takes.forEach((t,j) => select.add(new Option(`${t.manual ? 'Manually timed' : t.refined ? 'Pinned passage' : 'Take '+(j+1)} · ${time(t.start)}–${time(t.end)}`,String(j))));
       select.value = String(choices[i]); select.disabled = !takes.length;
       const listen = button('Play from take',async () => {
         try { if (current(snapshot)) await preview(takes[choices[i]],i); }
@@ -192,6 +214,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       };
       listen.disabled = follow.disabled = choices[i] < 0;
       row.append(label); if (takes.length) row.append(listen,follow);
+      else row.append(button('Set measure timing',()=>manual.choose(i+1)));
       rows.append(row);
     }
   }
@@ -271,5 +294,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     finally { applying = false; sync(); }
   }
   reset();
-  return {sync,reset};
+  return {sync,reset,get musicRanges(){return musicRanges;},selectMissing(number){
+    return Boolean(result && panel.open && manual.choose(number));
+  }};
 }

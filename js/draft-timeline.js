@@ -1,4 +1,5 @@
 import {printedMeasure} from './printed-measure.js';
+import {createMissingMeasureForm,insertTimedMeasure} from './missing-measure.js';
 import {copyDraftJson} from './draft-timing.js';
 import {draftPieces,draftPosition,draftAnchors,editDraftPiece,finite} from './draft-alignment.js';
 const node=(tag,text)=>{const e=document.createElement(tag);if(text)e.textContent=text;return e;};
@@ -50,7 +51,22 @@ export function createDraftTimeline({container,options,transport,highlight,chang
     v.anchors.push({offset480:o,seconds:current});v.anchors.sort((a,b)=>a.offset480-b.offset480);
     const index=v.anchors.findIndex(a=>a.offset480===o);change(editDraftPiece(next,selected,String(index),current,options().durationMs/1000).working);});
 
-  container.append(controls,seek,legend,scroll,shelf,selectedTools,add);
+  let visitsByNumber=new Map();
+  const missing=createMissingMeasureForm({
+    measures:()=>options().timeline.measures,notation:()=>options().notation,playhead:()=>current,
+    visit:number=>visitsByNumber.get(number),
+    save(number,start,end){
+      const plan=insertTimedMeasure(working.candidatePlan,options().timeline.measures,number,start,end,options().durationMs/1000);
+      selected='music:'+plan.musicalVisits.findIndex(v=>v.originalVisit===number);
+      change({...working,candidatePlan:plan});select(selected);
+    }
+  });
+  container.append(controls,seek,missing.box,legend,scroll,shelf,selectedTools,add);
+  function selectMeasure(number){
+    const index=working?.candidatePlan.musicalVisits.findIndex(v=>v.originalVisit===number);
+    if(index>=0){select('music:'+index);return true;}
+    return Boolean(working && !missing.box.hidden && missing.choose(number));
+  }
   function piece(){return working&&draftPieces(working.candidatePlan).find(p=>p.key===selected);}
   function centerPlayhead(){scroll.scrollLeft=Math.max(0,current/extent*chart.getBoundingClientRect().width-scroll.clientWidth/2);}
   function seekTo(time){seekDisplayTime=time;transport('seek',time);current=time;update(time,playing);centerPlayhead();}
@@ -70,6 +86,10 @@ export function createDraftTimeline({container,options,transport,highlight,chang
     for(const e of [scope,targetSelect,seconds,...selectedTools.querySelectorAll('button')])e.disabled=!p||(e===targetSelect&&scope.value==='move');
   }
   function renderAlternatives(){
+    if(original.matchingEvidence?.method==='audio-passage-search-v2'){
+      visitsByNumber=new Map(working.candidatePlan.musicalVisits.map(v=>[v.originalVisit,v]));
+      missing.refresh();
+    }else missing.box.hidden=true;
     alternativeList.replaceChildren();
     const suggestions=original.matchingEvidence?.visitAlternatives;
     alternatives.hidden=!Array.isArray(suggestions)||!suggestions.length;
@@ -146,5 +166,5 @@ export function createDraftTimeline({container,options,transport,highlight,chang
     highlight(pos,false);
     if(playing&&!drag){const px=current/extent*chart.getBoundingClientRect().width;if(px<scroll.scrollLeft||px>scroll.scrollLeft+scroll.clientWidth)centerPlayhead();}
   }
-  return {render(draft,next){original=draft;working=next;evidencePoints=[];try{const points=JSON.parse(original.originalTimingText.replace(/^\uFEFF/,''));if(Array.isArray(points))evidencePoints=points.filter(a=>Array.isArray(a)&&finite(a[1]));}catch{}seek.max=options().durationMs/1000;selected=draftPieces(working.candidatePlan).some(p=>p.key===selected)?selected:draftPieces(working.candidatePlan)[0]?.key??null;draw();fields();renderAlternatives();update(current,false);},update,clear(){working=null;selected=null;current=0;zoom=1;highlight(null);}};
+  return {selectMeasure,render(draft,next){original=draft;working=next;evidencePoints=[];try{const points=JSON.parse(original.originalTimingText.replace(/^\uFEFF/,''));if(Array.isArray(points))evidencePoints=points.filter(a=>Array.isArray(a)&&finite(a[1]));}catch{}seek.max=options().durationMs/1000;selected=draftPieces(working.candidatePlan).some(p=>p.key===selected)?selected:draftPieces(working.candidatePlan)[0]?.key??null;draw();fields();renderAlternatives();update(current,false);},update,clear(){working=null;selected=null;current=0;zoom=1;highlight(null);}};
 }

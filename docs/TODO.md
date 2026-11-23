@@ -1,5 +1,7 @@
 # Guitar Trainer Studio status and to-do
 
+Local acceptance for audio timing: click a missed measure on the score, set its first beat from the video, then check the colors and the following measure in playback.
+
 **Stable baseline: v1.0.2, published November 20, 2026.** The core practice and usability work is complete. The next milestone is a few normal practice sessions with the released build. Use this page for current priorities and the dated archive for earlier decisions. [Release notes](releases/v1.0.2.md) · [GitHub release](https://github.com/ztbishop/guitar-trainer-studio/releases/tag/v1.0.2) · [Historical to-do entries](TODO-HISTORY.md)
 
 ## Changes since v1.0.2

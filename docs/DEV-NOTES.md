@@ -1,5 +1,7 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+Chrome check with Jazz Discovery lesson 98027: analysis left measure 2 open and placed measure 3 at 47.2067 s. Clicking measure 2 in the score selected its timing form. Inserting a test start, undoing and redoing preserved later measure times. The video seek bar showed mapped coverage during selection, review and reviewed playback. The test start was chosen to exercise editing.
+
 ## Automatic timing on a riff lesson
 
 The *Devil Inside* intro had a known music start but no labeled explanation interval. Skip now uses musical coverage. In Chrome, the player jumped from 0:12.5 to 1:11.64 while paused and from an internal gap to 3:20.28 during playback. Pausing that second take previously snapped the recording to the first take. The host now retains recording time across native Pause and resume with a timing plan. A simulated read error exercised Play-triggered reload. The intermittent failure in the owner’s original tab remains unconfirmed.

@@ -51,6 +51,8 @@ In **Video & editor layout**, choose Above, Below, Left or Right of score. First
 
 ### Suggest sync points from audio
 
+Blue on the video seek bar marks timed measures. Gray is recording time with no measure mapped yet and can include music the analyzer missed. To recover a missing measure, choose **Set measure timing** in its analyzer row, or click the measure in the score during draft review. In **Time a missing measure**, check the pass, seek to its first beat, and choose **Use playhead for start**. If the next measure is already timed and follows immediately, keep its start as the proposed end. Otherwise set the end from the recording. Choose **Add timed measure**. The reviewer supports **Undo draft edit**.
+
 If the first searches turn up empty, Analyze also looks for a longer riff at different speeds. It can suggest separate performances of the same riff. The result shows how many measure visits have candidates and how many are selected for the draft. A result of zero means Analyze supplied no points.
 
 1. Choose the practice track you hear in the lesson and load its recording. Open **More → Media Sync → Suggest sync points from audio → Analyze lesson audio**. Analysis runs in the browser on a local audio/video file, the score's embedded audio, or a direct media URL whose host permits reading its audio. YouTube's player provides playback controls only. The limit is 45 minutes and 256 MiB per recording. A smaller audio copy should have the same start and duration as the video.

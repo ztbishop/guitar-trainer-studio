@@ -56,7 +56,7 @@ export function createDraftEditor({container,options,transport,highlight,stop,ap
     diagnosticTitle.textContent=report.issues.length?`Review issues (${report.issues.length})`:'Checks pass — ready for review';
   }
   commit.addEventListener('click',()=>{try{const next=copyDraftJson(JSON.parse(text.value));if(!next.candidatePlan||!Array.isArray(next.unresolved))throw Error('Keep candidatePlan and unresolved.');change(next);}catch(e){showError(e);}});
-  return {get musicRanges(){return musicRanges;},replaceMapping(candidatePlan) {
+  return {selectMeasure:visual.selectMeasure,get musicRanges(){return musicRanges;},replaceMapping(candidatePlan) {
     change({candidatePlan,unresolved:[]});
   },update(time,playing){if(original&&!rows.hidden)visual.update(time,playing);},load(draft){reviewActions.hidden=reviewStatus.hidden=false;title.textContent='Draft timing — needs review';warning.hidden=rows.hidden=advanced.hidden=false;for(const b of actions.children)b.hidden=false;original=copyDraftJson(draft);working={candidatePlan:copyDraftJson(draft.candidatePlan),unresolved:copyDraftJson(draft.unresolved)};undo=[];redo=[];evidenceText.value=JSON.stringify(original,null,2);panel.hidden=false;render();},complete(){stop();visual.clear();revision++;reviewActions.hidden=reviewStatus.hidden=true;title.textContent='Reviewed timing — original draft retained';warning.hidden=rows.hidden=advanced.hidden=true;issues.replaceChildren();for(const b of actions.children)b.hidden=b!==exportButton;},clear(){stop();original=null;working=null;revision++;panel.hidden=true;visual.clear();},get active(){return !panel.hidden;}};
 }

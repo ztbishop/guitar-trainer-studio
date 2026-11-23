@@ -56,6 +56,13 @@ async function run() {
     }
     await selects.nth(3).waitFor();
     assert.notEqual(await selects.nth(0).inputValue(),'-1');
+    await selects.nth(0).selectOption('-1');
+    const missing=panel.getByRole('group',{name:'Time a missing measure'});
+    await missing.getByLabel('Missing measure and pass').selectOption('1');
+    await missing.getByLabel('Start (s)').fill('0.81');
+    await missing.getByLabel('End (s)').fill('2.65');
+    await missing.getByRole('button',{name:'Add timed measure'}).click();
+    assert.match(await selects.nth(0).locator('option:checked').innerText(),/Manually timed/);
     await selectTakeNear(0,0.8);
     await panel.getByRole('button',{name:'Continue this take'}).nth(0).click();
     assert.equal(await selects.nth(1).inputValue(),'0',await panel.innerText());
@@ -67,7 +74,7 @@ async function run() {
       document.body.classList.contains('media-take-audition') && getComputedStyle(document.querySelector('.at-cursor-beat')).visibility==='hidden');
     await page.waitForFunction(()=>!document.body.classList.contains('media-take-audition'));
     assert(await page.locator('#media-audio').evaluate(el=>el.paused && Math.abs(el.currentTime-14)<0.3));
-    const range = panel.locator('fieldset');
+    const range = panel.getByRole('group',{name:'Refine a continuous passage'});
     await range.getByLabel('Start measure').selectOption('2');
     await range.getByLabel('End measure').selectOption('3');
     await range.getByText('Use playhead for start').click();
@@ -83,6 +90,7 @@ async function run() {
     await page.locator('#media-draft-timing').waitFor();
     assert(await page.evaluate(() => s.media.editing && !s.media.preview));
     const plan = JSON.parse(await page.locator('#media-draft-json').inputValue()).candidatePlan;
+    await page.waitForFunction(()=>document.querySelector('#media-seek').style.backgroundImage.includes('linear-gradient'));
     assert.deepEqual(plan.originalPlaybackOrder,[1,2,1,2]);
     assert(plan.intervals.some(i => i.startSeconds < 5 && i.endSeconds > 11));
     assert.equal(plan.musicalVisits[2].startSeconds,12.013);

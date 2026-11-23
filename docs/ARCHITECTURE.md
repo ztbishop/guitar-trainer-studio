@@ -1,5 +1,7 @@
 # Guitar Trainer Studio architecture
 
+Media Sync projects selected audio takes, editable draft coverage and accepted visits onto the video seek bar. The analyzer and its reviewer share a manual measure form keyed by expanded score visit. Adding a visit in review updates adjacent gap references and goes through draft undo history.
+
 ## Optional audio-based sync suggestions
 
 Skip navigation uses the ordered timed visits or the ordinary first score anchor. The draft editor caches unambiguous music spans on each edit. Navigation uses the active recording transport and preserves grading across a timed-plan gap.
