@@ -64,7 +64,8 @@ export function scoreQueries(timeline, trackId) {
     const probes = first.probes.concat(second.probes.map(p => ({...p,time:p.time+first.duration,
       ...(p.onset === undefined ? {} : {onset:p.onset+first.duration})})));
     if (new Set(probes.map(p => p.pitches.join(','))).size < 2) return {...bar,probes:[]};
-    return {duration:first.duration+second.duration,probes,offset:i < neighbor ? 0 : first.duration,span:bar.duration};
+    return {duration:first.duration+second.duration,probes,offset:i < neighbor ? 0 : first.duration,
+      span:bar.duration,register:bar.register};
   });
 }
 

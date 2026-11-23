@@ -6,6 +6,8 @@ Reviewed recording practice projects attacks into each continuous group of synce
 
 ## Optional audio-based sync suggestions
 
+After gap recovery, `audio-sync-context.js` can compare two longer pitch searches when an incomplete route contains competing takes. Both five- and seven-measure searches use register-limited recording features and repeat-expanded score order. Consecutive agreeing visits can vote for a different take. The final ordered selection reuses matching original times, leaves incompatible visits open and keeps earlier candidates available for editing.
+
 After passage selection and the single-bar backward search, the worker checks one to four missing visits between selected neighbors. For a run, their recording boundaries pin a local alignment. Every bar must independently match the practice track’s changing pitches. The worker adds the entire passage only after all its bars pass. The original takes and their boundaries stay available. This stage consumes decoded samples, score pitches and repeat-expanded visit times. A future companion-score/PDF or Piano Trainer adapter can supply those inputs independently of its renderer. PDF page boxes, OSMD cursor mapping and polyphonic piano validation remain separate tasks.
 
 Skip navigation uses the ordered timed visits or the ordinary first score anchor. The draft editor caches unambiguous music spans on each edit. Navigation uses the active recording transport and preserves grading across a timed-plan gap.

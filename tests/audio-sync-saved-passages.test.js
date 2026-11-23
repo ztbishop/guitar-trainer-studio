@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';
 import {suggestInteriorMeasures} from '../js/audio-sync-backward.js';
+import {checkContextTakes} from '../js/audio-sync-context.js';
+import {matchSingleMeasures,SAMPLE_RATE} from '../js/audio-sync-match.js';
 
 // Local captures contain the worker's score queries, choices, decoded audio
 // and full-range chroma. The publisher times below are used only in assertions.
@@ -44,3 +46,23 @@ test('Low Bass Note selects the second pass when three repeated bars are withhel
   const starts = [49.840,51.924,53.941];
   points.forEach((point,i)=>assert(point?.betweenMeasures && Math.abs(point.start-starts[i])<0.15));
 });
+
+for (const [id,title,published] of [
+  ['98109','Quartal Harmony',116.05],['87755','Connecting Intervals',416.27]
+]) {
+  test(title+' surrounding measures identify the published take for measure 9',t=>{
+    const lesson = savedLesson(id);
+    if (!lesson) return t.skip('Local '+title+' capture unavailable');
+    const {queries,matches,choices,samples,features} = lesson;
+    const duration = samples.length/SAMPLE_RATE;
+    const singles = matchSingleMeasures(queries.bars,features,duration);
+    const old = choices.map((c,i)=>matches[i][c]);
+    checkContextTakes(queries.score,queries.bars,samples,duration,singles,matches,choices,()=>{});
+    assert(Math.abs(matches[8][choices[8]].start-published)<0.25);
+    assert(matches[8].includes(old[8]));
+    if (id==='87755') {
+      assert.equal(choices[14],-1);
+      for (let i=15;i<old.length;i++) assert.equal(matches[i][choices[i]],old[i]);
+    }
+  });
+}

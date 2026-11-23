@@ -2,6 +2,7 @@ import {matchSingleMeasures,recordingFeatures,SAMPLE_RATE} from './audio-sync-ma
 import {phraseMatches,orderedChoices,refinePassage,alternativeStarts} from './audio-sync-passages.js';
 import {rhythmicMatches} from './audio-sync-rhythm.js';
 import {suggestPrecedingMeasures,suggestInteriorMeasures} from './audio-sync-backward.js';
+import {checkContextTakes} from './audio-sync-context.js';
 
 self.onmessage = ({data}) => {
   try {
@@ -17,13 +18,16 @@ self.onmessage = ({data}) => {
       self.postMessage({phase:'Searching measures',done,total}));
     let matches = phraseMatches(data.score,features,duration,singles,(done,total) =>
       self.postMessage({phase:'Searching three-measure passages',done,total}));
-    if (!matches.some(row => row.length)) {
+    const hasPitchMatches = matches.some(row => row.length);
+    if (!hasPitchMatches) {
       self.postMessage({phase:'Checking longer riffs',done:0,total:1});
       matches = rhythmicMatches(data.score,features,duration);
     }
     const choices=orderedChoices(matches);
     suggestPrecedingMeasures(data.bars,matches,choices,features);
     suggestInteriorMeasures(data.bars,matches,choices,data.samples,data.score,features);
+    if (hasPitchMatches) checkContextTakes(data.score,data.bars,data.samples,duration,singles,matches,choices,
+      (phase,done,total)=>self.postMessage({phase,done,total}));
     self.postMessage({matches,choices,features},[features.buffer]);
   } catch (error) {
     self.postMessage({error:error.message});

@@ -83,13 +83,14 @@ function mappedFrame(path, fraction) {
   return path[left]+(x-left)*(path[right]-path[left]);
 }
 
-export function phraseMatches(score, features, duration, singles, progress = () => {}) {
+export function phraseMatches(score, features, duration, singles, progress = () => {}, windowSize = 3) {
   const {edges,notes} = score, count = edges.length-1;
   const matches = singles.map(takes => [...takes]);
   const grids = new Map();
   let previousLeft = -1, paths = [], query;
   for (let i = 0; i < count; i++) {
-    const left = Math.max(0,Math.min(i-1,count-3)), end = edges[Math.min(left+3,count)];
+    const left = Math.max(0,Math.min(i-Math.floor(windowSize/2),count-windowSize));
+    const end = edges[Math.min(left+windowSize,count)];
     const span = end-edges[left];
     // A single-measure search already covers an isolated bar. A silent visit
     // has no independently audible boundary to offer in an automatic draft.
@@ -154,7 +155,7 @@ export function phraseMatches(score, features, duration, singles, progress = () 
 
 // Maximize total evidence in playback order, with a bonus for consecutive
 // measures meeting at one boundary. Prefix maxima allow arbitrary long gaps.
-export function orderedChoices(matches) {
+export function orderedChoices(matches, adjacencyBonus = 1) {
   const times = [...new Set(matches.flat().map(t => t.end))].sort((a,b) => a-b);
   const tree = Array(times.length+1).fill(null);
   function upperBound(time) {
@@ -174,7 +175,7 @@ export function orderedChoices(matches) {
       for (const prior of previous) {
         const gap = take.start-prior.take.end;
         if (gap < -Math.min(0.16,(take.end-take.start)/5,(prior.take.end-prior.take.start)/5) || gap > 0.25) continue;
-        if (prior.score+1 > gain) {parent = prior; gain = prior.score+1;}
+        if (prior.score+adjacencyBonus > gain) {parent = prior; gain = prior.score+adjacencyBonus;}
       }
       return {i,j,take,parent,score:gain+take.quality};
     });
