@@ -1,5 +1,9 @@
 # Media & Sync
 
+For one uninterrupted performance, check **Continuous music** beside **Auto-sync**, then click **Auto-sync**. The same checkbox works with **Analyze lesson audio** if you prefer to compare takes first. Leave it unchecked for instructional recordings with explanations and separate demonstrations. Each new recording starts with the box unchecked.
+
+Continuous music uses the surrounding synced measures and the recorded notes to look for missed bars and tempo changes within a bar. A hold can last longer than its written value. The opening and final release can fall inside the video. A possible passage with weaker evidence is available in the take list for audition and stays ungraded until selected and applied. To try this with an existing audio-generated draft, open **Edit sync**, check **Continuous music**, and choose **Auto-sync again** to replace that draft.
+
 When a passage is played several times, **Auto-sync** can use the measures before and after it to choose a take. If an earlier choice conflicts with that passage, its measure may show **Leave unmapped**. Open the take list to audition the alternatives with **Play from take**.
 
 **Matched between synced measures** appears when Auto-sync recovers one to four missing measures between two selected takes. It uses both takes as pins and checks the recording for each measure. If it cannot confirm the whole passage, the gap stays open for review. Listen with **Play from take** or choose a different take. For an existing draft, **Time a missing measure** offers the end of the previous measure and the start of the next as editable boundaries.

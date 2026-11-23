@@ -6,6 +6,10 @@ Reviewed recording practice projects attacks into each continuous group of synce
 
 ## Optional audio-based sync suggestions
 
+Both analysis actions pass the recording's Continuous music checkbox state to the worker. Only a checked request imports `audio-sync-continuous.js`. It starts with the existing take choices, aligns the score with the recording between neighboring matched measure boundaries and checks the opening and final sustained harmony independently. Two score-to-audio paths must agree on bar boundaries. The worker checks pitch changes, sounding harmony and repeated attacks before selecting a recovered visit. Weaker candidates require manual selection.
+
+A selected visit may carry up to two interior note attacks where the measured timing departs from a straight line between bar lines. The score adapter converts their score times to ticks. Take audition, seeking and the resulting draft use those interior anchors. Unselected visits remain outside grading.
+
 The Auto-sync worker loads `audio-sync-chord-takes.js` on demand with its other search modules. It recognizes scores that repeat a progression with changes in chord voicing or strum rate. When earlier measure candidates suggest a skipped demonstration after an established opening, it checks candidate passages in score order against strum attacks and the pitch features already computed. The search is bounded to a five-minute recording window. A complete alternative needs corroborating measure candidates and audible changes in the written order. The worker applies the variations together and keeps the previous takes available in the editor.
 
 `audio-sync-ringing.js` inspects short recording windows around a selected opening chord or a final release extrapolated by the chord sequence matcher. It uses the score's held pitches, recorded pitch classes and changes in amplitude. An earlier opening remains available as a new draft choice alongside the original estimate. A final extension requires a recognizable chord tail and an observed exit. Both checks run during initial Auto-sync and leave interior measure boundaries intact.

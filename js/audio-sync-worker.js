@@ -8,7 +8,7 @@ import {recoverChordSequences} from './audio-sync-chord-sequence.js';
 import {recoverChordVariations} from './audio-sync-chord-takes.js';
 import {refineOpeningChord} from './audio-sync-ringing.js';
 
-self.onmessage = ({data}) => {
+self.onmessage = async ({data}) => {
   try {
     if (data.range) {
       const {first,last,start,end} = data.range;
@@ -37,6 +37,11 @@ self.onmessage = ({data}) => {
       recoverChordSequences(data.score,data.bars,data.samples,matches,choices);
       recoverChordVariations(data.score,data.samples,features,matches,choices);
       refineOpeningChord(data.score,data.samples,matches,choices);
+    }
+    if (data.continuous) {
+      self.postMessage({phase:'Following the continuous performance',done:0,total:1});
+      const {continuousPerformance}=await import('./audio-sync-continuous.js');
+      continuousPerformance(data.score,data.samples,features,matches,choices,data.bars);
     }
     self.postMessage({matches,choices,features},[features.buffer]);
   } catch (error) {

@@ -1,5 +1,11 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Continuous music in Media Sync
+
+Added a checkbox beside Auto-sync for single performances. In a local Chrome run on Yenne Lee’s *Arirang Fantasy*, the ordinary scan selected 127 of 180 measure visits. Continuous music selected 148, with 23 additional candidates available to audition. Mapped time increased from 248.3 to 301.7 seconds. Measures 1, 2 and 3 started at 1.32, 4.75 and 7.94 seconds. The estimated last chord ran from 5:55.00 to 5:59.28. The draft carried 67 interior attack anchors across 40 visits. These are analyzer estimates. A reference timing file was unavailable for this performance.
+
+With the box unchecked, the saved comparison of 24 lessons returned identical take candidates and choices, including all 458 previously selected visits. On Carry My Name, 35 of 40 placed visits were within 0.25 seconds of the reference at both ends in each mode. Chrome also exercised rerunning Auto-sync from an accepted audio draft. Automated regressions cover a held note, a silent gap, written tempo changes and review-only choices. Listening and physical MIDI verification on Arirang are pending.
+
 ## Continuous performance trial with rubato
 
 A local browser run on a 6:15 solo guitar performance placed 127 of 180 repeat-expanded visits. The GPX imported as a single classical guitar track with low D (MIDI 38). The first two measures contain the same notes. All candidates retained for those two measures were later than the selected M3 at 7.94 s. Backward recovery skips rows that already have candidates. Interior recovery also expects the local duration to fit both neighbors to within 15%, which can be too restrictive for rubato. The resulting draft omitted 53 visits and had another 12 gaps between consecutive mapped measures.

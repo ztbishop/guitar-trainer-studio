@@ -1,6 +1,6 @@
 import {printedMeasure} from './printed-measure.js';
 import {fingerprint} from './library-store.js';
-import {scoreQueries,passageScore,followTake,suggestionDraft} from './audio-sync-score.js';
+import {scoreQueries,passageScore,followTake,suggestionDraft,setPerformanceAnchors} from './audio-sync-score.js';
 import {createPassageRange} from './audio-sync-range.js';
 import {SAMPLE_RATE} from './audio-sync-match.js';
 import {createMissingMeasureForm} from './missing-measure.js';
@@ -82,7 +82,11 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     const analyzed=await run();
     if(analyzed && analyzed===result && analyzed.choices.some(c=>c>=0))await openDraft(true);
   });
-  auto.id='media-auto-sync';after.append(auto);
+  const mode=document.createElement('label'),continuous=document.createElement('input');
+  continuous.type='checkbox';continuous.id='media-continuous-music';
+  mode.title='Follow one performance through tempo changes and holds. Leave unchecked for lessons with explanations or separate takes.';
+  mode.append(continuous,' Continuous music');
+  auto.id='media-auto-sync';after.append(mode,auto);
   const manual=createMissingMeasureForm({
     measures:()=>result.snapshot.timeline.measures,notation:()=>result.snapshot.notation,playhead,
     visit:number=>{
@@ -102,6 +106,8 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
   });
   panel.append(title,help,start,cancel,status,apply,manual.box,rows,passage,comparisons); after.after(panel);
   let job = null, result = null, applying = false;
+  let modeSource=null,modeScore=null;
+  continuous.onchange=()=>{reset();sync();};
   let musicRanges=null;
 
   function current(snapshot) {
@@ -118,6 +124,9 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
   }
   function sync() {
     const now = context();
+    if (now.source!==modeSource || now.score!==modeScore) {
+      continuous.checked=false;modeSource=now.source;modeScore=now.score;
+    }
     if ((job && !current(job.snapshot)) || (result && !current(result.snapshot))) reset();
     let reason = '';
     if (!now.source || !now.timeline || !now.scoreSha256) reason = 'Load a score and recording first.';
@@ -126,9 +135,15 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     else if (now.timeline.measures.length > 4096) reason = 'This score exceeds the draft editor limit of 4,096 played measures.';
     else if (now.duration > 45*60) reason = 'For analysis, choose a recording of 45 minutes or less.';
     else if (now.blocked) reason = now.blocked;
-    help.textContent = reason || 'Matches the selected practice track. Choose a take for each written pass. Unmapped recording time plays without grading.';
+    continuous.disabled=Boolean(reason || job || applying);
+    if (!reason && now.dirtyAudio && !continuous.checked) reason='Save the current alignment or check Continuous music to re-analyze this performance.';
+    help.textContent = reason || (continuous.checked
+      ? 'Follows one performance through tempo changes and holds. Uncertain measures can be timed by hand.'
+      : 'Matches the selected practice track. Choose a take for each written pass. Unmapped recording time plays without grading.');
     start.disabled = Boolean(reason || job || applying);
-    auto.disabled=start.disabled;auto.hidden=Boolean(now.hasDraft || now.hasPlan);
+    auto.disabled=start.disabled;auto.hidden=Boolean(now.hasPlan && !(now.canRedoAudio && continuous.checked) ||
+      now.hasDraft && !continuous.checked);
+    auto.textContent=now.hasDraft || now.canRedoAudio?'Auto-sync again':'Auto-sync';
     auto.title=reason || 'Analyze the recording and use the suggested timing. You can edit it afterward.';
     apply.textContent = now.hasDraft ? 'Replace draft mapping with selected takes' : 'Review selected takes';
     manual.box.inert = rows.inert = passage.inert = comparisons.inert = Boolean(reason || job || applying);
@@ -169,10 +184,11 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       }
       status.textContent = 'Listening for pitch patterns…';
       samples = samples.slice(0,Math.floor(snapshot.duration*SAMPLE_RATE));
-      const analysis = await analyze({bars,score,samples},samples,signal,({phase,done,total}) => {
+      const analysis = await analyze({bars,score,samples,continuous:continuous.checked},samples,signal,({phase,done,total}) => {
         if (job === task) status.textContent = `${phase} · ${done} of ${total}`;
       });
       check();
+      if (continuous.checked) setPerformanceAnchors(snapshot.timeline,analysis.matches);
       result = {snapshot,sourceSha256,score,...analysis,locked:bars.map(() => false)};
       draw();
       const r = result;
@@ -204,7 +220,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       const label = document.createElement('label'), select = document.createElement('select');
       label.append(`Measure ${printedMeasure(snapshot.notation,m.measureNumber)} · pass ${m.occurrence} `,select);
       select.add(new Option(takes.length ? 'Leave unmapped' : 'No match','-1'));
-      takes.forEach((t,j) => select.add(new Option(`${t.betweenMeasures ? 'Matched between synced measures' : t.backward ? 'Matched from next measure' : t.manual ? 'Manually timed' : t.refined ? 'Pinned passage' : 'Take '+(j+1)} · ${time(t.start)}–${time(t.end)}`,String(j))));
+      takes.forEach((t,j) => select.add(new Option(`${t.reviewOnly ? 'Possible continuous passage · review' : t.continuous ? 'Continuous performance' : t.betweenMeasures ? 'Matched between synced measures' : t.backward ? 'Matched from next measure' : t.manual ? 'Manually timed' : t.refined ? 'Pinned passage' : 'Take '+(j+1)} · ${time(t.start)}–${time(t.end)}`,String(j))));
       select.value = String(choices[i]); select.disabled = !takes.length;
       const listen = button('Play from take',async () => {
         try { if (current(snapshot)) await preview(takes[choices[i]],i); }
@@ -297,7 +313,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       const draft = await suggestionDraft({measures:s.timeline.measures,matches:r.matches,choices,
         scoreSha256:s.scoreSha256,sourceSha256:r.sourceSha256,trackId:s.trackId});
       if (!unchanged()) throw Error('The recording or selection changed. Review the current takes.');
-      await review(draft,unchanged,automatic);
+      await review(draft,unchanged,automatic,continuous.checked);
       if (result === r) panel.open = false;
     } catch (error) { status.textContent = error.message; }
     finally { applying = false; sync(); }

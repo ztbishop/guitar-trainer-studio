@@ -9,7 +9,7 @@ function normalize(vector, offset) {
   if (sum) for (let p = 0; p < 12; p++) vector[offset+p] /= Math.sqrt(sum);
 }
 
-function recordingGrid(features, stride) {
+export function recordingGrid(features, stride) {
   const frames = Math.ceil(features.length / (12*stride));
   const grid = new Float32Array(frames*12);
   for (let i = 0; i < features.length/12; i++) {
@@ -20,7 +20,7 @@ function recordingGrid(features, stride) {
   return grid;
 }
 
-function scoreGrid(notes, start, end, frames) {
+export function scoreGrid(notes, start, end, frames) {
   const grid = new Float32Array(frames*12), step = (end-start)/frames;
   for (const note of notes) {
     if (note.end <= start || note.start >= end) continue;

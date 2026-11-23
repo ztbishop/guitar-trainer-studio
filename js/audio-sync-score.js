@@ -1,4 +1,4 @@
-import {tickToTimeMs} from './score-playback.js';
+import {tickToTimeMs,timeMsToTick} from './score-playback.js';
 import {INTERVAL_TIMING_FORMAT} from './explanation-timing.js';
 import {DRAFT_FORMAT,validateDraft} from './draft-timing.js';
 import {fingerprint} from './library-store.js';
@@ -104,12 +104,36 @@ export function followTake(matches, choices, index, locked = choices.map(c => c 
   if (!take) return result;
   for (let i = index+1; i < matches.length; i++) {
     const adjacent = matches[i].map((candidate,j) => ({candidate,j})).filter(({candidate}) =>
-      compatible(take,candidate) && Math.abs(candidate.start-take.end) <= 0.20);
+      !candidate.reviewOnly && compatible(take,candidate) && Math.abs(candidate.start-take.end) <= 0.20);
     if (adjacent.length !== 1 || (locked[i] && result[i] !== adjacent[0].j)) break;
     result[i] = adjacent[0].j;
     take = adjacent[0].candidate;
   }
   return result;
+}
+
+export function setPerformanceAnchors(timeline,matches) {
+  for (const [i,row] of matches.entries()) {
+    const bar=timeline.measures[i];
+    for (const take of row) if (take.interior) {
+      take.anchors=take.interior.map(({scoreTime,seconds})=>({
+        offset480:480*(timeMsToTick(timeline,scoreTime*1000)-bar.startTick)/(bar.endTick-bar.startTick),seconds
+      })).filter(a=>a.offset480>0 && a.offset480<480);
+    }
+  }
+}
+
+// The same curve is used for auditioning a take, seeking from its score,
+// and serializing the chosen visit after adjacent boundaries are normalized.
+export function takePosition(take,value,toTime) {
+  const anchors=[{offset480:0,seconds:take.start},...(take.anchors??[]),{offset480:480,seconds:take.end}];
+  const input=toTime?'offset480':'seconds',output=toTime?'seconds':'offset480';
+  const x=toTime?value*480:value;
+  const i=anchors.findIndex((a,j)=>j>0 && x<=a[input]);
+  const right=i<0?anchors.length-1:i,a=anchors[right-1],b=anchors[right];
+  const f=Math.max(0,Math.min(1,(x-a[input])/(b[input]-a[input])));
+  const y=a[output]+f*(b[output]-a[output]);
+  return toTime?y:y/480;
 }
 
 export function selectedVisits(measures,matches,choices) {
@@ -129,7 +153,11 @@ export function selectedVisits(measures,matches,choices) {
       occurrence:measure.occurrence,startSeconds:start,endSeconds:take.end,pinnedEnd:take.pinnedEnd});
   }
   if (!visits.length) throw Error('Choose at least one take.');
-  return visits.map(({pinnedEnd,...v}) => ({...v,anchors:[{offset480:0,seconds:v.startSeconds},{offset480:480,seconds:v.endSeconds}]}));
+  return visits.map(({pinnedEnd,...v}) => {
+    const i=v.originalVisit-1;
+    const inside=(matches[i][choices[i]].anchors??[]).filter(a=>a.seconds>v.startSeconds && a.seconds<v.endSeconds);
+    return {...v,anchors:[{offset480:0,seconds:v.startSeconds},...inside,{offset480:480,seconds:v.endSeconds}]};
+  });
 }
 
 export async function suggestionDraft({measures,matches,choices,trackId,scoreSha256,sourceSha256}) {

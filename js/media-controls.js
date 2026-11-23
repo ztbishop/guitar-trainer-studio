@@ -2,6 +2,7 @@ import {printedMeasure} from './printed-measure.js';
 // Media UI, browser players and profile intents. Native calls stay in the host.
 import {createDraftEditor} from './draft-controls.js';
 import {createAudioSuggestions} from './audio-sync-controls.js';
+import {takePosition} from './audio-sync-score.js';
 import {draftPosition} from './draft-alignment.js';
 import {validateDraft,checkDraftBinding,DRAFT_CAPABILITY} from './draft-timing.js';
 import {AppState} from './app-state.js';
@@ -64,7 +65,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   function drawAudition(seconds) {
     const {take,measure,index}=audition;
-    const fraction=Math.max(0,Math.min(1,(seconds-take.start)/(take.end-take.start)));
+    const fraction=takePosition(take,seconds,false);
     host.showDraftPosition({kind:'music',scoreMeasure:measure.measureNumber,occurrence:measure.occurrence,
       originalVisit:index+1,fraction,tick:measure.startTick+fraction*(measure.endTick-measure.startTick)},false,true);
   }
@@ -76,7 +77,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   function audioPlan(plan){
     return plan?.sourceSha256 && plan.recordingId==='audio-'+plan.sourceSha256;
   }
-  editMeasures.addEventListener('click',action(async()=>{
+  async function reopenAudioDraft(){
     const previous=timingPlan,plan=previous?.plan,token=generation;
     if(!audioPlan(plan)||busy||draftTiming)return;
     const retained=acceptedAudioDraft?.compiled===previous;
@@ -91,7 +92,8 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     draftTiming=draft;timingPlan=null;
     if(retained)draftEditor.reopen();else draftEditor.load(draft);
     renderExplanationSummary();renderPoints();sync();get('draft-timing').scrollIntoView({block:'nearest'});
-  }));
+  }
+  editMeasures.addEventListener('click',action(reopenAudioDraft));
   const draftEditor=createDraftEditor({container:get('selection').parentElement,
     options:()=>({notation:AppState.score,timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:draftTiming?.recordingId,durationMs:player?.backingTrackDuration}),
     transport(action,seconds){if(!draftTiming||!player)return;if(action==='pause'){stopDraftPreview();return;}if(action==='seek'){player.seekTo(seconds*1000);return;}beforeEdit();draftPreviewEnd=player.backingTrackDuration;player.play();},
@@ -133,13 +135,14 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     context:()=>({notation:AppState.score,source,file:localFile,url:blobUrl || source?.url,score:AppState.currentScoreFile,
       scoreSha256:scoreHash,timeline:AppState.playbackTimeline,trackId:AppState.practiceTrackId,
       duration:(player?.backingTrackDuration || 0)/1000,generation,hasDraft:Boolean(draftTiming),hasPlan:Boolean(timingPlan),
+      canRedoAudio:Boolean(audioPlan(timingPlan?.plan)),dirtyAudio:dirty && !draftTiming && audioPlan(timingPlan?.plan),
       blocked:busy || recordingError || !player?.backingTrackDuration?'Wait for the recording to be ready.':
-        dirty && !draftTiming?'Save the current alignment before creating another draft.':''}),
+        dirty && !draftTiming && !audioPlan(timingPlan?.plan)?'Save the current alignment before creating another draft.':''}),
     preview(take,index,scoreFraction){
       const measure=AppState.playbackTimeline?.measures[index];
       if(!showEditor || !player || !measure || !(take?.end>take.start))return;
       const fromScore=Number.isFinite(scoreFraction),play=!fromScore || player.playing;
-      const seconds=fromScore?take.start+scoreFraction*(take.end-take.start):take.start;
+      const seconds=fromScore?takePosition(take,scoreFraction,true):take.start;
       stopDraftPreview();
       host.pauseMediaPlayback();
       beforeEdit();
@@ -149,7 +152,9 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       drawAudition(seconds);
       if(play)player.play();
     },
-    async review(draft,isCurrent,automatic){
+    async review(draft,isCurrent,automatic,continuous){
+      if(continuous && isCurrent() && audioPlan(timingPlan?.plan) &&
+          timingPlan.plan.sourceSha256===draft.candidatePlan.sourceSha256) await reopenAudioDraft();
       const check=()=>{
         if(!isCurrent() || !showEditor || busy || recordingError || dirty && !draftTiming)
           throw Error('Reopen Media Sync and check the current recording before reviewing suggestions.');
