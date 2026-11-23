@@ -60,7 +60,13 @@ for (const [id,title,published] of [
     checkContextTakes(queries.score,queries.bars,samples,duration,singles,matches,choices,()=>{});
     assert(Math.abs(matches[8][choices[8]].start-published)<0.25);
     assert(matches[8].includes(old[8]));
-    if (id==='87755') {
+    if (id==='98109') {
+      const timed = choices.slice(7,10).map((c,i)=>matches[i+7][c]);
+      const bounds = [timed[0].start,timed[1].start,timed[2].start];
+      [111.262,116.049,121.638].forEach((seconds,i)=>assert(Math.abs(bounds[i]-seconds)<0.16));
+      assert.equal(timed[0].end,timed[1].start);
+      assert.equal(timed[1].end,timed[2].start);
+    } else {
       assert.equal(choices[14],-1);
       for (let i=15;i<old.length;i++) assert.equal(matches[i][choices[i]],old[i]);
     }

@@ -1,5 +1,6 @@
 import {orderedChoices,phraseMatches} from './audio-sync-passages.js';
 import {recordingFeatures} from './audio-sync-match.js';
+import {refineContextBoundaries} from './audio-sync-boundaries.js';
 
 function samePerformance(a,b) {
   if (!a || !b) return false;
@@ -86,5 +87,8 @@ export function checkContextTakes(score,bars,samples,duration,singles,matches,ch
       (done,total)=>progress('Comparing '+size+'-measure phrases',done,total),size);
     return orderedChoices(rows).map((c,i)=>rows[i][c]);
   }
-  chooseContextTakes(matches,choices,route(5),route(7),singles);
+  const original = choices.map((c,i)=>matches[i][c]);
+  const routes = [route(5),route(7)];
+  chooseContextTakes(matches,choices,...routes,singles);
+  refineContextBoundaries(bars,samples,features,matches,choices,original,routes);
 }
