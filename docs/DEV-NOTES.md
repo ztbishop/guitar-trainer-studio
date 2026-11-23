@@ -1,5 +1,31 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Blind Auto-sync comparison across five TrueFire courses
+
+On November 23, 2026, the published trainer code at `4f94bc0` ran one-click Auto-sync on 12 score/recording pairs from five courses outside the previous five-lesson test set. Lesson Bridge had 95 original-score pairs accepted by its native timing check. For 58 of those, a manifest named for the lesson contained a recording link. All 12 selected links returned playable MP4 files directly. The test checked the original score hash, compact plan hash, timing-file hash for the selected manifest recording, and recording duration (within two seconds of rounded metadata). Isolated Chrome loaded the original score and recording, used the default practice track and saved the worker's selections. The reference plan was used to evaluate those selections by score measure and repeat occurrence. This is a deliberately varied sample, so its percentages should not be extrapolated to the full catalog.
+
+| Lesson | Reference visits | Placed | Both boundaries within 250 ms | Starts over 2 s off |
+| --- | ---: | ---: | ---: | ---: |
+| Major & Minor Chord Barre (49458) | 13 | 13 | 5 | 2 |
+| Chord Scale 2 (49465) | 21 | 20 | 4 | 8 |
+| Chord Scale 6 (49473) | 24 | 21 | 5 | 5 |
+| Groove 90 (87761) | 20 | 19 | 16 | 0 |
+| Harlito (87764) | 25 | 15 | 10 | 0 |
+| Bends, Slides & Vibrato (97220) | 15 | 8 | 4 | 2 |
+| Carry My Name solo (97237) | 41 | 13 | 7 | 3 |
+| Workout 2 lesson (97313) | 24 | 22 | 17 | 1 |
+| Workout 2 play-along (97314) | 17 | 15 | 8 | 0 |
+| Workout 10 play-along (97333) | 19 | 16 | 13 | 0 |
+| The Ionian Mode (98098) | 26 | 24 | 23 | 0 |
+| Soloing With the Ionian Mode (98099) | 34 | 25 | 23 | 0 |
+| **Total** | **279** | **211** | **135** | **21** |
+
+167 starts and 150 ends were within 250 ms. Across 68 omitted visits, only three had an available candidate within 250 ms of the reference start. Across all 279 visits, 101 had no such candidate in the worker's final list and 11 had one that the default selection missed. Candidate generation and retention are therefore the first places to investigate. For Carry My Name, 28 visits were omitted. Fourteen had sounding score probes and empty candidate lists. Another eleven had candidates whose starts were all outside tolerance, two had close alternatives, and one had no sounding probes.
+
+Selected spans overlapped 5.98 seconds labeled as explanations and another 19.94 seconds labeled as unmatched source rests. Those labels are from Bridge. An unmatched source rest does not identify the audio as speech. On Chord Scale 2, measure 18 started at 110.87 seconds against the reference's 144.53 seconds, in a long unmatched source rest. Use that passage to test whether support on both sides of a long break justifies the selected take. Across the two written-repeat play-alongs, 14 of 15 later occurrences were placed, 13 starts were within 250 ms, and no selected midpoint landed in a different numbered occurrence of the same measure. This check cannot identify an extra demonstration inside unscored time.
+
+The next experiment should trace where the correct phrase disappears in Carry My Name and test a wider candidate search before changing selection thresholds. Compare coverage, boundary error and gap overlap together. Keep lessons from additional courses out of tuning for an independent check. Private recordings, reference plans and per-visit captures stay in the local test workspace.
+
 ## Checking a delayed downbeat after a nearly shared bar line
 
 In Quartal Harmony (98109), the two selected estimates almost touched at the end of measure 10 (124.024 seconds) and start of measure 11 (124.056 seconds). The previous check skipped gaps below 0.16 seconds. The tail of measure 10 still agreed with the written final chord shortly before that estimate, and the expected sustained chord of measure 11 had a stronger attack at 124.400 seconds. After the two context searches move both visits, a small positive gap before a single sustained chord can use the same attack check. This additional check searches 0.16 to 0.50 seconds after the proposed downbeat and requires evidence for both chords.
