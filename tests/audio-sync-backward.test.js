@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {precedingTake,suggestPrecedingMeasures,suggestInteriorMeasures} from '../js/audio-sync-backward.js';
 
+import {recordingFeatures,SAMPLE_RATE} from '../js/audio-sync-match.js';
+
 const pitches=[4,7,5,0];
 const bar={duration:2,distinct:4,probes:pitches.flatMap((pitch,i)=>[0.10,0.35].map(t=>({
   time:i/2+t,pitches:[pitch],weight:1
@@ -62,4 +64,72 @@ test('interior recovery needs both neighbors, matching tempo and a changing pitc
     suggestInteriorMeasures([query,query,query],matches,choices,samples);
     assert.equal(choices[1],-1);assert.equal(matches[1].length,0);
   }
+});
+
+// Repeat the phrase once outside the pins. Within them, vary the length of the
+// first two measures so an evenly spaced answer would miss the internal beat.
+function passageFixture(count, silentMeasure=-1, clipped=false) {
+  const bars = [], edges = [0], notes = [];
+  const pcm = new Float32Array((2*count+8)*SAMPLE_RATE);
+  const starts = [4];
+  for (let i=0; i<count+2; i++) {
+    const sequence = i%2 ? [64,67,65,60] : [69,62,65,67];
+    const probes = [];
+    sequence.forEach((midi,j) => {
+      const onset = j/2;
+      probes.push({time:onset+0.10,onset,pitches:[midi%12],weight:1},
+        {time:onset+0.35,pitches:[midi%12],weight:1});
+      notes.push({start:2*i+onset,end:2*i+onset+0.50,pitch:midi%12});
+    });
+    bars.push({duration:2,distinct:4,register:{low:Math.min(...sequence),high:Math.max(...sequence)},probes});
+    edges.push(2*i+2);
+    if (i===0 || i>count) continue;
+    const start = starts.at(-1), length = i===1 ? 2.24 : i===2 ? 1.76 : 2;
+    starts.push(start+length);
+    function play(from) {
+      for (let frame=0; frame<Math.round(length*SAMPLE_RATE); frame++) {
+        const beat = 4*frame/(length*SAMPLE_RATE);
+        if (clipped && beat%1 > 0.45) continue;
+        const hz = 440*2**((sequence[Math.floor(beat)]-69)/12);
+        pcm[Math.round(from*SAMPLE_RATE)+frame] = Math.sin(2*Math.PI*hz*frame/SAMPLE_RATE)/2;
+      }
+    }
+    if (i===1) play(0);
+    if (i!==silentMeasure) play(start);
+  }
+  const left = {start:2,end:4}, right = {start:starts.at(-1),end:starts.at(-1)+2};
+  const other = {start:0,end:2.24};
+  const matches = [[left],...Array.from({length:count},()=>[other]),[right]];
+  const choices = [0,...Array(count).fill(-1),0];
+  suggestInteriorMeasures(bars,matches,choices,pcm,{edges,notes},recordingFeatures(pcm));
+  assert.equal(matches[0][0],left);
+  assert.equal(matches.at(-1)[0],right);
+  assert(matches.slice(1,-1).every(row=>row[0]===other));
+  return {starts,matches,choices};
+}
+
+test('two to four missing bars follow local tempo between fixed pins and retain other takes',()=>{
+  for (const count of [2,3,4]) {
+    const {starts,matches,choices} = passageFixture(count);
+    assert.deepEqual(choices,[0,...Array(count).fill(1),0]);
+    for (let i=1;i<=count;i++) {
+      const take = matches[i][choices[i]];
+      assert(take.betweenMeasures);
+      assert(Math.abs(take.start-starts[i-1])<0.10);
+      assert.equal(take.end, i===count ? starts.at(-1) : matches[i+1][choices[i+1]].start);
+    }
+  }
+});
+
+test('short articulations can confirm a passage through attacks in each measure',()=>{
+  assert.deepEqual(passageFixture(3,-1,true).choices,[0,1,1,1,0]);
+});
+
+test('a quiet measure rejects the entire passage even with a correct take outside the pins',()=>{
+  for (const silent of [1,2,3]) {
+    const {matches,choices} = passageFixture(3,silent);
+    assert.deepEqual(choices,[0,-1,-1,-1,0]);
+    assert(matches.every(row=>row.length===1));
+  }
+  assert.deepEqual(passageFixture(5).choices,[0,-1,-1,-1,-1,-1,0]);
 });

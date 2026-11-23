@@ -1,6 +1,7 @@
 # Guitar Trainer Studio status and to-do
 
-- [ ] Test short runs of missing measures between existing matches. Jazz Discovery 98027 measures 15–17 are a pinned reference case. Also compare repeated-take selection on Quartal Harmony 98109 measure 9 against its published timing.
+- [x] Recover short runs between synced visits in Auto-sync. Checked five saved lesson pairs, Jazz Discovery measures 15–17, recorded explanations and withheld second passes. [Results and limits](DEV-NOTES.md#auto-sync-across-several-missing-measures-november-22-2026)
+- [ ] Test whether longer surrounding phrases can distinguish repeated takes and sparse chord passages before changing automatic selection. Include Quartal Harmony measure 9 and the interrupted passages in Connecting Intervals.
 
 - [ ] With a Fishman in Realtime, play the first attack of the ties in Jazz Discovery 98027 measures 8 and 14. Check that the following gap adds zero misses and the next synced attack earns credit.
 - [ ] Check measure 2 of Quartal Harmony in Lydian Mode (98109) with a physical MIDI guitar. Let its four notes ring through the break and check the next chord in measure 3.

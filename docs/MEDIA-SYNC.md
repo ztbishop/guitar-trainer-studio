@@ -1,6 +1,6 @@
 # Media & Sync
 
-**Matched between synced measures** appears when Auto-sync recovers one measure between two selected takes. Listen with **Play from take** or choose a different take. For an existing draft, **Time a missing measure** offers the end of the previous measure and the start of the next as editable boundaries.
+**Matched between synced measures** appears when Auto-sync recovers one to four missing measures between two selected takes. It uses both takes as pins and checks the recording for each measure. If it cannot confirm the whole passage, the gap stays open for review. Listen with **Play from take** or choose a different take. For an existing draft, **Time a missing measure** offers the end of the previous measure and the start of the next as editable boundaries.
 
 Open **More → Media Sync** after loading a score. There is no separate top-toolbar Media Sync button. Opening/closing the editor does not change the playback source or mode.
 

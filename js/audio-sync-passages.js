@@ -190,6 +190,8 @@ export function orderedChoices(matches) {
   return choices;
 }
 
+export class PassageMatchError extends Error {}
+
 // features starts at frame floor(start/FRAME). Keep the owner's exact outer
 // seconds even when they lie between frames. Rescale the score to the selected
 // take first so a slow demonstration still has room for local tempo variation.
@@ -200,15 +202,15 @@ export function refinePassage(score, features, first, last, start, end) {
   if (last === first) return [start,end];
   const stride = Math.max(1,Math.ceil(features.length/12 / Math.sqrt(CELL_LIMIT)));
   const grid = recordingGrid(features,stride), frames = grid.length/12;
-  if (frames < edges.length) throw Error('These bounds are too short to distinguish the measures.');
+  if (frames < edges.length) throw new PassageMatchError('These bounds are too short to distinguish the measures.');
   const span = edges.at(-1)-edges[0];
   const query = scoreGrid(score.notes,edges[0],edges.at(-1),frames);
   const {costs,trace} = align(query,grid,true);
-  if (!(costs.at(-1)/frames < 0.65)) throw Error('Weak pitch match inside these bounds. Check the passage and times.');
+  if (!(costs.at(-1)/frames < 0.65)) throw new PassageMatchError('Weak pitch match inside these bounds. Check the passage and times.');
   const path = trace(frames-1);
   const points = edges.map(t => (Math.floor(start/FRAME)+(mappedFrame(path,(t-edges[0])/span)+0.5)*stride)*FRAME);
   points[0] = start; points[points.length-1] = end;
-  if (points.some((p,i) => i && p <= points[i-1])) throw Error('The recording does not separate these measure boundaries.');
+  if (points.some((p,i) => i && p <= points[i-1])) throw new PassageMatchError('The recording does not separate these measure boundaries.');
   return points;
 }
 

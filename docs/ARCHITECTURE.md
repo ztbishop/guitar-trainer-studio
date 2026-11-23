@@ -6,7 +6,7 @@ Reviewed recording practice projects attacks into each continuous group of synce
 
 ## Optional audio-based sync suggestions
 
-After passage selection and the single-bar backward search, the worker checks a lone unselected visit between selected neighbors. It tests the recording in the practice track’s pitch range at the two supplied boundaries. Each existing take and both neighboring boundaries are retained. Newly filled holes cannot become anchors in the same pass.
+After passage selection and the single-bar backward search, the worker checks one to four missing visits between selected neighbors. For a run, their recording boundaries pin a local alignment. Every bar must independently match the practice track’s changing pitches. The worker adds the entire passage only after all its bars pass. The original takes and their boundaries stay available. This stage consumes decoded samples, score pitches and repeat-expanded visit times. A future companion-score/PDF or Piano Trainer adapter can supply those inputs independently of its renderer. PDF page boxes, OSMD cursor mapping and polyphonic piano validation remain separate tasks.
 
 Skip navigation uses the ordered timed visits or the ordinary first score anchor. The draft editor caches unambiguous music spans on each edit. Navigation uses the active recording transport and preserves grading across a timed-plan gap.
 

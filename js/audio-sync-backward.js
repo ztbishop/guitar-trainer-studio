@@ -1,3 +1,4 @@
+import {refinePassage,PassageMatchError} from './audio-sync-passages.js';
 import {recordingFeatures,SAMPLE_RATE} from './audio-sync-match.js';
 
 function timedPitchQuality(bar,features,start,length){
@@ -55,29 +56,73 @@ export function suggestPrecedingMeasures(bars,matches,choices,features){
   }
 }
 
-// Use the two existing boundaries only when each neighbor independently predicts
-// one bar at this tempo. Verify the written pitches in the instrument's register.
-export function suggestInteriorMeasures(bars,matches,choices,samples){
-  const selected=choices.map((choice,i)=>matches[i][choice]);
-  for(let i=1;i<bars.length-1;i++){
-    const left=selected[i-1],right=selected[i+1],bar=bars[i];
-    if(selected[i] || !left || !right || bar.span!==undefined || bar.distinct<3 || bar.probes.length<6)continue;
-    if(bar.probes[0].time>bar.duration/3 || bar.probes.at(-1).time<2*bar.duration/3)continue;
-    const start=left.end,end=right.start,length=end-start;
-    const fits=(neighbor,take)=>{
-      const expected=bar.duration*(take.end-take.start)/(neighbor.span??neighbor.duration);
-      return length>=0.85*expected && length<=1.15*expected;
-    };
-    if(!(length>0) || !fits(bars[i-1],left) || !fits(bars[i+1],right))continue;
-    const register=bar.register;
-    if(!Number.isFinite(register?.low) || !Number.isFinite(register.high))continue;
-    // Include enough surrounding audio for the centered FFT at both edges.
-    const first=Math.max(0,Math.floor((start-0.12)*SAMPLE_RATE));
-    const clip=samples.subarray(first,Math.ceil((end+0.12)*SAMPLE_RATE));
-    const features=recordingFeatures(clip,register.low-5,register.high+5);
-    const quality=timedPitchQuality(bar,features,start-first/SAMPLE_RATE,length);
-    if(quality===null)continue;
-    choices[i]=matches[i].length;
-    matches[i]=[...matches[i],{start,end,quality,betweenMeasures:true}];
+function hasPitchPattern(bar) {
+  return bar.span === undefined && bar.distinct >= 3 && bar.probes.length >= 6 &&
+    bar.probes[0].time <= bar.duration/3 && bar.probes.at(-1).time >= 2*bar.duration/3 &&
+    Number.isFinite(bar.register?.low) && Number.isFinite(bar.register.high);
+}
+
+function registerQuality(bar,samples,start,end,allowShortNotes) {
+  // Include surrounding samples for the centered FFT at both edges.
+  const first = Math.max(0,Math.floor((start-0.12)*SAMPLE_RATE));
+  const clip = samples.subarray(first,Math.ceil((end+0.12)*SAMPLE_RATE));
+  const features = recordingFeatures(clip,bar.register.low-5,bar.register.high+5);
+  const offset = start-first/SAMPLE_RATE, length = end-start;
+  const quality = timedPitchQuality(bar,features,offset,length);
+  if (quality !== null || !allowShortNotes) return quality;
+  // A short articulation can lose its pitch by the second probe of a note.
+  // Apply the same pitch and contrast tests to its attacks across the bar.
+  const attacks = bar.probes.filter(p => p.onset !== undefined);
+  if (attacks.length < 4 || attacks[0].time > bar.duration/3 ||
+      attacks.at(-1).time < 2*bar.duration/3) return null;
+  return timedPitchQuality({...bar,probes:attacks},features,offset,length);
+}
+
+// Snapshot the pins. A recovered bar cannot extend a run, replace a take,
+// or supply the pitch evidence for another bar.
+export function suggestInteriorMeasures(bars,matches,choices,samples,score,features) {
+  const selected = choices.map((choice,i) => matches[i][choice]);
+  let lastSelected = -1;
+  for (let right = 0; right < selected.length; right++) {
+    if (!selected[right]) continue;
+    const left = lastSelected;
+    lastSelected = right;
+    const count = right-left-1;
+    if (left < 0 || count < 1 || count > 4) continue;
+    const missing = bars.slice(left+1,right);
+    if (!missing.every(hasPitchPattern)) continue;
+    const start = selected[left].end, end = selected[right].start;
+    const duration = missing.reduce((sum,bar) => sum+bar.duration,0);
+    const scale = (end-start)/duration;
+    const fits = [left,right].every(i => {
+      const tempo = (selected[i].end-selected[i].start)/(bars[i].span ?? bars[i].duration);
+      return tempo > 0 && scale >= 0.85*tempo && scale <= 1.15*tempo;
+    });
+    if (!fits || start < 0 || end > samples.length/SAMPLE_RATE) continue;
+    let points = [start,end];
+    if (count > 1) {
+      const clip = features.subarray(Math.floor(start/0.04)*12,Math.ceil(end/0.04)*12);
+      try {
+        points = refinePassage(score,clip,left+1,right-1,start,end);
+      } catch (error) {
+        if (error instanceof PassageMatchError) continue;
+        throw error;
+      }
+    }
+    const takes = [];
+    for (const [j,bar] of missing.entries()) {
+      const from = points[j], to = points[j+1];
+      const ratio = (to-from)/(bar.duration*scale);
+      if (ratio < 0.8 || ratio > 1.2) break;
+      const quality = registerQuality(bar,samples,from,to,count > 1);
+      if (quality === null) break;
+      takes.push({start:from,end:to,quality,betweenMeasures:true});
+    }
+    if (takes.length !== count) continue;
+    for (const [j,take] of takes.entries()) {
+      const i = left+1+j;
+      choices[i] = matches[i].length;
+      matches[i] = [...matches[i],take];
+    }
   }
 }

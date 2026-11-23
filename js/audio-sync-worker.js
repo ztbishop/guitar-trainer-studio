@@ -23,7 +23,7 @@ self.onmessage = ({data}) => {
     }
     const choices=orderedChoices(matches);
     suggestPrecedingMeasures(data.bars,matches,choices,features);
-    suggestInteriorMeasures(data.bars,matches,choices,data.samples);
+    suggestInteriorMeasures(data.bars,matches,choices,data.samples,data.score,features);
     self.postMessage({matches,choices,features},[features.buffer]);
   } catch (error) {
     self.postMessage({error:error.message});
