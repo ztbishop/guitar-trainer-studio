@@ -1,5 +1,25 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Recovering melodies and chord changes from neighboring measures
+
+The November 23 blind rerun gave Auto-sync the original scores and recordings. It used the accepted Lesson Bridge plans only to score the finished choices. The prior benchmark at `31a1d1e` supplied the baseline. A measure visit passes the boundary check when both its start and end are within 250 ms of the reference.
+
+| Case | Placed before → after | Both boundaries within 250 ms before → after |
+| --- | ---: | ---: |
+| Carry My Name solo | 13 → 40 of 41 | 7 → 35 |
+| Chord Scale 2 | 20 → 21 of 21 | 4 → 13 |
+| Chord Scale 6 | 21 → 22 of 24 | 5 → 8 |
+| Harlito | 15 → 19 of 25 | 10 → 14 |
+| All 12 baseline lessons | 211 → 244 of 279 | 135 → 179 |
+
+In Carry My Name, ten independently selected downbeats agreed on a tempo while the original search missed much of the lead over the backing track. The new search recovered all 40 sounding visits. The silent opening measure stayed unmapped. At measure 25, the GPX calls for an F-sharp bent up a whole step. The recording contains the initial pitch and sustained higher pitch. The draft moved that measure from 41.47 seconds to 48.47 seconds against the reference's 48.48. Measures 25–27 had all been over two seconds early. The largest remaining endpoint error is the last release at 0.52 seconds early.
+
+Chord Scale 2 has several chord sequences with the same ringing D and A. Matching the changing voices and the series of strums corrected measures 8–10 and 13, recognized the held chord across measure 17, and moved measures 18–21 to the later demonstration. Measure 18 now starts at 144.480 seconds against 144.534, previously 110.866. All 21 visits were placed, 19 starts were within 250 ms and all starts were within one second. The recording still overlaps intervals marked as unmatched source rests by 0.80 seconds, down from 19.94. The first downbeat is 0.88 seconds late and the last release is 0.48 seconds early. A draft remains editable where the played release and the written duration differ.
+
+Compared each old and new selected endpoint for the 12 lessons and checked the normalized visits used by the draft editor. All previously placed visits remained and none of their start or end errors increased. Overlap with labeled explanations stayed at 5.98 seconds across the sample. Eight of the 12 lessons retained all endpoints. The five earlier controls (Connecting Intervals, Low Bass Note, Quartal Harmony, Jazz Discovery ii–V–I and Devil Inside) also retained every selection and endpoint in separate one-click browser runs.
+
+After freezing the changes, repeated the old and new browser runs on three additional accepted lessons. Chord Scale 4 improved from 16/20 to 20/20 visits, and from two to eight with both boundaries within 250 ms. Its unmatched-rest overlap fell from 1.94 to 0.02 seconds. Twelve-Eight Wave and Workout 5 Play-Along retained their selections and times. These are automated timing comparisons. The references can contain a duration judgment for a ringing chord or a rest. No listening or physical MIDI acceptance was assumed.
+
 ## Blind Auto-sync comparison across five TrueFire courses
 
 On November 23, 2026, the published trainer code at `4f94bc0` ran one-click Auto-sync on 12 score/recording pairs from five courses outside the previous five-lesson test set. Lesson Bridge had 95 original-score pairs accepted by its native timing check. For 58 of those, a manifest named for the lesson contained a recording link. All 12 selected links returned playable MP4 files directly. The test checked the original score hash, compact plan hash, timing-file hash for the selected manifest recording, and recording duration (within two seconds of rounded metadata). Isolated Chrome loaded the original score and recording, used the default practice track and saved the worker's selections. The reference plan was used to evaluate those selections by score measure and repeat occurrence. This is a deliberately varied sample, so its percentages should not be extrapolated to the full catalog.

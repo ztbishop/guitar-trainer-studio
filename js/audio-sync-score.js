@@ -17,6 +17,7 @@ export function passageScore(timeline, trackId) {
 export function scoreQueries(timeline, trackId) {
   const groups = timeline.measures.map(() => new Map());
   const registers = timeline.measures.map(() => ({low:Infinity,high:-Infinity}));
+  const sustainedBends = new Map();
   for (const event of timeline.events) {
     if (event.trackId !== String(trackId)) continue;
     const pitches = [];
@@ -26,6 +27,10 @@ export function scoreQueries(timeline, trackId) {
       pitches.push(note.midi % 12);
       register.low = Math.min(register.low,note.midi);
       register.high = Math.max(register.high,note.midi);
+      if (note.attack !== false && note.bendRange?.min === note.midi &&
+          Number.isInteger(note.bendRange.max) && note.bendRange.max > note.midi && note.bendRange.max <= note.midi+4) {
+        sustainedBends.set(event.playbackMeasureIndex,note);
+      }
     }
     if (!pitches.length) continue;
     const starts = groups[event.playbackMeasureIndex];
@@ -52,7 +57,10 @@ export function scoreQueries(timeline, trackId) {
         ...(fraction === 0.20 ? {onset:(onset-start)/1000} : {})
       });
     }
-    return {duration:(end-start)/1000,probes,distinct:signatures.size,register:registers[index]};
+    const bend=sustainedBends.get(index), register=registers[index];
+    const held=bend && register.low===register.high && Math.abs(bend.startTimeMs-start)<1 && bend.endTimeMs>=end-1;
+    return {duration:(end-start)/1000,probes,distinct:signatures.size,register,
+      ...(held ? {bendTarget:bend.bendRange.max} : {})};
   });
   // A bar on one chord may be identifiable as part of the phrase next to it.
   // A completely silent bar has no acoustic evidence of its own.
@@ -65,7 +73,7 @@ export function scoreQueries(timeline, trackId) {
       ...(p.onset === undefined ? {} : {onset:p.onset+first.duration})})));
     if (new Set(probes.map(p => p.pitches.join(','))).size < 2) return {...bar,probes:[]};
     return {duration:first.duration+second.duration,probes,offset:i < neighbor ? 0 : first.duration,
-      span:bar.duration,register:bar.register};
+      span:bar.duration,register:bar.register,...(bar.bendTarget===undefined ? {} : {bendTarget:bar.bendTarget})};
   });
 }
 

@@ -3,6 +3,8 @@ import {phraseMatches,orderedChoices,refinePassage,alternativeStarts} from './au
 import {rhythmicMatches} from './audio-sync-rhythm.js';
 import {suggestPrecedingMeasures,suggestInteriorMeasures} from './audio-sync-backward.js';
 import {checkContextTakes} from './audio-sync-context.js';
+import {recoverSteadyPassages} from './audio-sync-steady.js';
+import {recoverChordSequences} from './audio-sync-chord-sequence.js';
 
 self.onmessage = ({data}) => {
   try {
@@ -28,6 +30,10 @@ self.onmessage = ({data}) => {
     suggestInteriorMeasures(data.bars,matches,choices,data.samples,data.score,features);
     if (hasPitchMatches) checkContextTakes(data.score,data.bars,data.samples,duration,singles,matches,choices,
       (phase,done,total)=>self.postMessage({phase,done,total}));
+    if (hasPitchMatches) {
+      recoverSteadyPassages(data.score,data.bars,data.samples,matches,choices);
+      recoverChordSequences(data.score,data.bars,data.samples,matches,choices);
+    }
     self.postMessage({matches,choices,features},[features.buffer]);
   } catch (error) {
     self.postMessage({error:error.message});
