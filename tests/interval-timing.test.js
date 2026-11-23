@@ -209,3 +209,18 @@ test('exact internal anchors, source interval edges, final musical endpoint and 
   assert.throws(()=>compileTimingPlan(f.plan,{timeline:f.timeline,scoreSha256:'d'.repeat(64),recordingId}),/score bytes/);
   assert.throws(()=>compileTimingPlan(f.plan,{timeline:f.timeline,scoreSha256,recordingId:'other'}),/recording identity/);
 });
+
+test('review leaves a rest with an uncertain incoming release unmapped and rejects an attack inside the claimed rest',()=>{
+  const f=fixture();
+  f.timeline.ambiguousHoldRanges=[{startTick:1440,endTick:2880,openEnded:true}];
+  f.timeline.measures[2].isFullRest=false;
+  const reviewed=()=>compileTimingPlan({...f.plan,format:'reviewed-musical-passages'},
+    {timeline:f.timeline,scoreSha256,recordingId,durationMs:f.durationMs,allowReviewed:true});
+  assert.throws(()=>compile(f),/ambiguous expressive or let-ring/);
+  const compiled=reviewed();
+  assert.deepEqual(compiled.plan.scoreOmissions.map(m=>m.originalVisit),[1,5]);
+  assert.deepEqual(f.plan.scoreOmissions.map(m=>m.originalVisit),[1,3,5]);
+  assert.deepEqual(compiled.visits.map(v=>v.originalVisit),[2,4]);
+  f.timeline.events[2].notes=[{startTick:1920,endTick:2100,attack:true,midi:55}];
+  assert.throws(reviewed,/overlaps an omitted/);
+});

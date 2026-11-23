@@ -183,11 +183,12 @@ function guardBoundaries(timeline,visits,explanations,ambiguousHolds,reviewedPas
       throw new CrossingSustainError('A tied or sustained note crosses the recording boundary near measure '+(side?.scoreMeasure??'?')+'.');
     }
   }
+  if(reviewedPassages)return;
   // A fresh attack may close a native let-ring range exactly at this tick, but
   // inserting recording time before that attack would delay its termination.
   for(const hold of ambiguousHolds)for(const cut of cuts)
     if(hold.startTick<cut&&(cut<hold.endTick||(hold.openEnded||intervalCuts.has(cut))&&cut===hold.endTick))
-      fail('An ambiguous expressive or let-ring hold crosses an unscored interval or omitted traversal boundary.');
+      throw new CrossingSustainError('An ambiguous expressive or let-ring hold crosses an unscored interval or omitted traversal boundary.');
 }
 
 function nativeAmbiguousHolds(timeline) {
@@ -199,20 +200,30 @@ function nativeAmbiguousHolds(timeline) {
   return ranges;
 }
 
-function guardScoreOmissions(timeline,omissions,ambiguousHolds) {
-  for(const omission of omissions) {
+// An uncertain release from an earlier measure cannot prove that an omitted rest
+// was silent. A local reviewed plan may leave that visit unmapped instead.
+function verifiedScoreOmissions(timeline,omissions,ambiguousHolds,reviewedPassages) {
+  return omissions.filter(omission=>{
     const measure=timeline.measures[omission.originalVisit-1];
-    if(measure.measureNumber!==omission.scoreMeasure||measure.occurrence!==omission.occurrence||measure.isFullRest!==true)
-      fail('An omitted score measure is not independently verified as a complete silent rest.');
+    if(measure.measureNumber!==omission.scoreMeasure||measure.occurrence!==omission.occurrence)
+      fail('A silent omission differs from the native measure occurrence.');
+    const incomingHold=ambiguousHolds.some(hold=>hold.startTick<measure.startTick &&
+      (hold.endTick>measure.startTick||hold.openEnded&&hold.endTick===measure.startTick));
     for(const event of timeline.events)for(const note of event.notes??[]) {
       const start=note.startTick??event.startTick,end=note.endTick??event.endTick;
       if(!Number.isFinite(start)||!Number.isFinite(end)||end<start)fail('Cannot verify note sustain at a silent score omission.');
       if(start>=measure.startTick&&start<measure.endTick || start<measure.startTick&&end>measure.startTick)
         fail('A note or sustained hold overlaps an omitted silent score measure.');
     }
-    if(ambiguousHolds.some(hold=>hold.startTick<measure.endTick&&(hold.endTick>measure.startTick||hold.openEnded&&hold.endTick===measure.startTick)))
-      fail('An ambiguous expressive or let-ring hold overlaps an omitted silent score measure.');
-  }
+    if(ambiguousHolds.some(hold=>hold.startTick>=measure.startTick && hold.startTick<measure.endTick))
+      fail('An ambiguous expressive or let-ring hold starts in an omitted silent score measure.');
+    if(incomingHold){
+      if(reviewedPassages)return false;
+      throw new CrossingSustainError('An ambiguous expressive or let-ring hold overlaps an omitted silent score measure.');
+    }
+    if(measure.isFullRest!==true)fail('An omitted score measure is not independently verified as a complete silent rest.');
+    return true;
+  });
 }
 
 export function validateTimingPlanDuration(planOrCompiled,durationMs) {
@@ -224,7 +235,8 @@ export function validateTimingPlanDuration(planOrCompiled,durationMs) {
 }
 
 export function compileTimingPlan(input,{timeline,scoreSha256,recordingId,durationMs=null,allowReviewed=false}={}) {
-  const plan=validateTimingPlan(input,{allowReviewed}),originalTimelineKey=timelineKey(timeline);
+  let plan=validateTimingPlan(input,{allowReviewed});
+  const originalTimelineKey=timelineKey(timeline);
   if(plan.scoreSha256!==hash(scoreSha256,'selected score'))fail('The original score bytes do not match this plan.');
   if(plan.recordingId!==recordingId)fail('The selected recording identity does not match this plan.');
   if(plan.originalPlaybackOrder.length!==timeline.measures.length || plan.originalPlaybackOrder.some((measure,index)=>measure!==timeline.measures[index].measureNumber))
@@ -240,8 +252,10 @@ export function compileTimingPlan(input,{timeline,scoreSha256,recordingId,durati
   const intervals=timingPlanIntervals(plan).map(interval=>({...interval,kind:interval.kind??'explanation',startMs:interval.startSeconds*1000,endMs:interval.endSeconds*1000}));
   const explanations=intervals.filter(interval=>interval.kind==='explanation');
   const ambiguousHolds=plan.format===EXPLANATION_TIMING_FORMAT?[]:nativeAmbiguousHolds(timeline);
-  guardScoreOmissions(timeline,plan.scoreOmissions??[],ambiguousHolds);
-  guardBoundaries(timeline,visits,intervals,ambiguousHolds,plan.format===REVIEWED_PASSAGES_FORMAT);
+  const reviewedPassages=plan.format===REVIEWED_PASSAGES_FORMAT;
+  const omissions=verifiedScoreOmissions(timeline,plan.scoreOmissions??[],ambiguousHolds,reviewedPassages);
+  if(reviewedPassages && omissions.length!==plan.scoreOmissions.length)plan={...plan,scoreOmissions:omissions};
+  guardBoundaries(timeline,visits,intervals,ambiguousHolds,reviewedPassages);
   const segments=[...visits.map(visit=>({kind:'music',startMs:visit.startMs,endMs:visit.endMs,visit})),
     ...intervals.map(interval=>({kind:interval.kind,startMs:interval.startMs,endMs:interval.endMs,interval,
       ...(interval.kind==='explanation'?{explanation:interval}:{})}))].sort((a,b)=>a.startMs-b.startMs);

@@ -30,7 +30,7 @@ test('review activates only the placed visits and leaves an internal recording g
  assert.deepEqual([0,1999,2000,4999,5000,7000].map(ms=>planPositionAtTime(compiled,ms).kind),['music','music','unmapped','unmapped','music','after']);
  assert.equal(planPositionAtTime(compiled,2100).visit,null);assert.equal(planTimeAtTick(compiled,1200),null);
  assert.deepEqual([0,960,1920].map(startTick=>planIncludesEvent(compiled,{startTick})),[true,false,true]);
- o.timeline.ambiguousHoldRanges=[{startTick:500,endTick:960,openEnded:false}];assert.equal(inspect().compiled,null);
+ o.timeline.ambiguousHoldRanges=[{startTick:500,endTick:960,openEnded:false}];assert(inspect().compiled);
  o.timeline.ambiguousHoldRanges=[];o.durationMs=6000;assert.equal(inspect().compiled,null);
  o.durationMs=10000;p.musicalVisits[1].startSeconds=1;p.musicalVisits[1].anchors[0].seconds=1;
  assert.match(inspect().issues.join(' '),/overlap/);

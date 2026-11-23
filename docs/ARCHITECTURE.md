@@ -2,7 +2,7 @@
 
 Media Sync projects selected audio takes, editable draft coverage and accepted visits onto the video seek bar. The analyzer and its reviewer share a manual measure form keyed by expanded score visit. Adding a visit in review updates adjacent gap references and goes through draft undo history.
 
-Reviewed recording practice projects attacks into each continuous group of synced measures. Recording hit windows and note endpoints stop at the end of that group. Tied continuations have no attack target. Synth practice still uses the complete written tie chain. Reviewed passages may omit measures. External verified timing retains its own validation.
+Reviewed recording practice projects attacks into each continuous group of synced measures. Recording hit windows and note endpoints stop at the end of that group. Tied continuations have no attack target. Reviewed passages also keep synced attacks when a let-ring or expressive release is uncertain at a cut. If carry from an earlier note makes a no-attack rest unprovable, the reviewed plan leaves that visit unmapped. Synth practice still uses the complete written tie chain. Reviewed passages may omit measures. External verified timing retains its own validation.
 
 ## Optional audio-based sync suggestions
 

@@ -152,3 +152,52 @@ test('a tie starting outside a reviewed passage never becomes an attack on re-en
   const events=practiceEvents({media:{preview:true,timingPlan:compiled},playbackTimeline:timeline,expectedEvents:getPracticeEvents(timeline,'0')});
   assert.deepEqual(events.map(e=>e.notes.map(n=>n.midi)),[[47],[42]]);
 });
+
+test('review grades mapped attacks when a written bend or let-ring release reaches a recording gap',()=>{
+  for(const expression of ['bend','let-ring']){
+    const score=parse(core,'. 0.6.1 | 2.6.1 | 3.6.1');
+    const first=score.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0];
+    if(expression==='let-ring')first.isLetRing=true;
+    else{
+      first.addBendPoint(new core.model.BendPoint(0,0));
+      first.addBendPoint(new core.model.BendPoint(60,4));
+    }
+    const {timeline}=generate(core,score),plan=planFor(timeline,{omit:[]});
+    assert.throws(()=>compile(plan,timeline),/ambiguous expressive or let-ring/);
+    const original=structuredClone(plan);
+    const draft={format:'draft-recording-timing',version:1,scoreSha256:hash,recordingId:plan.recordingId,
+      originalPlaybackOrder:plan.originalPlaybackOrder,originalTimingText:'[]',matchingEvidence:{},candidatePlan:plan,unresolved:[]};
+    const options={timeline,scoreSha256:hash,recordingId:plan.recordingId,durationMs:10000};
+    const {compiled,issues}=inspectDraft(draft,{candidatePlan:plan,unresolved:[]},options);
+    assert.deepEqual(issues,[]);
+    const expected=getPracticeEvents(timeline,'0');
+    const events=practiceEvents({media:{preview:true,timingPlan:compiled},playbackTimeline:timeline,expectedEvents:expected});
+    assert.deepEqual(events.map(e=>e.notes.map(n=>n.midi)),[[40],[42],[43]]);
+    assert.equal(events[0].practiceSectionEndMs,2000);assert.equal(events[1].startTimeMs,5000);
+    if(expression==='bend')assert(expected[0].notes[0].bendRange);
+    assert.deepEqual(events[0].notes[0].bendRange,expected[0].notes[0].bendRange);
+    assert.deepEqual(plan,original);
+  }
+});
+
+test('saved Quartal Harmony GPX keeps four ringing attacks, the following chord and all 45 reviewed visits',
+  {skip:!process.env.GTS_QUARTAL_GPX || !process.env.GTS_QUARTAL_PLAN},()=>{
+    const bytes=fs.readFileSync(process.env.GTS_QUARTAL_GPX);
+    const plan=JSON.parse(fs.readFileSync(process.env.GTS_QUARTAL_PLAN,'utf8').replace(/^\uFEFF/,''));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'),plan.scoreSha256);
+    const score=core.importer.ScoreLoader.loadScoreFromBytes(bytes,new core.Settings());
+    const midi=new core.midi.MidiFile(),generator=new core.midi.MidiFileGenerator(score,new core.Settings(),new core.midi.AlphaSynthMidiFileHandler(midi));
+    generator.generate();
+    const timeline=buildPlaybackTimeline(generator.tickLookup,{score,tempo:score.tempo,ticksPerQuarter:midi.division,midiFile:midi,midiTypes:core.midi.MidiEventType});
+    const options={timeline,scoreSha256:plan.scoreSha256,recordingId:plan.recordingId,durationMs:268068};
+    assert.throws(()=>compileTimingPlan(plan,options),/ambiguous expressive or let-ring/);
+    const draft={format:'draft-recording-timing',version:1,scoreSha256:plan.scoreSha256,recordingId:plan.recordingId,
+      originalPlaybackOrder:plan.originalPlaybackOrder,originalTimingText:'[]',matchingEvidence:{},candidatePlan:plan,unresolved:[]};
+    const {compiled,issues}=inspectDraft(draft,{candidatePlan:plan,unresolved:[]},options);
+    assert.deepEqual(issues,[]);assert.equal(compiled.visits.length,45);
+    const events=practiceEvents({media:{preview:true,timingPlan:compiled},playbackTimeline:timeline,expectedEvents:getPracticeEvents(timeline,'0')});
+    const pitches=[53,59,64,69];
+    assert.deepEqual(events.filter(e=>e.measureNumber===2).flatMap(e=>e.pitches),pitches);
+    assert.deepEqual(events.find(e=>e.measureNumber===3).pitches,pitches);
+    assert.equal(events.length,87);
+  });

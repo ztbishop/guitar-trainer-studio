@@ -1,8 +1,14 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Reviewed let-ring and expressive releases, November 22, 2026
+
+The original GPX and saved timing for Quartal Harmony in Lydian Mode – Comping Practice Session (98109) reproduced the expressive-hold warning. Four notes marked let-ring in measure 2 reach the break at 25.807 s. The next synced chord starts at 38.431 s. The reviewed plan kept all 45 measure visits.
+
+In local Chrome with the original MP4, synthetic MIDI earned all 328 note targets across 87 attack times. A deliberately wrong pitch in each of the seven ungraded intervals produced zero penalties. A second run held the four notes until measure 3 and earned all four attacks on both sides of that break. A separate generated-score regression covers a written bend and its pitch range. The real-score regression accepts the private fixture through `GTS_QUARTAL_GPX` and `GTS_QUARTAL_PLAN`. Local listening and physical guitar input remain owner checks.
+
 Jazz Discovery 98027, November 22. Fresh Auto-sync using the saved GPX and MP4 produced 14 timed visits and 88 guitar attacks. Chrome Realtime playback with synthetic MIDI credited all 88. The tied attacks at 60.563 s (measure 8) and 74.444 s (measure 14) retained their score pitches. Each attack window ended at its mapped passage boundary, at 60.753 and 74.653 s respectively. MIDI deliberately sent in both recording gaps added zero errors. Score tracking and grading resumed after both gaps. Physical MIDI and a listening check remain owner acceptance.
 
-Other routes to playback-only timing include a missing endpoint, a recording time outside the file, overlapping music or contradictory anchors, an invalid repeat/pass assignment, an unverified silent omission, or ambiguous let-ring/expressive carry across a cut. A score or recording identity mismatch prevents applying the timing. A gap on its own does not prevent grading placed attacks.
+Other routes to playback-only timing include a missing endpoint, a recording time outside the file, overlapping music or contradictory anchors, an invalid repeat/pass assignment, or an unverified silent omission. A score or recording identity mismatch prevents applying the timing. A gap on its own does not prevent grading placed attacks.
 
 Blind rerun of the production worker on the same GPX and recording hashes with the saved measure/pass timings withheld. Connecting Intervals kept 30 of 40 selections. Each unselected row already had alternatives. Low Bass Note kept 17 of 19 selections. Neither lesson gained a backward suggestion. On Connecting Intervals seven existing selections had midpoints in a different reference visit, including 14 and 15. On Low Bass Note all 17 midpoints landed in the expected visit.
 
