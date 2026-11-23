@@ -1,5 +1,19 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Ringing chords at the start and end of a lesson
+
+Compared the one-click browser matcher with `5b68fac` on the 20 previously tested lessons and four more saved Open D recordings (Chord Scales 1, 5, 7 and 8). Chrome received only the original score and recording. The accepted Lesson Bridge timing supplied the reference after analysis. Both the raw selections and the measure visits used by the draft editor were compared.
+
+| Lesson and boundary | Previous | Updated | Reference | Absolute error before → after |
+| --- | ---: | ---: | ---: | ---: |
+| Chord Scale 2, first attack | 19.640 s | 18.800 s | 18.758 s | 882 → 42 ms |
+| Chord Scale 2, final release | 155.177 s | 155.560 s | 155.660 s | 483 → 100 ms |
+| Chord Scale 1, first attack | 17.640 s | 15.560 s | 15.451 s | 2,189 → 109 ms |
+
+In Chord Scale 2 the opening pitch match landed inside a chord already ringing. The final strum sequence estimated the release from the preceding tempo while the recorded chord persisted under another sound. Within a short window the matcher now checks for an earlier attack that develops into the same sustained chord. At an extrapolated ending it can follow the fading chord through brief masking until it observes the chord disappear. An experiment that reconsidered existing final matches moved Quartal Harmony's already accurate ending. The shipped release check applies only to a freshly extrapolated final chord.
+
+Across 457 selected measure visits, all interior points and selected visit identities stayed the same. Only the three boundaries above moved. In Chord Scale 2 all 21 visits remain selected and 15 now have both boundaries within 250 ms (previously 13). Chord Scale 7's final estimate stayed within 164 ms. Chord Scales 1, 5 and 8 still select a later occurrence for their final measure. Those errors need better take selection. These are automated recording and reference comparisons. Saved profiles are not rewritten.
+
 ## Recovering melodies and chord changes from neighboring measures
 
 The November 23 blind rerun gave Auto-sync the original scores and recordings. It used the accepted Lesson Bridge plans only to score the finished choices. The prior benchmark at `31a1d1e` supplied the baseline. A measure visit passes the boundary check when both its start and end are within 250 ms of the reference.

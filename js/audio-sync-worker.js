@@ -5,6 +5,7 @@ import {suggestPrecedingMeasures,suggestInteriorMeasures} from './audio-sync-bac
 import {checkContextTakes} from './audio-sync-context.js';
 import {recoverSteadyPassages} from './audio-sync-steady.js';
 import {recoverChordSequences} from './audio-sync-chord-sequence.js';
+import {refineOpeningChord} from './audio-sync-ringing.js';
 
 self.onmessage = ({data}) => {
   try {
@@ -33,6 +34,7 @@ self.onmessage = ({data}) => {
     if (hasPitchMatches) {
       recoverSteadyPassages(data.score,data.bars,data.samples,matches,choices);
       recoverChordSequences(data.score,data.bars,data.samples,matches,choices);
+      refineOpeningChord(data.score,data.samples,matches,choices);
     }
     self.postMessage({matches,choices,features},[features.buffer]);
   } catch (error) {

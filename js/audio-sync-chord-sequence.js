@@ -1,4 +1,5 @@
 import {recordingFeatures,SAMPLE_RATE} from './audio-sync-match.js';
+import {observedChordRelease} from './audio-sync-ringing.js';
 
 const FRAME=0.04, HOP=Math.round(FRAME*SAMPLE_RATE);
 
@@ -165,6 +166,13 @@ export function recoverChordSequences(score,bars,samples,matches,choices) {
       if (bounds[i-1].end>bounds[i].start) bounds[i-1].end=bounds[i].start;
     }
     if (bounds.some(b=>b.end<=b.start) || bounds[0].start<from || bounds.at(-1).end>to) return;
+    // Only reconsider an extrapolated end at the very end of the score.
+    // A retained prior estimate and every interior bar line keep their times.
+    const final=bounds.at(-1);
+    if (stop===bars.length && final.end!==original.at(-1)?.end) {
+      const observed=observedChordRelease(score,samples,final);
+      if (observed!==undefined && observed<=to) final.end=observed;
+    }
     for (let i=first;i<stop;i++) {
       const b=bounds[i-first],previous=selected[i];
       if (previous && previous.start===b.start && previous.end===b.end) continue;
