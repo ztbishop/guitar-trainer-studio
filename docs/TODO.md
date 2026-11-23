@@ -9,6 +9,7 @@
 - [x] Tighten late opening chords and extrapolated final chord releases. Compared all selected boundaries on 24 saved lessons. [Results and remaining take errors](DEV-NOTES.md#ringing-chords-at-the-start-and-end-of-a-lesson)
 - [x] Check final takes against the preceding chord progression in Chord Scales 1, 5 and 8. Compared 24 saved lessons and timed old and new Auto-sync builds. [Results and limits](DEV-NOTES.md#choosing-the-final-take-from-the-preceding-chord-progression)
 - [ ] Evaluate single-note releases separately. Retain the saved boundary and runtime comparisons for future searches.
+- [ ] Prototype a Continuous performance draft for solo recordings with rubato. Validate downbeats, holds and repeated passages before grading newly mapped time. [Local trial and proposed checks](DEV-NOTES.md#continuous-performance-trial-with-rubato)
 
 - [ ] With a Fishman in Realtime, play the first attack of the ties in Jazz Discovery 98027 measures 8 and 14. Check that the following gap adds zero misses and the next synced attack earns credit.
 - [ ] Check measure 2 of Quartal Harmony in Lydian Mode (98109) with a physical MIDI guitar. Let its four notes ring through the break and check the next chord in measure 3.
