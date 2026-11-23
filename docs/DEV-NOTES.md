@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Blind Auto-sync benchmark across archived Lesson Bridge lessons
+
+Auto-sync ran on all 200 identified lesson pages with the reference timing withheld. Across 197 duration-checked recordings, it placed 3,568 of 5,235 timed measure visits. Both endpoints were within 250 ms on 2,249 visits. See the [baseline, owner-checked examples and per-lesson results](AUTO-SYNC-BASELINE.md).
+
 ## Continuous checkbox in the Media Sync toolbar
 
 The Continuous checkbox sits beneath Auto-sync and uses the browser's blue checkmark control. The owner reports that the converted Arirang timing tracked the performance closely, with slight drift on a few notes during within-measure tempo changes. The whole-performance conversion is specific to applied audio-generated timing. Drafts received with marked explanations retain those breaks.

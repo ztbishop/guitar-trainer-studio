@@ -1,5 +1,8 @@
 # Guitar Trainer Studio status and to-do
 
+- [x] Benchmark lesson Auto-sync across 200 archived lesson pages. [Coverage and per-lesson results](AUTO-SYNC-BASELINE.md)
+- [ ] Test recovery of the 65 missing runs bracketed by accurate neighbors, with regression checks for marked explanations and repeated takes.
+
 - [x] Recover short runs between synced visits in Auto-sync. Checked five saved lesson pairs, Jazz Discovery measures 15–17, recorded explanations and withheld second passes. [Results and limits](DEV-NOTES.md#auto-sync-across-several-missing-measures-november-22-2026)
 - [x] Compare neighboring measures to distinguish competing takes. Tested Quartal Harmony, Connecting Intervals and three saved controls. [Results and limits](DEV-NOTES.md#choosing-a-repeated-take-from-its-neighboring-measures)
 - [x] Verify chord attacks at the boundaries of a newly selected take. Quartal Harmony measures 8–9 now land within 0.15 seconds of the published boundaries. [Results](DEV-NOTES.md#verifying-bar-lines-after-a-repeated-take-moves)
