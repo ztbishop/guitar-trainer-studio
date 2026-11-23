@@ -6,6 +6,8 @@ Reviewed recording practice projects attacks into each continuous group of synce
 
 ## Optional audio-based sync suggestions
 
+After passage selection and the single-bar backward search, the worker checks a lone unselected visit between selected neighbors. It tests the recording in the practice track’s pitch range at the two supplied boundaries. Each existing take and both neighboring boundaries are retained. Newly filled holes cannot become anchors in the same pass.
+
 Skip navigation uses the ordered timed visits or the ordinary first score anchor. The draft editor caches unambiguous music spans on each edit. Navigation uses the active recording transport and preserves grading across a timed-plan gap.
 
 A take audition owns a bounded recording preview while the editor is open. Its score overlay uses the chosen measure visit and time bounds. The ordinary recording cursor is hidden and its clock updates resume after the audition.

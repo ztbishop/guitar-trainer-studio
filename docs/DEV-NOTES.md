@@ -1,5 +1,15 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Matching a measure between two synced measures, November 22, 2026
+
+On Jazz Discovery Vol. 2 lesson 98027 the original browser worker selected 14 of 20 visits. Measure 9 had three plausible takes elsewhere in the recording. It had no candidate between the end of measure 8 and the start of measure 10, which was itself found by the previous-measure search. The old search skipped occupied candidate lists and did not revisit this new pair of neighbors. The mix also favors other pitches over the guitar part during measure 9.
+
+The worker now checks isolated holes after the backward pass. Both neighbors must predict a duration within 15% of their respective local tempos. A second FFT over the gap tests the written pitch sequence in the track’s register with a five-semitone margin. The same pitch evidence checks used by the backward pass must succeed, including support in both halves and a better match than a sustained harmony. This pass adds a take at the two existing boundaries and keeps earlier choices and alternatives.
+
+With GPX and MP4 alone, Auto-sync selected measure 9 at 60.7533–62.9840 s. TrueFire’s separately retrieved reference gives 60.7250–63.0502 s. Chrome Realtime credited all 92 attacks in 15 selected visits, including the four new attacks in measure 9. The remaining unscored interval added zero wrong notes from injected MIDI. A separate manual two-pin replay over measures 15–17 gave internal starts of 76.767 and 78.953 s, 51 and 87 ms early. That three-measure result comes from the existing refiner.
+
+Connecting Intervals, Low Bass Note, and Quartal Harmony kept their former 30, 17 and 22 automatic selections. Across all four lessons, withholding one selected measure with two selected neighbors recovered 11 of 54. All 11 midpoints fell in the reference visit. Zero of 453 tempo-matched challenges drawn from publisher-unscored audio passed. These controls cover sampled recordings. They do not establish general speech detection. Quartal Harmony’s selected measure 9 is a separate take-selection issue (60.76 s selected, 116.05 s in the reference). Physical MIDI and listening remain owner checks.
+
 ## Reviewed let-ring and expressive releases, November 22, 2026
 
 The original GPX and saved timing for Quartal Harmony in Lydian Mode – Comping Practice Session (98109) reproduced the expressive-hold warning. Four notes marked let-ring in measure 2 reach the break at 25.807 s. The next synced chord starts at 38.431 s. The reviewed plan kept all 45 measure visits.

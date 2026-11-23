@@ -1,5 +1,7 @@
 # Media & Sync
 
+**Matched between synced measures** appears when Auto-sync recovers one measure between two selected takes. Listen with **Play from take** or choose a different take. For an existing draft, **Time a missing measure** offers the end of the previous measure and the start of the next as editable boundaries.
+
 Open **More → Media Sync** after loading a score. There is no separate top-toolbar Media Sync button. Opening/closing the editor does not change the playback source or mode.
 
 **While the editor is open: Editing sync · Scoring paused.** Main Play/Pause previews the selected source audibly even if the saved practice mode is Wait. Grading, prior feedback display, practice-loop restrictions and count-in are suspended. Closing the editor pauses playback, restores the saved practice mode/loop choices and prepares a fresh graded attempt. Realtime grading and silent Wait described below apply with the editor closed. Practice preferences remain saved; opening the editor does not switch the audio source or start playback.

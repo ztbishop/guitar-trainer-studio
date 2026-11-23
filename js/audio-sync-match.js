@@ -7,7 +7,7 @@ const WINDOW = 2048;
 
 // Centered Hann-window FFT. Fold prominent spectral peaks onto the twelve
 // pitch classes so guitar timbre and octave doubling need no instrument model.
-export function recordingFeatures(samples) {
+export function recordingFeatures(samples, lowestMidi=-Infinity, highestMidi=Infinity) {
   const frames = Math.ceil(samples.length / HOP);
   const features = new Float32Array(frames * 12);
   const real = new Float64Array(WINDOW), imag = new Float64Array(WINDOW);
@@ -48,6 +48,7 @@ export function recordingFeatures(samples) {
       const left = Math.log(power[b-1] + 1e-14), mid = Math.log(power[b]), right = Math.log(power[b+1] + 1e-14);
       const bin = b + 0.5 * (left - right) / (left - 2 * mid + right);
       const midi = Math.round(69 + 12 * Math.log2(bin * SAMPLE_RATE / WINDOW / 440));
+      if (midi < lowestMidi || midi > highestMidi) continue;
       features[base + midi % 12] += Math.sqrt(power[b] / b);
     }
     let norm = 0;

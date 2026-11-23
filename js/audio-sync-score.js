@@ -16,9 +16,17 @@ export function passageScore(timeline, trackId) {
 
 export function scoreQueries(timeline, trackId) {
   const groups = timeline.measures.map(() => new Map());
+  const registers = timeline.measures.map(() => ({low:Infinity,high:-Infinity}));
   for (const event of timeline.events) {
     if (event.trackId !== String(trackId)) continue;
-    const pitches = event.notes.filter(n => !n.isDead && Number.isFinite(n.midi)).map(n => n.midi % 12);
+    const pitches = [];
+    const register = registers[event.playbackMeasureIndex];
+    for (const note of event.notes) {
+      if (note.isDead || !Number.isFinite(note.midi)) continue;
+      pitches.push(note.midi % 12);
+      register.low = Math.min(register.low,note.midi);
+      register.high = Math.max(register.high,note.midi);
+    }
     if (!pitches.length) continue;
     const starts = groups[event.playbackMeasureIndex];
     const group = starts.get(event.startTimeMs) || {end:0,pitches:new Set()};
@@ -44,7 +52,7 @@ export function scoreQueries(timeline, trackId) {
         ...(fraction === 0.20 ? {onset:(onset-start)/1000} : {})
       });
     }
-    return {duration:(end-start)/1000,probes,distinct:signatures.size};
+    return {duration:(end-start)/1000,probes,distinct:signatures.size,register:registers[index]};
   });
   // A bar on one chord may be identifiable as part of the phrase next to it.
   // A completely silent bar has no acoustic evidence of its own.
