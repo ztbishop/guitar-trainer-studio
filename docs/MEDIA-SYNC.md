@@ -6,7 +6,7 @@ Open **More → Media Sync** after loading a score. There is no separate top-too
 
 ## Sources and playback
 
-During an intro or a gap, **Skip to music** jumps to the next mapped passage and keeps the current play or pause state. It appears beside the recording controls or below the toolbar when the video panel is hidden. This also works with an ordinary delayed first sync point and with draft passages you can preview. After a recording read error, Realtime Play retries a reloadable recording at its retained position.
+During an intro or a gap, **Skip to music** jumps to the next mapped passage and keeps the current play or pause state. It appears immediately to the right of **Edit sync** under the video, even with the wide timeline. For audio-only recordings or a hidden video panel, it appears below the toolbar. This also works with an ordinary delayed first sync point and with draft passages you can preview. After a recording read error, Realtime Play retries a reloadable recording at its retained position.
 
 Main Play reads **Preview** while editing. **Finish editing / Return to practice** and the editor's × both close the editor and pause preview using the existing host restoration path. The selected Synth audio/Recording source and current alignment are retained. Press Play to start practice. Source buttons choose audio only; selecting Synth audio does not end editing. Loop inputs are disabled during editing and player restoration, with a reason in the Loop menu; saved loop choices remain intact. Save profile explicitly to retain unsaved alignment across reloads.
 

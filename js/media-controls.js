@@ -42,7 +42,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   listenExplanation.type=skipExplanation.type='button';listenExplanation.textContent='Listen to explanation';skipExplanation.textContent='Skip to music';
   listenExplanation.id='media-listen-explanation';skipExplanation.id='media-skip-explanation';
   explanationTools.append(explanationSummary,explanationSelect,listenExplanation,skipExplanation);get('selection').before(explanationTools);
-  const playerSkip=skipExplanation.cloneNode(true);playerSkip.id='media-player-skip-explanation';playerSkip.hidden=true;get('listening-notice').after(playerSkip);
+  const playerSkip=skipExplanation.cloneNode(true);playerSkip.id='media-player-skip-explanation';playerSkip.hidden=true;get('edit-sync').after(playerSkip);
   const recovery=document.createElement('div');recovery.id='media-recording-recovery';recovery.className='media-actions';recovery.hidden=true;
   const recoveryStatus=document.createElement('span');recoveryStatus.setAttribute('role','status');
   const reloadRecording=document.createElement('button');reloadRecording.id='media-reload-recording';reloadRecording.type='button';reloadRecording.textContent='Reload recording';
@@ -142,15 +142,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   editor.addEventListener('input',stopAudition,true);
   get('seek').addEventListener('input',stopAudition,true);
   function placeRecordingTimeline() {
-    const standalone=!wideTimeline && get('player-panel').hidden;
-    timelineBar.hidden=!(player?.backingTrackDuration>0) || (!wideTimeline && (!standalone || playerSkip.hidden));
-    if(wideTimeline && scrub.parentElement!==timelineBar)timelineBar.append(scrub,playerSkip);
-    if(!wideTimeline && scrub.parentElement===timelineBar) {
-      get('video-actions').before(scrub);
-      get('listening-notice').after(playerSkip);
-    }
-    if(standalone && playerSkip.parentElement!==timelineBar)timelineBar.append(playerSkip);
-    if(!wideTimeline && !standalone && playerSkip.parentElement===timelineBar)get('listening-notice').after(playerSkip);
+    const videoHidden=get('player-panel').hidden;
+    timelineBar.hidden=!(player?.backingTrackDuration>0) || (!wideTimeline && (!videoHidden || playerSkip.hidden));
+    if(wideTimeline && scrub.parentElement!==timelineBar)timelineBar.prepend(scrub);
+    if(!wideTimeline && scrub.parentElement===timelineBar)get('video-actions').before(scrub);
+    if(videoHidden && playerSkip.parentElement!==timelineBar)timelineBar.append(playerSkip);
+    if(!videoHidden && playerSkip.parentElement===timelineBar)get('edit-sync').after(playerSkip);
     get('wide-timeline').checked=wideTimeline;
   }
   function showRecordingInfo(open) {

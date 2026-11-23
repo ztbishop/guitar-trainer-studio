@@ -40,7 +40,7 @@ The Node suite passed 898 tests with eight optional fixture skips. Isolated Chro
 
 ## Compact video controls and optional full-width recording timeline — 2026-11-20
 
-Recording info beside Edit sync reveals the full title and Float video. The saved **Show timeline below toolbar** setting also works for audio-only recordings and hidden video panels. The strip disappears on unload and score change. Local acceptance is to seek through a familiar lesson with the video on the left, check Skip to music, and reopen the app with the same browser.
+Recording info beside Edit sync reveals the full title and Float video. The saved **Show timeline below toolbar** setting also works for audio-only recordings and hidden video panels. With the video visible, Skip to music stays beside Edit sync for either timeline position. The strip disappears on unload and score change. Local acceptance is to seek through a familiar lesson with the video on the left, check Skip to music, and reopen the app with the same browser.
 
 ## v1.0.2 release — 2026-11-20
 

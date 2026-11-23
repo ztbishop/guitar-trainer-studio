@@ -6,7 +6,7 @@
 
 - **Loop → Speed Trainer** increases Realtime synth speed after a chosen number of completed loops. Try a short loop with Loop Count-in and listen for the next pass’s tempo as it increases. [Tempo and Loop](../README.md#tempo-and-loop)
 - **Media Sync → Drag / nudge → Stretch selected section** adjusts a passage against a pinned final marker. On a real recording, listen at the first and last points, then try Undo before saving. [Alignment controls](MEDIA-SYNC.md#alignment)
-- **Show timeline below toolbar** gives a left-side video a full-width seek bar. Try seeking across a spoken break in a familiar lesson. The title and Float video are under **ⓘ Recording info**. [Video layout](MEDIA-SYNC.md#video-position)
+- **Show timeline below toolbar** gives a left-side video a full-width seek bar. Try seeking into a spoken break and clicking **Skip to music** beside **Edit sync** under the video. The title and Float video are under **ⓘ Recording info**. [Video layout](MEDIA-SYNC.md#video-position)
 
 ## Complete and shipped
 

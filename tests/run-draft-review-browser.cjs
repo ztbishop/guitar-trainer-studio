@@ -23,6 +23,16 @@ function wav(){const b=Buffer.alloc(44+8000*2*duration);b.write('RIFF');b.writeU
  const mode=async value=>page.evaluate(value=>{const e=document.querySelector(`input[name="practice-mode"][value="${value}"]`);e.checked=true;e.dispatchEvent(new Event('change'));},value);
  const seek=async time=>{await page.locator('#media-seek').evaluate((e,time)=>{e.value=String(time);e.dispatchEvent(new Event('input',{bubbles:true}));},time);await page.waitForFunction(time=>Math.abs(window.media.currentTime-time)<.1,time);};
  const play=async label=>{await page.locator('#play-pause-button').click();await page.waitForFunction(()=>s.isPlaying&&!window.media.paused,null,{timeout:4000}).catch(async e=>{await record(label+' failed');throw e;});await record(label);};
+ if(process.env.GTS_VIDEO){
+   await seek(gapTime);
+   const skip=page.locator('#media-video-actions > #media-edit-sync + #media-player-skip-explanation');
+   for(const wide of [true,false]){
+     await page.locator('#media-wide-timeline').evaluate((box,wide)=>{box.checked=wide;box.dispatchEvent(new Event('change'));},wide);
+     await skip.waitFor({state:'visible',timeout:3000});
+     const editBox=await page.locator('#media-edit-sync').boundingBox(),skipBox=await skip.boundingBox();
+     assert(skipBox.x>=editBox.x+editBox.width-1 && Math.abs(skipBox.y-editBox.y)<5,'Skip to music is directly right of Edit sync');
+   }
+ }
  await mode('realtime');await seek(musicTime);await play('music play');await page.waitForTimeout(180);await seek(gapTime);await record('running seek into explanation');
  if(await page.locator(process.env.GTS_VIDEO?'#media-video':'#media-audio').evaluate(e=>e.paused))await play('resume explanation');
  await page.waitForFunction(time=>window.media.currentTime>time+.25,gapTime,{timeout:4000});await page.locator('#play-pause-button').click();await page.waitForFunction(()=>!s.isPlaying);await play('pause/resume explanation');
