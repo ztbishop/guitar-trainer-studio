@@ -63,7 +63,11 @@ body.media-editor-visible.fretboard-visible .app-main { grid-template-rows:minma
 .media-actions label.field-group { display:grid; gap:3px; }
 #media-profile-toolbar .field-label { font-size:12px; font-weight:500; letter-spacing:0; text-transform:none; }
 #media-profile-toolbar input,#media-profile-toolbar select { width:180px; max-width:100%; }
-#media-editor input:not([type='file']) { border:1px solid var(--control-border-soft); border-radius:14px; background:var(--control-bg); color:var(--text); min-height:36px; padding:7px 10px; box-sizing:border-box; color-scheme:light; }
+#media-editor input:not([type='file']):not([type='checkbox']) { border:1px solid var(--control-border-soft); border-radius:14px; background:var(--control-bg); color:var(--text); min-height:36px; padding:7px 10px; box-sizing:border-box; color-scheme:light; }
+.media-auto-controls { display:grid; justify-items:center; gap:1px; }
+.media-auto-controls label { min-height:24px; font-size:12px; cursor:pointer; }
+#media-continuous-music { appearance:auto; display:inline-block; inline-size:16px; block-size:16px; flex:0 0 16px; padding:0; box-shadow:none; accent-color:#2563eb; color-scheme:light; }
+#media-continuous-music::before { content:none; }
 #media-editor input[type='url'] { width:100%; }
 #media-source-card { padding:8px 0; }
 .media-editor .field-help { font-size:12px; margin:4px 0; }

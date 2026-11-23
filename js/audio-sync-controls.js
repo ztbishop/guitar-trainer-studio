@@ -85,8 +85,11 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
   const mode=document.createElement('label'),continuous=document.createElement('input');
   continuous.type='checkbox';continuous.id='media-continuous-music';
   mode.title='Follow one performance through tempo changes and holds. Leave unchecked for lessons with explanations or separate takes.';
-  mode.append(continuous,' Continuous music');
-  auto.id='media-auto-sync';after.append(mode,auto);
+  continuous.setAttribute('aria-label','Continuous music');
+  mode.append(continuous,'Continuous');
+  const autoControls=document.createElement('div');
+  autoControls.className='media-auto-controls';
+  auto.id='media-auto-sync';autoControls.append(auto,mode);after.append(autoControls);
   const manual=createMissingMeasureForm({
     measures:()=>result.snapshot.timeline.measures,notation:()=>result.snapshot.notation,playhead,
     visit:number=>{
@@ -136,7 +139,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     else if (now.duration > 45*60) reason = 'For analysis, choose a recording of 45 minutes or less.';
     else if (now.blocked) reason = now.blocked;
     continuous.disabled=Boolean(reason || job || applying);
-    if (!reason && now.dirtyAudio && !continuous.checked) reason='Save the current alignment or check Continuous music to re-analyze this performance.';
+    if (!reason && now.dirtyAudio && !continuous.checked) reason='Save the current alignment or check Continuous to re-analyze this performance.';
     help.textContent = reason || (continuous.checked
       ? 'Follows one performance through tempo changes and holds. Uncertain measures can be timed by hand.'
       : 'Matches the selected practice track. Choose a take for each written pass. Unmapped recording time plays without grading.');

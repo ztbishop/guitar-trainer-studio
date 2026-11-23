@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Continuous checkbox in the Media Sync toolbar
+
+The Continuous checkbox sits beneath Auto-sync and uses the browser's blue checkmark control. The owner reports that the converted Arirang timing tracked the performance closely, with slight drift on a few notes during within-measure tempo changes. The whole-performance conversion is specific to applied audio-generated timing. Drafts received with marked explanations retain those breaks.
+
 ## Filling the gaps of a continuous performance
 
 The owner spot-checked the recovered Arirang opening and timing through the end. The resulting draft still omitted 32 visits and had ten gaps between adjacent mapped measures. A local Chrome test converted its 148 mapped visits to 236 standard points. All matched downbeats and interior anchors retained their recording times. The musical boundaries remained 1.32 and 359.28 seconds. All 1,694 expected practice events across the expanded 180 visits became available. The test added a point at beat two of a previously omitted visit, saved the standard profile, restored the original draft and switched back with the edit intact.
