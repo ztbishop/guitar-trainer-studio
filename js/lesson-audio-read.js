@@ -16,7 +16,7 @@ export function readLessonRecording(url,signal,limit) {
     function cancel(){finish(signal.reason);}
     function timeout(ms,message){clearTimeout(timer);timer=setTimeout(()=>finish(Error(message)),ms);}
     signal.addEventListener('abort',cancel,{once:true});
-    timeout(1200,'The recording link did not provide audio access. A compatible untimed lesson send can supply audio for Auto-sync.');
+    timeout(1200,'The recording link did not provide audio access. You can still place sync points manually, or load a readable recording for Auto-sync.');
     port1.onmessage=({data})=>{
       timeout(60000,'The online audio transfer timed out. Run Auto-sync again.');
       if(data?.type==='ready' && !expected && Number.isSafeInteger(data.size) && data.size>0 && data.size<=limit){

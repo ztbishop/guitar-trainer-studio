@@ -1,5 +1,7 @@
 # Guitar Trainer Studio status and to-do
 
+- [ ] Listen to optional per-point comparisons on additional performances. Current timing is the initial choice for each point.
+
 - [x] Refine existing points between two fixed blue timeline markers after Fill gaps, with cached audio and one-step Undo.
 - [x] [Compare standard point refinement against saved timing on Connecting Intervals and Low Bass Note](AUTO-SYNC-BASELINE.md#refinement-after-fill-gaps-on-two-saved-lessons). A poor outer pin moved an accurate measure into a break. Test audition or protection for large shifts before broader automatic use.
 

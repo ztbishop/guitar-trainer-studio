@@ -1,5 +1,7 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+An optional local comparison in the standard editor now retains current timing until the user applies a choice. Browser checks cover capability discovery, unchecked defaults, audition and a one-step undo. On Connecting Intervals the comparison moved measure 21 from 520.553 to 520.802 seconds against a published start of 520.838, preserving every other point. Audible owner acceptance is pending.
+
 ## Refining standard points after Fill gaps
 
 The standard editor accepts a first and a later blue marker. The second click refines the existing points inside that recording interval using the selected practice track. One Undo restores the whole edit. Draft passage refinement keeps its two measure dropdowns, now above the take list.

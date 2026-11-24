@@ -4,6 +4,7 @@ import {createDraftEditor} from './draft-controls.js';
 import {createAudioSuggestions} from './audio-sync-controls.js';
 import {takePosition} from './audio-sync-score.js';
 import {tickToTimeMs} from './score-playback.js';
+import {comparisonAvailable,comparePassage,showComparison} from './passage-comparison.js';
 import {draftPosition} from './draft-alignment.js';
 import {validateDraft,checkDraftBinding,DRAFT_CAPABILITY} from './draft-timing.js';
 import {AppState} from './app-state.js';
@@ -66,7 +67,8 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   function drawAudition(seconds) {
     const {take,measure,index}=audition;
-    const fraction=takePosition(take,seconds,false);
+    const start=take.scoreStart??0,end=take.scoreEnd??1;
+    const fraction=start+(end-start)*takePosition(take,seconds,false);
     host.showDraftPosition({kind:'music',scoreMeasure:measure.measureNumber,occurrence:measure.occurrence,
       originalVisit:index+1,fraction,tick:measure.startTick+fraction*(measure.endTick-measure.startTick)},false,true);
   }
@@ -80,7 +82,20 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   const refineButton=document.createElement('button'),refineHint=document.createElement('span');
   refineButton.id='media-refine-points';refineButton.type='button';refineButton.textContent='Refine between points';
   refineHint.id='media-refine-hint';refineHint.className='field-help';refineHint.setAttribute('role','status');
-  get('zoom-toolbar').append(refineButton,refineHint);
+  const compareLabel=document.createElement('label'),compareBox=document.createElement('input');
+  compareBox.type='checkbox';compareBox.id='media-compare-passage';compareBox.autocomplete='off';compareBox.checked=false;
+  compareLabel.append(compareBox,' Compare with Trackswitch (experimental)');compareLabel.hidden=true;
+  const comparePanel=document.createElement('fieldset');comparePanel.hidden=true;
+  comparePanel.id='media-point-comparison';
+  get('zoom-toolbar').append(refineButton,compareLabel,refineHint);
+  get('zoom-toolbar').after(comparePanel);
+  let canCompare=false,comparisonEditorOpen=false,probe=0;
+  async function checkComparison(){
+    const id=++probe,available=await comparisonAvailable();
+    if(id!==probe || !comparisonEditorOpen)return;
+    canCompare=available;compareLabel.hidden=!available;
+    if(!available)compareBox.checked=false;
+  }
   const switchAlignment=document.createElement('button');
   switchAlignment.type='button';switchAlignment.id='media-continuous-points';
   editMeasures.after(switchAlignment);
@@ -176,16 +191,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   const message=text=>{get('status').textContent=text;get('action-status').textContent=text;get('action-status').hidden=text.startsWith('Editing sync');};
   function persistLayout() {try{localStorage.setItem('gts.mediaLayout',JSON.stringify({layout,share,showPlayer,showEditor,wideTimeline}));}catch{}}
   const scrub=get('seek').closest('.media-scrub'),timelineBar=get('timeline-bar');
-  const suggestions=createAudioSuggestions({
-    after:get('editor-toolbar'),
-    playhead:()=> (player?.currentTime ?? 0)/1000,
-    context:()=>({notation:AppState.score,source,file:localFile,url:blobUrl || source?.url,score:AppState.currentScoreFile,
-      scoreSha256:scoreHash,timeline:AppState.playbackTimeline,trackId:AppState.practiceTrackId,
-      duration:(player?.backingTrackDuration || 0)/1000,generation,hasDraft:Boolean(draftTiming),hasPlan:Boolean(timingPlan),
-      canRedoAudio:Boolean(audioPlan(timingPlan?.plan)),dirtyAudio:dirty && !draftTiming && audioPlan(timingPlan?.plan),
-      blocked:busy || recordingError || !player?.backingTrackDuration?'Wait for the recording to be ready.':
-        dirty && !draftTiming && !audioPlan(timingPlan?.plan)?'Save the current alignment before creating another draft.':''}),
-    preview(take,index,scoreFraction){
+  function previewTake(take,index,scoreFraction){
       const measure=AppState.playbackTimeline?.measures[index];
       if(!showEditor || !player || !measure || !(take?.end>take.start))return;
       const fromScore=Number.isFinite(scoreFraction),play=!fromScore || player.playing;
@@ -198,7 +204,17 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       player.seekTo(seconds*1000);
       drawAudition(seconds);
       if(play)player.play();
-    },
+  }
+  const suggestions=createAudioSuggestions({
+    after:get('editor-toolbar'),
+    playhead:()=> (player?.currentTime ?? 0)/1000,
+    context:()=>({notation:AppState.score,source,file:localFile,url:blobUrl || source?.url,score:AppState.currentScoreFile,
+      scoreSha256:scoreHash,timeline:AppState.playbackTimeline,trackId:AppState.practiceTrackId,
+      duration:(player?.backingTrackDuration || 0)/1000,generation,hasDraft:Boolean(draftTiming),hasPlan:Boolean(timingPlan),
+      canRedoAudio:Boolean(audioPlan(timingPlan?.plan)),dirtyAudio:dirty && !draftTiming && audioPlan(timingPlan?.plan),
+      blocked:busy || recordingError || !player?.backingTrackDuration?'Wait for the recording to be ready.':
+        dirty && !draftTiming && !audioPlan(timingPlan?.plan)?'Save the current alignment before creating another draft.':''}),
+    preview:previewTake,
     async review(draft,isCurrent,automatic,continuous){
       if(continuous && isCurrent() && audioPlan(timingPlan?.plan) &&
           timingPlan.plan.sourceSha256===draft.candidatePlan.sourceSha256) await reopenAudioDraft();
@@ -274,6 +290,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     refineButton.hidden=Boolean(timingPlan || draftTiming || !player || source?.kind==='youtube');
     refineHint.hidden=refineButton.hidden;
     refineButton.disabled=!ready || points.length<3 || player.backingTrackDuration>45*60*1000;
+    const eligible=showEditor && !refineButton.hidden && points.length>=3;
+    if(eligible!==comparisonEditorOpen){
+      comparisonEditorOpen=eligible;
+      if(eligible)checkComparison();
+      else {probe++;compareBox.checked=false;canCompare=false;compareLabel.hidden=true;}
+    }
     refineButton.title=points.length<3?'Place at least one sync point between the two endpoints.':'Choose two blue markers to refine the points between them using the recording.';
     if(pointRefinement && (refineButton.hidden || refineButton.disabled || !showEditor ||
         pointRefinement.points!==points || pointRefinement.track!==AppState.practiceTrackId)) stopPointRefinement();
@@ -517,10 +539,13 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   function stopPointRefinement(text='') {
     pointRefinement?.controller.abort();pointRefinement=null;
+    if(!comparePanel.hidden)stopAudition();
+    comparePanel.hidden=true;comparePanel.replaceChildren();compareBox.disabled=false;
     refineButton.textContent='Refine between points';refineHint.textContent=text;
   }
   refineButton.addEventListener('click',()=>{
     if(pointRefinement){stopPointRefinement();return;}
+    if(!canCompare)checkComparison();
     pointRefinement={points,track:AppState.practiceTrackId,first:null,running:false,controller:new AbortController()};
     refineButton.textContent='Cancel refinement';refineHint.textContent='Click the first blue point.';
   });
@@ -539,13 +564,42 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     const first=task.first,original=task.points,timeline=AppState.playbackTimeline;
     try {
       const edges=original.slice(first,index+1).map(p=>tickToTimeMs(timeline,pointTick(p,timeline))/1000);
-      const offsets=await suggestions.refineStandard(edges,original[first].millisecondOffset/1000,
-        original[index].millisecondOffset/1000,task.controller.signal);
+      const compare=canCompare && compareBox.checked;
+      compareBox.disabled=true;
+      const current=original.slice(first,index+1).map(p=>p.millisecondOffset/1000);
+      const result=await suggestions.refineStandard(edges,current[0],current.at(-1),task.controller.signal,
+        compare?comparePassage:null);
       if(pointRefinement!==task || points!==original)return;
-      const next=original.map((p,i)=>i>first && i<index?{...p,millisecondOffset:Math.round(offsets[i-first]*1000)}:p);
-      const count=next.filter((p,i)=>p.millisecondOffset!==original[i].millisecondOffset).length;
-      if(count)edit(next);
-      stopPointRefinement(count?`Refined ${count} interior ${count===1?'point':'points'}. Undo restores the previous timing.`:'The interior points already match.');
+      function commit(offsets){
+        if(pointRefinement!==task || points!==original)return;
+        const next=original.map((p,i)=>i>first && i<index && offsets[i-first]!==current[i-first]
+          ?{...p,millisecondOffset:Math.round(offsets[i-first]*1000)}:p);
+        const count=next.filter((p,i)=>p.millisecondOffset!==original[i].millisecondOffset).length;
+        if(count)edit(next);
+        stopPointRefinement(count?`Refined ${count} interior ${count===1?'point':'points'}. Undo restores the previous timing.`:
+          compare?'Kept the current timing.':'The interior points already match.');
+      }
+      if(!compare){commit(result);return;}
+      const names=['Trainer','Trackswitch'],methods=[],errors=[];
+      result.forEach((r,i)=>{
+        if(r.status==='fulfilled')methods.push({name:names[i],points:r.value});
+        else errors.push(names[i]+' unavailable. '+(r.reason?.message||'Try again.'));
+      });
+      if(!methods.length){stopPointRefinement(errors.join(' '));return;}
+      refineHint.textContent=[...errors,'Listen and choose which timing to keep.'].join(' ');
+      showComparison(comparePanel,{current,methods,
+        label:i=>get('point-list').children[first+i].textContent.split(' → ')[0],
+        hear(i,start,next){
+          const p=original[first+i];
+          const tick=pointTick(p,timeline),m=timeline.measures.findIndex(m=>m.startTick<=tick && tick<m.endTick);
+          const measure=timeline.measures[m],scoreStart=(tick-measure.startTick)/(measure.endTick-measure.startTick);
+          const ticks=pointTick(original[first+i+1],timeline)-tick;
+          const duration=Math.min(2,next-start,(next-start)*(measure.endTick-tick)/ticks);
+          const scoreEnd=scoreStart+duration/(next-start)*ticks/(measure.endTick-measure.startTick);
+          previewTake({start,end:start+duration,scoreStart,scoreEnd},m);
+        },
+        apply(offsets){try{commit(offsets);}catch(error){refineHint.textContent=error.message;}}
+      });
     }catch(error){
       if(pointRefinement===task)stopPointRefinement(error.message);
     }

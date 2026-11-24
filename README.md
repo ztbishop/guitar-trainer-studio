@@ -241,6 +241,10 @@ Fretboard arrows pause and browse targets while clearing the current attempt. Dr
 
 Choose **Auto-sync** in Media Sync for a one-click editable alignment. In **More → Media Sync → Suggest sync points from audio**, choose **Analyze lesson audio** to match the selected practice track to a recording. Listen to the suggested takes, choose one per written repeat pass, and open the draft to check the timing. Explanations and extra demonstrations can stay in the recording as unscored gaps. [Audio suggestions and supported sources](docs/MEDIA-SYNC.md#suggest-sync-points-from-audio)
 
+For one uninterrupted performance, check **Continuous** before running Auto-sync. In **Edit sync**, **Fill gaps with standard sync points** lets the score follow the recording between known points. For a lesson with spoken breaks, keep **Continuous** unchecked and use **Edit timed measures** to adjust individual passages.
+
+To tighten part of a standard alignment, choose **Refine between points** beside **Undo** and **Redo**. Click two blue markers whose timing you trust, with at least one point between them. Listen through the passage afterward. **Undo** restores the original points in one step. **Save profile** keeps the alignment for another session.
+
 Audio has separate synth and synced-recording volumes, practice/backing playback switches, and track volume/mute controls. These control the app's sounds, not your guitar interface's own sounds. Track mix resets for each score; master volumes are remembered.
 
 Synth playback pitch shifts the synthesized sound only. It does not transpose the written score, tab, MIDI targets or recordings.

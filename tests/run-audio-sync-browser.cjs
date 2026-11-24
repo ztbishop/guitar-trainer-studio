@@ -22,6 +22,24 @@ async function run() {
     browser = await chromium.launch({headless:true,channel:process.env.GTS_BROWSER_CHANNEL || 'chrome'});
     const page = await browser.newPage({viewport:{width:1440,height:1000}});
     const errors = []; page.on('pageerror',e => errors.push(e.message));
+    let comparisonEnabled=false,comparisonRequests=0;
+    const actualComparison=process.env.GTS_TEST_COMPARISON_ORIGIN;
+    if(actualComparison){
+      await page.route('**/js/passage-comparison.js',async route=>{
+        const response=await route.fetch();
+        await route.fulfill({response,body:(await response.text()).replace('http://127.0.0.1:8766',actualComparison)});
+      });
+    }
+    await page.route((actualComparison||'http://127.0.0.1:8766')+'/passage/**',async route=>{
+      if(!comparisonEnabled)return route.abort();
+      if(route.request().method()==='POST')comparisonRequests++;
+      if(actualComparison)return route.continue();
+      if(route.request().method()==='GET')return route.fulfill({json:{trackswitch:true}});
+      const buffer=route.request().postDataBuffer(),length=buffer.readUInt32LE(0);
+      const header=JSON.parse(buffer.subarray(4,4+length));
+      assert(buffer.length>length+4 && header.notes.length>0);
+      await route.fulfill({json:{points:header.edges.map(e=>header.start+e/header.edges.at(-1)*(header.end-header.start))}});
+    });
     await page.addInitScript(()=>{
       window.pointWorkerCalls=[];
       window.Worker=class extends Worker {
@@ -139,6 +157,29 @@ async function run() {
     assert.deepEqual(await readPoints(),before);
     await page.locator('#media-redo').click();
     assert.deepEqual(await readPoints(),after);
+    const compareBox=page.getByLabel('Compare with Trackswitch (experimental)');
+    assert.equal(await compareBox.isVisible(),false);
+    comparisonEnabled=true;
+    await page.locator('#media-refine-points').click();
+    await compareBox.waitFor();assert.equal(await compareBox.isChecked(),false);
+    await compareBox.check();await pin(end-2);await pin(end);
+    const comparison=page.locator('#media-point-comparison');
+    await comparison.waitFor({timeout:120000});
+    const choice=comparison.getByLabel('Timing to keep for this point');
+    assert.deepEqual(await readPoints(),after);
+    assert.equal(await choice.inputValue(),'0');
+    assert.match(await choice.innerText(),/Trackswitch/);
+    await choice.selectOption('2');
+    await comparison.getByText('Hear selected').click();
+    await page.waitForFunction(()=>!document.querySelector('#media-audio').paused);
+    assert.deepEqual(await readPoints(),after);
+    await comparison.getByText('Apply chosen timing').click();
+    assert.equal(comparisonRequests,1);
+    const compared=await readPoints();
+    assert.deepEqual(compared.filter((_,i)=>i!==end-1),after.filter((_,i)=>i!==end-1));
+    if(compared[end-1].millisecondOffset!==after[end-1].millisecondOffset){
+      await page.locator('#media-undo').click();assert.deepEqual(await readPoints(),after);
+    }
     await convert.click();
     await page.waitForFunction(()=>s.media.timingPlan?.visits.length===4);
     await page.locator('#media-edit-timed-measures').click();

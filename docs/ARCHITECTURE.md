@@ -1,5 +1,7 @@
 # Guitar Trainer Studio architecture
 
+The standard pin editor can compare optional candidate timings before committing a point edit. Only a local trainer probes for that capability. All review choices are temporary and use the existing recording audition and Undo paths.
+
 Standard point refinement retains recording pitch features in memory when switching between an audio plan and continuous points. It maps the selected repeat-aware score positions to written score times, aligns that interval in the audio worker and commits the interior time changes through the standard editor’s validated Undo history. Selecting another score, recording or practice track invalidates the analysis. A restored profile can lazily extract features from its recording.
 
 In lesson mode, the Auto-sync worker uses the surrounding seven measures to rank competing takes after pinned gap recovery. If the ordinary search returns no candidates, it searches the practice track’s sounding notes through written rests and verifies each four-measure group against the rest of the recording. The Auto-sync button opens these fill proposals as an editable draft for listening before activation.

@@ -333,26 +333,37 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     finally { applying = false; sync(); }
   }
   reset();
-  async function refineStandard(edges,start,end,signal) {
+  async function refineStandard(edges,start,end,signal,compare=null) {
     const snapshot=context();
     const check=()=>{
       signal.throwIfAborted();
       if(!current(snapshot))throw Error('The score or recording changed. Choose the two points again.');
     };
-    let features=cachedAudio && current(cachedAudio.snapshot) ? cachedAudio.features : null;
-    if(!features){
-      const bytes=await readRecording(snapshot,signal);check();
-      const samples=await decodeRecording(bytes,snapshot.duration,signal);check();
-      const analysis=await analyze({featuresOnly:true,samples},samples,signal);
-      check();
-      features=analysis.features;cachedAudio={snapshot,features};
+    let decoding;
+    function getSamples(){
+      return decoding??=readRecording(snapshot,signal).then(bytes=>{
+        check();return decodeRecording(bytes,snapshot.duration,signal);
+      });
     }
-    const {notes}=passageScore(snapshot.timeline,snapshot.trackId);
-    const window=features.slice(Math.floor(start/0.04)*12,Math.ceil(end/0.04)*12);
-    const range={first:0,last:edges.length-2,start,end};
-    const response=await analyze({range,score:{edges,notes},features:window,standard:true},window,signal);
+    async function nativePoints(){
+      let features=cachedAudio && current(cachedAudio.snapshot) ? cachedAudio.features : null;
+      if(!features){
+        const decoded=await getSamples();check();
+        const samples=compare?decoded.slice():decoded;
+        const analysis=await analyze({featuresOnly:true,samples},samples,signal);
+        check();
+        features=analysis.features;cachedAudio={snapshot,features};
+      }
+      const {notes}=passageScore(snapshot.timeline,snapshot.trackId);
+      const window=features.slice(Math.floor(start/0.04)*12,Math.ceil(end/0.04)*12);
+      const range={first:0,last:edges.length-2,start,end};
+      const response=await analyze({range,score:{edges,notes},features:window,standard:true},window,signal);
+      check();return response.points;
+    }
+    if(!compare)return nativePoints();
+    const results=await Promise.allSettled([nativePoints(),compare(snapshot,edges,start,end,getSamples,signal)]);
     check();
-    return response.points;
+    return results;
   }
   return {sync,reset,refineStandard,get musicRanges(){return musicRanges;},selectScoreBeat(index,fraction){
     if(!result || !panel.open || !current(result.snapshot) || job || applying)return false;
