@@ -4,6 +4,28 @@ November 23, 2026. One-click Auto-sync ran on 200 lesson pages with original GPX
 
 ## Results
 
+### Refinement after Fill gaps on two saved lessons
+
+November 24, 2026, trainer revision `307a8ac`. Chrome loaded the original scores and recordings locally, ran Auto-sync without reference timing, then used **Fill gaps** and **Refine between points**. Each range started from the same converted alignment. Checks verified that both pins and every outside point kept their original values, and Undo restored the full baseline. For comparison, the offline Trackswitch pitch-and-onset routines at revision `66e8f295` used the same decoded audio, score positions and recording pins. Rerunning the older exact-pin Trackswitch controls reproduced their interior times to within 1 ms.
+
+The table counts existing interior downbeats within 250 ms of the saved publisher timing. Median absolute error is in parentheses. Beat-level points also took part in refinement, but have no independent reference here. These lessons have been used during development.
+
+| Converted passages | Before refinement | Trainer | Trackswitch |
+| --- | ---: | ---: | ---: |
+| Connecting Intervals, three separate ranges | 19/21 (134 ms) | 18/21 (131 ms) | 20/21 (73 ms) |
+| Low Bass Note, two passes refined separately | 14/14 (81 ms) | 14/14 (70 ms) | 14/14 (64 ms) |
+| Low Bass Note, both passes in one selection | 15/15 (93 ms) | 15/15 (56 ms) | 15/15 (64 ms) |
+
+**Connecting Intervals.** We used lesson mode, with passage identities chosen using the documented uninterrupted groups. We tested every such group with at least three converted markers from its first through last downbeat, also including the final recording release for the last group. The three eligible ranges were measures 8–10, 16–24, and 27 through the end of 40. The automatic measure 8 pin was 33.426 s early, while measure 9 was only 38 ms early. Refinement put measure 9 19.560 s early in a reference recording break. Trackswitch put it 690 ms early. In a separate assisted run, moving only the measure 8 pin to its published start reduced those errors to 650 ms and 510 ms respectively. Both still displaced the originally accurate measure 9. Trackswitch brought measures 21 and 40 inside tolerance, reducing their absolute errors from 285 to 22 ms and 461 to 140 ms. Among all 21 starts the trainer moved 10 closer and 11 farther away. Trackswitch moved 14 closer and seven farther away (1 ms change threshold).
+
+Measure 15 had no converted start marker. Measure 26 had too few markers in its uninterrupted passage to test as an interior point. In a separate control using the published outer pins, Trackswitch still placed 15 about 2.60 s early and 26 about 5.80 s early.
+
+**Low Bass Note.** Continuous Auto-sync timed visits 2–18 of 19. Fill gaps requires both outer score visits. For this test we placed the missing first and last visits manually using the neighboring automatic durations, capped at the recording end. Both test pins and all scored points came from the original automatic visits. Each separate selection ran from the start of written measure 2 through the following pass boundary (the second measure 2 or the final measure 10). With separate pins, the trainer moved six starts closer and seven farther away, with one change under 1 ms. Trackswitch moved six closer and eight farther away. All seven interior downbeats on the second pass stayed within 250 ms with either matcher. The combined row is a sensitivity check on the same material, and includes the repeat downbeat that was previously a pin.
+
+Keep refinement user-initiated. The next candidate for testing is a comparison with the existing timing where a large shift crosses an omitted or spoken section, so a user can hear the proposed change before applying it. Trackswitch showed enough benefit to benchmark further on independent troubled passages alongside already accurate controls. These results do not establish a reliable rule for choosing it automatically.
+
+### Whole-lesson results
+
 A measure visit is one written measure on one particular pass. A placement counts even when the times are wrong. The accuracy column requires both the start and the end of the same visit to be within 250 ms of the reference. Missing visits stay in the denominator.
 
 | Reference | Lessons | Timed visits | Placed | Both within 250 ms | Start over 2 s off |

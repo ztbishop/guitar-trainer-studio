@@ -1,6 +1,7 @@
 # Guitar Trainer Studio status and to-do
 
 - [x] Refine existing points between two fixed blue timeline markers after Fill gaps, with cached audio and one-step Undo.
+- [x] [Compare standard point refinement against saved timing on Connecting Intervals and Low Bass Note](AUTO-SYNC-BASELINE.md#refinement-after-fill-gaps-on-two-saved-lessons). A poor outer pin moved an accurate measure into a break. Test audition or protection for large shifts before broader automatic use.
 
 - [x] Use the strict seven-measure take comparison in lesson Auto-sync and show verified fill groups for listening when the ordinary search has no matches. [Results and player checks](AUTO-SYNC-BASELINE.md#whole-phrase-take-selection-and-searches-with-no-initial-match)
 
