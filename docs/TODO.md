@@ -98,6 +98,7 @@ Mac Finder launch, physical printing, touch layout, and other devices or recordi
 - [x] **Offline PDF practice with a companion score.** Attach a local PDF, mark page-relative boxes and follow the current written measure through playback and loops. Both Arirang layouts passed browser checks. Owner acceptance with a physical MIDI instrument remains open.
 - [x] Suggest editable PDF boxes per page, group notation with TAB, and use accepted measures for seeking and loop shading. Tested both Arirang layouts and the TrueFire Bernie Song PDF.
 - [x] Scan the entire PDF from either marking editor, carry numbering across reviewed pages, and group PDF and library tools in the Scores menu.
+- [x] Verify the PDF and Library tools dropdowns open beside their own Scores buttons at desktop and phone widths.
 - [x] Correct the four known Arirang divisions, verify both control PDFs against their previous coordinates and allow bounded shared-barline corrections on saved and proposed boxes.
 - [ ] Broaden detection checks to skewed scans, piano grand staves and multi-column layouts. [AudioLabs measure-box reference](https://www.audiolabs-erlangen.de/resources/MIR/2019-ISMIR-LBD-Measures)
 - [x] **PDF with a local audio or video recording.** Find printed boxes before timing, tap starts and passage ends, correct drift, seek, change tempo and loop a timed passage in ungraded realtime practice.

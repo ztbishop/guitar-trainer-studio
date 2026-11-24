@@ -57,6 +57,29 @@ export function initToolbar({ onIntent } = {}) {
   let activePanelId = null;
   const scoreActions = document.querySelectorAll('.score-action-list');
   for (const list of scoreActions) {
+    const trigger = document.querySelector(`button[popovertarget="${list.id}"]`);
+    function position() {
+      const button = trigger.getBoundingClientRect();
+      const menu = list.getBoundingClientRect();
+      const gap = 4;
+      const width = document.documentElement.clientWidth;
+      const height = document.documentElement.clientHeight;
+      const left = button.left + menu.width <= width - gap ? button.left : button.right - menu.width;
+      const below = button.bottom + gap;
+      const top = below + menu.height <= height - gap ? below : button.top - gap - menu.height;
+      list.style.left = Math.max(gap, Math.min(left, width - menu.width - gap)) + 'px';
+      list.style.top = Math.max(gap, Math.min(top, height - menu.height - gap)) + 'px';
+    }
+    list.addEventListener('toggle', event => {
+      if (event.newState === 'open') {
+        position();
+        window.addEventListener('resize', position);
+        document.addEventListener('scroll', position, true);
+      } else {
+        window.removeEventListener('resize', position);
+        document.removeEventListener('scroll', position, true);
+      }
+    });
     list.addEventListener('click', event => {
       if (event.target.closest('button')) list.hidePopover();
     });

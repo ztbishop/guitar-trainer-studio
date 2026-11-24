@@ -1,5 +1,7 @@
 # Guitar Trainer Studio architecture
 
+The Scores dropdowns use native popovers. `js/toolbar-ui.js` positions each open list in viewport coordinates from its trigger, including when the Scores panel scrolls or the window resizes.
+
 ## PDF practice and MIDI file import
 
 When two neighboring estimates shift by nearly the same amount, the PDF reviewer checks up to four surrounding bars of bass attacks. Strong repetition at both half-bar and full-bar intervals near the tapped tempo supports keeping even spacing. This check runs on candidate pairs during audio review. The listener can still audition every audio estimate.

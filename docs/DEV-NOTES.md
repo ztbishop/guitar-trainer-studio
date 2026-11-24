@@ -8,6 +8,8 @@ In isolated Chrome the original Arirang PDF yielded 28, 29, 20, 14, 32 and 22 bo
 
 The Scores action row keeps Open File and Save to Library visible. PDF groups attachment, standalone recording, returning to an attached PDF and printing. Library tools groups backup and merge import. Browser checks cover desktop row count, narrow-screen menus, keyboard dismissal and the backup round trip.
 
+The first placement check only required the dropdown to stay on screen. Chrome could satisfy it with the PDF list at viewport coordinates (0, 4) while its button was at (965, 130). The toolbar now measures the triggering button when each popover opens and on resize or scroll. The browser regression checks both menus against their own button edges on desktop and phone.
+
 ## Steady accompaniment in PDF tap review, November 24, 2026
 
 With taps at Easy Guitar FYLT M94 and M98, the bass attacks suggested for M95/M96 fell about 0.46–0.48 s after the evenly spaced starts, roughly a quarter of a bar. Both the practice and playalong entries showed the same error. In Acoustic Guitar FWYS M9–M13, the suggested M10–M12 attacks were 0.21–0.23 s after even spacing, roughly an eighth of a bar. Both bass envelopes repeated at the half-bar and whole-bar periods implied by the taps. That repetition was weak on Single-Note Rhythmic Ideas M25–M28.

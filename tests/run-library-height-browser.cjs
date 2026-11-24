@@ -14,9 +14,25 @@ const assert=require('node:assert/strict');
    return {panel:rect('#scores-panel'),scores:rect('#library-list'),folders:rect('#library-folder-list')};
   });
   const short=await sizes();assert(short.scores.height<450,'empty list stays compact');
+  async function checkDropdowns(){
+    for(const name of ['PDF','Library tools']){
+      const button=page.getByRole('button',{name,exact:true});
+      await button.click();
+      const trigger=await button.boundingBox();
+      const menu=await page.locator('.score-action-list:popover-open').boundingBox();
+      const gap=menu.y-(trigger.y+trigger.height);
+      const leftOffset=menu.x-trigger.x;
+      const rightOffset=menu.x+menu.width-trigger.x-trigger.width;
+      assert(gap>=-1 && gap<=8 && Math.min(Math.abs(leftOffset),Math.abs(rightOffset))<=2,
+        name+' dropdown should touch its button edge: '+JSON.stringify({trigger,menu}));
+      assert(menu.x>=0 && menu.x+menu.width<=page.viewportSize().width);
+      await page.keyboard.press('Escape');
+    }
+  }
   const actions=page.locator('.scores-menu-content > .scores-library-actions > :visible');
   const tops=await actions.evaluateAll(nodes=>nodes.map(node=>Math.round(node.getBoundingClientRect().top)));
   assert.equal(tops.length,4);assert.equal(new Set(tops).size,1);
+  await checkDropdowns();
   await page.getByRole('button',{name:'PDF',exact:true}).press('Enter');
   assert(await page.locator('#open-pdf-recording').isVisible());
   assert(await page.locator('#pdf-attach').isDisabled());
@@ -45,12 +61,7 @@ const assert=require('node:assert/strict');
   assert((await sizes()).scores.height<450,'short filtered score list retains its minimum');
   await page.setViewportSize({width:390,height:700});await page.waitForTimeout(150);
   assert(await page.locator('#scores-panel').evaluate(e=>e.scrollWidth<=e.clientWidth+1),'narrow menu has no horizontal overflow');
-  for(const name of ['PDF','Library tools']){
-    await page.getByRole('button',{name,exact:true}).click();
-    const bounds=await page.locator('.score-action-list:popover-open').boundingBox();
-    assert(bounds.x>=0 && bounds.x+bounds.width<=390);
-    await page.keyboard.press('Escape');
-  }
+  await checkDropdowns();
   console.log('PASS: compact empty/filtered lists, tall long score/folder lists, bounded menu, laptop ceiling, scrolling and narrow layout.');
  } finally {await browser?.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});
