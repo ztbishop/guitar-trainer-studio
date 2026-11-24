@@ -8,7 +8,7 @@ export function libraryTitle(title,fileName) {
   return !trimmed || /^untitled(?: song)?$/i.test(trimmed) ? fileName.replace(/\.[^.]+$/,'') : trimmed;
 }
 
-export function initScoreLibrary(loadFile,store=new LibraryStore()) {
+export function initScoreLibrary(loadFile,store=new LibraryStore(),captureAttachments=()=>({})) {
   const get=id=>document.getElementById(id);
   const status=get('library-status'),folderList=get('library-folder-list'),list=get('library-list');
   let snapshot={folders:[],scores:[]},activeFolderId='__all__',busy=false;
@@ -189,7 +189,7 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
         open.append(fileName);
       }
       open.addEventListener('click',()=>run(async()=>{
-        const accepted=await loadFile(new File([score.bytes],score.fileName));
+        const accepted=await loadFile(new File([score.bytes],score.fileName),score);
         if(accepted===false)throw new Error('This score could not be opened.');
         await refresh();message('');
       }));
@@ -255,8 +255,9 @@ export function initScoreLibrary(loadFile,store=new LibraryStore()) {
   get('library-save').addEventListener('click',()=>run(async()=>{
     const file=AppState.currentScoreFile;if(!file)throw new Error('Open a score first.');
     const folderId=['__all__','__demos__'].includes(activeFolderId)?'':activeFolderId;
-    const result=await store.save({...file,title:libraryTitle(AppState.score?.title,file.fileName),folderId:folderId||null});
-    await refresh();message(result.duplicate?'This score is already saved in the library.':'Saved to the library.');
+    const attachments=captureAttachments();
+    const result=await store.save({...file,title:libraryTitle(AppState.score?.title,file.fileName),folderId:folderId||null},attachments);
+    await refresh();message(attachments.pdf || attachments.recording?'Score and attachments saved to the library.':result.duplicate?'This score is already saved in the library.':'Saved to the library.');
   }));
   get('library-new-folder').addEventListener('click',()=>run(async()=>{
     const name=await requestText('New folder','', 'Folder name');if(name===null)return;

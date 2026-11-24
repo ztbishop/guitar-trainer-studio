@@ -156,8 +156,87 @@ function twoBarMidi() {
     const maximum=await handle.getAttribute('aria-valuenow');
     await loadPair('exercise.midi');await page.locator('#pdf-map').click();
     assert.equal(await handle.getAttribute('aria-valuenow'),maximum);
+    // Supply a real cloneable browser file handle through the picker. The
+    // isolated test can remove this WAV without touching the user's files.
+    await page.evaluate(async()=>{
+      const directory=await navigator.storage.getDirectory();
+      window.makeRecording=async()=>{
+        const handle=await directory.getFileHandle('practice.wav',{create:true});
+        const bytes=new Uint8Array(44+8000*2*6),v=new DataView(bytes.buffer);
+        const tag=(offset,s)=>bytes.set(new TextEncoder().encode(s),offset);
+        tag(0,'RIFF');v.setUint32(4,bytes.length-8,true);tag(8,'WAVE');tag(12,'fmt ');
+        v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+        v.setUint32(24,8000,true);v.setUint32(28,16000,true);v.setUint16(32,2,true);v.setUint16(34,16,true);
+        tag(36,'data');v.setUint32(40,bytes.length-44,true);
+        const writer=await handle.createWritable();await writer.write(bytes);await writer.close();return handle;
+      };
+      const picked=await makeRecording();window.showOpenFilePicker=async()=>[picked];
+      document.querySelector('#media-choose-file').click();
+    });
+    await page.waitForFunction(()=>!document.querySelector('#media-save-profile').disabled);
+    await page.locator('#media-save-profile').evaluate(el=>el.click());
+    await page.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('Sync profile saved'));
+    await page.locator('#btn-scores').click();
+    await page.locator('#library-save').click();
+    await page.locator('.library-score-open').waitFor();
+    await page.keyboard.press('Escape');
+    // A subsequent box correction must be in the portable backup too.
+    await handle.focus();await handle.press('ArrowLeft');
+    const backup=await page.evaluate(async()=>new (await import('/js/library-store.js')).LibraryStore().backup());
+    assert.equal(backup.version,4);assert.equal(backup.pdfs.length,1);
+    assert.equal(backup.pdfs[0].data,pdf.buffer.toString('base64'));
+    assert.deepEqual(backup.scores[0].pdf.boxes,await savedBoxes());
+    assert.equal(backup.scores[0].recording.fileName,'practice.wav');
+    assert.equal(Object.hasOwn(backup.scores[0],'recordingHandle'),false);
+    const openSaved=async()=>{
+      await page.reload();await page.locator('#btn-scores').click();await page.locator('.library-score-open').click();
+      await page.locator('#pdf-pages button[data-measure="2"]').waitFor();
+    };
+    await openSaved();
+    await page.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('Saved alignment restored'));
+    const wav=await page.evaluate(async()=>{
+      const dir=await navigator.storage.getDirectory(),file=await (await dir.getFileHandle('practice.wav')).getFile();
+      const bytes=Array.from(new Uint8Array(await file.arrayBuffer()));
+      await dir.removeEntry(file.name);return bytes;
+    });
+    await openSaved();
+    await page.locator('#media-reconnect').waitFor();
+    assert.deepEqual(await page.evaluate(async()=>new (await import('/js/library-store.js')).LibraryStore().listProfiles()),backup.mediaProfiles);
+    // Import into an empty browser. Its old handles and local markup cache are absent.
+    const fresh=await browser.newPage();await fresh.goto(page.url());
+    await fresh.evaluate(async backup=>new (await import('/js/library-store.js')).LibraryStore().merge(backup),backup);
+    await fresh.reload();await fresh.locator('#btn-scores').click();await fresh.locator('.library-score-open').click();
+    await fresh.locator('#pdf-pages button[data-measure="2"]').waitFor();
+    await fresh.locator('#media-reconnect').waitFor();
+    await fresh.evaluate(async bytes=>{
+      const dir=await navigator.storage.getDirectory(),picked=await dir.getFileHandle('practice.wav',{create:true});
+      const writer=await picked.createWritable();await writer.write(Uint8Array.from(bytes));await writer.close();
+      window.showOpenFilePicker=async()=>[picked];
+    },wav);
+    await fresh.locator('#media-reconnect').click();
+    await fresh.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('Saved alignment restored'));
+    const profiles=await fresh.evaluate(async()=>new (await import('/js/library-store.js')).LibraryStore().listProfiles());
+    assert.deepEqual(profiles[0].points,backup.mediaProfiles[0].points);
+    const counts=await fresh.evaluate(async backup=>{
+      const store=new (await import('/js/library-store.js')).LibraryStore();
+      const [original]=(await store.list()).scores;
+      const input={title:'Second score',fileName:'second.gp',bytes:new Uint8Array([1,2])};
+      const {pdf}=await store.attachments(original.id);
+      const {score:other}=await store.save(input,{pdf:{hash:pdf.hash,file:new File([pdf.blob],pdf.fileName),boxes:{}}});
+      const count=()=>store.transaction(['pdfs'],'readonly',({pdfs},done)=>{pdfs.count().onsuccess=e=>done(e.target.result);});
+      const values=[await count(),(await store.backup()).pdfs.length];
+      await store.deleteScore(original.id);values.push(await count());
+      await store.deleteScore(other.id);values.push(await count());
+      await store.merge({...backup,version:2,scores:backup.scores.map(({pdf,recording,...s})=>s)});
+      await store.merge(backup);
+      const [restored]=(await store.list()).scores;
+      values.push((await store.attachments(restored.id)).pdf.blob.size);
+      return values;
+    },backup);
+    assert.deepEqual(counts,[1,1,1,0,pdf.buffer.length]);
+    await fresh.close();
     assert.deepEqual(errors, []);
-    console.log('Passed MIDI conversion, manual and detected PDF boxes, split/join, page turn, restore, measure/note seek and loop shading.');
+    console.log('Passed MIDI/PDF practice, library reopen, shared PDF storage, backup merge and missing recording reconnection with original sync points.');
   } finally {
     await browser?.close();
     await new Promise(resolve => server.close(resolve));

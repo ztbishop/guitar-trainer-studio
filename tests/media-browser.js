@@ -16,7 +16,7 @@ document.getElementById('run').addEventListener('click',async()=>{
     const oldHash=await fingerprint(new Uint8Array([1,2,3]));
     await new Promise((resolve,reject)=>{const request=indexedDB.open(dbName,1);request.onupgradeneeded=()=>{const scores=request.result.createObjectStore('scores',{keyPath:'id'});request.result.createObjectStore('folders',{keyPath:'id'});scores.put({id:'old-score',title:'Fixture',fileName:'fixture.gp5',bytes:new Uint8Array([1,2,3]),hash:oldHash,folderId:null});};request.onsuccess=()=>{request.result.close();resolve();};request.onerror=()=>reject(request.error);});
     const saved=await store.save({title:'Fixture',fileName:'fixture.gp5',bytes:new Uint8Array([1,2,3])});
-    check((await store.open()).version===2 && saved.duplicate && (await store.list()).scores[0].id==='old-score','Version-1 database upgrades without losing scores');
+    check((await store.open()).version===3 && saved.duplicate && (await store.list()).scores[0].id==='old-score','Version-1 database upgrades without losing scores');
     const profile={id:'fixture-profile',scoreHash:await fingerprint(new Uint8Array([1,2,3])),scoreName:'Fixture',name:'Recording',source:{kind:'local',label:'Fixture video',fileName:'fixture.webm',size:100,lastModified:1},durationMs:10000,layout:'right',points:[{barIndex:0,barOccurence:0,barPosition:0,millisecondOffset:0},{barIndex:0,barOccurence:0,barPosition:1,millisecondOffset:10000}]};
     await store.saveProfile(profile);check((await store.listProfiles()).length===1,'Sync profile saves in IndexedDB');
     (await store.open()).close();store.dbPromise=null;check((await store.listProfiles())[0].name==='Recording','Sync profiles survive connection reopen');

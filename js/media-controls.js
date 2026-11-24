@@ -56,6 +56,14 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   let projectedGuides=[],timelineFrame=0;
   let sectionFirst=0,sectionLast=0,movementPositions='';
   let player=null,source=null,localFile=null,blobUrl=null,points=[],peaks=[],selected=-1,undo=[],redo=[],profiles=[],scoreHash='',profileId='',pendingProfile=null;
+  let recordingHandle=null,missingRecording=null,pickerReconnect=null;
+  const reconnect=get('reconnect');
+  const localSource=file=>({kind:'local',label:file.name,fileName:file.name,size:file.size,lastModified:file.lastModified});
+  function showMissing(link){
+    missingRecording=link;
+    reconnect.hidden=!link;
+    if(link)reconnect.title='Reconnect '+link.recording.label;
+  }
   let timingPlan=null,draftTiming=null,draftPreviewEnd=null,reviewedPlayback=null;
   let audition=null;
   function stopAudition() {
@@ -430,12 +438,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     if(AppState.media.preview)throw new Error('Practice player is still loading. Wait before changing recordings.');
     afterPractice();sync();
   }
-  async function loadRecording(nextSource,file=null,{deferSelection=false}={}) {
+  async function loadRecording(nextSource,file=null,{deferSelection=false,handle=null}={}) {
     if(!AppState.playbackTimeline)throw new Error('Load a score and wait for its player first.');
     const token=++generation;busy=true;sync();
     try {
       await returnToPractice();if(token!==generation)return;
-      disposal();source=nextSource;localFile=file;get('recording-label').textContent=source.label;
+      disposal();source=nextSource;localFile=file;recordingHandle=handle;get('recording-label').textContent=source.label;
       get('profile-name').value=source.label;message('Loading recording…');
       const events={isCurrent:()=>token===generation,onState(state){
         if(token!==generation || reloadInProgress || recordingError)return;
@@ -464,6 +472,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
         get('video').hidden=audioOnly;
       }
       await player.ready;if(token!==generation)return;
+      showMissing(null);
       player.masterVolume=AppState.audio.mediaPercent/100;
       if(!(player.backingTrackDuration>0))throw new Error('Choose a recording with a known duration.');
       get('player-panel').classList.toggle('audio-only',source.kind!=='youtube' && (get('video').hidden || !get('video').videoWidth));
@@ -913,8 +922,67 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     sync();
   }));
   get('source-kind').addEventListener('change',sourceControls);
-  get('choose-file').addEventListener('click',()=>{get('file').value='';get('file').click();});
-  get('file').addEventListener('change',action(async()=>{const file=get('file').files[0];if(file)await loadRecording({kind:'local',label:file.name,fileName:file.name,size:file.size,lastModified:file.lastModified},file);}));
+  async function attachPicked(file,handle,link){
+    if(link){
+      if(link!==missingRecording)return;
+      if(file.size!==link.recording.size || file.name!==link.recording.fileName)
+        throw new Error('Choose the saved recording: '+link.recording.fileName);
+      pendingProfile=profiles.find(p=>p.id===link.profileId && p.scoreHash===scoreHash && sourceMatches(p.source,link.recording)) ||
+        matchMediaProfile(profiles,scoreHash,link.recording);
+    }
+    await loadRecording(localSource(file),file,{handle});
+    if(link && localFile===file)await store.updateRecordingLink(link.scoreId,link.recording,source,handle);
+  }
+  async function chooseRecording(link=null){
+    const score=AppState.currentScoreFile;
+    if(window.showOpenFilePicker){
+      try{
+        const [handle]=await window.showOpenFilePicker({id:'guitar-trainer-recording',types:[{description:'Audio or video',accept:{'audio/*':['.wav','.mp3','.m4a','.aac','.flac','.ogg'],'video/*':['.mp4','.webm','.mov','.m4v']}}]});
+        const file=await handle.getFile();
+        if(score===AppState.currentScoreFile)await attachPicked(file,handle,link);
+        return;
+      }catch(error){if(error.name==='AbortError')return;if(error.name!=='SecurityError')throw error;}
+    }
+    pickerReconnect={score,link};get('file').value='';get('file').click();
+  }
+  get('choose-file').addEventListener('click',action(()=>chooseRecording()));
+  get('file').addEventListener('change',action(async()=>{
+    const intent=pickerReconnect;pickerReconnect=null;
+    const file=get('file').files[0];
+    if(file && (!intent || intent.score===AppState.currentScoreFile))await attachPicked(file,null,intent?.link);
+  }));
+  async function restoreRecording(link,userClick=false){
+    const token=generation;
+    await timelineReady();
+    if(token!==generation || link.scoreHash!==scoreHash)return;
+    const preferred=profiles.find(p=>p.id===link.profileId && p.scoreHash===scoreHash && sourceMatches(p.source,link.recording));
+    if(link.recording.kind==='local'){
+      let file=null;
+      try{
+        const handle=link.handle;
+        if(handle && (await handle.queryPermission()==='granted' || (userClick && await handle.requestPermission()==='granted')))
+          file=await handle.getFile();
+      }catch { link={...link,handle:null}; }
+      if(token!==generation)return;
+      if(!file || !sourceMatches(localSource(file),link.recording)){
+        const missing=file || userClick?{...link,handle:null}:link;
+        showMissing(missing);
+        if(userClick)await chooseRecording(missing);
+        return;
+      }
+      pendingProfile=preferred;
+      await loadRecording(link.recording,file,{handle:link.handle});
+    }else{
+      pendingProfile=preferred;
+      await loadRecording(link.recording);
+    }
+  }
+  reconnect.addEventListener('click',action(async()=>{
+    const link=missingRecording;
+    if(!link)return;
+    if(link.recording.kind==='local' && !link.handle)await chooseRecording(link);
+    else await restoreRecording(link,true);
+  }));
   get('load-link').addEventListener('click',action(()=>{
     const kind=get('source-kind').value,value=get('url').value.trim();
     return loadRecording(kind==='youtube'?{kind,videoId:youtubeId(value),label:'YouTube '+youtubeId(value)}:{kind:'url',url:mediaUrl(value),label:mediaUrl(value)});
@@ -1150,6 +1218,13 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   renderLayout();sourceControls();sync();refreshProfiles().catch(error=>message(error.message));
   return {sync,timelineReady,finishEditing,
+    get recordingRevision(){return generation;},
+    libraryAttachment:()=>source && player && !busy?{recording:source,handle:recordingHandle,profileId}:null,
+    async restoreLibraryRecording(link){
+      const score=AppState.currentScoreFile;
+      try{await restoreRecording(link);}
+      catch(error){if(score===AppState.currentScoreFile){showMissing(link);message(error.message);}}
+    },
     draftTransport(action){
       if(audition?.fromScore && action==='toggle'){
         if(player.playing)player.pause();else player.play();
@@ -1255,7 +1330,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       if(player && !busy)player.masterVolume=AppState.media.preview && AppState.mode==='wait' && !AppState.media.editing?0:percent/100;
       return true;
     },
-    scoreLoading(){generation++;disposal();points=[];undo=[];redo=[];scoreBytes=null;scoreHash='';profileId='';pendingProfile=null;selected=-1;busy=false;dirty=false;renderPoints();renderLayout();sync();},
+    scoreLoading(){generation++;showMissing(null);recordingHandle=null;disposal();points=[];undo=[];redo=[];scoreBytes=null;scoreHash='';profileId='';pendingProfile=null;selected=-1;busy=false;dirty=false;renderPoints();renderLayout();sync();},
     mediaChanged(){sync();if(!AppState.media.preview)afterPractice();},
     scoreTargetSelected({measureIndex,barPosition}){
       if(!player || busy)return;

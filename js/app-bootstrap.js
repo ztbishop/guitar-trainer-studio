@@ -38,6 +38,7 @@ import {
   updateActiveTargetsFromPlayback,
 } from './practice-engine.js';
 import { initScoreLibrary } from './score-library.js';
+import {LibraryStore} from './library-store.js';
 import {initDemoScores} from './demo-scores.js';
 import { initToolbar } from './toolbar-ui.js';
 import { initTransportControls } from './transport-controls.js';
@@ -829,8 +830,31 @@ async function bootstrap() {
   applyAppearance(AppState.ui.appearance);
   loadMidiDebugPreference();
   const toolbar=initToolbar();
-  pdfCompanion=initPdfCompanion(AppState,toolbar.closeAllPopups,tick=>browsePracticeTick(tick,'pdf-seek'));
-  scoreLibrary=initScoreLibrary(loadScoreFile);
+  const libraryStore=new LibraryStore();
+  pdfCompanion=initPdfCompanion(AppState,toolbar.closeAllPopups,tick=>browsePracticeTick(tick,'pdf-seek'),null,
+    (scoreHash,pdfHash,boxes)=>libraryStore.updatePdfBoxes(scoreHash,pdfHash,boxes));
+  let pendingLibraryRow=null;
+  scoreLibrary=initScoreLibrary((file,row)=>{
+    const loading=loadScoreFile(file);
+    pendingLibraryRow=row;
+    return loading;
+  },libraryStore,()=>({pdf:pdfCompanion.attachment(),...mediaControls?.libraryAttachment()}));
+  async function restoreLibraryAttachments(){
+    const row=pendingLibraryRow,score=AppState.currentScoreFile;
+    if(!row || score?.hash!==row.hash || !AppState.playbackTimeline || !AppState.playerReady)return;
+    pendingLibraryRow=null;
+    const revision=pdfCompanion.revision,mediaRevision=mediaControls.recordingRevision;
+    try{
+      const saved=await libraryStore.attachments(row.id);
+      if(!saved || score!==AppState.currentScoreFile)return;
+      if(saved.pdf && revision===pdfCompanion.revision){
+        if(!saved.pdf.blob)throw new Error('The saved PDF is missing. Attach the original PDF again.');
+        await pdfCompanion.open(new File([saved.pdf.blob],saved.pdf.fileName,{type:'application/pdf'}),saved.pdf.boxes);
+      }
+      if(saved.recording && score===AppState.currentScoreFile && mediaRevision===mediaControls.recordingRevision)
+        await mediaControls.restoreLibraryRecording({...saved,scoreHash:score.hash,scoreId:row.id});
+    }catch(error){if(score===AppState.currentScoreFile)document.getElementById('library-status').textContent=error.message;}
+  }
   initDemoScores(loadScoreFile);
   audioControls=initAudioControls((kind,value)=>{if(kind==='master')applyMasterVolume();else if(kind==='media')mediaControls?.setVolume(value);else applyTrackMixer();});
   pitchControls=initPitchControls(applyPlaybackPitchOffset);
@@ -866,6 +890,7 @@ async function bootstrap() {
         transportControls?.clearPulse();
         syncTrainerFoundation();
         mediaControls?.timelineReady().catch(error=>console.error('Media profile lookup failed.',error));
+        void restoreLibraryAttachments();
       },
       onPlayerPositionChanged: (position) => {
         if(AppState.media.returning || AppState.media.editing)return;
@@ -896,8 +921,8 @@ async function bootstrap() {
         renderTrainerUi();
       },
       onScoreDisplayChanged: () => {displayControls.sync();pdfCompanion.sync();},
-      onPlayerReady: () => {printControls.sync();audioControls?.sync();pitchControls?.sync({enabled:true,value:AppState.pitchOffsetSemitones});renderTrainerUi();},
-      onScoreLoading: () => {pdfCompanion.reset();displayControls.sync();printControls.loading(true);lessonImport.scoreLoading();mediaControls?.scoreLoading();scoreLibrary?.sync();audioControls?.sync();pitchControls?.sync({enabled:false,value:AppState.pitchOffsetSemitones});},
+      onPlayerReady: () => {printControls.sync();audioControls?.sync();pitchControls?.sync({enabled:true,value:AppState.pitchOffsetSemitones});renderTrainerUi();void restoreLibraryAttachments();},
+      onScoreLoading: () => {pendingLibraryRow=null;pdfCompanion.reset();displayControls.sync();printControls.loading(true);lessonImport.scoreLoading();mediaControls?.scoreLoading();scoreLibrary?.sync();audioControls?.sync();pitchControls?.sync({enabled:false,value:AppState.pitchOffsetSemitones});},
       onScoreLoadError: () => {printControls.loading(true);scoreLibrary?.sync();},
       onMetronomeTick: () => transportControls?.pulse(),
       onMetronomeError: () => renderTrainerUi(),

@@ -35,7 +35,7 @@ export function expectedPdfNotes(event, states, waiting) {
 }
 
 const assets = new URL('../assets/vendor/pdfjs/', import.meta.url);
-export function initPdfCompanion(state, closeMenu, seek, recording=null) {
+export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibraryBoxes=null) {
   const byId = id => document.getElementById('pdf-' + id);
   mountPdfEditor(byId('view'));
   const view = byId('view'), sheet = byId('sheet'), scroll = byId('scroll'), overlay = byId('boxes');
@@ -44,6 +44,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
   const native = document.getElementById('alphatab-wrapper');
   let pdf, documentTask, key, boxes = {}, page = 1, editing = false, visible = false, generation = 0;
   let drag, current, trainerState;
+  let attachedFile=null,attachedHash=null;
   let proposals=null, scanVersion=0, loopRange=null, loopMeasures=null, noteVisit=null, tapCue=null;
   const find=byId('find'), action=byId('action'), note=byId('note'), replace=byId('replace');
   const findPage=byId('find-page'),useScore=byId('use-score');
@@ -72,6 +73,12 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
     attachStatus.hidden = !text;
   }
   function saveBoxes() {
+    if(attachedHash && saveLibraryBoxes){
+      const version=generation;
+      saveLibraryBoxes(state.currentScoreFile.hash,attachedHash,structuredClone(boxes)).catch(()=>{
+        if(version===generation)message('Could not update the PDF markings in your library. Try Save to Library again.');
+      });
+    }
     if(recording) {
       extendNumbers(Math.max(0,...Object.keys(boxes).map(Number))+1);
       recording.boxesChanged(boxes);
@@ -337,13 +344,14 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
   }
   function reset() {
     generation++;
+    attachedFile=attachedHash=null;
     reader.clear();
     documentTask?.destroy(); documentTask = null;
     pdf = null; key = null; boxes = {}; visible = false; current = null;loopRange=null;loopMeasures=null;
     file.value = '';
     setEditing(false); updateAttachStatus(''); sync(null);
   }
-  async function open(selected) {
+  async function open(selected,savedBoxes=null) {
     const score = state.currentScoreFile, version = ++generation;
     if(pdf){endReview();paintBoxes();}
     let task;
@@ -352,6 +360,9 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
       const [lib, bytes] = await Promise.all([import('../assets/vendor/pdfjs/build/pdf.min.mjs'), selected.arrayBuffer()]);
       if (version !== generation) return;
       const hash = (recording || score?.hash) && await fingerprint(bytes);
+      // PDF.js can transfer the input buffer to its worker. Keep an independent
+      // immutable file for an explicit Save to Library.
+      const libraryFile=recording?null:new File([bytes],selected.name,{type:'application/pdf'});
       lib.GlobalWorkerOptions.workerSrc = new URL('build/pdf.worker.min.mjs', assets).href;
       task = lib.getDocument({data:new Uint8Array(bytes), wasmUrl:new URL('wasm/', assets).href, cMapUrl:new URL('cmaps/', assets).href,
         cMapPacked:true, standardFontDataUrl:new URL('standard_fonts/', assets).href, iccUrl:new URL('iccs/', assets).href, isEvalSupported:false});
@@ -360,6 +371,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
       const storageKey=recording?'gts.pdf.recording.boxes.v1.'+hash:hash && 'gts.pdf.v1.'+score.hash+'.'+hash;
       let mapping={};
       try {mapping=JSON.parse(localStorage.getItem(storageKey)) || {};} catch { /* Session-only. */ }
+      if(savedBoxes)mapping=savedBoxes;
       const missedPages=[];
       if(recording?.autoFind() && !Object.keys(mapping).length) {
         const {detectPdfPage}=await import('./pdf-measure-detection.js');
@@ -380,6 +392,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
       reader.load(pages);
       pdf = loaded; page = 1; current = undefined;
       key=storageKey;boxes=mapping;
+      attachedFile=libraryFile;attachedHash=libraryFile?hash:null;
       pageSelect.replaceChildren();
       for (let i = 1; i <= pdf.numPages; i++) pageSelect.add(new Option(String(i), String(i)));
       measure.replaceChildren();
@@ -455,5 +468,6 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
   attach.onclick = () => file.click();
   file.onchange = () => { const selected = file.files[0]; file.value = ''; if (selected) open(selected); };
   new ResizeObserver(renderPage).observe(scroll);
-  return {sync, reset,open};
+  return {sync,reset,open,get revision(){return generation;},
+    attachment:()=>attachedHash?{file:attachedFile,hash:attachedHash,boxes:structuredClone(boxes)}:null};
 }

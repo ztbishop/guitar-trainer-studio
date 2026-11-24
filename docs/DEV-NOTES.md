@@ -1,5 +1,11 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Library attachments, November 24, 2026
+
+Save to Library captures the currently attached companion PDF and links the selected recording. IndexedDB schema 3 stores PDF blobs by SHA-256, with independent boxes for each score. Local recordings use a read-only file handle where supported and metadata for reconnecting. Save profile remains the action for edited media timing. Library backup version 4 carries the PDF bytes, box mappings, recording references and saved profiles. File handles stay local.
+
+The isolated Chrome exercise saves a two-page PDF with a MIDI score and a linked WAV, edits a barline, reopens the score, removes the WAV, and checks the saved timing. Importing in a fresh browser context restores the marked PDF, prompts to reconnect the recording, and recovers the original sync points after it is selected. The automated picker supplies a real browser file handle. The operating system's picker and permission prompts still need owner acceptance.
+
 ## Whole-score PDF detection and the Scores menu, November 24, 2026
 
 Both marking editors offer Find boxes in score, with single-page detection for targeted repairs. Use score boxes saves the remaining proposals together and preserves hand-marked boxes. Use page boxes accepts the current page and opens the next detected page. Blank pages are reported and consume no measure numbers. Cancel discards the remaining proposals.

@@ -123,16 +123,17 @@ Written repeats reuse their box. If your MIDI writes out a repeat as separate me
 
 In both PDF workflows, scroll vertically from one page to the next or use **Page** for a direct jump. With **Auto-scroll** enabled, the trainer brings the current measure into view as you play. Turn it off to browse freely. Both views use your saved zoom.
 
-Boxes are saved in this browser for this exact pair of files. Reattach the PDF when you reopen the score. Library backups currently cover the companion score and sync profiles only. PDF pages are read on your device. The printed notes keep their original appearance, and grading continues through the companion.
+Choose **Save to Library** with the PDF attached. Opening that library score restores its PDF and measure markings. Later marking edits update the saved pair automatically. If the score was saved in an older version, attach its PDF once and choose **Save to Library** again. For a session opened directly from files, reattaching the same pair recalls its local markings.
 
 - **Open File** opens a score for this session. It does not save it automatically.
 - **Save to Library** keeps a browser copy of the open score.
+- Saving with a recording attached remembers its source. Use **Save profile** in Media Sync to keep edited sync points. The trainer can reopen a local recording when the browser grants access to its file. If the file moves or permission expires, choose **Reconnect recording** beside the score. A missing recording leaves its saved sync profiles available. To relink a renamed recording, select its saved profile in Media Sync before choosing the file.
 - **PDF** groups the PDF practice and print commands. **Library tools** contains Backup Library and Import Library (Merge).
 - **Add File(s)** saves one or more files to the library without opening them. Files go into the selected folder, or Unfiled when All Scores is selected.
 - Click a saved score to open it. Its three-dot menu offers Rename, Move, **Download original file**, and Delete. Download keeps the original filename and format (such as `.gp5` or MusicXML); it does not convert the score or include sync profiles.
 - A folder’s three-dot menu offers **Export folder**: a JSON backup of that folder, its saved scores and their related saved sync profiles. Restore it with **Import Library (Merge)**. Recordings and app preferences are not included. Use folders and search to organize your collection.
 - **Manage** lets you select multiple scores or folders. Deleting a folder also deletes its saved scores after confirmation. Original files on your computer are unaffected.
-- **Backup Library** downloads saved scores (including library names), folders and saved media sync profiles with their sync points. **Import Library (Merge)** restores these into an empty library or adds them to an existing library. Identical score files already present keep their current name and folder; identical sync profiles are skipped, while different sync versions are retained. Recordings and app preferences are not included. Piano Trainer backups use a different format and cannot be imported.
+- **Backup Library** downloads saved scores, folders, companion PDFs with their measure boxes, recording references and saved sync profiles. Each distinct PDF appears once. Local recording bytes and file permissions stay on your device. After importing on another device, reconnect the original recording. **Import Library (Merge)** keeps existing attachments and adds missing ones to matching scores. Identical sync profiles are skipped and different sync versions are retained.
 
 For a separate transfer of sync settings, open **Media & Sync → Profile name & saved profiles → Transfer sync profiles only**. Export profiles includes all saved profiles, without scores or recordings. You do not need a separate profile export when using Backup Library.
 

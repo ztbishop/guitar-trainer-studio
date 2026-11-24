@@ -1,6 +1,6 @@
 // Original score bytes and folder metadata only; no renderer/trainer dependency.
 export const LIBRARY_FORMAT='guitar-trainer-library';
-import {validateProfile} from './media-sync.js';
+import {validateProfile,validateSource,sourceMatches} from './media-sync.js';
 export const SCORE_EXTENSIONS=/\.(gp|gp3|gp4|gp5|gpx|xml|musicxml|mxl|mid|midi)$/i;
 const id=()=>crypto.randomUUID();
 const name=value=>String(value || '').trim().slice(0,240);
@@ -18,7 +18,7 @@ export function decodeBytes(text) {
 }
 
 export async function validateBackup(data) {
-  if(data?.format!==LIBRARY_FORMAT || ![1,2,3].includes(data.version) || !Array.isArray(data.folders) || !Array.isArray(data.scores))throw new Error('Choose a Guitar Trainer library backup (version 1, 2 or 3).');
+  if(data?.format!==LIBRARY_FORMAT || ![1,2,3,4].includes(data.version) || !Array.isArray(data.folders) || !Array.isArray(data.scores))throw new Error('Choose a supported Guitar Trainer library backup.');
   if(data.version>=2 && !Array.isArray(data.mediaProfiles))throw new Error('The backup is missing media sync profiles.');
   if(data.version<3 && data.mediaProfiles?.some(p=>Object.hasOwn(p??{},'timingPlan')))throw new Error('Explanation profiles need a version-3 library backup.');
   const mediaProfiles=(data.mediaProfiles || []).map(validateProfile);
@@ -28,15 +28,40 @@ export async function validateBackup(data) {
     if(!folder || typeof folder.id!=='string' || !folder.id || folderIds.has(folder.id) || !name(folder.name))throw new Error('Invalid or duplicate backup folder.');
     folderIds.add(folder.id);return {id:folder.id,name:name(folder.name)};
   });
+  const pdfs=new Map();
+  if(data.version===4){
+    if(!Array.isArray(data.pdfs))throw new Error('Missing PDF attachments.');
+    for(const item of data.pdfs){
+      const bytes=decodeBytes(item.data);
+      if(await fingerprint(bytes)!==item.hash || pdfs.has(item.hash))throw new Error('Invalid PDF attachment fingerprint.');
+      pdfs.set(item.hash,new Blob([bytes],{type:'application/pdf'}));
+    }
+  }
   const scores=[];
   for(const score of data.scores) {
     if(!score || typeof score.id!=='string' || !score.id || scoreIds.has(score.id) || !name(score.title) || !SCORE_EXTENSIONS.test(score.fileName || '') ||
       (score.folderId!=null && !folderIds.has(score.folderId)))throw new Error('Invalid score metadata in backup.');
     scoreIds.add(score.id);
     const bytes=decodeBytes(score.data);
-    scores.push({id:score.id,title:name(score.title),fileName:String(score.fileName),folderId:score.folderId || null,bytes,hash:await fingerprint(bytes)});
+    const saved={id:score.id,title:name(score.title),fileName:String(score.fileName),folderId:score.folderId || null,bytes,hash:await fingerprint(bytes)};
+    if(data.version===4 && score.pdf){
+      const {hash,fileName,boxes}=score.pdf;
+      if(!pdfs.has(hash) || !name(fileName) || !boxes || typeof boxes!=='object' || Array.isArray(boxes))throw new Error('Invalid score PDF attachment.');
+      for(const [number,b] of Object.entries(boxes)){
+        if(!/^[1-9]\d*$/.test(number) || !b || !Number.isSafeInteger(b.page) || b.page<1 ||
+          ![b.x,b.y,b.w,b.h].every(Number.isFinite) || b.x<0 || b.y<0 || b.w<=0 || b.h<=0 ||
+          b.x+b.w>1.000001 || b.y+b.h>1.000001)throw new Error('Invalid PDF measure box.');
+      }
+      saved.pdf={hash,fileName,boxes};
+    }
+    if(data.version===4 && score.recording){
+      saved.recording=validateSource(score.recording);
+      const selected=mediaProfiles.find(p=>p.id===score.recordingProfileId && p.scoreHash===saved.hash && sourceMatches(p.source,saved.recording));
+      if(selected)saved.recordingProfileId=selected.id;
+    }
+    scores.push(saved);
   }
-  return {folders,scores,mediaProfiles};
+  return {folders,scores,mediaProfiles,pdfs};
 }
 
 export class LibraryStore {
@@ -44,8 +69,12 @@ export class LibraryStore {
   async open() {
     if(!this.factory)throw new Error('This browser cannot store a score library. Open File still works.');
     if(!this.dbPromise)this.dbPromise=new Promise((resolve,reject)=>{
-      const request=this.factory.open('guitarTrainerLibrary',2);
-      request.onupgradeneeded=()=>{for(const store of ['folders','scores','mediaProfiles'])if(!request.result.objectStoreNames.contains(store))request.result.createObjectStore(store,{keyPath:'id'});};
+      const request=this.factory.open('guitarTrainerLibrary',3);
+      request.onupgradeneeded=()=>{
+        for(const store of ['folders','scores','mediaProfiles','pdfs'])if(!request.result.objectStoreNames.contains(store))request.result.createObjectStore(store,{keyPath:'id'});
+        const scores=request.transaction.objectStore('scores');
+        scores.createIndex('pdfHash','pdf.hash');scores.createIndex('scoreHash','hash');
+      };
       request.onerror=()=>{this.dbPromise=null;reject(request.error || new Error('Could not open the score library.'));};
       request.onblocked=()=>{this.dbPromise=null;reject(new Error('Close other Guitar Trainer tabs and retry.'));};
       request.onsuccess=()=>{const db=request.result;db.onversionchange=()=>{db.close();this.dbPromise=null;};resolve(db);};
@@ -80,16 +109,28 @@ export class LibraryStore {
       };
     });
   }
-  async save({title,fileName,bytes,folderId=null}) {
+  async save({title,fileName,bytes,folderId=null},attachments={}) {
     if(!bytes?.length || !SCORE_EXTENSIONS.test(fileName))throw new Error('Choose a supported, nonempty score file.');
     const hash=await fingerprint(bytes);
-    return this.transaction(['scores','folders'],'readwrite',(stores,done)=>{
+    return this.transaction(['scores','folders','pdfs'],'readwrite',(stores,done)=>{
       const write=()=>{
         stores.scores.getAll().onsuccess=event=>{
           const duplicate=event.target.result.find(score=>score.hash===hash);
-          if(duplicate){done({score:duplicate,duplicate:true});return;}
-          const score={id:id(),title:name(title)||name(fileName),fileName:String(fileName),bytes:new Uint8Array(bytes),folderId,hash,createdAt:Date.now()};
-          stores.scores.put(score);done({score,duplicate:false});
+          const score=duplicate || {id:id(),title:name(title)||name(fileName),fileName:String(fileName),bytes:new Uint8Array(bytes),folderId,hash,createdAt:Date.now()};
+          const previous=score.pdf?.hash;
+          if(attachments.pdf){
+            const {hash,file,boxes}=attachments.pdf;
+            stores.pdfs.put({id:hash,blob:file});
+            score.pdf={hash,fileName:file.name,boxes};
+          }
+          if(attachments.recording){
+            score.recording=attachments.recording;
+            score.recordingHandle=attachments.handle || null;
+            score.recordingProfileId=attachments.profileId || '';
+          }
+          if(!duplicate || attachments.pdf || attachments.recording)stores.scores.put(score);
+          if(previous && previous!==score.pdf.hash)releasePdf(stores,previous);
+          done({score,duplicate:Boolean(duplicate)});
         };
       };
       if(folderId)stores.folders.get(folderId).onsuccess=event=>{if(!event.target.result)throwTransactionError(stores.scores,'The destination folder no longer exists.');else write();};
@@ -115,10 +156,40 @@ export class LibraryStore {
       };
     });
   }
-  deleteScore(scoreId){return this.transaction(['scores'],'readwrite',({scores})=>scores.delete(scoreId));}
-  deleteScores(ids) {
+  attachments(scoreId){
+    return this.transaction(['scores','pdfs'],'readonly',({scores,pdfs},done)=>{
+      scores.get(scoreId).onsuccess=event=>{
+        const row=event.target.result;
+        if(!row)return;
+        const result={recording:row.recording,handle:row.recordingHandle,profileId:row.recordingProfileId};
+        if(!row.pdf){done(result);return;}
+        pdfs.get(row.pdf.hash).onsuccess=event=>done({...result,pdf:{...row.pdf,blob:event.target.result?.blob}});
+      };
+    });
+  }
+  updatePdfBoxes(scoreHash,pdfHash,boxes){
     return this.transaction(['scores'],'readwrite',({scores})=>{
-      for(const scoreId of new Set(ids))scores.delete(scoreId);
+      scores.index('scoreHash').get(scoreHash).onsuccess=event=>{
+        const score=event.target.result;
+        if(score?.pdf?.hash===pdfHash){score.pdf.boxes=boxes;scores.put(score);}
+      };
+    });
+  }
+  updateRecordingLink(scoreId,previous,recording,handle){
+    return this.transaction(['scores'],'readwrite',({scores})=>{
+      scores.get(scoreId).onsuccess=e=>{
+        const row=e.target.result;
+        if(row && sourceMatches(previous,row.recording))scores.put({...row,recording,recordingHandle:handle});
+      };
+    });
+  }
+  deleteScore(scoreId){return this.deleteScores([scoreId]);}
+  deleteScores(ids) {
+    return this.transaction(['scores','pdfs'],'readwrite',stores=>{
+      for(const scoreId of new Set(ids))stores.scores.get(scoreId).onsuccess=event=>{
+        stores.scores.delete(scoreId);
+        if(event.target.result?.pdf)releasePdf(stores,event.target.result.pdf.hash);
+      };
     });
   }
   moveScores(ids,folderId=null) {
@@ -143,11 +214,14 @@ export class LibraryStore {
   deleteFolderAndScores(folderId) {return this.deleteFoldersAndScores([folderId]);}
   deleteFoldersAndScores(ids) {
     const selected=new Set(ids.filter(folderId=>typeof folderId==='string' && folderId && folderId!=='__all__'));
-    return this.transaction(['scores','folders'],'readwrite',({scores,folders})=>{
+    return this.transaction(['scores','folders','pdfs'],'readwrite',({scores,folders,pdfs})=>{
       folders.getAll().onsuccess=event=>{
         const existing=new Set(event.target.result.filter(folder=>selected.has(folder.id)).map(folder=>folder.id));
         scores.getAll().onsuccess=event=>{
-          for(const score of event.target.result)if(existing.has(score.folderId))scores.delete(score.id);
+          for(const score of event.target.result)if(existing.has(score.folderId)){
+            scores.delete(score.id);
+            if(score.pdf)releasePdf({scores,pdfs},score.pdf.hash);
+          }
           for(const folderId of existing)folders.delete(folderId);
         };
       };
@@ -175,30 +249,51 @@ export class LibraryStore {
       const hashes=new Set(scores.map(score=>score.hash));
       mediaProfiles=mediaProfiles.filter(profile=>hashes.has(profile.scoreHash));
     }
-    return {format:LIBRARY_FORMAT,version:mediaProfiles.some(p=>p.timingPlan)?3:2,exportedAt:new Date().toISOString(),folders,mediaProfiles,
-      scores:scores.map(({bytes,...score})=>({...score,data:encodeBytes(bytes)}))};
+    const attachments=scores.some(s=>s.pdf || s.recording);
+    const pdfs=[];
+    for(const hash of new Set(scores.filter(s=>s.pdf).map(s=>s.pdf.hash))){
+      const blob=await this.transaction(['pdfs'],'readonly',({pdfs},done)=>{pdfs.get(hash).onsuccess=e=>done(e.target.result?.blob);});
+      if(!blob)throw new Error('A PDF attachment changed during backup. Please retry.');
+      pdfs.push({hash,data:encodeBytes(new Uint8Array(await blob.arrayBuffer()))});
+    }
+    return {format:LIBRARY_FORMAT,version:attachments?4:mediaProfiles.some(p=>p.timingPlan)?3:2,exportedAt:new Date().toISOString(),folders,mediaProfiles,...(attachments?{pdfs}:{}),
+      scores:scores.map(({bytes,recordingHandle,...score})=>({...score,data:encodeBytes(bytes)}))};
   }
   async merge(data) {
     // Validate every entry before starting the single atomic write transaction.
     const incoming=await validateBackup(data);
-    return this.transaction(['scores','folders','mediaProfiles'],'readwrite',(stores,done)=>{
+    return this.transaction(['scores','folders','mediaProfiles','pdfs'],'readwrite',(stores,done)=>{
       const folderRequest=stores.folders.getAll(),scoreRequest=stores.scores.getAll(),profileRequest=stores.mediaProfiles.getAll();let folders,scores,profiles;
       const merge=()=>{
         if(!folders || !scores || !profiles)return;
-        const folderMap=new Map(),hashes=new Set(scores.map(score=>score.hash));let added=0,skipped=0;
+        const folderMap=new Map(),byHash=new Map(scores.map(score=>[score.hash,score]));let added=0,skipped=0;
         for(const folder of incoming.folders) {
           let target=folders.find(item=>item.name.toLowerCase()===folder.name.toLowerCase());
           if(!target){target={id:id(),name:folder.name};folders.push(target);stores.folders.put(target);}
           folderMap.set(folder.id,target.id);
         }
-        for(const score of incoming.scores) {
-          if(hashes.has(score.hash)){skipped++;continue;}
-          stores.scores.put({...score,id:id(),folderId:folderMap.get(score.folderId)||null,createdAt:Date.now()});
-          hashes.add(score.hash);added++;
+        const profileIds=new Map(),bySignature=new Map(profiles.map(p=>[profileSignature(p),p.id]));
+        let profilesAdded=0;
+        for(const profile of incoming.mediaProfiles){
+          const signature=profileSignature(profile);
+          if(!bySignature.has(signature)){
+            const newId=id();stores.mediaProfiles.put({...profile,id:newId});
+            bySignature.set(signature,newId);profilesAdded++;
+          }
+          profileIds.set(profile.id,bySignature.get(signature));
         }
-        const profileKeys=new Set(profiles.map(profileSignature));let profilesAdded=0;
-        for(const profile of incoming.mediaProfiles)if(!profileKeys.has(profileSignature(profile))) {
-          stores.mediaProfiles.put({...profile,id:id()});profileKeys.add(profileSignature(profile));profilesAdded++;
+        for(const score of incoming.scores) {
+          const existing=byHash.get(score.hash);
+          const addPdf=score.pdf && !existing?.pdf,addRecording=score.recording && !existing?.recording;
+          if(existing && !addPdf && !addRecording){skipped++;continue;}
+          const row=existing || {...score,id:id(),folderId:folderMap.get(score.folderId)||null,createdAt:Date.now()};
+          if(addPdf){
+            stores.pdfs.put({id:score.pdf.hash,blob:incoming.pdfs.get(score.pdf.hash)});
+            row.pdf=score.pdf;
+          }
+          if(addRecording){row.recording=score.recording;row.recordingProfileId=profileIds.get(score.recordingProfileId)||'';}
+          stores.scores.put(row);byHash.set(row.hash,row);
+          if(existing)skipped++;else added++;
         }
         done({added,skipped,profilesAdded});
       };
@@ -206,6 +301,9 @@ export class LibraryStore {
       profileRequest.onsuccess=event=>{profiles=event.target.result;merge();};
     });
   }
+}
+function releasePdf({scores,pdfs},hash){
+  scores.index('pdfHash').count(hash).onsuccess=e=>{if(!e.target.result)pdfs.delete(hash);};
 }
 function profileSignature({id:profileId,...profile}) {return JSON.stringify(profile);}
 function throwTransactionError(store){store.transaction.abort();}

@@ -17,7 +17,7 @@ The library belongs to this browser profile and origin (scheme, hostname, port).
 
 ## Backup and import
 
-**Download backup** exports folders, titles, filenames, original bytes and saved sync profiles to guitar-trainer-library.json (format version 2). **Import backup (merge)** accepts Guitar Trainer library versions 1 and 2. All entries validate before one atomic write transaction. Imports preserve existing metadata, merge folders by case-insensitive name and skip identical file bytes/profiles; they never clear/replace the library. Piano Trainer backups are not compatible import files.
+**Backup Library** exports folders, titles, filenames, original score bytes and saved sync profiles. Version 4 includes companion PDFs, per-score measure geometry and recording references. Import accepts versions 1–4 and validates entries before one atomic write. Merging adds missing attachments to existing scores and preserves existing choices. A local recording handle belongs to this browser and is excluded from every export.
 
 Backups exclude recordings, waveforms, grades/results, MIDI configuration and audio/display preferences. Saved sync settings are included; see MEDIA-SYNC.md. Imported score bytes remain unchanged; alphaTab owns parsing/rendering. Storage failures appear in Scores while Open File remains available.
 
