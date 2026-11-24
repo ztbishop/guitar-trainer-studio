@@ -25,10 +25,10 @@ function download(data,fileName) {
 export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{},beforeEdit=()=>{},afterEdit=()=>{},closeMenu=()=>{}}={},store=new LibraryStore()) {
   const get=id=>document.getElementById('media-'+id);
   // Move existing controls, retaining their IDs and all storage/source wiring.
-  get('editor-toolbar').append(get('mode-controls'));
-  get('editor-toolbar').append(get('save-profile'),get('dirty'));
+  get('editor-save').before(get('mode-controls'));
+  get('editor-save').append(get('save-profile'),get('dirty'));
   get('point-tools').before(get('selection'));
-  get('apply-time').before(get('add-point'));
+  get('remove-point').before(get('add-point'));
   get('move-help').before(get('nudge-left'),get('nudge-right'));
   get('extra-tools').append(get('unload'));
   get('popup').firstElementChild.append(get('extra-tools'));
@@ -154,6 +154,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       draftTiming=null;draftEditor.complete();dirty=true;renderExplanationSummary();renderPoints();finishEditing();sync();message('Reviewed timing applied. Press Play to practice. Save profile is optional; Export draft retains original evidence.');
     }});
   let generation=0,scoreBytes=null,busy=false,pendingDelete=null,playhead=null,dirty=false;
+  let waveformHint='Waveform unavailable';
   let zoom=1,waveformBusy=false,waveformGeneration=0,dragging=false,lastTimelineInteraction=0,buffering=false;
   let cancelDrag=null;
   let seekGeneration=0;
@@ -258,7 +259,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     switchAlignment.textContent=timingPlan?'Fill gaps with standard sync points':'Return to timed measures';
     switchAlignment.title=timingPlan?'Treat the recording between the first and last synced measures as continuous music. You can switch back to compare.':'Restore the audio timing with its original gaps.';
     document.body.classList.toggle('draft-timing-active',Boolean(draftTiming));
-    recovery.hidden=!recordingError;recoveryStatus.textContent=reloadInProgress?'Reloading recording… Timing and score are retained.':recordingError?.message??'';reloadRecording.hidden=!player?.reload;reloadRecording.disabled=busy || reloadInProgress;
+    recovery.hidden=!recordingError;recoveryStatus.textContent=reloadInProgress?'Reloading recording… Timing and score are retained.':recordingError?.message || (recordingError?'Recording unavailable. Check Load / options.':'');reloadRecording.hidden=!player?.reload;reloadRecording.disabled=busy || reloadInProgress;
     get('finish-editing').disabled=Boolean(draftTiming) || busy || AppState.media.returning;
     const silent=AppState.media.preview && AppState.mode==='wait' && !AppState.media.editing;
     get('audio').muted=get('video').muted=silent;
@@ -333,7 +334,8 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       if(button.textContent!==label)button.textContent=label;
     }
     if(playerSkip.hidden!==!target){playerSkip.hidden=!target;placeRecordingTimeline();}
-    get('listening-notice').textContent=recordingError?(player?.reload?'Recording failed to load this position. Choose Reload recording below; timing is retained.':'Recording unavailable. Check the source in Load / options; timing is retained.'):reviewedPlayback?'Reviewed playback · Grading off':draftTiming?'Draft timing needs review · Recording grading paused.':AppState.media.editing?'Preview only · Grading and loops paused. Choose Finish editing to practice.':
+    get('listening-notice').hidden=Boolean(recordingError);
+    get('listening-notice').textContent=reviewedPlayback?(reviewedPlayback.musicalVisits.length?'Reviewed playback · Grading off':'Recording only · No mapped measures or grading'):draftTiming?(showEditor?'Draft timing needs review · Recording grading paused.':'Synthesized practice · Open Edit sync to review the recording.'):AppState.media.editing?'Preview only · Grading and loops paused. Choose Finish editing to practice.':
       AppState.mode==='wait'?'Use main Play/Pause and Tempo. Wait mode keeps playback silent.':
       isBreak?`${intervalLabel(interval)} · No grading`:
       region==='unmapped'?'Unmapped recording passage · No grading':region==='before'?'Before synced music · No grading':region==='after'?'After synced music · No grading':'Use main Play/Pause and Tempo.';
@@ -378,9 +380,9 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     reviewedPlayback=null;draftTiming=null;draftEditor.clear();
     player?.destroy();recordingError=null;reloadInProgress=false;buffering=false;player=null;source=null;localFile=null;peaks=[];timingPlan=null;
     resetMovement();
-    get('point-time').value='0.000';seekGeneration++;
+    get('point-time').value='0.000';renderTarget(0);seekGeneration++;
     get('sync-json').value='';get('paste-status').textContent='';get('paste-sync').open=false;
-    waveformGeneration++;waveformBusy=false;get('waveform-status').textContent='';
+    waveformGeneration++;waveformBusy=false;waveformHint='Waveform unavailable';
     if(blobUrl)URL.revokeObjectURL(blobUrl);blobUrl=null;
     get('youtube').replaceChildren();get('youtube').hidden=true;get('video').hidden=false;
   }
@@ -413,7 +415,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
         // Buffering must not pause the media element: that aborts its pending play.
         if(['ended','paused'].includes(state))host.pauseMediaPlayback({ended:state==='ended'});
         sync();
-      },onError(error){if(token!==generation)return;recordingError=error;stopDraftPreview();host.pauseMediaPlayback();player?.pause();message(error.message || 'Browser playback was blocked. Try Listen again.');sync();}};
+      },onError(error){if(token!==generation)return;recordingError=error;stopDraftPreview();host.pauseMediaPlayback();player?.pause();message('');sync();}};
       if(source.kind==='youtube') {
         get('video').hidden=true;get('youtube').hidden=false;
         const created=await youtubeMediaPlayer(get('youtube'),source.videoId,events);
@@ -452,7 +454,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       if(token!==generation)return;
       message(relinked && timingPlan?'Imported timing restored for the selected recording. Check alignment; Save profile keeps this file choice.':relinked?'Saved alignment restored and linked to this local file.':matched?'Saved alignment restored.':'Recording selected. Press Preview to listen; choose a measure and recording time, then add/update its sync point.');
       if(localFile)buildWaveform();
-      else get('waveform-status').textContent='Waveform unavailable for this source; alignment controls still work.';
+
     } catch(error) {if(token===generation){disposal();message(error.message);renderLayout();throw error;}}
     finally {if(token===generation){busy=false;sync();}}
   }
@@ -588,13 +590,14 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       node.classList.toggle('is-selected',active);node.querySelector('line').setAttribute('y2',active?31:84);
     });
     get('timeline').querySelectorAll('[data-point]').forEach(node=>node.classList.toggle('is-selected',Number(node.dataset.point)===selected));
+    layoutTimelineLabels(get('timeline'));
     renderTarget();
     sync();
     const measure=AppState.playbackTimeline.measures[measureIndex];
     if(reveal)host.revealMediaScoreTarget({barIndex:measure.measureNumber-1,barPosition:(beat-1)/AppState.score.masterBars[measure.measureNumber-1].timeSignatureNumerator});
   }
   function renderTarget(time=player?.currentTime || 0) {
-    get('selection').textContent=`Preview only · Grading and loops paused · Playhead: ${clock(time)}`;
+    get('playhead-time').textContent=(time/1000).toFixed(3);
   }
   function seekSelectedTarget() {
     const measure=AppState.playbackTimeline.measures[Number(get('measure').value)];
@@ -636,14 +639,14 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   async function buildWaveform() {
     if(!localFile || waveformBusy)return;
     if(player.backingTrackDuration>15*60*1000 || localFile.size>80*1024*1024) {
-      get('waveform-status').textContent='Waveform skipped for large recordings; use timeline anchors and timestamps.';return;
+      waveformHint='Waveform skipped for this large recording';renderWaveform();return;
     }
     const token=generation,waveToken=++waveformGeneration,file=localFile;
-    waveformBusy=true;get('waveform-status').textContent='Building waveform…';sync();renderWaveform();
+    waveformBusy=true;sync();renderWaveform();
     try {
       const result=await waveformPeaks(file,Math.min(900000,Math.max(1800,Math.ceil(player.backingTrackDuration))));
-      if(token===generation && waveToken===waveformGeneration){peaks=result;renderPoints();get('waveform-status').textContent='Waveform ready';}
-    } catch(error) {if(token===generation && waveToken===waveformGeneration)get('waveform-status').textContent=`Waveform unavailable: ${error.message}. Alignment still works.`;}
+      if(token===generation && waveToken===waveformGeneration){peaks=result;renderPoints();}
+    } catch(error) {if(token===generation && waveToken===waveformGeneration)waveformHint='Waveform unavailable · Retry in Load / options';}
     finally {if(token===generation && waveToken===waveformGeneration){waveformBusy=false;sync();renderWaveform();}}
   }
   function changeZoom(next) {
@@ -664,16 +667,37 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     if(!peaks.length) {
       if(!player)return;
       const unit=1024/width,center=(scroll.scrollLeft+scroll.clientWidth/2)*unit-12;
-      const label=waveformBusy?'Building waveform · Click timeline to seek':scroll.clientWidth<320?'No waveform · Click to seek':'Waveform unavailable · Click timeline to seek';
+      const label=waveformBusy?'Building waveform…':waveformHint;
       const fallback=svg('g',{class:'media-wave-fallback'});
-      fallback.append(svg('line',{x1:0,x2:1000,y1:55,y2:55}),svg('line',{x1:0,x2:1000,y1:32,y2:32}),svg('rect',{x:center-Math.min(scroll.clientWidth-8,340)*unit/2,y:61,width:Math.min(scroll.clientWidth-8,340)*unit,height:18}),svg('text',{transform:`translate(${center} 74) scale(${unit} 1)`,'text-anchor':'middle','font-size':12},label));
+      fallback.append(svg('line',{x1:0,x2:1000,y1:55,y2:55}),svg('line',{x1:0,x2:1000,y1:32,y2:32}),svg('rect',{x:center-Math.min(scroll.clientWidth-8,340)*unit/2,y:61,width:Math.min(scroll.clientWidth-8,340)*unit,height:18}),svg('text',{id:'media-waveform-status',transform:`translate(${center} 74) scale(${unit} 1)`,'text-anchor':'middle','font-size':12},label));
       timeline.insertBefore(fallback,timeline.querySelector('.media-time-selection,.media-playhead'));return;
     }
     const start=Math.max(0,(scroll.scrollLeft/width*1024-12)/1000);
     const end=Math.min(1,((scroll.scrollLeft+scroll.clientWidth)/width*1024-12)/1000);
     const samples=visibleWaveform(peaks,start,end,Math.max(1,Math.ceil(scroll.clientWidth)));
     const wave=svg('path',{d:samples.map((peak,i)=>`M${(start+(end-start)*i/samples.length)*1000},${55-peak*22}v${peak*44}`).join(' '),class:'media-wave',fill:'none'});
-    timeline.prepend(wave);
+    wave.append(svg('title',{id:'media-waveform-status'},'Waveform ready'));timeline.prepend(wave);
+  }
+  function layoutTimelineLabels(timeline) {
+    const bounds=timeline.getBoundingClientRect(),occupied=[];
+    for(const label of timeline.querySelectorAll(':scope > text'))if(label.getBoundingClientRect().right>bounds.right)label.setAttribute('text-anchor','end');
+    // Reserve space for the selected measure/pass first. Only the text is suppressed.
+    const markers=timeline.querySelectorAll('.media-guide,.media-marker');
+    const groups=[[],[],[],[]];
+    for(const marker of markers){
+      const text=marker.querySelector('text'),selected=marker.classList.contains('is-selected');
+      if(!selected && marker.classList.contains('is-compact')){text.style.visibility='hidden';continue;}
+      const priority=selected?0:marker.hasAttribute('data-point')?1:marker.dataset.beat==='1'?2:3;
+      groups[priority].push(text);
+    }
+    for(const label of groups.flat()){
+      label.setAttribute('text-anchor','start');label.setAttribute('x','4');
+      let box=label.getBoundingClientRect();
+      if(box.right>bounds.right){label.setAttribute('text-anchor','end');label.setAttribute('x','-4');box=label.getBoundingClientRect();}
+      const crowded=occupied.some(other=>box.left<other.right+20 && box.right>other.left-20);
+      label.style.visibility=crowded?'hidden':'visible';
+      if(!crowded)occupied.push(box);
+    }
   }
   function renderPoints(viewportOnly=false) {
     if(dragging)return;
@@ -707,14 +731,22 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       millisecondOffset:anchor.timeMs,
     }))):
       timelineGuides(AppState.score,AppState.playbackTimeline,points,{measureIndex:Number(get('measure').value),beat:Number(get('beat').value)});
+    // Measure local beat spacing in screen pixels, including at the current zoom.
+    const beatSpacing=new Map();
+    for(let i=1;i<projectedGuides.length;i++){
+      const a=projectedGuides[i-1],b=projectedGuides[i];
+      if(a.measureIndex===b.measureIndex && b.beat>a.beat)beatSpacing.set(a.measureIndex,(b.millisecondOffset-a.millisecondOffset)/(b.beat-a.beat)/duration*1000/unit);
+    }
     for(const guide of projectedGuides) {
       if(guide.anchor>=0)continue;
       const x=guide.millisecondOffset/duration*1000;
       if(x<left-100*unit || x>left+span+100*unit)continue;
       const active=Number(get('measure').value)===guide.measureIndex && Number(get('beat').value)===guide.beat;
-      const marker=svg('g',{class:'media-guide'+(active?' is-selected':''),transform:`translate(${x} 0)`,'data-guide':guide.measureIndex,'data-beat':guide.beat,'data-time':guide.millisecondOffset});
+      const marker=svg('g',{class:'media-guide'+(guide.beat!==1 && (beatSpacing.get(guide.measureIndex)??0)<42?' is-compact':'')+(active?' is-selected':''),transform:`translate(${x} 0)`,'data-guide':guide.measureIndex,'data-beat':guide.beat,'data-time':guide.millisecondOffset});
       marker.append(svg('line',{x1:0,x2:0,y1:16,y2:active?31:84,'pointer-events':'none'}),svg('rect',{x:-6*unit,y:0,width:12*unit,height:30,fill:'transparent'}),svg('path',{class:guide.beat===1?'':'media-beat-arrow',d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}));
-      if(guide.beat===1)marker.append(svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},`${printedMeasure(AppState.score,guide.barIndex+1)}${guide.barOccurence?` (${guide.barOccurence+1})`:''}`));
+      const measureLabel=`${printedMeasure(AppState.score,guide.barIndex+1)}${guide.barOccurence?` (${guide.barOccurence+1})`:''}`;
+      const label=guide.beat===1?measureLabel:`${measureLabel} · ${Number(guide.beat.toFixed(2))}`;
+      marker.append(svg('title',{},`Measure ${measureLabel}, beat ${guide.beat}`),svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},label));
       timeline.append(marker);
     }
     points.forEach((point,index)=>{
@@ -722,19 +754,10 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       if(x<left-100*unit || x>left+span+100*unit)return;
       const marker=svg('g',{class:'media-marker'+(selected===index?' is-selected':'')+(isMovingPoint(index)?' is-moving':''),transform:`translate(${x} 0)`,'data-point':index});
       const label=syncPointLabel(point,AppState.score,AppState.playbackTimeline);
-      marker.append(svg('line',{x1:0,x2:0,y1:16,y2:31,'pointer-events':'none'}),svg('path',{d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}),svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},label),svg('rect',{x:-9*unit,y:0,width:18*unit,height:30,fill:'transparent'}));
+      marker.append(svg('title',{},label),svg('line',{x1:0,x2:0,y1:16,y2:31,'pointer-events':'none'}),svg('path',{d:`M${-7*unit} 2 L${7*unit} 2 L0 16 Z`}),svg('text',{transform:`scale(${unit} 1)`,x:4,y:28,'font-size':12},label),svg('rect',{x:-9*unit,y:0,width:18*unit,height:30,fill:'transparent'}));
       timeline.append(marker);
     });
-    // Keep selected/saved point labels first; hide only text where guides crowd.
-    const occupied=[],bounds=timeline.getBoundingClientRect();
-    for(const label of timeline.querySelectorAll(':scope > text'))if(label.getBoundingClientRect().right>bounds.right)label.setAttribute('text-anchor','end');
-    const labels=[...timeline.querySelectorAll('.media-marker.is-selected text'),...timeline.querySelectorAll('.media-marker:not(.is-selected) text'),...timeline.querySelectorAll('.media-guide text')];
-    for(const label of labels) {
-      let box=label.getBoundingClientRect();
-      if(box.right>bounds.right){label.setAttribute('text-anchor','end');label.setAttribute('x','-4');box=label.getBoundingClientRect();}
-      if(occupied.some(other=>box.left<other.right+4 && box.right>other.left-4))label.style.visibility='hidden';
-      else occupied.push(box);
-    }
+    layoutTimelineLabels(timeline);
     const playX=(player?.currentTime || 0)/duration*1000;
     playhead=svg('line',{class:'media-playhead',x1:playX,x2:playX,y1:33,y2:84});timeline.append(playhead);
     const timeMarker=svg('g',{class:'media-time-selection',role:'img'});
@@ -808,12 +831,16 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       if(AppState.media.preview)host.seekMediaTime(selectedPlayer.currentTime);
       if(resume && AppState.media.preview && !AppState.media.returning && AppState.mode==='realtime' && !AppState.isPlaying)host.toggleMediaPlayback();
       else message('Recording reloaded. Timing and score are unchanged. Press Play to resume; Wait mode remains silent.');
-    } catch(error) {if(token===generation){recordingError=error;message(error.message);}}
+    } catch(error) {if(token===generation){recordingError=error;message('');}}
     finally {if(token===generation){reloadInProgress=false;busy=false;sync();}}
   }
   reloadRecording.addEventListener('click',action(()=>reloadSource()));
   get('listen').addEventListener('click',action(selectRecording));
-  get('practice').addEventListener('click',action(async()=>{if(reviewedPlayback){reviewedPlayback=null;renderLayout();sync();}await returnToPractice();message('Practice restored with synthesized audio. Recording alignment is retained.');}));
+  get('practice').addEventListener('click',action(async()=>{
+    await returnToPractice();
+    if(reviewedPlayback){reviewedPlayback=null;renderLayout();sync();}
+    message('Practice restored with synthesized audio. Recording alignment is retained.');
+  }));
   get('unload').addEventListener('click',action(async()=>{await returnToPractice();generation++;disposal();points=[];profileId='';pendingProfile=null;renderPoints();renderLayout();sync();message('Recording unloaded. Saved profiles are kept.');}));
   get('pip').addEventListener('click',action(()=>document.pictureInPictureElement?document.exitPictureInPicture():get('video').requestPictureInPicture()));
   get('close-player').addEventListener('click',()=>{showPlayer=false;renderLayout();persistLayout();document.getElementById('play-pause-button').focus();});
@@ -982,7 +1009,6 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       if(reviewedPlayback)host.showDraftPosition(draftPosition(reviewedPlayback,AppState.playbackTimeline,time/1000),false);
       else draftEditor.update(time/1000,player.playing);
     }
-
     if((draftTiming && AppState.media.editing) || audition){
       const button=document.getElementById('play-pause-button'),label=player.playing?'Pause':'Play';
       const text=player.playing?'⏸ Pause':'▶ Play';

@@ -55,8 +55,13 @@ function nativeIdentityPoints() {
   // and tempo changes, without a redundant explicit final point.
   // Anchor every occurrence too: a lone marker on a repeated bar is reused by
   // native generation unless the later occurrence has its own explicit time.
-  const timeline=AppState.playbackTimeline,points=tempoAlignedPoints(timeline,timeline.durationMs).slice(0,-1);
-  for(const measure of timeline.measures) {
+  const timeline=AppState.playbackTimeline;
+  // A silent, zero-tick pickup shares its start with the next played bar.
+  // Give the native clock just the latter anchor at that tick.
+  const played=timeline.measures.filter(m=>m.endTick>m.startTick);
+  const clockTimeline=played.length===timeline.measures.length?timeline:{...timeline,measures:played};
+  const points=tempoAlignedPoints(clockTimeline,timeline.durationMs).slice(0,-1);
+  for(const measure of played) {
     if(points.some(p=>p.barIndex===measure.measureNumber-1 && p.barOccurence===measure.occurrence-1 && p.barPosition===0))continue;
     points.push({barIndex:measure.measureNumber-1,barOccurence:measure.occurrence-1,barPosition:0,
       millisecondOffset:tickToTimeMs(timeline,measure.startTick)});
@@ -1097,10 +1102,14 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     hostCallbacks.onScoreLoaded?.(loadedScore);
   });
 
+  // midiLoad supplies the generated file for this exact traversal before player acknowledgement.
+  const generatedMidi=new WeakMap();
+  alphaTabApi.midiLoad.on(file=>{if(alphaTabApi.tickCache)generatedMidi.set(alphaTabApi.tickCache,file);});
   alphaTabApi.midiLoaded.on(() => {
     if(AppState.media.preview)return;
     AppState.playbackTimeline = buildPlaybackTimeline(alphaTabApi.tickCache, {
       score:AppState.score,
+      midiFile:generatedMidi.get(alphaTabApi.tickCache),midiTypes:alphaTabGlobal.midi.MidiEventType,
       tempo: AppState.score?.tempo || 120,
       ticksPerQuarter: new alphaTabGlobal.midi.MidiFile().division,
     });

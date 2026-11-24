@@ -60,6 +60,7 @@ export function draftPosition(plan,timeline,seconds) {
   if(intervals.length===1&&!candidates.length)return {kind:intervals[0].kind??'explanation',label:intervals[0].label};
   return {kind:'unresolved'}; // Never extrapolate, choose overlaps or stretch across a gap.
 }
+
 // Invert the same anchor segments used for drawing the cursor. One printed
 // beat can represent several passes; prefer the one nearest the recording.
 export function draftSeekTarget(plan,timeline,number,fraction,clock) {

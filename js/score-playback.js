@@ -24,9 +24,9 @@ export function timeMsToTick(timeline, timeMs, speed = 1) {
   return segment.tick + (baseTime - segment.timeMs) * segment.bpm * timeline.ticksPerQuarter / 60000;
 }
 
-function unboundedExpression(beat,note,ignoreVibrato=false) {
-  return Boolean(beat.isLetRing || beat.whammyBarPoints?.length || beat.whammyBarType || !ignoreVibrato && beat.vibrato || beat.fade ||
-    note.isLetRing || note.bendPoints?.length || note.bendType || !ignoreVibrato && note.vibrato ||
+function unboundedExpression(beat,note,ignoreVibrato=false,ignoreLetRing=false) {
+  return Boolean(!ignoreLetRing && (beat.isLetRing || note.isLetRing) || beat.whammyBarPoints?.length || beat.whammyBarType || !ignoreVibrato && beat.vibrato || beat.fade ||
+    note.bendPoints?.length || note.bendType || !ignoreVibrato && note.vibrato ||
     note.slideOutType || note.slideTarget || note.gtsTiedBend || note.gtsFallingTie || note.gtsWrittenVibrato ||
     note.gtsSourceArticulation || note.gtsSlidePlayback || note.gtsRepeatTieRelease || note.gtsTappedHarmonicTicks>0);
 }
@@ -34,7 +34,7 @@ function unboundedExpression(beat,note,ignoreVibrato=false) {
 // A plain tie wholly inside one native bar has an explicit release. Prove the
 // whole reciprocal chain; ties across bars/repeat jumps and expressive carry
 // keep the existing conservative guard. This evidence never edits the score.
-function boundedPlainTie(note,duration,proof) {
+function boundedPlainTie(note,duration,proof,ignoreLetRing=false) {
   if(proof.has(note))return proof.get(note);
   const voice=note.beat?.voice,bar=voice?.bar,seen=new Set(),chain=[];
   let first=note,valid=Boolean(bar && Number.isFinite(duration) && duration>0);
@@ -46,9 +46,11 @@ function boundedPlainTie(note,duration,proof) {
   seen.clear();let previous=null;
   for(let current=first;valid && current;current=current.tieDestination) {
     const beat=current.beat,start=beat?.playbackStart,length=beat?.playbackDuration;
+    // Ordinary native vibrato changes pitch during this finite segment.
+    const vibrato=Boolean((beat?.vibrato||current.vibrato) && !ignoreLetRing && knownVibrato(beat,current) && finiteNativeNote(beat,current,duration,true));
     if(seen.has(current) || seen.size>=4096 || beat?.voice!==voice || beat.graceType!==0 || current.isDead ||
       voice.beats?.[beat.index]!==beat || bar.voices?.[voice.index]!==voice || !beat.notes?.includes(current) ||
-      unboundedExpression(beat,current) || !Number.isFinite(current.realValue) || current.realValue!==first.realValue ||
+      unboundedExpression(beat,current,vibrato,ignoreLetRing) || !Number.isFinite(current.realValue) || current.realValue!==first.realValue ||
       current.string!==first.string || current.fret!==first.fret ||
       !Number.isFinite(start) || !Number.isFinite(length) || length<=0 || start<0 || start+length>duration ||
       Boolean(current.isTieDestination)!==Boolean(previous) || (current.tieOrigin??null)!==previous ||
@@ -61,22 +63,79 @@ function boundedPlainTie(note,duration,proof) {
   proof.set(note,valid);return valid;
 }
 
-function finiteNativeNote(beat,note,duration,ignoreVibrato=false) {
+function finiteNativeNote(beat,note,duration,ignoreVibrato=false,ignoreLetRing=false) {
   const voice=beat?.voice,bar=voice?.bar,start=beat?.playbackStart,length=beat?.playbackDuration;
   return Boolean(bar && voice.beats?.[beat.index]===beat && bar.voices?.[voice.index]===voice && beat.notes?.includes(note) &&
     beat.graceType===0 && !beat.fermata && !beat.tremoloPicking && !beat.brushType && !beat.rasgueado && !note.isDead &&
-    !unboundedExpression(beat,note,ignoreVibrato) && Number.isFinite(note.realValue) &&
+    !unboundedExpression(beat,note,ignoreVibrato,ignoreLetRing) && Number.isFinite(note.realValue) &&
     Number.isFinite(start) && Number.isFinite(length) && length>0 && start>=0 && start+length<=duration);
 }
 
+function knownVibrato(beat,note) {
+  return [0,1,2].includes(beat.vibrato??0) && [0,1,2].includes(note.vibrato??0);
+}
+
 function finiteVibrato(beat,note,duration) {
-  return Boolean((beat.vibrato||note.vibrato) && [0,1,2].includes(beat.vibrato??0) && [0,1,2].includes(note.vibrato??0) &&
+  return Boolean((beat.vibrato||note.vibrato) && knownVibrato(beat,note) &&
     !note.isTieOrigin && !note.isTieDestination && !note.tieOrigin && !note.tieDestination && finiteNativeNote(beat,note,duration,true));
 }
 
 function expressiveHold(beat,note,duration,proof) {
-  return unboundedExpression(beat,note) && !finiteVibrato(beat,note,duration) ||
-    Boolean(note.isTieOrigin || note.isTieDestination || note.tieOrigin || note.tieDestination) && !boundedPlainTie(note,duration,proof);
+  if(note.isTieOrigin || note.isTieDestination || note.tieOrigin || note.tieDestination)return !boundedPlainTie(note,duration,proof);
+  return unboundedExpression(beat,note) && !finiteVibrato(beat,note,duration);
+}
+
+// Match a single generated note-on/off on the original track, channel and pitch.
+// A unison overlap, a same-tick reattack or a pedal leaves the release uncertain.
+function generatedReleases(file,types,division) {
+  if(!types || file?.division!==division || file.tracks?.length!==1 || !Array.isArray(file.tracks[0]?.events) || !Number.isSafeInteger(file.tickShift))return null;
+  const lanes=new Map(),ends=new Map(),pedals=new Set();
+  let previous=-Infinity;
+  for(const e of file.tracks[0].events){
+    const tick=e.tick-file.tickShift;
+    if(!Number.isFinite(tick) || tick<previous)return null;
+    previous=tick;
+    if(e.type===types.ControlChange && [64,66,69].includes(e.controller) && e.value>0)pedals.add(e.channel);
+    if(e.type!==types.NoteOn && e.type!==types.NoteOff)continue;
+    const key=e.channel*128+e.noteKey;
+    let lane=lanes.get(key);
+    if(!lane){lane={depth:0,start:null,end:null};lanes.set(key,lane);}
+    if(e.type===types.NoteOn){
+      if(lane.end===tick)ends.delete(lane.lastKey);
+      lane.start=lane.depth===0 && e.noteVelocity>0?e.track+':'+key+':'+tick:null;
+      lane.track=e.track;lane.depth++;
+    }else{
+      if(lane.depth===0){lane.invalid=true;continue;}
+      if(--lane.depth===0 && lane.start && lane.track===e.track){
+        ends.set(lane.start,tick);lane.lastKey=lane.start;lane.end=tick;lane.start=null;
+      }
+    }
+  }
+  return (note,start)=>{
+    const track=note.beat.voice.bar.staff.track,channel=track.playbackInfo.primaryChannel,key=channel*128+note.realValue;
+    if(pedals.has(channel)||lanes.get(key)?.invalid)return undefined;
+    return ends.get(track.index+':'+key+':'+start);
+  };
+}
+
+// A fresh attack on this string at the cut could itself be silencing the note.
+function reattacksAtBoundary(note,nextVisit) {
+  if(!nextVisit)return false;
+  const voices=note.beat.voice.bar.staff.bars[nextVisit.masterBar.index]?.voices;
+  return !voices || voices.some(v=>v.beats.some(b=>b.playbackStart===0 && b.notes.some(n=>n.string===note.string)));
+}
+
+function boundedRing(first,duration,release) {
+  if(first.isTieDestination || first.tieOrigin || first.string<=0)return false;
+  if(first.isTieOrigin || first.tieDestination){
+    if(!boundedPlainTie(first,duration,new WeakMap(),true))return false;
+  }
+  for(let n=first;n;n=n.tieDestination){
+    const beat=n.beat;
+    if(!finiteNativeNote(beat,n,duration,false,true) || beat.playbackStart+beat.playbackDuration>release ||
+      !n.isLetRing || !n.letRingDestination || (n.letRingDestination!==n && n.letRingDestination!==n.tieDestination))return false;
+  }
+  return true;
 }
 
 function plainRest(beat,voice) {
@@ -89,11 +148,25 @@ function plainRest(beat,voice) {
 // Detached evidence for recording-plan safety, independent of practice track,
 // visibility and muting. Missing native structure never proves silence. Native
 // empty extra voices are ignored only alongside a fully covered rest voice.
-function nativeSilenceEvidence(tickCache,score) {
+function nativeSilenceEvidence(tickCache,score,file,types,division) {
   const fullRests=[],ambiguousHoldRanges=[],noteRanges=[],holds=new Map(),plainTies=new Map();
-  let soundingUntil=0,unsupported=false;
+  let soundingUntil=0,unsupported=false,releaseFor;
   for(const [visitIndex,visited] of tickCache.masterBars.entries()) {
     const master=visited.masterBar,duration=visited.end-visited.start,notes=[];
+    // An empty anacrusis can carry a section label while consuming no playback ticks.
+    // Keep its visit identity so recording plans can explicitly omit it.
+    const emptyPickup=visitIndex===0 && visited.start===0 && duration===0 && master?.index===0 &&
+      master.isAnacrusis===true && typeof master.calculateDuration==='function' && master.score===score && score?.masterBars?.[0]===master &&
+      !master.isFreeTime && !master.fermata?.size && !master.gtsPerformedBarTicks && score.tracks?.length &&
+      score.tracks.every(t=>t?.score===score && t.staves?.length && t.staves.every(staff=>{
+        const bar=staff?.bars?.[0];
+        return !!staff && !!bar && staff.track===t && bar.staff===staff && bar.masterBar===master && !bar.simileMark &&
+          Array.isArray(bar.sustainPedals) && !bar.sustainPedals.length && bar.voices?.length &&
+          bar.voices.every(v=>v?.bar===bar && v.beats?.length && v.beats.every(b=>plainRest(b,v)) &&
+            (v.isEmpty===true && v.beats.every(b=>b.isEmpty===true) ||
+             v.isEmpty===false && v.beats.length===1 && v.beats[0].playbackStart===0 && v.beats[0].playbackDuration===0));
+      })) && master.calculateDuration()===0;
+    if(emptyPickup){fullRests.push(true);continue;}
     const structureKnown=Boolean(score && master?.score===score && score.masterBars?.[master.index]===master &&
       Array.isArray(score.tracks) && score.tracks.length && Number.isFinite(duration) && duration>0 &&
       Number.isFinite(visited.start) && Number.isFinite(visited.end));
@@ -107,11 +180,20 @@ function nativeSilenceEvidence(tickCache,score) {
           !Array.isArray(bar.voices) || !bar.voices.length){rest=false;unsupported=true;continue;}
         // Pedal and simile playback need their own duration proof. Do not infer
         // silence from empty note arrays while either unsupported mechanism is present.
-        if(!Array.isArray(bar.sustainPedals) || bar.sustainPedals.length || bar.simileMark){rest=false;unsupported=true;}
+        let soundingBar=bar;
+        if(bar.simileMark){
+          rest=false;
+          const plan=simpleSimilePlan(bar,visited);
+          if(plan.reason || !plan.beats.every(b=>!b.isLetRing && b.notes.every(n=>!unboundedExpression(b,n) && !n.isTieOrigin && !n.isTieDestination))){
+            unsupported=true;continue;
+          }
+          soundingBar=plan.donor;
+        }
+        if(!Array.isArray(bar.sustainPedals) || bar.sustainPedals.length){rest=false;unsupported=true;}
         let covered=false;
-        for(const voice of bar.voices) {
-          if(!voice || voice.bar!==bar || !Array.isArray(voice.beats) || typeof voice.isEmpty!=='boolean' ||
-            !Number.isInteger(voice.index) || bar.voices[voice.index]!==voice){rest=false;unsupported=true;continue;}
+        for(const voice of soundingBar.voices) {
+          if(!voice || voice.bar!==soundingBar || !Array.isArray(voice.beats) || typeof voice.isEmpty!=='boolean' ||
+            !Number.isInteger(voice.index) || soundingBar.voices[voice.index]!==voice){rest=false;unsupported=true;continue;}
           let end=0,complete=Boolean(voice.beats.length),empty=voice.isEmpty===true;
           for(const beat of voice.beats) {
             if(!beat || beat.voice!==voice || !Array.isArray(beat.notes)){rest=false;unsupported=true;continue;}
@@ -138,12 +220,22 @@ function nativeSilenceEvidence(tickCache,score) {
     // These conservative ranges do not change audible/graded note durations.
     // A fresh attack on the same string closes earlier ambiguous carry; rests
     // and other strings cannot silently prove that a held technique stopped.
-    const tieProof=new WeakMap();
+    const tieProof=new WeakMap(),releasedNotes=new Set();
     for(const item of notes.sort((a,b)=>a.start-b.start)) {
       if(!Number.isFinite(item.start) || !Number.isFinite(item.end) || !Number.isFinite(item.note.realValue)){unsupported=true;continue;}
       noteRanges.push({start:item.start,end:item.end});
       soundingUntil=Math.max(soundingUntil,item.end);
-      const previous=holds.get(item.key),ambiguous=expressiveHold(item.beat,item.note,duration,tieProof);
+      if(item.note.isLetRing && !item.note.isTieDestination){
+        if(releaseFor===undefined)releaseFor=generatedReleases(file,types,division);
+        const release=releaseFor?.(item.note,item.start);
+        if(release>=item.end && release<=visited.end && boundedRing(item.note,duration,release-visited.start) &&
+            (release<visited.end || !reattacksAtBoundary(item.note,tickCache.masterBars[visitIndex+1]))){
+          for(let n=item.note;n;n=n.tieDestination)releasedNotes.add(n);
+          noteRanges.push({start:item.start,end:release});
+          soundingUntil=Math.max(soundingUntil,release);
+        }
+      }
+      const previous=holds.get(item.key),ambiguous=!releasedNotes.has(item.note) && expressiveHold(item.beat,item.note,duration,tieProof);
       if(holds.has(item.key) && !item.note.isTieDestination) {
         ambiguousHoldRanges.push({startTick:previous,endTick:item.start,openEnded:false});holds.delete(item.key);
       }
@@ -250,13 +342,18 @@ function simpleSimilePlan(actual, visited) {
     return fail('unproved repeat-bar clock');
   let donor=actual;
   while(donor.simileMark) {
-    if(donor.simileMark!==1)return fail('unsupported double-bar repeat');
+    const mark=donor.simileMark;
+    if(![1,2,3].includes(mark))return fail('unknown repeat sign');
+    if(mark!==1){
+      const partner=staff.bars[donor.index+(mark===2?1:-1)];
+      if(partner?.simileMark!==5-mark || !sameClock(partner))return fail('unpaired double-bar repeat');
+    }
     if(seen.has(donor) || seen.size>=4096 || donor.staff!==staff || staff.bars?.[donor.index]!==donor ||
       !sameClock(donor) || !Array.isArray(donor.sustainPedals) || donor.sustainPedals.length ||
       !donor.voices?.length || !donor.voices.every(placeholderVoice))return fail('unproved repeat-bar structure');
     seen.add(donor);
-    const previous=donor.previousBar;
-    if(!previous || previous.index!==donor.index-1)return fail('missing repeat-bar donor');
+    const distance=mark===1?1:2,previous=staff.bars[donor.index-distance];
+    if(!previous || previous.staff!==staff || previous.index!==donor.index-distance)return fail('missing repeat-bar donor');
     donor=previous;
   }
   if(donor.staff!==staff || staff.bars?.[donor.index]!==donor || !sameClock(donor) ||
@@ -286,7 +383,7 @@ function simpleSimilePlan(actual, visited) {
     let end=0;
     for(const [index,beat] of voice.beats.entries()) {
       if(beat.voice!==voice || beat.index!==index || beat.playbackStart!==end || !Number.isFinite(beat.playbackDuration) ||
-        beat.playbackDuration<=0 || !Array.isArray(beat.notes) || !quietBeat(beat) || beat.pickStroke ||
+        beat.playbackDuration<=0 || !Array.isArray(beat.notes) || !quietBeat(beat) || ![0,1,2].includes(beat.pickStroke) ||
         beat.automations?.some(a=>a.type!==2 || !Number.isInteger(a.value) || a.value<0 || a.value>127 || a.ratioPosition!==0))
         return fail('unproved donor attack clock');
       if(!beat.notes.length && beat.isRest!==true)return fail('unproved donor rest');
@@ -311,7 +408,11 @@ function simpleSimilePlan(actual, visited) {
   // reciprocal pointer to an object absent from its native beat array.
   for(const [note,voice] of proof)for(const key of ['tieOrigin','tieDestination','hammerPullOrigin','hammerPullDestination'])
     if(note[key] && proof.get(note[key])!==voice)return fail('missing repeated-note connection endpoint');
-  return {donor,placeholder:actual.voices[0].beats[0],beats};
+  const placeholder=actual.voices[0].beats[0];
+  for(let span=visited.firstBeat;span;span=span.nextBeat){
+    if(span.highlightedBeats.some(item=>item.beat===placeholder && item.playbackStart===0))return {donor,placeholder,beats};
+  }
+  return fail('missing native repeat-bar highlight');
 }
 
 function performedBeatItems(visited,visitIndex,timeline) {
@@ -323,10 +424,6 @@ function performedBeatItems(visited,visitIndex,timeline) {
     const actual=staff.bars?.[visited.masterBar.index];
     if(!actual?.simileMark)continue;
     const plan=simpleSimilePlan(actual,visited);
-    // Require the actual native placeholder at its own performed start. A
-    // missing lookup must not silently manufacture coverage.
-    if(!plan.reason && !items.some(({item})=>item.beat===plan.placeholder && item.playbackStart===0))
-      plan.reason='missing native repeat-bar highlight';
     plans.set(staff,plan);
     if(plan.reason)(timeline.similePracticeIssues??=[]).push({trackId:String(track.index),
       measureNumber:actual.index+1,playbackMeasureIndex:visitIndex,reason:plan.reason});
@@ -341,10 +438,10 @@ function performedBeatItems(visited,visitIndex,timeline) {
   return result;
 }
 
-export function buildPlaybackTimeline(tickCache, { tempo = 120, ticksPerQuarter = 960, score = null } = {}) {
+export function buildPlaybackTimeline(tickCache, { tempo = 120, ticksPerQuarter = 960, score = null, midiFile = null, midiTypes = null } = {}) {
   if (!tickCache?.masterBars?.length) return null;
   const timeline = { source: 'alphatab-playback', ticksPerQuarter, events: [], measures: [], tempoMap: [], endTick: 0 };
-  const silence=nativeSilenceEvidence(tickCache,score??tickCache.masterBars[0].masterBar?.score);
+  const silence=nativeSilenceEvidence(tickCache,score??tickCache.masterBars[0].masterBar?.score,midiFile,midiTypes,ticksPerQuarter);
   timeline.ambiguousHoldRanges=silence.ambiguousHoldRanges;
   timeline.ambiguousHoldEvidenceComplete=silence.complete;
   const changes = new Map([[0, tempo > 0 ? tempo : 120]]);

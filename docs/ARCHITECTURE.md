@@ -44,7 +44,17 @@ When both original searches return no candidates, the worker calls `audio-sync-r
 
 After pinned refinement, the worker also aligns recording frames to a pitch-and-attack reference sampled at written tempo. Both alignments use bounded matrices. A difference above 250 ms can produce a review option inside the two neighboring selected measures. The suggestion UI binds that option to the same refinement and updates both sides of the interior boundary together. The choice and alternate times are temporary; the draft receives only the reviewed visits and anchors.
 
+**Use reviewed timing** is an explicit local choice. A draft can grade fully bounded visits that pass the native validator, including a complete prefix ahead of an open tail. A claimed silent edge can instead remain unplaced. When grading still fails, the main transport plays the recording and uses the same display-only cursor as draft review. This keeps MIDI grading paused and permits playback with an empty score mapping. Reopening Media Sync restores the editable draft.
+
+A locally reviewed draft may use the `reviewed-musical-passages` timing format when playback visits or recording spans are unplaced. Trainer validates score identity, native occurrences, anchors, recording duration and holds at cuts before entering playback. An internal recording gap has no score visit or graded events. Local recording profiles can retain the reviewed plan. Incoming verified lesson plans use the strict compiler.
+
 See [Current status and to-do](TODO.md) for the shipped baseline and pending real-world checks. Dated sections here describe the contracts and decisions at each implementation stage.
+
+The helper import preference applies to online draft lessons after capability and score identity checks. The draft editor owns review and activation. Local recording offers require the import dialog to select a file.
+
+For recording timing, the host binds the MIDI file from alphaTab’s midiLoad event to its playback lookup. The validator pairs note events for the same track, channel, pitch and performed attack. For an otherwise plain let-ring note or an in-measure reciprocal tie, an independently released note can end at the boundary. Written and generated durations must agree on which side of the break the release occurs. Pedals, overlapping MIDI notes, immediate same-string reattacks at the cut and unresolved expressive marks retain the conservative hold check.
+
+The Media Sync editor keeps the editable timestamp independent of the live recording clock. Guide labels use available screen space and selection priority. All original marker hit areas remain available for selection.
 
 ## Loop speed training and sync section stretching
 

@@ -220,6 +220,32 @@ Implemented an original browser matcher using pitch-class passage search. Local 
 
 `node --test tests/audio-sync.test.js` exercises known-time synthesized phrases, slower and extra takes, written repeat order, gaps and no-match inputs. `node tests/run-audio-sync-browser.cjs` covers local files, direct URLs, denied reads, cancellation, auditions, take selection, draft undo and reviewed playback in Chrome. Real lesson accuracy remains an owner listening check.
 
+## Activating a reviewed passage
+
+The owner can now accept a draft directly after listening. The action states whether the result grades placed measures, follows the reviewed cursor with grading off, or plays a recording with no mapped measures. The local playback choice retains the timestamps and opens paused. The original evidence and working draft remain available for export. Incoming verified plans still require native validation.
+
+Use reviewed timing can activate individually placed GPX passages after review. Gaps have no practice targets. Fill 1 exposed a second blocker when its first measure consumed zero ticks. The reader now recognizes its explicit silent pickup, and the native clock uses the next played measure at tick zero. A browser check clicked Use reviewed timing and Play with both a newly prepared draft and the earlier passage suggestions.
+
+## Recording timing with repeat signs and an open final endpoint
+
+The score adapter now reads qualified one-bar and paired two-bar donors, including ordinary pick direction. Replayed notes supply positive attacks and local release evidence when the donor is fully bounded. Unsupported donor effects and genuine ties across a recording break retain the recording guard. The draft editor can place a missing last endpoint at the loaded media duration on explicit request. Native simile tests cover both donors, malformed pairs and positive attacks. These are application changes outside the bundled alphaTab reader.
+
+## Bakersfield draft timing review
+
+The timing compiler accepts an explicitly omitted first pickup with zero native ticks and full silence across all staves. The native score adapter recognizes ordinary vibrato on a fully traced within-measure tie. Cross-break ties and unproved holds retain their guards. Both changes live in Trainer application code. The bundled alphaTab and its updater require no patch. Regression coverage is in score-rests and tie-hold-boundary.
+
+## Generated let-ring releases at recording breaks — 2026-11-20
+
+A private two-guitar lesson reproduced a disabled **Use reviewed timing** after review notices were cleared. The Electric guitar released G3 and E3 exactly at the start of the final spoken breakdown. The hold estimator had extended both notes to later attacks. Trainer now uses uniquely paired generated MIDI releases for otherwise plain let-ring notes and reciprocal ties that end within the same measure. The two-guitar draft activated with all 51 visits through Scan, Send, Clear reviewed notices and Use reviewed timing in isolated Chrome with silent test audio. Regressions use generated scores and include late or missing releases, overlapping pitches, immediate reattacks, pedal and cross-break ties.
+
+## Media Sync editor layout — 2026-11-20
+
+The editable field is labeled **Time to apply (s)**. It and the live playhead show seconds to three decimal places. Timeline labels prioritize the current measure and repeat pass, with extra beat detail when space allows. Waveform availability appears in the timeline and recording failures share the recovery row with Reload recording. Profile state sits beside Save.
+
+## Helper draft import preference — 2026-11-20
+
+Online draft imports now honor the automatic import checkbox and enter paused Media Sync review directly. Disabled automatic import and local recording choices retain the confirmation dialog.
+
 ## Speed Trainer and proportional sync edits — 2026-11-20
 
 The Loop menu labels the step **Speed increase (%)**. A value of 5 takes playback from 60% to 65% of the score tempo.

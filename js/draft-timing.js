@@ -80,3 +80,33 @@ export function inspectDraft(draft,working,options) {
   } catch(error){issues.push(error.message);}
   return {issues,partial,compiled:issues.length?null:compiled};
 }
+
+// Explicit local acceptance. Playback can follow the reviewed draft even when
+// its evidence is insufficient for grading. Never change the editable draft.
+export function reviewedDraftChoice(draft,working,options) {
+  const plan=working.candidatePlan;
+  const reviewed={candidatePlan:plan,unresolved:[]};
+  const checked=inspectDraft(draft,reviewed,options);
+  if(plan.scoreSha256!==draft.scoreSha256 || plan.recordingId!==draft.recordingId ||
+      JSON.stringify(plan.originalPlaybackOrder)!==JSON.stringify(draft.originalPlaybackOrder))fail('The candidate belongs to a different score or recording.');
+  if(!Number.isFinite(options.durationMs) || options.durationMs<=0)fail('Load the recording before accepting its timing.');
+  if(checked.compiled)return checked;
+  if(plan.format===INTERVAL_TIMING_FORMAT && Array.isArray(plan.scoreOmissions)){
+    const visits=plan.musicalVisits;
+    const firstOpen=visits.findIndex(v=>v.startSeconds===null || v.endSeconds===null);
+    const openTail=firstOpen>=0 && visits.slice(firstOpen).every(v=>v.startSeconds===null || v.endSeconds===null);
+    const placed=openTail?visits.slice(0,firstOpen):visits;
+    const omissions=plan.scoreOmissions.filter(o=>{
+      const native=options.timeline.measures[o.originalVisit-1];
+      const edge=placed.length && (o.originalVisit<placed[0].originalVisit || o.originalVisit>placed.at(-1).originalVisit);
+      return !(edge && native?.isFullRest===false && native.measureNumber===o.scoreMeasure &&
+        native.occurrence===o.occurrence && o.reason==='unmatched-full-rest');
+    });
+    if(placed.length && (placed.length!==visits.length || omissions.length!==plan.scoreOmissions.length)){
+      const subset={...plan,musicalVisits:placed,scoreOmissions:omissions};
+      const result=inspectDraft(draft,{candidatePlan:subset,unresolved:[]},options);
+      if(result.compiled)return result;
+    }
+  }
+  return checked;
+}

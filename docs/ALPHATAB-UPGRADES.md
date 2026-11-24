@@ -10,6 +10,8 @@ Qualify pause and resume after skipping into a later recorded take of the same w
 
 The display-only score overlay also supports auditioning a proposed take while ordinary recording timing is selected. Verify the chosen occurrence, hidden native cursor and bounded stop with the audio sync browser regression.
 
+Retain the recording-break regressions in `tests/tie-hold-boundary.test.js`. Verify that `midiLoad` exposes the generated file and its matching `tickCache` before `midiLoaded`, and replay a reviewed draft through activation. The host uses the public MIDI event types, tick shift, track, channel, pitch and note-off ticks. This host check uses the shipped bundles directly and needs no vendor patch.
+
 For Loop Speed Trainer, retain the native Finished notification on both continuous synth repeats and non-looping range completion. The host forwards deliberate score and paused fretboard navigation so a partial pass can be excluded. Bootstrap applies the next speed before the host schedules a loop count-in. Run `tests/run-speed-trainer-browser.cjs` against the candidate to check actual pass cadence, the target cap and audio-clock click spacing.
 
 From the GuitarTrainerStudio root in PowerShell, run the following command. Replace the version for the next release. Omit `--install` for a staged report.

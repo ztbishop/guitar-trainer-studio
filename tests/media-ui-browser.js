@@ -19,8 +19,9 @@ document.getElementById('ui-run').addEventListener('click',async()=>{
     await until(()=>!get('play-pause-button').disabled && get('media-measure').options.length===4);
     check(true,'Normal score picker builds practice and media measure options');
     await choose(get('media-file'),'./.media-fixtures/media-demo.wav','UI-fixture.wav');await until(()=>!get('media-listen').disabled);
-    check(get('media-point-list').children.length===2,'Local audio loads with start/end alignment');
     get('media-show-editor').checked=true;get('media-show-editor').dispatchEvent(new view.Event('change'));
+    await until(()=>get('media-point-list').children.length===2,'Visible editor draws the endpoints');
+    check(true,'Local audio loads with start/end alignment');
     get('media-measure').value='1';get('media-audio').currentTime=8;get('media-point-time').value='2';get('media-add-point').click();
     await until(()=>!get('media-undo').disabled);check(get('media-point-list').children.length===3,'Add point reaches the injected native-sync intent');
     check(get('media-point-time').value==='2.000','Add point saves selected seconds independently of the later playhead');
@@ -154,7 +155,10 @@ document.getElementById('ui-run').addEventListener('click',async()=>{
     get('media-add-point').click();
     await until(()=>get('media-point-list').children.length===3);
     check(get('media-point-list').children[1].textContent.includes('0:01.5') && get('media-audio').paused,'Add sync point saves the clicked time after listening onward and pauses');
-    get('media-audio').currentTime=1.7;get('media-apply-time').click();
+    host.seekMediaTime(1700);
+    await until(()=>get('media-playhead-time').textContent==='1.700','Live playhead shows precise seconds');
+    check(get('media-point-time').value==='1.500' && get('media-playhead-time').closest('.media-time-tools').contains(get('media-point-time')),'Selected time stays pinned beside the live playhead');
+    get('media-apply-time').click();
     check(get('media-point-time').value==='1.700' && get('media-point-list').children[1].textContent.includes('0:01.5'),'Use playhead time only copies time and does not update the saved point');
     get('media-add-point').click();await until(()=>get('media-point-list').children[1].textContent.includes('0:01.7'));
     check(get('media-point-list').children.length===3,'Capturing an existing score position updates its anchor without duplication');
@@ -208,10 +212,14 @@ document.getElementById('ui-run').addEventListener('click',async()=>{
     get('show-fretboard').checked=true;get('show-fretboard').dispatchEvent(new view.Event('change'));
     get('media-reset-layout').click();
     for(const id of ['media-editor','fretboard-container']) {
+      get('media-show-editor').checked=id==='media-editor';
+      get('media-show-editor').dispatchEvent(new view.Event('change'));
+      await until(()=>get(id).getBoundingClientRect().height>0,'Panel is visible for keyboard resize');
       const beforeHeight=get(id).getBoundingClientRect().height;
       const handle=get(id).querySelector('[data-resize-panel]');handle.dispatchEvent(new view.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
       check(JSON.parse(localStorage.getItem('gts.workspacePanelSizes'))[id]<beforeHeight,`${id} keyboard resizing persists`);
     }
+    get('media-show-editor').checked=true;get('media-show-editor').dispatchEvent(new view.Event('change'));
     for(const id of ['scores-panel','practice-popup','tempo-popup','looper-popup','audio-popup','display-popup','media-popup','help-popup','options-overlay']) {
       const launcher=doc.querySelector(`[data-launch-panel="${id}"]`) || get({'scores-panel':'btn-scores','practice-popup':'btn-practice','tempo-popup':'btn-tempo','looper-popup':'btn-looper','options-overlay':'btn-options'}[id]);
       launcher.click();const panel=get(id),rect=panel.getBoundingClientRect();

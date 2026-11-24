@@ -2,12 +2,25 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {validateLesson,verifyLessonScoreHash} from '../js/lesson-import-data.js';
-import {validateDraft,inspectDraft,checkDraftBinding} from '../js/draft-timing.js';
+import {validateDraft,inspectDraft,checkDraftBinding,reviewedDraftChoice} from '../js/draft-timing.js';
 import {validateTimingPlanDuration,validateTimingPlan,planPositionAtTime,planTimeAtTick,planIncludesEvent} from '../js/explanation-timing.js';
-import {validateProfile} from '../js/media-sync.js';
 import {draftLesson} from './draft-fixture.js';
+import {validateProfile} from '../js/media-sync.js';
 const options=d=>({scoreSha256:d.scoreSha256,recordingId:d.recordingId,durationMs:10000,timeline:{ticksPerQuarter:960,endTick:1920,tempoMap:[{tick:0,bpm:120,timeMs:0}],measures:[1,2].map((measureNumber,i)=>({measureNumber,occurrence:1,playbackMeasureIndex:i,startTick:i*960,endTick:(i+1)*960})),events:[]}});
 const work=d=>({candidatePlan:structuredClone(d.candidatePlan),unresolved:structuredClone(d.unresolved)});
+test('local acceptance can grade a complete prefix and play an empty or conflicting draft without grading',()=>{
+ const d=draftLesson().draftTiming,w=work(d),p=w.candidatePlan,o=options(d);
+ Object.assign(o.timeline,{ambiguousHoldEvidenceComplete:true,ambiguousHoldRanges:[]});
+ delete p.explanations;Object.assign(p,{format:'musical-visits-and-intervals',intervals:[],scoreOmissions:[]});
+ const snapshot=structuredClone(w);
+ const prefix=reviewedDraftChoice(d,w,o);
+ assert.deepEqual(prefix.compiled.visits.map(v=>v.originalVisit),[1]);assert.deepEqual(w,snapshot);
+ o.timeline.ambiguousHoldRanges=[{startTick:0,endTick:1100,openEnded:false}];
+ assert.deepEqual(reviewedDraftChoice(d,w,o).compiled.visits.map(v=>v.originalVisit),[1]);
+ p.musicalVisits=[];assert.equal(reviewedDraftChoice(d,w,o).compiled,null);
+ assert.throws(()=>reviewedDraftChoice(d,w,{...o,durationMs:0}));
+ p.recordingId='different-recording';assert.throws(()=>reviewedDraftChoice(d,w,o));
+});
 test('review activates only the placed visits and leaves an internal recording gap ungraded',()=>{
  const d=draftLesson().draftTiming,w=work(d),p=w.candidatePlan,o=options(d);
  d.originalPlaybackOrder=[1,2,3];p.originalPlaybackOrder=[1,2,3];

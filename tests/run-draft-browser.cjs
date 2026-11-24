@@ -19,7 +19,7 @@ function wav(){const b=Buffer.alloc(44+22050*2*15);b.write('RIFF');b.writeUInt32
  const reply=await page.evaluate(p=>offer('gts-lesson-offer',p),payload);assert(reply.ok);assert(await page.locator('#lesson-import-dialog').evaluate(d=>d.open));assert.equal(await page.evaluate(()=>s.currentScoreFile),null);
  await page.locator('#lesson-recording-file').setInputFiles({name:'draft.wav',mimeType:'audio/wav',buffer:wav()});await page.getByRole('button',{name:'Import lesson',exact:true}).click();
  await page.locator('#media-draft-timing').waitFor();await page.waitForFunction(()=>!document.querySelector('#lesson-import-dialog').open);
- assert.match(await page.locator('#media-draft-issues').textContent(),/missing|Missing/);assert(await page.locator('#media-finish-editing').isDisabled());assert(await page.locator('#media-save-profile').isDisabled());assert(await page.locator('#media-draft-use').isDisabled());
+ assert.match(await page.locator('#media-draft-issues').textContent(),/missing|Missing/);assert(await page.locator('#media-finish-editing').isDisabled());assert(await page.locator('#media-save-profile').isDisabled());assert(await page.locator('#media-draft-use').isEnabled());
  assert(await page.evaluate(()=>!s.media.preview&&s.media.editing&&!s.isPlaying&&!s.media.timingPlan));assert.deepEqual(await page.evaluate(()=>[...s.currentScoreFile.bytes]),[...bytes]);
  await page.locator('#media-draft-section').selectOption('music:0');
  await page.locator('#play-pause-button').click();
@@ -67,7 +67,7 @@ function wav(){const b=Buffer.alloc(44+22050*2*15);b.write('RIFF');b.writeUInt32
 
  const advanced=page.locator('#media-draft-json').locator('..');await advanced.locator('summary').click();
  const working={candidatePlan:structuredClone(timingPlan),unresolved:[]};working.candidatePlan.musicalVisits[0].anchors.splice(1,0,{offset480:240,seconds:99.123456789});
- await page.locator('#media-draft-json').fill(JSON.stringify(working));await page.locator('#media-draft-preview').click();assert.match(await page.locator('#media-draft-issues').textContent(),/99.123456789.*beyond/);assert(await page.locator('#media-draft-use').isDisabled());
+ await page.locator('#media-draft-json').fill(JSON.stringify(working));await page.locator('#media-draft-preview').click();assert.match(await page.locator('#media-draft-issues').textContent(),/99.123456789.*beyond/);assert(await page.locator('#media-draft-use').isEnabled());
  await page.locator('#media-draft-undo').click();assert.match(await page.locator('#media-draft-issues').textContent(),/missing|Missing/);await page.locator('#media-draft-redo').click();assert.match(await page.locator('#media-draft-issues').textContent(),/beyond/);
  const download=page.waitForEvent('download');await page.locator('#media-draft-export').click();const downloaded=await download;const fs=require('node:fs');const exported=JSON.parse(fs.readFileSync(await downloaded.path(),'utf8'));assert.deepEqual(exported.original,draft);assert.equal(exported.working.candidatePlan.musicalVisits[0].anchors[1].seconds,99.123456789);
  await page.locator('#media-draft-original').click();

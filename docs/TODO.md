@@ -34,9 +34,19 @@ Local listening check: audition the backward suggestion for Jazz Discovery measu
 
 Local acceptance for audio timing: click a missed measure on the score, set its first beat from the video, then check the colors and the following measure in playback.
 
+For a loaded recording, **Use reviewed timing** also offers playback when grading checks fail. The text beside the button describes exactly which behavior is available. Empty mappings can be filled in the draft editor.
+
+The local draft editor can now activate confirmed passages through **Use reviewed timing**. For a draft without a usable passage, check the reason beside the review controls. Zero-length opening rests and reviewed gaps have targeted regression coverage.
+
 **Stable baseline: v1.0.2, published November 20, 2026.** The core practice and usability work is complete. The next milestone is a few normal practice sessions with the released build. Use this page for current priorities and the dated archive for earlier decisions. [Release notes](releases/v1.0.2.md) · [GitHub release](https://github.com/ztbishop/guitar-trainer-studio/releases/tag/v1.0.2) · [Historical to-do entries](TODO-HISTORY.md)
 
 ## Changes since v1.0.2
+
+- Reviewed recording timing can activate when the generated guitar playback proves that a ringing note ends before a spoken passage or exactly at its start.
+
+- Media Sync groups **Time to apply (s)**, **Playhead (s)** and **Use playhead time** together. Zoom in for more beat labels. Save profile keeps edits across sessions.
+
+- Online draft timing opens directly in Media Sync when **Import helper lessons automatically** is enabled. Local recordings still need a file selection.
 
 - **Loop → Speed Trainer** increases Realtime synth speed after a chosen number of completed loops. Try a short loop with Loop Count-in and listen for the next pass’s tempo as it increases. [Tempo and Loop](../README.md#tempo-and-loop)
 - **Media Sync → Drag / nudge → Stretch selected section** adjusts a passage against a pinned final marker. On a real recording, listen at the first and last points, then try Undo before saving. [Alignment controls](MEDIA-SYNC.md#alignment)

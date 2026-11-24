@@ -54,9 +54,19 @@ test('finite tie proof survives a shorter release, independent chord attacks and
 });
 
 test('expressive or let-ring marks anywhere in a finite tie chain retain the ambiguous-hold guard',()=>{
-  for(const destination of [false,true])for(const field of ['isLetRing','vibrato','bendType','gtsTiedBend']) {
+  for(const destination of [false,true])for(const field of ['isLetRing','bendType','gtsTiedBend']) {
     const score=parse(core),{cache}=generate(core,score),beat=score.tracks[0].staves[0].bars[0].voices[0].beats[destination?1:0];beat.notes[0][field]=1;
     const timeline=buildPlaybackTimeline(cache,{score});assert(timeline.ambiguousHoldRanges.length,field);assert.throws(()=>compile(planFor(timeline),timeline),/ambiguous|silent rest/);
+  }
+});
+
+test('ordinary vibrato on a complete same-bar tie ends with its final beat',()=>{
+  for(const value of [1,2,3])for(const index of [0,1]){
+    const score=parse(core),beat=score.tracks[0].staves[0].bars[0].voices[0].beats[index];
+    beat.notes[0].vibrato=value;
+    const {timeline}=generate(core,score);
+    if(value===3)assert.throws(()=>compile(planFor(timeline),timeline));
+    else assert.equal(compile(planFor(timeline),timeline).visits[0].endTick,3840);
   }
 });
 
@@ -117,6 +127,52 @@ test('saved finite-carry case keeps all bass notes/ties and validates every supp
   assert(targets.some(n=>n.attack&&n.tieDestinationId&&n.startTick===57120&&n.endTick===61440));assert(targets.some(n=>n.hasVibrato&&n.startTick===44160&&n.endTick===46080));
   assert.deepEqual(compileTimingPlan(plan,{timeline,scoreSha256:plan.scoreSha256,recordingId:plan.recordingId}).plan,plan);
  }
+});
+
+function ringPlayback(at,tex) {
+  const original=parse(at,tex);
+  for(const beat of original.tracks[0].staves[0].bars[0].voices[0].beats)
+    for(const note of beat.notes)note.isLetRing=true;
+  const bytes=new at.exporter.Gp7Exporter().export(original,new at.Settings());
+  const score=at.importer.ScoreLoader.loadScoreFromBytes(new Uint8Array(bytes),new at.Settings());
+  const file=new at.midi.MidiFile(),g=new at.midi.MidiFileGenerator(score,new at.Settings(),new at.midi.AlphaSynthMidiFileHandler(file));
+  g.generate();
+  const timeline=(midiFile=file)=>buildPlaybackTimeline(g.tickLookup,{score,midiFile,midiTypes:at.midi.MidiEventType});
+  return {file,score,timeline};
+}
+
+test('an independent generated note-off releases plain and tied ringing guitar notes before a recording break',()=>{
+  for(const at of [classic,core])for(const tex of ['. 0.6.1 | r.1 | 2.6.1','. 0.6.2 -.6.2 | r.1 | 2.6.1']){
+    const {timeline}=ringPlayback(at,tex),original=timeline(null),proven=timeline();
+    assert(original.ambiguousHoldRanges.length);
+    assert.deepEqual(proven.events,original.events);
+    assert.deepEqual(proven.ambiguousHoldRanges,[]);
+    assert.equal(compile(planFor(proven),proven).visits.length,2);
+  }
+});
+
+test('uncertain generated releases retain the recording break guard',()=>{
+  for(const problem of ['late','missing','other track','other channel','overlap','reattack','pedal']){
+    const {file,timeline}=ringPlayback(core,'. 0.6.1 | r.1 | 2.6.1');
+    const type=core.midi.MidiEventType,events=file.tracks[0].events;
+    const on=events.find(e=>e.type===type.NoteOn && e.noteKey===40);
+    const off=events.find(e=>e.type===type.NoteOff && e.noteKey===40);
+    switch(problem){
+      case 'late': off.tick++;break;
+      case 'missing': events.splice(events.indexOf(off),1);break;
+      case 'other track': off.track++;break;
+      case 'other channel': off.channel++;break;
+      case 'overlap': events.push({...on,tick:on.tick+100});break;
+      case 'reattack': events.push({...on,tick:off.tick});break;
+      case 'pedal': events.push({type:type.ControlChange,tick:0,channel:on.channel,controller:64,value:127});break;
+    }
+    events.sort((a,b)=>a.tick-b.tick);
+    const guarded=timeline();assert(guarded.ambiguousHoldRanges.length,problem);assert.throws(()=>compile(planFor(guarded),guarded),undefined,problem);
+  }
+  const repeated=ringPlayback(core,'. 0.6.1 | 2.6.1 | 3.6.1').timeline();
+  assert(repeated.ambiguousHoldRanges.length,'new same-string attack at the break');
+  const tied=ringPlayback(core,'. 0.6.1 | -.6.1 | 2.6.1').timeline();
+  assert(tied.ambiguousHoldRanges.length,'written tie crosses the break');
 });
 
 

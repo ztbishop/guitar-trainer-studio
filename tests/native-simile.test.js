@@ -28,7 +28,8 @@ test('simple/chained similes expose all native attacks without editing the score
    assert.equal(e.sourceBeatId,String(placeholder.id));assert.equal(e.writtenStartTick,placeholder.absolutePlaybackStart);
    assert.equal(e.donorMeasureNumber,1);assert(e.notes.every(n=>n.sourceNoteId.startsWith('simile:') && n.donorSourceNoteId));
   }
-  assert.equal(t.ambiguousHoldEvidenceComplete,false,'repeat placeholders never prove recording silence');
+  assert.equal(t.ambiguousHoldEvidenceComplete,true,'the complete ordinary donor proves its releases');
+  assert(t.measures.slice(1).every(m=>m.isFullRest===false),'a repeated chord is sounding music');
  }
 });
 test('multi-beat donor retains chord positions, rests, tuning/capo and a fresh attack at each repeated visit',()=>{
@@ -57,6 +58,17 @@ test('a proved full rest donor stays silent across simple similes',()=>{
  const s=make(core,'. r.1 | r.1 | r.1'),t=project(core,s);
  assert.equal(t.similePracticeIssues,undefined);assert.deepEqual(getPracticeEvents(t,0),[]);
  assert.equal(t.events.length,3);assert(t.events.every(e=>e.isRest && !e.notes.length));
+});
+test('paired repeat measures play each original donor in order and retain picked chord attacks',()=>{
+ const p=new core.importer.AlphaTexImporter();p.initFromString('. (0.1 0.2).1 | 2.3.1 | r.1 | r.1',new core.Settings());
+ const score=p.readScore(),bars=score.tracks[0].staves[0].bars;
+ bars[0].voices[0].beats[0].pickStroke=2;
+ bars[2].simileMark=2;bars[3].simileMark=3;score.finish(new core.Settings());
+ const generated=cache(core,score),t=project(core,score,generated),events=getPracticeEvents(t,0);
+ assert.equal(t.similePracticeIssues,undefined);assert.equal(t.ambiguousHoldEvidenceComplete,true);
+ assert.deepEqual(events.map(e=>e.notes.map(n=>n.midi)),[[64,59],[57],[64,59],[57]]);
+ assert.equal(events.flatMap(e=>e.notes).length,generated.notes.length);
+ bars[3].simileMark=1;assert.equal(project(core,score).ambiguousHoldEvidenceComplete,false);
 });
 const negatives={
  'double simile':(s)=>s.tracks[0].staves[0].bars[1].simileMark=2,

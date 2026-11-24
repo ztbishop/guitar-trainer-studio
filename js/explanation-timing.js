@@ -149,8 +149,10 @@ function timelineKey(timeline) {
   let end=0;
   const counts=new Map(),measures=timeline.measures.map((measure,index)=>{
     const occurrence=(counts.get(measure.measureNumber)??0)+1;counts.set(measure.measureNumber,occurrence);
+    const emptyPickup=index===0 && measure.measureNumber===1 && measure.isFullRest===true && measure.endTick===0;
     if(!integer(measure.measureNumber)||measure.occurrence!==occurrence||measure.playbackMeasureIndex!==index||
-        !Number.isFinite(measure.startTick)||!Number.isFinite(measure.endTick)||measure.startTick!==end||measure.endTick<=measure.startTick)
+        !Number.isFinite(measure.startTick)||!Number.isFinite(measure.endTick)||measure.startTick!==end||
+        (measure.endTick<=measure.startTick && !emptyPickup))
       fail('The native expanded traversal is invalid.');
     end=measure.endTick;return [measure.measureNumber,measure.occurrence,measure.playbackMeasureIndex,measure.startTick,measure.endTick];
   });

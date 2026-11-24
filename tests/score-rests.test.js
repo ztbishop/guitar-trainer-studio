@@ -161,3 +161,20 @@ test('native expressive hold evidence rejects an inserted source blank even with
   beatAt(score).notes[0].isLetRing=true;
   assert.throws(compile,/ambiguous expressive/,'the next attack cannot terminate ringing until after the inserted recording time');
 });
+
+test('only a silent opening pickup can have zero ticks and be omitted from reviewed timing',()=>{
+  const score=parse(core,'. r.4 | 0.6.1 | 2.6.1');
+  const master=score.masterBars[0],beat=beatAt(score);
+  master.isAnacrusis=true;
+  beat.isEmpty=true;
+  score.finish(new core.Settings());
+  const {cache,timeline}=generate(core,score);
+  assert.equal(timeline.measures[0].endTick,0);
+  assert.equal(timeline.measures[0].isFullRest,true);
+  beat.isEmpty=false;
+  beat.voice.forceNonEmpty();
+  beat.playbackDuration=0;
+  assert.equal(buildPlaybackTimeline(cache,{score}).measures[0].isFullRest,true,'explicit zero-length rest');
+  beat.isLetRing=true;
+  assert.equal(buildPlaybackTimeline(cache,{score}).measures[0].isFullRest,false);
+});

@@ -2,6 +2,8 @@
 
 After **Use reviewed timing**, Realtime grades the first attack of a tie if that attack is inside a synced measure. It stops its hit window at the edge of the synced passage. A tie that begins during unmapped material has no new target when the score reappears. Other attacks in the same chord remain playable. A let-ring or expressive note earns credit for its synced attack even if its release reaches a spoken break. You can let it ring or release it during that break. Grading resumes at the next synced attack. If the draft still plays with grading off, the review status names the first blocking check.
 
+**Clear reviewed notices** acknowledges the review messages. **Use reviewed timing** becomes available once the remaining timing checks pass. For a written let-ring note, Trainer can use the generated note release to verify that it ends before the spoken break or exactly when the break starts.
+
 Implemented locally, 2026-11-15. Lesson Bridge is read-only in this task. This optional editor appears only for an explicit draft import. Ordinary Media Sync and verified imports keep their current workflow. Existing v1–v4 payloads are never reinterpreted as drafts.
 
 ## Capability and envelope
@@ -12,7 +14,7 @@ Query the existing same-window/same-origin capabilities route. Require lesson ve
 {format:'draft-recording-timing',version:1,capability:'draft-timing-v1'}
 ```
 
-An old explanation or interval capability does not authorize a draft. Bridge must keep draft Send blocked until this exact response exists at the selected, unchanged destination. A positive offer acknowledgement means review was opened, never validated timing or completed import. Drafts always require Import/Cancel review, even with automatic helper import enabled. Local-choice still requires choosing a recording file.
+An old explanation or interval capability does not authorize a draft. Bridge must keep draft Send blocked until this exact response exists at the selected, unchanged destination. With automatic helper import enabled, online drafts open directly in Media Sync. Manual import and local recording choices show the import dialog. Acknowledgement precedes completion. Recording grading stays paused until the owner validates and activates the timing.
 
 The envelope permits exactly these fields, all required:
 

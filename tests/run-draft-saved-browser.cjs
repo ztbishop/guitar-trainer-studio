@@ -26,7 +26,7 @@ function wav(seconds){const rate=8000,b=Buffer.alloc(44+Math.round(rate*seconds)
       await page.getByText('Add a passage or anchor',{exact:true}).click();await page.locator('#media-draft-add-passage').click();
       assert.equal(await page.locator('#media-draft-occurrence').inputValue(),'');
       await page.locator('#media-draft-occurrence').selectOption('12');
-      const v=JSON.parse(await page.locator('#media-draft-json').inputValue()).candidatePlan.musicalVisits[0];assert.equal(v.originalVisit,12);assert.equal(v.startSeconds,null);assert.equal(v.endSeconds,null);assert(await page.locator('#media-draft-use').isDisabled());
+      const v=JSON.parse(await page.locator('#media-draft-json').inputValue()).candidatePlan.musicalVisits[0];assert.equal(v.originalVisit,12);assert.equal(v.startSeconds,null);assert.equal(v.endSeconds,null);assert(await page.locator('#media-draft-use').isEnabled());
       await page.locator('#media-draft-undo').click();assert.equal(await page.locator('#media-draft-occurrence').inputValue(),'');
     }else{
       const repeat=d.candidatePlan.musicalVisits.findIndex(v=>v.occurrence===2&&v.endSeconds!==null),index=repeat>=0?repeat:0,v=d.candidatePlan.musicalVisits[index];
@@ -43,7 +43,7 @@ function wav(seconds){const rate=8000,b=Buffer.alloc(44+Math.round(rate*seconds)
       await page.locator('#media-draft-undo').click();assert.equal(await page.locator('#media-draft-json').inputValue(),saved);
       if(id==='97322'){await page.locator('#media-draft-section').selectOption('music:0');await page.waitForFunction(()=>document.querySelector('#media-draft-position').textContent.includes('M1, pass'));await page.screenshot({path:path.join(require('node:os').tmpdir(),'gts-draft-97322-preview.png')});}
     }
-    assert(await page.locator('#media-draft-use').isDisabled());assert(await page.evaluate(()=>!s.media.timingPlan&&!s.media.preview&&!s.isPlaying));
+    assert(await page.locator('#media-draft-use').isEnabled());assert(await page.evaluate(()=>!s.media.timingPlan&&!s.media.preview&&!s.isPlaying));
   }
   assert.deepEqual(await page.evaluate(async()=>[(await store.listProfiles()).length,(await store.list()).scores.length]),[0,0]);assert.deepEqual(errors,[]);console.log('PASS saved '+id+' original bytes, candidate preservation, visual tracking/missing or explicit ambiguous mapping, isolated grading / verified control');await context.close();
  }

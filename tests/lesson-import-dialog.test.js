@@ -347,9 +347,20 @@ test('native sounding-omission rejection stays a visible interval import failure
   assert.equal(h.loads.length,1);assert.equal(h.imports.length,1);assert.equal(h.finishCount,0);assert.equal(h.imports[0][1],null);
 });
 
-test('draft capability is independent; online drafts always require review despite saved automatic import',async t=>{
- const h=harness(t,{draftSupport:true,storageValue:'true'});await h.message({type:'gts-lesson-capabilities-request',id:'draft'});assert(h.messages.at(-1).lessonVersions.includes(5));assert(h.messages.at(-1).timingPlans.some(p=>p.capability==='draft-timing-v1'));
+test('draft capability is independent and a saved manual import waits for confirmation',async t=>{
+ const h=harness(t,{draftSupport:true,storageValue:'false'});await h.message({type:'gts-lesson-capabilities-request',id:'draft'});assert(h.messages.at(-1).lessonVersions.includes(5));assert(h.messages.at(-1).timingPlans.some(p=>p.capability==='draft-timing-v1'));
  const input=draftLesson();await h.offer(input);assert(h.dialog().open);assert.equal(h.loads.length,0);assert.match(h.text(),/Draft timing needs review/);await h.accept();assert.equal(h.imports.length,1);assert.deepEqual(h.imports[0][1],input.draftTiming);assert(!h.document.getElementById('lesson-import-notice').textContent.includes('Lesson ready'));
+});
+test('automatic online draft imports directly into paused review',async t=>{
+ const h=harness(t,{draftSupport:true,storageValue:'true'}),input=draftLesson();
+ await h.offer(input);await waitUntil(()=>h.imports.length===1);
+ assert(!h.dialog().open);assert.equal(h.finishCount,0);assert.deepEqual(h.imports[0][1],input.draftTiming);
+ assert.match(h.document.getElementById('lesson-import-notice').textContent,/grading is paused/i);
+});
+test('automatic draft with a local recording still waits for its file',async t=>{
+ const h=harness(t,{draftSupport:true,storageValue:'true'}),input=draftLesson();
+ input.recording={kind:'local-choice',id:input.recording.id};await h.offer(input);
+ assert(h.dialog().open);assert(h.acceptButton().disabled);assert.equal(h.loads.length,0);
 });
 test('strict capabilities do not authorize drafts',async t=>{const h=harness(t,{timingSupport:true,intervalSupport:true});await h.offer(draftLesson());assert.equal(h.messages.at(-1).ok,false);assert.equal(h.loads.length,0);});
 

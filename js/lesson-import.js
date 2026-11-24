@@ -175,7 +175,7 @@ export function initLessonImport({loadFile,mediaControls,state,practiceReference
       hideNotice();
       heading.textContent='Import lesson from Lesson Bridge?';note.hidden=false;
       if(!pending.score && (!state.currentScoreFile || !state.playerReady))throw new Error('Load a score in Guitar Trainer before sending recording/timing alone.');
-      description.textContent=`${pending.title} · ${pending.score?pending.score.fileName:'keep current score: '+state.currentScoreFile.fileName} · from ${new URL(pending.lessonUrl).origin} · ${pending.recording?.kind==='local-choice'?'choose a local recording here':pending.recording?'recording from '+new URL(pending.recording.url).origin:pending.keepRecording?'keep current recording':'no recording'} · ${pending.timingPlan?'explanation-aware timing':pending.timingWarning?'timing needs manual alignment':pending.syncPoints?pending.syncPoints.length+' timing points':'no new timing'}`;
+      description.textContent=`${pending.title} · ${pending.score?pending.score.fileName:'keep current score: '+state.currentScoreFile.fileName} · from ${new URL(pending.lessonUrl).origin} · ${pending.recording?.kind==='local-choice'?'choose a local recording here':pending.recording?'recording from '+new URL(pending.recording.url).origin:pending.keepRecording?'keep current recording':'no recording'} · ${pending.timingPlan?'explanation-aware timing':pending.draftTiming?'draft timing for review':pending.timingWarning?'timing needs manual alignment':pending.syncPoints?pending.syncPoints.length+' timing points':'no new timing'}`;
       note.textContent=pending.score?'The score will be replaced. Changing score or recording discards incompatible alignment; supply matching timing or align manually. Nothing saves automatically.':'Only selected components will be updated. Replacing a recording clears its previous alignment; timing-only updates keep the current score and recording. Saving remains optional.';
       status.textContent=pending.timingWarning?'The selected resources can still load. Imported timing needs manual alignment: '+pending.timingWarning:'';cancel.textContent='Cancel';accept.hidden=false;
       if(pending.timingPlan) {
@@ -197,7 +197,7 @@ export function initLessonImport({loadFile,mediaControls,state,practiceReference
       if(pending.recordingMode==='reference-only'){heading.textContent='Import practice score with reference recording?';note.textContent='The recording uses independent controls. No alignment is supplied or estimated. Video play and seek do not affect score transport, Wait or grading. Nothing plays or saves automatically.';status.textContent='Reference only — not synchronized.';}
       if(pending.draftTiming){heading.textContent='Import draft timing?';status.textContent='Draft timing needs review. Recording grading stays paused until reviewed timing passes validation.';}
       localRecording.hidden=pending.recording?.kind!=='local-choice';syncAccept();
-      if(autoImport && !pending.draftTiming && pending.recording?.kind!=='local-choice') {
+      if(autoImport && pending.recording?.kind!=='local-choice') {
         // Acknowledge receipt before awaiting score/media loads; the sender has a short reply timeout.
         reply(true,'Importing lesson in Guitar Trainer.');void importPendingLesson({automatic:true});
       } else {dialog.showModal();cancel.focus();reply(true,'Review the lesson in Guitar Trainer.');}
