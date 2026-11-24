@@ -1,5 +1,7 @@
 # Guitar Trainer Studio architecture
 
+When a remote recording plays but its bytes cannot be read, the audio analyzer can decode a user-selected local copy for that run. The existing player supplies the duration check and continues to play the remote source. The retry belongs to the active score, recording and practice track.
+
 Lesson audio drafts use normalized selected visits as fixed pins for an optional missing-measure search. The draft builder loads this search on demand. Suggestions and alternative performances live in draft evidence, or in working draft data after replacing a mapping. The practice timeline changes only when the reviewer inserts a take and applies the draft.
 
 Media Sync projects selected audio takes, editable draft coverage and accepted visits onto the video seek bar. The analyzer and its reviewer share a manual measure form keyed by expanded score visit. Adding a visit in review updates adjacent gap references and goes through draft undo history.

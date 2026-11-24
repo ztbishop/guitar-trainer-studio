@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Linked video playback and local audio analysis
+
+The cached Phrygian Mode test used a local MP4. The archived TrueFire media redirect answered a one-byte request from the localhost origin with an allow-origin header, and its CDN returned partial content without that header. The analyzer now offers a matching local file on link read failures, preserving the linked playback source and retrying the original Analyze or Auto-sync action. Reference timing labels alone do not establish that speech occurs. Verified in isolated Chrome on the live Phrygian Mode URL: retrying with its cached MP4 retained the remote video and reproduced the 4:59.69 suggestion for measure 23. The synthetic link test also rejected a shorter copy and resumed successfully with the matching file.
+
 ## Auditioning missing measures in an audio draft
 
 The reviewer shows each proposed measure and repeat pass alongside its alternative recording times. Play with lead-in starts two seconds before a take and ends at its boundary. Use this take inserts it through the manual measure editor’s interval and undo handling. One-click Auto-sync users can reach the retained review through Edit sync and Edit timed measures. A saved timing profile stores the accepted visits. Exported draft work also retains the unchosen suggestions. Owner listening feedback is pending.
