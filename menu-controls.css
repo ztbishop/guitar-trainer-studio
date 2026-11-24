@@ -285,7 +285,16 @@
 .scores-demos .scores-library-actions { grid-template-columns: repeat(3,minmax(0,1fr)); }
 .scores-demos > a { color: #245f88; }
 #demo-score-status:empty { display: none; }
-.scores-library-actions { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 10px; }
+.scores-library-actions { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
+.score-action-list {
+  padding: 5px; border: 1px solid var(--menu-input-border); border-radius: 9px;
+  background: var(--panel-soft, #fff); color: var(--text); box-shadow: 0 6px 20px rgba(34,48,62,.18);
+}
+.score-action-list:popover-open { display: grid; gap: 2px; }
+@supports (top: anchor(bottom)) {
+  .score-action-list { inset: auto; top: anchor(bottom); right: anchor(right); margin: 4px 0; }
+}
+.score-action-list button { min-height: 42px; text-align: left; box-shadow: none; }
 .scores-library-actions > button, .scores-library-actions .button-like { width: 100%; min-height: 48px; padding: 8px 10px; border-radius: 9px; box-shadow: none; text-align: center; box-sizing: border-box; }
 .scores-library-actions .file-picker { display: flex; min-width: 0; margin: 0; }
 .scores-library-actions .button-like { font-size: .9rem; border-color: var(--control-border-soft); }
@@ -348,6 +357,9 @@
 .library-confirm p { font-size: .9rem; line-height: 1.5; }
 #display-popup .menu-radio-group { margin-bottom: 12px; }
 @media (max-width: 620px) {
+  @supports (top: anchor(bottom)) {
+    #score-pdf-tools { left: anchor(left); right: auto; }
+  }
   .scores-menu-content { padding: 10px 14px 16px; }
   .scores-library-actions { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
   .library-browser { grid-template-columns: minmax(0,1fr); min-height: 0; }

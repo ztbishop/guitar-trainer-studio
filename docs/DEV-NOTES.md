@@ -1,5 +1,13 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Whole-score PDF detection and the Scores menu, November 24, 2026
+
+Both marking editors offer Find boxes in score, with single-page detection for targeted repairs. Use score boxes saves the remaining proposals together and preserves hand-marked boxes. Use page boxes accepts the current page and opens the next detected page. Blank pages are reported and consume no measure numbers. Cancel discards the remaining proposals.
+
+In isolated Chrome the original Arirang PDF yielded 28, 29, 20, 14, 32 and 22 boxes across its six pages. The TAB edition yielded 23, 23, 17, 14, 10, 19, 22 and 17 across eight pages. Both restored 145 mappings after reopening. The two-page companion test covers starting from page two, preserving a hand-drawn measure, advancing numbering and accepting the whole score.
+
+The Scores action row keeps Open File and Save to Library visible. PDF groups attachment, standalone recording, returning to an attached PDF and printing. Library tools groups backup and merge import. Browser checks cover desktop row count, narrow-screen menus, keyboard dismissal and the backup round trip.
+
 ## Steady accompaniment in PDF tap review, November 24, 2026
 
 With taps at Easy Guitar FYLT M94 and M98, the bass attacks suggested for M95/M96 fell about 0.46–0.48 s after the evenly spaced starts, roughly a quarter of a bar. Both the practice and playalong entries showed the same error. In Acoustic Guitar FWYS M9–M13, the suggested M10–M12 attacks were 0.21–0.23 s after even spacing, roughly an eighth of a bar. Both bass envelopes repeated at the half-bar and whole-bar periods implied by the taps. That repetition was weak on Single-Note Rhythmic Ideas M25–M28.

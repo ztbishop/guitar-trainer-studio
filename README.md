@@ -100,7 +100,7 @@ For other hardware/software paths, see the [MIDI input comparison appendix](#app
 
 **Scores → Open File** also accepts `.pdf` for realtime play-along with just a local recording.
 
-1. Open the PDF. The trainer finds the printed measure boxes across its pages. Use **Mark measures** to check the result. For manual marking from scratch, open **Scores → PDF + recording…** and clear **Find measure boxes on open** before choosing the PDF.
+1. Open the PDF. The trainer finds the printed measure boxes across its pages. Use **Mark measures** to check the result. For manual marking from scratch, open **Scores → PDF → PDF + recording…** and clear **Find measure boxes on open** before choosing the PDF.
 2. Choose **Open audio or video…** and play the recording. Click **Tap measure start** on a downbeat. The measure selector advances after each tap. To skip from measure 1 to measure 5, choose 5 and tap when you hear it. The trainer estimates measures 2–4 between those taps.
 3. Add a tap at a previously estimated measure wherever a hold or tempo change causes drift. To correct a saved tap, choose it under **Adjust taps and mark breaks**, then enter seconds or use the playhead. Before an explanation, select the last played measure and **Mark end of selected measure**. Tap the next downbeat after the break.
 4. Click a timed box to seek. Select the first and last measures and choose **Loop section**. The loop needs a later downbeat or a marked end. For a repeated passage, seek near the desired take first. **Tempo** adjusts playback from 25% to 200%.
@@ -113,11 +113,11 @@ Reopen the same two files to restore the taps and any reviewed passage timing. T
 
 Use a PDF with a MIDI when the print is your reference for reading the music. A Guitar Pro or MusicXML companion also works when you prefer the publisher's layout. Written fingerings for the virtual fretboard come from the companion. TAB printed on a PDF is visible to you but supplies no string data to the trainer.
 
-1. Open the playable score, then choose **Scores → Attach PDF…**. For a lesson with a downloadable PDF, select the saved PDF from your device.
-2. Choose **Find boxes on page**. Set **First measure** to the companion measure that begins that page. Check the numbers at the beginning of each staff line. In **Correction**, split a box at a missed barline, join a box with the next one, remove an extra, or drag to draw or redraw. Choose **Use page boxes**, then select the next page. Existing mappings are kept. You can also select a measure and draw its box by hand.
+1. Open the playable score, then choose **Scores → PDF → Attach PDF…**. For a lesson with a downloadable PDF, select the saved PDF from your device.
+2. Choose **Find boxes in score** to scan every page in printed order. **Use score boxes** accepts all remaining pages and keeps existing boxes. To review individually, check **First measure**, split or join any incorrect boxes under **Correction**, then choose **Use page boxes**. The next detected page opens with numbering continued from your corrections. You can also select a measure and draw its box by hand.
 3. Choose **Done marking** to practice. Click a mapped measure to pause there. Use **Jump to** to move to a particular note or chord in the companion. The blue box follows the current measure. When Loop is on, a light gray shade marks measures outside its range. Unmarked measures still play and grade.
 4. In **Mark measures**, drag the blue **↔** handle between touching boxes to move their shared barline. You can also focus it and use the arrow keys. Moving the start of measure 5 widens or narrows measure 4 and adjusts measure 5. Measure 6 stays put. The handle stops before either box collapses. For an isolated box, choose its measure and redraw it.
-5. To rebuild an already mapped page, choose **Find boxes on page**, check **First measure**, then select **Replace saved boxes on this page → Use page boxes**. If an earlier page had an extra division, check the first measure on each subsequent page. The editor blocks replacement if a number belongs to another page.
+5. To rebuild an already mapped page, choose **Find on this page**, check **First measure**, then select **Replace saved boxes on this page → Use page boxes**. If an earlier page had an extra division, check the first measure on each subsequent page. The editor blocks replacement if a number belongs to another page.
 
 Written repeats reuse their box. If your MIDI writes out a repeat as separate measures, assign the additional measures to the same printed passage by hand. **Show notation** returns to the interactive score. **Show PDF** beside the full-screen button switches back.
 
@@ -127,6 +127,7 @@ Boxes are saved in this browser for this exact pair of files. Reattach the PDF w
 
 - **Open File** opens a score for this session. It does not save it automatically.
 - **Save to Library** keeps a browser copy of the open score.
+- **PDF** groups the PDF practice and print commands. **Library tools** contains Backup Library and Import Library (Merge).
 - **Add File(s)** saves one or more files to the library without opening them. Files go into the selected folder, or Unfiled when All Scores is selected.
 - Click a saved score to open it. Its three-dot menu offers Rename, Move, **Download original file**, and Delete. Download keeps the original filename and format (such as `.gp5` or MusicXML); it does not convert the score or include sync profiles.
 - A folder’s three-dot menu offers **Export folder**: a JSON backup of that folder, its saved scores and their related saved sync profiles. Restore it with **Import Library (Merge)**. Recordings and app preferences are not included. Use folders and search to organize your collection.
@@ -250,7 +251,7 @@ Some scores put all chord diagrams in a separate **Chords** track. Showing it al
 
 **Tab rhythm** controls the stems and beams that show timing on tablature. Automatic shows them when notation is absent and hides them when notation supplies the rhythm; Show and Hide override that choice. The control is unavailable while no tab is visible, but remembers your choice. Score display, tab rhythm and chord diagram placement save independently across visits and score loads.
 
-Use **Scores → Print / Save PDF…** to print the full score for the currently visible tracks, using your score display, rhythm and chord diagram choices. The clean print view leaves out practice feedback and the fretboard. Choose a printer or Save as PDF in your browser's print dialog; allow pop-ups for the app if the print view is blocked.
+Use **Scores → PDF → Print / Save PDF…** to print the full score for the currently visible tracks, using your score display, rhythm and chord diagram choices. The clean print view leaves out practice feedback and the fretboard. Choose a printer or Save as PDF in your browser's print dialog; allow pop-ups for the app if the print view is blocked.
 
 Use the **gear on the fretboard** for Beat / Beat + Next Beat / Beat + Bar views, note/fret/finger labels, left-handed orientation and help. Finger labels need explicit fingering in the score; the app does not invent it. Left-handed display does not reverse MIDI channel mapping.
 
@@ -320,7 +321,7 @@ Open **More → Help & Guide → Downloads & releases** to visit the [GitHub Rel
 
 Updates are manual; the app does not check for new versions or replace your files automatically.
 
-1. In **Scores**, choose **Backup Library** and keep the downloaded backup somewhere safe. It includes saved scores and sync profiles, but not your recordings or app preferences. Keep your original scores and recordings too.
+1. In **Scores → Library tools**, choose **Backup Library** and keep the downloaded backup somewhere safe. It includes saved scores and sync profiles, but not your recordings or app preferences. Keep your original scores and recordings too.
 2. Stop your local launcher or Live Server, then download and extract the whole updated project into a separate folder. Keep your previous copy until the update works.
 3. Start the updated copy with your usual launcher or Live Server. Use the same browser profile, website address and port as before so your browser library and saved settings remain available. In particular, keep using either `localhost` or `127.0.0.1` consistently.
 4. Refresh the page; hard-refresh if old controls remain. Open a familiar score and check playback and MIDI input. If your library appears empty, check the address and browser profile first, then use **Import Library (Merge)** if needed.

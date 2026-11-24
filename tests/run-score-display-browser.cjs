@@ -9,7 +9,9 @@ const {createAppServer}=require('../local-web-server.cjs');
   const score=parse(String.raw`\title "Display and print QA" \tempo 120 . (0.6 2.5 2.4).4 0.1.4 1.1.4 3.1.4 | 0.6.1`);
   const staff=score.tracks[0].staves[0];staff.showStandardNotation=false;
   const chord=new at.model.Chord();chord.name='Em';chord.strings=[0,0,0,2,2,0];staff.addChord('em',chord);staff.bars[0].voices[0].beats[0].chordId='em';
-  const piano=parse(String.raw`\track "Notation only" \tuning piano . C4.1 | D4.1`);
+  // The GP round trip assigns guitar positions to pitches within guitar range.
+  // Use bass-register piano notes so the imported track has no playable tab.
+  const piano=parse(String.raw`\track "Notation only" \instrument 0 \tuning piano . C1.1 | D1.1`);
   score.addTrack(piano.tracks[0]);score.finish(settings);
   // Separate AlphaTex parses restart IDs; export needs globally unique IDs.
   let barId=0,voiceId=0,beatId=0,noteId=0;
@@ -138,6 +140,7 @@ const {createAppServer}=require('../local-web-server.cjs');
       await page.keyboard.press('Escape');
       if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:require('node:path').join(process.env.GTS_SCREENSHOT_DIR,'appearance-'+theme+'.png')});
       await page.locator('#btn-scores').click();
+      await page.getByRole('button',{name:'PDF',exact:true}).click();
     const popupPromise=page.waitForEvent('popup');await page.locator('#score-print').click();const popup=await popupPromise;
     await popup.waitForFunction(()=>window.printRequested && document.querySelector('svg'));
     assert.equal(await popup.locator('.notation-feedback-overlay,.fretboard-marker,.at-cursor-beat,#media-editor').count(),0);

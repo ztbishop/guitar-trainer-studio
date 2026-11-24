@@ -73,13 +73,19 @@
             <input id="score-file-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl,.mid,.midi,audio/midi,audio/x-midi,.pdf,application/pdf" />
           </label>
           <button id="library-save" type="button" disabled>Save to Library</button>
-          <button id="score-print" type="button" disabled>Print / Save PDF…</button>
-          <button id="pdf-attach" type="button" disabled>Attach PDF…</button>
-          <button id="open-pdf-recording" type="button">PDF + recording…</button>
+          <button type="button" popovertarget="score-pdf-tools">PDF <span aria-hidden="true">▾</span></button>
+          <div id="score-pdf-tools" class="score-action-list" popover>
+            <button id="pdf-attach" type="button" disabled>Attach PDF…</button>
+            <button id="open-pdf-recording" type="button">PDF + recording…</button>
+            <button id="pdf-show" type="button" hidden>Show PDF</button>
+            <button id="score-print" type="button" disabled>Print / Save PDF…</button>
+          </div>
+          <button type="button" popovertarget="score-library-tools">Library tools <span aria-hidden="true">▾</span></button>
+          <div id="score-library-tools" class="score-action-list" popover>
+            <button id="library-backup" type="button">Backup Library</button>
+            <button id="library-restore" type="button">Import Library (Merge)</button>
+          </div>
           <input id="pdf-file" type="file" accept=".pdf,application/pdf" hidden />
-          <button id="pdf-show" type="button" hidden>Show PDF</button>
-          <button id="library-backup" type="button">Backup Library</button>
-          <button id="library-restore" type="button">Import Library (Merge)</button>
         </div>
         <p class="field-help library-backup-warning">Saved in this browser only. Back up your library to protect scores and sync points.</p>
         <input id="library-import-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl,.mid,.midi" multiple hidden />
@@ -421,7 +427,7 @@
       <p><strong>Guitar recognition requires MIDI input, not standard guitar audio.</strong> The app does not listen to your microphone/audio interface or convert audio to MIDI. Use a MIDI guitar system such as Fishman TriplePlay, or separate conversion software such as MIDI Guitar 3, then select its MIDI input in Settings. Scores and playback work without MIDI; grading and Wait progression need it.</p>
       <ol class="menu-help-list">
         <li>For a PDF and a recording alone, open the PDF from Scores → Open File. Review the detected boxes, open your audio or video, then tap measure starts during playback. Add a tap where the highlight drifts. Select the first and last measures and choose Loop section. Tempo changes playback speed.</li>
-        <li>With a Guitar Pro, MusicXML or MIDI score, choose Attach PDF → Find boxes on page. Check the first measure and use Correction for missed or extra barlines, then choose Use page boxes. In Mark measures, drag a blue ↔ divider to resize the two measures that share it, or draw a box by hand. After Done marking, click a measure to seek or use Jump to for a specific note. Gray shading shows measures outside the active loop.</li>
+        <li>With a Guitar Pro, MusicXML or MIDI score, choose Scores → PDF → Attach PDF, then Find boxes in score. Choose Use score boxes to accept all pages, or correct a page and choose Use page boxes to review the next one. Find on this page lets you redo a single page. After marking, click a measure to seek or use Jump to for a specific note. Gray shading shows measures outside the active loop.</li>
         <li>Select your MIDI input in Settings. Match Poly or Hex and its channels to your device.</li>
         <li>In Practice, choose one guitar track. Try Wait to learn the notes, or Realtime to practice timing.</li>
         <li>Press Play. Use Tempo to slow down and Loop to repeat a section. Pause preserves results.</li>
@@ -461,7 +467,7 @@
         <div class="media-actions"><button id="media-delete-profile" type="button" disabled>Delete profile</button></div>
         <details><summary>Manage all profiles</summary><label class="field-group"><span class="field-label">Search profiles</span><input id="media-profile-search" type="search" placeholder="Profile, score or recording" /></label><p id="media-profile-storage" class="field-help"></p><div id="media-profile-list" class="media-profile-list"></div></details>
         <details id="media-profile-transfer"><summary>Transfer sync profiles only</summary>
-          <p class="field-help">Scores → Backup Library already includes all saved sync profiles. Use these controls to transfer only profiles, without scores or recordings.</p>
+          <p class="field-help">Scores → Library tools → Backup Library already includes all saved sync profiles. Use these controls to transfer profiles separately.</p>
           <div class="media-actions"><button id="media-export-profile" type="button" disabled>Export profiles</button><button id="media-import-profile" type="button">Import profiles</button></div>
           <input id="media-profile-file" type="file" accept=".json" hidden />
         </details>

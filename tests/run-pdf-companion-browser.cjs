@@ -50,6 +50,11 @@ function twoBarMidi() {
       }
       if(pageNumber===2) {
         await page.locator('#pdf-find').click();
+        await page.locator('#pdf-use-score').waitFor();
+        assert.equal(await page.locator('#pdf-page').inputValue(),'1');
+        await page.locator('#pdf-cancel').click();
+        await page.locator('#pdf-page').selectOption('2');
+        await page.locator('#pdf-find-page').click();
         await page.locator('#pdf-use').waitFor();
         const proposed=page.locator('#pdf-boxes .pdf-box');
         assert.equal(await proposed.count(),1);
@@ -105,8 +110,25 @@ function twoBarMidi() {
     // belongs to page two, so a replacement must protect that assignment.
     await page.locator('#pdf-map').click();
     await page.locator('#pdf-page').selectOption('1');
+    // Keep a hand-drawn first bar and recover a missing second page in one scan.
+    await page.locator('#pdf-measure').selectOption('2');
+    await page.locator('#pdf-remove').click();
+    const savedBoxes=()=>page.evaluate(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('gts.pdf.v1.')))));
+    const manual=(await savedBoxes())[1];
+    await page.locator('#pdf-find').click();
+    await page.locator('#pdf-use-score').click();
+    assert.deepEqual((await savedBoxes())[1],manual);
+    assert.equal((await savedBoxes())[2].page,2);
+    assert.equal(await page.locator('#pdf-pages button[data-measure]').count(),2);
+    await page.locator('#pdf-map').click();
+    await page.locator('#pdf-find').click();
+    await page.locator('#pdf-use').click();
+    assert.equal(await page.locator('#pdf-page').inputValue(),'2');
+    assert.equal(await page.locator('#pdf-measure').inputValue(),'2');
+    await page.locator('#pdf-cancel').click();
+    await page.locator('#pdf-page').selectOption('1');
     const splitFirstPage=async()=>{
-      await page.locator('#pdf-find').click();
+      await page.locator('#pdf-find-page').click();
       await page.locator('#pdf-use').waitFor();
       const rect=await page.locator('#pdf-boxes .pdf-box').first().boundingBox();
       await page.locator('#pdf-action').selectOption('split');

@@ -3,9 +3,19 @@ import assert from 'node:assert/strict';
 import {writtenMeasureAt, measureBox, expectedPdfNotes} from '../js/pdf-companion.js';
 import {SCORE_EXTENSIONS} from '../js/library-store.js';
 import {midiToMusicXml} from '../js/midi-score-import.js';
-import {editPageBoxes,availableVisit,replacePageBoxes} from '../js/pdf-box-review.js';
+import {editPageBoxes,availableVisit,replacePageBoxes,addScoreBoxes} from '../js/pdf-box-review.js';
 import {sharedBarline,moveBarline} from '../js/pdf-barline-controls.js';
 import {detectMeasureBoxes} from '../js/pdf-measure-detection.js';
+
+test('whole-score acceptance keeps hand edits and rejects conflicting or excess boxes as a unit',()=>{
+  const manual={page:1,x:.15}, later={page:3,x:.3};
+  const saved={1:manual,4:later};
+  const detected=[{page:1,x:.1},{page:2,x:.2}];
+  assert.deepEqual(addScoreBoxes(saved,[1,2],detected),{...saved,2:detected[1]});
+  assert.equal(addScoreBoxes(saved,[3,4],detected),null);
+  assert.equal(addScoreBoxes(saved,[1],detected),null);
+  assert.deepEqual(saved,{1:manual,4:later});
+});
 
 test('pairs notation with TAB and ignores a stem with no corresponding TAB barline',()=>{
   const width=360,height=180,ink=new Uint8Array(width*height).fill(255);

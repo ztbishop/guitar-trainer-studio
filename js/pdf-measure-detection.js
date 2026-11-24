@@ -159,3 +159,15 @@ export async function detectPdfPage(pdfPage,page) {
     return detectMeasureBoxes(gray,canvas.width,canvas.height,page);
   } finally {canvas.width=canvas.height=1;}
 }
+
+export async function detectPdfScore(pdf,isCurrent,onPage) {
+  const pages=[];
+  for(let page=1;page<=pdf.numPages;page++){
+    if(!isCurrent())return null;
+    onPage(page);
+    const sheet=await pdf.getPage(page);
+    if(!isCurrent())return null;
+    pages.push(await detectPdfPage(sheet,page));
+  }
+  return isCurrent()?pages:null;
+}

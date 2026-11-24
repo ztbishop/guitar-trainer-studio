@@ -30,6 +30,19 @@ export function replacePageBoxes(saved,page,numbers,proposals) {
   return result;
 }
 
+// Build a complete additive mapping before saving anything. Numbers come
+// from the companion score in written order, or the PDF-only measure list.
+export function addScoreBoxes(saved,numbers,proposals) {
+  if(numbers.length!==proposals.length || !numbers.length)return null;
+  const result={...saved};
+  for(const [i,box] of proposals.entries()){
+    const n=numbers[i];
+    if(result[n] && result[n].page!==box.page)return null;
+    result[n]??=box;
+  }
+  return result;
+}
+
 export function availableVisit(visits, number, tick, range, plan) {
   const eligible=visits.filter(v=>v.measureNumber===number && (!range || (v.startTick>=range.startTick && v.startTick<range.endTick)) &&
     (!plan || plan.visits.some(p=>v.startTick>=p.startTick && v.startTick<p.endTick)));

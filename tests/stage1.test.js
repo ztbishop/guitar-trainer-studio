@@ -144,7 +144,7 @@ function dom() {
   const elements=new Map(ids.map(id=>[id,new Element(id)]));
   const launches=['audio-popup','display-popup'].map(id=>{const el=new Element(`launch-${id}`); el.dataset.launchPanel=id; return el;});
   globalThis.HTMLElement=Element;
-  globalThis.document={body:new Element('body'),getElementById:id=>elements.get(id)||null,querySelectorAll:()=>launches,addEventListener(type,cb){this[type]=cb;},createElement:()=>new Element(''),createElementNS:()=>new Element('')};
+  globalThis.document={body:new Element('body'),getElementById:id=>elements.get(id)||null,querySelectorAll:selector=>selector==='[data-launch-panel]'?launches:[],addEventListener(type,cb){this[type]=cb;},createElement:()=>new Element(''),createElementNS:()=>new Element('')};
   globalThis.window={innerWidth:1200,location:{href:'https://example.test/index.html'},addEventListener(){}};
   return {elements,launches};
 }

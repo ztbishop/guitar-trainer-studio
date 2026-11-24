@@ -27,6 +27,7 @@ const fs=require('node:fs/promises');
    }
   });
   await source.reload();await source.locator('#btn-scores').click();
+  await source.getByRole('button',{name:'Library tools',exact:true}).click();
   const downloaded=source.waitForEvent('download');await source.locator('#library-backup').click();
   const buffer=await fs.readFile(await (await downloaded).path());
   const backup=JSON.parse(buffer);assert.equal(backup.folders.length,3);assert.equal(backup.scores.length,3);assert.equal(backup.mediaProfiles.length,6);

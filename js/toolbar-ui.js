@@ -55,6 +55,12 @@ export function initToolbar({ onIntent } = {}) {
 
   let activeButtonId = null;
   let activePanelId = null;
+  const scoreActions = document.querySelectorAll('.score-action-list');
+  for (const list of scoreActions) {
+    list.addEventListener('click', event => {
+      if (event.target.closest('button')) list.hidePopover();
+    });
+  }
 
   function blurFocusedDescendant(root) {
     const active = document.activeElement;
@@ -64,6 +70,7 @@ export function initToolbar({ onIntent } = {}) {
   }
 
   function closeAllPopups() {
+    for (const list of scoreActions) list.hidePopover();
     panels.forEach((panel) => {
       blurFocusedDescendant(panel);
       setPopupState(panel, false);
@@ -133,6 +140,7 @@ export function initToolbar({ onIntent } = {}) {
   backdrop?.addEventListener('click', closeAllPopups);
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
+      if (Array.from(scoreActions).some(list => list.matches(':popover-open'))) return;
       closeAllPopups();
     }
   });
