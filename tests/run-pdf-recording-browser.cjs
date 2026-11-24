@@ -3,17 +3,17 @@ const {chromium}=require(process.env.GTS_PLAYWRIGHT_MODULE || 'playwright');
 const assert=require('node:assert/strict');
 const {createAppServer}=require('../local-web-server.cjs');
 
-function audioFixture() {
+function audioFixture(starts=[1.36,4.3,7.98],name='exercise.wav',duration=1/3) {
   const rate=8000, size=rate*12*2, data=Buffer.alloc(44+size);
   data.write('RIFF');data.writeUInt32LE(36+size,4);data.write('WAVEfmt ',8);
   data.writeUInt32LE(16,16);data.writeUInt16LE(1,20);data.writeUInt16LE(1,22);
   data.writeUInt32LE(rate,24);data.writeUInt32LE(rate*2,28);data.writeUInt16LE(2,32);
   data.writeUInt16LE(16,34);data.write('data',36);data.writeUInt32LE(size,40);
-  for(const start of [1.36,4.3,7.98])for(let i=0;i<rate/3;i++){
-    const sample=Math.round(20000*Math.sin(2*Math.PI*130*i/rate)*Math.exp(-18*i/rate));
+  for(const start of starts)for(let i=0;i<rate*duration;i++){
+    const sample=Math.round(20000*Math.sin(2*Math.PI*130*i/rate)*Math.exp(-6*i/(rate*duration)));
     data.writeInt16LE(sample,44+2*(Math.round(start*rate)+i));
   }
-  return {name:'exercise.wav',mimeType:'audio/wav',buffer:data};
+  return {name,mimeType:'audio/wav',buffer:data};
 }
 (async()=>{
   const server=createAppServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -24,7 +24,7 @@ function audioFixture() {
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     let [, ,pdf,recording]=process.argv;
     if(!pdf) {
-      await page.setContent('<svg width="600" height="100"><path d="M10 20h560 M10 28h560 M10 36h560 M10 44h560 M10 52h560 M10 20v32 M190 20v32 M370 20v32 M570 20v32" fill="none" stroke="black"/></svg>');
+      await page.setContent('<svg width="600" height="100"><path d="M10 20h560 M10 28h560 M10 36h560 M10 44h560 M10 52h560 M10 20v32 M120 20v32 M230 20v32 M340 20v32 M450 20v32 M570 20v32" fill="none" stroke="black"/></svg>');
       pdf={name:'exercise.pdf',mimeType:'application/pdf',buffer:await page.pdf()};recording=audioFixture();
     }
     await page.goto('http://127.0.0.1:'+server.address().port);
@@ -72,6 +72,8 @@ function audioFixture() {
     assert.equal(await room.locator('.pdf-box.current').getAttribute('data-measure'),'2');
     await room.locator('#audio-review summary').click();
     await room.locator('#audio-find').click();await room.locator('#keep-audio:enabled').waitFor();
+    assert.match(await room.locator('#audio-measure').innerText(),/Keep even spacing/);
+    assert.ok(await room.locator('#use-suggested').isHidden());
     const before=await room.locator('#anchors').innerText();
     await room.locator('#hear-audio').click();
     await player.evaluate(v=>v.pause());
@@ -113,6 +115,22 @@ function audioFixture() {
     await player.evaluate(v=>v.pause());
     assert.equal(await room.locator('#anchors option').count(),4);
     assert.ok(Number(await room.locator('#anchors').inputValue())>=8.5);
+    if(!process.argv[2]){
+      await room.locator('#recording-file').setInputFiles(audioFixture([1,2.64,4.65,7.34,9],'mixed.wav',.13));
+      await room.locator('#tap:enabled').waitFor();
+      await tap(1,1);await tap(5,9);
+      const anchors=await room.locator('#anchors').innerText();
+      if(!await room.locator('#audio-review').evaluate(e=>e.open))await room.locator('#audio-review summary').click();
+      await room.locator('#audio-find').click();await room.locator('#keep-audio:enabled').waitFor();
+      const options=await room.locator('#audio-measure option').allTextContents();
+      assert.match(options[0],/Try audio/);assert.match(options[1],/Try audio/);assert.match(options[2],/Keep even spacing/);
+      await room.locator('#use-suggested').click();
+      for(const [m,time] of [[2,2.64],[3,4.65],[4,7]]){
+        await room.getByRole('button',{name:'Go to measure '+m,exact:true}).click();
+        assert.ok(Math.abs(await player.evaluate(v=>v.currentTime)-time)<.08);
+      }
+      assert.equal(await room.locator('#anchors').innerText(),anchors);
+    }
     assert.equal(await page.evaluate(async()=>(await import('/js/app-state.js')).AppState.currentScoreFile),null);
     assert.deepEqual(errors,[]);
     console.log('Passed standalone PDF open, detection, sparse taps, correction, seek, rate changes, realtime loop and restored timing.');

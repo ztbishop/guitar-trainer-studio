@@ -98,6 +98,14 @@ The [pre-bent approach and paired release patch](licenses/alphaTab-prebend-appro
 
 alphaTab's integrated TinySoundFont, SFZero, Haxe standard-library portions, SharpZipLib and NVorbis use MIT terms; adopted libvorbis portions use BSD-3-Clause. Copyright notices, terms and upstream links are collected in [alphaTab integrated libraries](licenses/alphaTab-integrated.txt), alongside the unchanged vendor headers.
 
+## PDF rendering, MIDI import and PDF timing
+
+The PDF viewer includes Mozilla Foundation’s PDF.js 6.5.438 under Apache-2.0. Its character maps, standard fonts, color profile and image codecs carry additional notices in their respective asset directories. Keep those notices with the distribution. [PDF.js license](../assets/vendor/pdfjs/LICENSE) · [Version and upstream source](../assets/vendor/pdfjs/SOURCE.md)
+
+MIDI import uses LibreScore’s webmscore 0.21.0, which incorporates MuseScore. The bundled license credits MuseScore BVBA and others and includes its font exception. The source record identifies the local JavaScript correction, upstream release and corresponding source. [Bundled GPL license](../assets/vendor/webmscore/LICENSE.GPL) · [Source and modification record](../assets/vendor/webmscore/SOURCE.md)
+
+The PDF timing comparison and its measure-spacing recommendations are original Guitar Trainer Studio code covered by the application license.
+
 ## Fonts, sounds, guide renderer and demos
 
 | Component | Applicable license and notices |

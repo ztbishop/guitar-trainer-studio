@@ -7,8 +7,36 @@ function percentile95(values) {
   return Math.max(1e-9,sorted[low]+(sorted[Math.ceil(position)]-sorted[low])*(position-low));
 }
 
+// Compare the attack at a proposed start with other attacks within half a measure.
+function localContrast(times,energy,time,pace) {
+  const nearby=[];
+  let peak=0;
+  for(let i=0;i<times.length;i++){
+    const distance=Math.abs(times[i]-time);
+    if(distance<=.09)peak=Math.max(peak,energy[i]);
+    else if(distance>.2 && distance<=pace/2)nearby.push(energy[i]);
+  }
+  return nearby.length?peak/percentile95(nearby):NaN;
+}
+
+function suggestedStarts(audio,start,pace,times,bass,upper) {
+  const even=audio.map((_,i)=>start+(i+1)*pace);
+  const shifts=audio.map((time,i)=>time-even[i]);
+  const clear=audio.map((time,i)=>{
+    const distance=Math.abs(shifts[i]);
+    return distance>=.09 && distance<=.35*pace &&
+      localContrast(times,bass,time,pace)>=3 &&
+      localContrast(times,bass,even[i],pace)<.8 && localContrast(times,upper,even[i],pace)<.8;
+  });
+  return audio.map((time,i)=>{
+    const supported=clear[i] && [i-1,i+1].some(j=>clear[j] &&
+      shifts[i]*shifts[j]>0 && Math.abs(shifts[i]-shifts[j])<.2*pace);
+    return supported?time:even[i];
+  });
+}
+
 // The caller supplies audio and two taps. No notes or reference sync map enter this search.
-export function audioEstimates(samples,offset,start,end,count) {
+export function compareAudioEstimates(samples,offset,start,end,count) {
   if(!Number.isInteger(count) || count<2 || count>16 || end<=start || end-start>90)return null;
   const transform=windowedSpectrum(size,true);
   const bins=Math.ceil(3000*size/SAMPLE_RATE);
@@ -57,5 +85,10 @@ export function audioEstimates(samples,offset,start,end,count) {
   const result=[];
   let j=last;
   for(let i=count-1;i>0;i--){j=parents[i][j];result.push(choices[j]);}
-  return result.reverse();
+  const audio=result.reverse();
+  return {audio,suggested:suggestedStarts(audio,start,pace,times,bass,upper)};
+}
+
+export function audioEstimates(samples,offset,start,end,count) {
+  return compareAudioEstimates(samples,offset,start,end,count)?.audio ?? null;
 }

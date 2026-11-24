@@ -2,6 +2,18 @@ For the active checklist, see [Current status and to-do](TODO.md). Older entries
 
 ## PDF-only audio timing review on Single-Note Rhythmic Ideas, November 24, 2026
 
+### Follow-up on keeping even spacing
+
+The PDF reviewer recommends a move only when neighboring interior measures have strong bass attacks supporting similar shifts and their evenly spaced times lack a strong accent. A single isolated accent proved misleading in Connecting Intervals. Testing the rule on seven other recordings and then ten more included Low Bass Note, Connecting Intervals, Right Hand Technique, Shuffle in E, Chord Scales, Quartal Harmony and other exercises. References include reviewed draft timing as well as original timing. The test used two rounded reference endpoint taps per passage, usually four measures apart. Interior timing was withheld and the estimator received only audio, tap times and a measure count. No playable score was loaded.
+
+Across 344 interior starts on 18 recordings, the reviewer suggested 10 moves. Eight reduced the absolute timing error. All 265 starts initially within 100 ms kept even spacing. On Single-Note Rhythmic Ideas, M15 stayed 6 ms late and M26/M27 improved to 187/76 ms absolute error. On the 17 additional recordings, six of eight changes improved timing. Chord Scale 5 M10/M11 improved from 477/216 ms to 6/3 ms. Chord Scale 7 M10/M11 worsened from 2039/3842 ms to 2979/4389 ms. The reviewer keeps all audio estimates available for manual comparison.
+
+With synthetic tap offsets of ±120 ms, 9 of 11 moves improved timing and all 226 starts originally within 100 ms stayed in place. The rule no longer recommended moving M26 and M27 in this trial. Nineteen explicitly marked breaks stayed unmapped, including the 116-second Right Hand Technique breakdown. Deliberately spanning short unmarked breaks left 18 of 24 even estimates inside annotated gaps. The rule suggested zero changes there. Users should tap both sides of a spoken break.
+
+Reproduce with `node tools/experiments/benchmark-pdf-spacing.mjs full.json path/to/id.pcm [...]` using local 11025 Hz float32 mono recordings, with optional `--offset-taps` before the baseline path. The generated Chrome fixture exercises both listening choices, mixed suggestions, tap preservation, persistence and restore.
+
+### Original comparison
+
 Isolated Chrome opened the publisher’s three-page PDF and the cached demonstration video for TrueFire lesson 101209. The room received only the PDF, recording, and sparse endpoint taps rounded to milliseconds. Controlled taps used the verified reference’s endpoints to isolate estimation error. The six test ranges were M1–5, 5–8, 9–13, 13–16, 25–28 and 29–32, each within one continuous printed example. All 14 interior times were withheld from analysis. The browser saved predictions before the test compared them with the archived timing. No GPX or MIDI was opened in the room. To reproduce the numerical experiment, run `tools/experiments/benchmark-pdf-taps.mjs` with the recording’s 11025 Hz mono float32 PCM and the private baseline JSON.
 
 Audio improved 3 of 14 starts. Median absolute error went from 65 ms with interpolation to 400 ms with audio. In the chord example, M26 and M27 improved from 449 and 544 ms to 187 and 76 ms. In the syncopated example, M15 went from 6 ms late to 1285 ms early. A development check limiting shifts to 125 ms still worsened median error to 71 ms. An exploratory four-beat pulse model improved median error to 56 ms but increased mean and worst error. Neither variant is part of the app. The audio comparison is optional per passage and requires a separate action to change the active timing.

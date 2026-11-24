@@ -4,6 +4,7 @@ export function initAudioReview({recording,media,listen,changed}) {
   const el=id=>document.getElementById(id);
   const select=el('audio-passage'),measure=el('audio-measure'),hint=el('audio-hint');
   let pending,decodedFile,decoded,passages=[],proposed=null,accepted={},storageKey='';
+  let suggested=null;
   const passage=()=>passages.find(p=>p.id===select.value);
   const stamp=t=>Math.floor(t/60)+':'+(t%60).toFixed(2).padStart(5,'0');
   function save() {
@@ -14,6 +15,8 @@ export function initAudioReview({recording,media,listen,changed}) {
     pending?.abort();pending=null;
     const p=passage();
     proposed=p && accepted[p.id];
+    suggested=null;
+    el('use-suggested').hidden=true;
     el('audio-comparison').hidden=!proposed;
     el('audio-find').disabled=select.disabled=!p;
     el('restore-even').hidden=!proposed;
@@ -40,10 +43,13 @@ export function initAudioReview({recording,media,listen,changed}) {
     if(storageKey && Object.keys(stored||{}).length!==Object.keys(accepted).length)save();
     return accepted;
   }
-  function even(p,index){return p.start+(index+1)*(p.end-p.start)/p.count;}
+  function even(p,index){return p.start+(index+1)*((p.end-p.start)/p.count);}
   function showTimes() {
     const p=passage();
-    measure.replaceChildren(...proposed.map((t,i)=>new Option('M'+(p.first+i+1)+' · '+stamp(even(p,i))+' → '+stamp(t),i)));
+    measure.replaceChildren(...proposed.map((t,i)=>{
+      const label=suggested?(suggested[i]===even(p,i)?'Keep even spacing':'Try audio'):'Reviewed';
+      return new Option('M'+(p.first+i+1)+' · '+label+' · '+stamp(even(p,i))+' → '+stamp(t),i);
+    }));
     el('audio-comparison').hidden=false;
   }
   async function compare() {
@@ -75,10 +81,14 @@ export function initAudioReview({recording,media,listen,changed}) {
         worker.postMessage({samples,offset:from/SAMPLE_RATE,start:p.start,end:p.end,count:p.count},[samples.buffer]);
       });
       signal.throwIfAborted();
-      if(!validEstimates(p,result))throw Error('Too few clear attacks in this passage. Try a closer pair of taps.');
-      proposed=result;showTimes();
+      if(!validEstimates(p,result?.audio) || !validEstimates(p,result?.suggested))
+        throw Error('Too few clear attacks in this passage. Try a closer pair of taps.');
+      proposed=result.audio;suggested=result.suggested;showTimes();
+      const moves=suggested.filter((t,i)=>t!==even(p,i)).length;
+      el('use-suggested').hidden=moves===0 || moves===suggested.length;
       el('keep-audio').disabled=false;
-      hint.textContent='Choose a measure and listen to both starts. Your taps stay fixed.';
+      hint.textContent=moves?'Audio suggests moving '+moves+' of '+suggested.length+' starts. Listen before applying.':
+        'Keep even spacing for this passage. You can still audition each audio estimate.';
     }catch(error){if(!signal.aborted)hint.textContent=error.message;}
     finally{worker?.terminate();if(pending===controller){pending=null;el('audio-find').disabled=false;}}
   }
@@ -86,10 +96,12 @@ export function initAudioReview({recording,media,listen,changed}) {
   el('audio-find').onclick=compare;
   el('hear-even').onclick=()=>listen(even(passage(),measure.selectedIndex));
   el('hear-audio').onclick=()=>listen(proposed[measure.selectedIndex]);
-  el('keep-audio').onclick=()=>{
-    accepted[select.value]=proposed;
+  function apply(starts) {
+    accepted[select.value]=starts;
     changed(accepted);resetComparison();save();
-  };
+  }
+  el('keep-audio').onclick=()=>apply(proposed);
+  el('use-suggested').onclick=()=>apply(suggested);
   el('restore-even').onclick=()=>{
     delete accepted[select.value];changed(accepted);resetComparison();
     hint.textContent='Even spacing restored for this passage.';save();
