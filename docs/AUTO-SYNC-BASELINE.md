@@ -77,6 +77,30 @@ We tested every archived page against the frozen selections from the original be
 
 To reproduce from the private baseline inputs, run `node tools/experiments/cache-gap-features.cjs` with Playwright and Chrome available, then `node tools/experiments/benchmark-pinned-gaps.mjs`. The first command reads local recordings for the 110 pages with interior holes. The second evaluates all 200 pages, checks the production stage against the comparison and saves per-visit results under `tests/.media-fixtures/gap-benchmark/comparison.json`. These figures measure archived recording boundaries. They do not establish live MIDI accuracy or guarantee protection of unmarked speech in other recordings.
 
+## Partial recovery beside a recording break
+
+This experiment starts from the shipped selections above. Of the 65 originally identified gaps, 44 still had 81 unmapped measure visits. Each arm searches at the local tempo, forward from the previous synced measure or backward from the following one. It stops at the first bar with insufficient pitch evidence, and can leave recording time open between the two arms. Conflicting projections cannot extend an arm. The experiment works at measure boundaries. Pauses within a measure and note-release grading were outside its scope.
+
+Blind proposals ran on all 200 cached pages before comparison with reference timing. Results below are additions across the same 197 duration-checked pages. Each variant preserved all existing selected endpoints and anchors. Accuracy requires both endpoints within 250 ms on the corresponding measure visit. An attack in a break counts a distinct written attack time projected inside a reference introduction or breakdown. Simultaneous chord notes count once. These are projected score onsets; a provider breakdown can itself include music.
+
+| Evidence required | Accurate / added timed visits | Accurate visits in the remaining 81 | Starts >2 s off | Added marked-break overlap | Added attacks in marked breaks |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Local pace and pitch from either side | 66 / 171 | 9 | 58 | 39.68 s | 121 |
+| Also corroborate the pace with another synced bar on the same side | 64 / 120 | 9 | 26 | 21.92 s | 69 |
+| Also require an existing take candidate close to both boundaries, or agreement from both arms | 6 / 7 | 3 | 1 | 0 s | 0 |
+| Require both arms to agree within 200 ms | 1 / 1 | 1 | 0 | 0 s | 0 |
+| Veto a candidate-confirmed proposal if a distant take also fits two neighboring bars | 1 / 1 | 0 | 0 | 0 s | 0 |
+
+The first two rules also proposed three and two visits respectively without timed references. The third rule recovered three entire target gaps. Its other four proposals included a musical bar immediately preceding a spoken break and a serious wrong placement. The two follow-up rules were tested after inspecting the error. Requiring both arms to agree recovered one single-bar target gap. The competing-take veto rejected the wrong placement on 90635, but also rejected the correct placement on 98104 and five of the six correct placements overall. Its single remaining placement was outside the 44 target gaps.
+
+- In **The Phrygian Mode** (98104), the third rule timed measure 23 at 299.693–302.613 s against 299.626–302.644 s. It recovered the music and left the breakdown at 302.644–319.139 s open.
+- In **Country Shuffle Electric Guitar Rhythm** (90635), it proposed measure 6, pass 2 at 470.156 s. The reference starts at 26.462 s. The matcher's existing candidate list included both performances. An apparently consistent neighboring pin and a matching candidate can reinforce the wrong performance.
+- All five variants preserved the 90.28–206.73 s breakdown in **Right Hand Technique**. None recovered the two remaining target measures (11 and 47) in **Shuffle in E**.
+
+**Decision.** Keep one-sided placements experimental. For a review-only trial, present the candidate next to its competing take and let the player audition the approach into each. The two-bar competitor veto also discarded the useful example before the break, so it is insufficient for automatic acceptance. Use 90635 and 98104 together when testing further changes.
+
+Replay with `node tools/experiments/benchmark-partial-gaps.mjs` after preparing the pinned-gap baseline and feature cache. It writes per-visit errors, repeat identifiers, labeled-break overlap and projected attacks to the private `partial-results.json` beside `comparison.json`.
+
 ## Per-lesson results
 
 | Lesson ID | Lesson | Reference | Timed visits | Placed | Both within 250 ms | Start over 2 s off | Marked break overlap (s) |

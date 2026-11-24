@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Recovering only the music beside a break
+
+A blind benchmark on 200 archived pages compared independent forward and backward recovery from current Auto-sync placements. The candidate-confirmed rule recovered The Phrygian Mode measure 23 without covering its breakdown, but also selected a passage 443.69 s late on Country Shuffle Electric Guitar Rhythm. This remains an offline experiment. [Method, attack counts and controls](AUTO-SYNC-BASELINE.md#partial-recovery-beside-a-recording-break)
+
 ## Filling missing phrases in lesson recordings
 
 Compared seven variants over all 200 archived lesson pages. The shipped rule added 94 placements on the 197 comparable pages, with 91 within 250 ms at both ends. Existing endpoints stayed fixed and the new placements added zero overlap with labeled breaks. [Results, limits and replay commands](AUTO-SYNC-BASELINE.md#recovery-between-two-synced-measures)
