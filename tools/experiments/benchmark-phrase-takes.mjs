@@ -4,6 +4,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import {selectedVisits} from '../../js/audio-sync-score.js';
 import {recoverPinnedPhrases} from '../../js/audio-sync-pinned-phrases.js';
+import {selectPhraseTakes} from '../../js/audio-sync-phrase-takes.js';
 
 const base = path.resolve(process.argv[2] ?? 'tests/.media-fixtures/bridge-baseline');
 const cache = path.resolve(process.argv[3] ?? 'tests/.media-fixtures/gap-benchmark');
@@ -53,6 +54,9 @@ for (const file of fs.readdirSync(base).filter(f=>f.endsWith('.ready.json'))) {
   const feature=path.join(cache,key+'.f32');
   const b=fs.existsSync(feature)?fs.readFileSync(feature):Buffer.alloc(0);
   recoverPinnedPhrases(u.queries.score,new Float32Array(b.buffer,b.byteOffset,b.length/4),u.matches,u.choices);
+  const live=u.choices.slice();
+  selectPhraseTakes(u.queries.score.edges,u.matches,live);
+  assert.deepEqual(selected(u,live),rerank(u,3,2),key);
   captures.push({key,excluded:Math.abs(read(file).duration-u.duration)>2,old:selected(u,u.choices),
     five:rerank(u,2,1),seven:rerank(u,3,1),sevenStrict:rerank(u,3,2)});
 }

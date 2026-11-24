@@ -43,7 +43,26 @@ self.onmessage = async ({data}) => {
       self.postMessage({phase:'Following the continuous performance',done:0,total:1});
       const {continuousPerformance}=await import('./audio-sync-continuous.js');
       continuousPerformance(data.score,data.samples,features,matches,choices,data.bars);
-    } else recoverPinnedPhrases(data.score,features,matches,choices);
+    } else {
+      recoverPinnedPhrases(data.score,features,matches,choices);
+      if(matches.some(row=>row.length)){
+        const {selectPhraseTakes}=await import('./audio-sync-phrase-takes.js');
+        selectPhraseTakes(data.score.edges,matches,choices);
+      } else {
+        const registers=data.bars.map(b=>b.register).filter(r=>Number.isFinite(r?.low) && Number.isFinite(r.high));
+        if(registers.length){
+          self.postMessage({phase:'Listening for fills between rests',done:0,total:1});
+          const {sparseFillTakes}=await import('./audio-sync-sparse.js');
+          const low=registers.reduce((v,r)=>Math.min(v,r.low),Infinity);
+          const high=registers.reduce((v,r)=>Math.max(v,r.high),-Infinity);
+          const band=recordingFeatures(data.samples,low-3,high+3);
+          for(const take of sparseFillTakes(data.score,band,duration)){
+            choices[take.index]=0;
+            matches[take.index].push(take);
+          }
+        }
+      }
+    }
     self.postMessage({matches,choices,features},[features.buffer]);
   } catch (error) {
     self.postMessage({error:error.message});

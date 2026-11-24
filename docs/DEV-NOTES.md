@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Phrase takes and sparse fills in lesson Auto-sync
+
+The stricter take comparison and the fill search are now connected to the browser worker. Normal lesson Auto-sync may choose a better supported take. Fill proposals open in the draft reviewer, where Use reviewed timing activates them. Real-button checks included R&B Fill 1, Chord Scale 6 and Easy Guitar Playalong. [Comparison and limitations](AUTO-SYNC-BASELINE.md#whole-phrase-take-selection-and-searches-with-no-initial-match)
+
 ## Online audio for an untimed send
 
 Auto-sync first tries the recording URL. On a fetch failure it can read the same selected recording through a compatible sender and run its usual analysis. This supersedes the separate local-copy picker below. Local recordings still use the ordinary media loader. A live isolated Chrome test sent the original Phrygian Mode GPX and selected video URL with no timing, using test-profile site grants. The direct read failed, the extension supplied the recording in memory, 24 of 25 visits were selected and measure 23 appeared at 4:59.69. The actual linked video remained loaded.
