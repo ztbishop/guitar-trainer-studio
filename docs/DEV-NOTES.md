@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Online audio for an untimed send
+
+Auto-sync first tries the recording URL. On a fetch failure it can read the same selected recording through a compatible sender and run its usual analysis. This supersedes the separate local-copy picker below. Local recordings still use the ordinary media loader. A live isolated Chrome test sent the original Phrygian Mode GPX and selected video URL with no timing, using test-profile site grants. The direct read failed, the extension supplied the recording in memory, 24 of 25 visits were selected and measure 23 appeared at 4:59.69. The actual linked video remained loaded.
+
 ## Linked video playback and local audio analysis
 
 The cached Phrygian Mode test used a local MP4. The archived TrueFire media redirect answered a one-byte request from the localhost origin with an allow-origin header, and its CDN returned partial content without that header. The analyzer now offers a matching local file on link read failures, preserving the linked playback source and retrying the original Analyze or Auto-sync action. Reference timing labels alone do not establish that speech occurs. Verified in isolated Chrome on the live Phrygian Mode URL: retrying with its cached MP4 retained the remote video and reproduced the 4:59.69 suggestion for measure 23. The synthetic link test also rejected a shorter copy and resumed successfully with the matching file.

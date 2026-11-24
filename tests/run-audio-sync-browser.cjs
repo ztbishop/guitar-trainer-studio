@@ -172,16 +172,8 @@ async function run() {
     await page.locator('#media-show-editor').evaluate(box => {box.checked=true;box.dispatchEvent(new Event('change'));});
     await toggle.click();
     await panel.getByText('Analyze lesson audio').click();
-    const retryCopy=panel.getByRole('button',{name:'Analyze a local copy…'});
-    await retryCopy.waitFor();
-    const picker=panel.locator('input[type=file]');
-    await picker.setInputFiles({name:'short.wav',mimeType:'audio/wav',buffer:wav});
-    await panel.getByText(/different durations/).waitFor();
-    const linkedSource=await page.locator('#media-audio').evaluate(e=>e.currentSrc);
-    await picker.setInputFiles({name:'matching.wav',mimeType:'audio/wav',buffer:linkWav});
-    await selects.nth(3).waitFor();
-    assert.equal(await retryCopy.isVisible(),false);
-    assert.equal(await page.locator('#media-audio').evaluate(e=>e.currentSrc),linkedSource);
+    await panel.getByText(/did not provide audio access/).waitFor();
+    assert.equal(await panel.getByRole('button',{name:'Analyze a local copy…'}).count(),0);
     deny = false;
     await panel.getByText('Analyze lesson audio').click();
     await selects.nth(3).waitFor();

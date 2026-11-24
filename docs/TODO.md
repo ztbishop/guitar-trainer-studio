@@ -1,6 +1,6 @@
 # Guitar Trainer Studio status and to-do
 
-- [x] Retry audio analysis of a playable remote recording with a matching local copy directly from the read error.
+- [x] Use the selected online recording for timing-blind analysis with a compatible lesson sender when the direct read fails.
 
 - [x] Benchmark lesson Auto-sync across 200 archived lesson pages. [Coverage and per-lesson results](AUTO-SYNC-BASELINE.md)
 - [x] Test one-sided recovery across the remaining 44 gaps, including projected attacks in marked breaks. [Results and wrong-performance case](AUTO-SYNC-BASELINE.md#partial-recovery-beside-a-recording-break)

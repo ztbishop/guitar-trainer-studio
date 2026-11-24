@@ -16,7 +16,8 @@ async function readRecording({file,url}, signal) {
   try { response = await fetch(url,{signal}); }
   catch (e) {
     if (signal.aborted) throw e;
-    throw Error('Auto-sync could not read the linked recording. A video can play in Preview even when its host blocks audio analysis.');
+    const {readLessonRecording}=await import('./lesson-audio-read.js');
+    return readLessonRecording(url,signal,MAX_BYTES);
   }
   if (!response.ok || !response.body) throw Error('The recording host did not provide a readable file.');
   const reader = response.body.getReader(), chunks = [];
@@ -69,16 +70,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
   const comparisons = document.createElement('details'), compareTitle = document.createElement('summary');
   const compareRows = document.createElement('div');
   comparisons.append(compareTitle,compareRows);
-  const start = button('Analyze lesson audio',()=>run(false));
-  const analysisFile=document.createElement('input');
-  analysisFile.type='file';analysisFile.accept='audio/*,video/*,.mp4,.m4a,.mp3,.wav,.ogg,.webm';analysisFile.hidden=true;
-  const chooseCopy=button('Analyze a local copy…',()=>analysisFile.click());
-  let retry=null;
-  analysisFile.onchange=()=>{
-    const file=analysisFile.files[0], pending=retry;
-    analysisFile.value='';
-    if(file && pending && current(pending.snapshot))run(pending.automatic,file);
-  };
+  const start = button('Analyze lesson audio',run);
   const cancel = button('Cancel analysis',() => {
     if (job && result) {
       job.controller.abort(); job = null; cancel.hidden = true; sync();
@@ -86,9 +78,10 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     status.textContent = 'Analysis canceled.';
   });
   const apply = button('Review selected takes',()=>openDraft(false));
-  const auto=button('Auto-sync',()=>{
+  const auto=button('Auto-sync',async()=>{
     panel.open=true;
-    run(true);
+    const analyzed=await run();
+    if(analyzed && analyzed===result && analyzed.choices.some(c=>c>=0))await openDraft(true);
   });
   const mode=document.createElement('label'),continuous=document.createElement('input');
   continuous.type='checkbox';continuous.id='media-continuous-music';
@@ -115,7 +108,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       result.locked[i]=true;draw();sync();
     }
   });
-  panel.append(title,help,start,cancel,status,chooseCopy,analysisFile,apply,manual.box,rows,passage,comparisons); after.after(panel);
+  panel.append(title,help,start,cancel,status,apply,manual.box,rows,passage,comparisons); after.after(panel);
   let job = null, result = null, applying = false;
   let modeSource=null,modeScore=null;
   continuous.onchange=()=>{reset();sync();};
@@ -128,7 +121,6 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
   }
   function reset() {
     job?.controller.abort(); job = result = null;
-    retry=null;chooseCopy.hidden=true;
     musicRanges=null;manual.box.hidden=true;
     rows.replaceChildren(); passage.replaceChildren(); status.textContent = ''; apply.hidden = cancel.hidden = true;
     compareRows.replaceChildren(); comparisons.open = false; comparisons.hidden = true;
@@ -139,7 +131,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     if (now.source!==modeSource || now.score!==modeScore) {
       continuous.checked=false;modeSource=now.source;modeScore=now.score;
     }
-    if ((job && !current(job.snapshot)) || (result && !current(result.snapshot)) || (retry && !current(retry.snapshot))) reset();
+    if ((job && !current(job.snapshot)) || (result && !current(result.snapshot))) reset();
     let reason = '';
     if (!now.source || !now.timeline || !now.scoreSha256) reason = 'Load a score and recording first.';
     else if (now.source.kind === 'youtube') reason = 'YouTube playback does not expose audio for analysis. Choose a local file or a readable media link.';
@@ -153,7 +145,6 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       ? 'Follows one performance through tempo changes and holds. Uncertain measures can be timed by hand.'
       : 'Matches the selected practice track. Choose a take for each written pass. Unmapped recording time plays without grading.');
     start.disabled = Boolean(reason || job || applying);
-    chooseCopy.disabled=start.disabled;
     auto.disabled=start.disabled;auto.hidden=Boolean(now.hasPlan && !(now.canRedoAudio && continuous.checked) ||
       now.hasDraft && !continuous.checked);
     auto.textContent=now.hasDraft || now.canRedoAudio?'Auto-sync again':'Auto-sync';
@@ -163,7 +154,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     apply.disabled = Boolean(reason || job || applying || !result?.choices.some(c => c >= 0));
     return !reason;
   }
-  async function run(automatic,localCopy) {
+  async function run() {
     if (job || !sync()) return;
     reset();
     const snapshot = context(), controller = new AbortController();
@@ -171,15 +162,12 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     const {signal} = controller;
     const check = () => {signal.throwIfAborted(); if (!current(snapshot)) throw Error('Score, practice track or recording changed. Analyze again.');};
     cancel.hidden = false; sync();
-    let reading=false;
     try {
       const bars = scoreQueries(snapshot.timeline,snapshot.trackId);
       const score = passageScore(snapshot.timeline,snapshot.trackId);
       if (!score.notes.length) throw Error('This track has no pitched notes to match. Choose another track.');
       status.textContent = 'Reading recording audio…';
-      reading=true;
-      const bytes = await readRecording(localCopy?{file:localCopy}:snapshot,signal);
-      reading=false;
+      const bytes = await readRecording(snapshot,signal);
       check();
       const sourceSha256 = await fingerprint(bytes); check();
       const decoder = new OfflineAudioContext(1,1,SAMPLE_RATE);
@@ -210,18 +198,9 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       const r = result;
       passage.replaceChildren(createPassageRange(snapshot.timeline.measures,snapshot.duration,playhead,
         i => r.matches[i][r.choices[i]],refine,snapshot.notation));
-    } catch (error) {
-      if(job===task){
-        status.textContent=error.message;
-        if(current(snapshot) && (localCopy || (reading && !snapshot.file && snapshot.source.kind==='url'))){
-          retry={snapshot,automatic};chooseCopy.hidden=false;
-          status.textContent+=' Choose the same recording with the same start and duration. The linked video stays loaded for playback.';
-        }
-      }
-      return;
-    }
+      return r;
+    } catch (error) { if (job === task) status.textContent = error.message; }
     finally { if (job === task) { job = null; cancel.hidden = true; sync(); } }
-    if(automatic && result && current(snapshot) && result.choices.some(c=>c>=0))await openDraft(true);
   }
   function draw() {
     const {matches,choices,snapshot} = result;

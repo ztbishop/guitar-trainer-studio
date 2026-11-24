@@ -1,5 +1,9 @@
 # Private lesson sender: trainer receiver contract
 
+## On-demand recording access for untimed imports
+
+After a failed direct recording read, the analyzer posts gts-read-selected-audio-v1 to its own window and origin with the selected URL and a MessagePort. A compatible sender binds assistance to the previously selected URL and exact receiving document. Chunks, cancellation and errors are scoped to the port. The analyzer validates byte counts, recording duration and the active score/track/source before applying the ordinary matching workflow. Existing lesson envelopes and timed imports need no protocol change.
+
 ## Independent reference recording, version 6
 
 An explicit simplified-practice choice may send version 6 with recordingMode: "reference-only". Required: format, version, title, lessonUrl, score {fileName,base64}, recording {url,label} or {kind:"local-choice"}, and recordingMode. Extra fields and all syncPoints/timingPlan/draftTiming/keepRecording fields reject, even null. Existing resource policy applies. Capability replies include lesson 6 and recordingModes ["reference-only-v1"] only with the independent player installed. The sender must require both before an offer; no downgrade.

@@ -1,6 +1,6 @@
 # Guitar Trainer Studio architecture
 
-When a remote recording plays but its bytes cannot be read, the audio analyzer can decode a user-selected local copy for that run. The existing player supplies the duration check and continues to play the remote source. The retry belongs to the active score, recording and practice track.
+A failed direct audio read can request the selected recording over a same-window MessageChannel. A compatible sender binds its offer to the recording and trainer document selected for an untimed send. The receiver limits bytes, validates chunks, cancels stale requests and uses the normal duration check and matcher.
 
 Lesson audio drafts use normalized selected visits as fixed pins for an optional missing-measure search. The draft builder loads this search on demand. Suggestions and alternative performances live in draft evidence, or in working draft data after replacing a mapping. The practice timeline changes only when the reviewer inserts a take and applies the draft.
 
