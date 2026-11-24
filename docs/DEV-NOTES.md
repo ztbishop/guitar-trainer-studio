@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Auditioning missing measures in an audio draft
+
+The reviewer shows each proposed measure and repeat pass alongside its alternative recording times. Play with lead-in starts two seconds before a take and ends at its boundary. Use this take inserts it through the manual measure editor’s interval and undo handling. One-click Auto-sync users can reach the retained review through Edit sync and Edit timed measures. A saved timing profile stores the accepted visits. Exported draft work also retains the unchosen suggestions. Owner listening feedback is pending.
+
 ## Recovering only the music beside a break
 
 A blind benchmark on 200 archived pages compared independent forward and backward recovery from current Auto-sync placements. The candidate-confirmed rule recovered The Phrygian Mode measure 23 without covering its breakdown, but also selected a passage 443.69 s late on Country Shuffle Electric Guitar Rhythm. This remains an offline experiment. [Method, attack counts and controls](AUTO-SYNC-BASELINE.md#partial-recovery-beside-a-recording-break)

@@ -160,7 +160,7 @@ export function selectedVisits(measures,matches,choices) {
   });
 }
 
-export async function suggestionDraft({measures,matches,choices,trackId,scoreSha256,sourceSha256}) {
+export async function suggestionDraft({measures,matches,choices,trackId,scoreSha256,sourceSha256,gapSearch}) {
   const musicalVisits = selectedVisits(measures,matches,choices);
   const reference = ({visit,originalVisit,scoreMeasure,occurrence}) => ({visit,originalVisit,scoreMeasure,occurrence});
   const intervals = [];
@@ -175,6 +175,12 @@ export async function suggestionDraft({measures,matches,choices,trackId,scoreSha
   const timingSha256 = await fingerprint(new TextEncoder().encode(originalTimingText));
   const candidatePlan = {format:INTERVAL_TIMING_FORMAT,version:1,scoreSha256,sourceSha256,timingSha256,recordingId,
     originalPlaybackOrder,musicalVisits,intervals,scoreOmissions:[],repeatResolution:{kind:'unchanged',omittedOriginalVisits:[]}};
+  const matchingEvidence = {method:'audio-passage-search-v2',trackId};
+  if (gapSearch && musicalVisits.some((v,i)=>i>0 && v.originalVisit>musicalVisits[i-1].originalVisit+1)) {
+    const {gapReviewChoices} = await import('./audio-sync-partial-gaps.js');
+    const suggestions = gapReviewChoices(gapSearch.score,gapSearch.features,matches,musicalVisits);
+    if (suggestions.length) matchingEvidence.gapSuggestions = suggestions;
+  }
   return validateDraft({format:DRAFT_FORMAT,version:1,scoreSha256,recordingId,originalPlaybackOrder,
-    originalTimingText,matchingEvidence:{method:'audio-passage-search-v2',trackId},candidatePlan,unresolved:[]});
+    originalTimingText,matchingEvidence,candidatePlan,unresolved:[]});
 }

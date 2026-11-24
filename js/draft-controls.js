@@ -68,7 +68,7 @@ export function createDraftEditor({container,options,transport,highlight,stop,ap
     warning.hidden=rows.hidden=advanced.hidden=false;for(const b of actions.children)b.hidden=false;
     panel.hidden=false;render();
   }
-  return {reopen:showWorking,acceptIfReady,selectMeasure:visual.selectMeasure,get musicRanges(){return musicRanges;},replaceMapping(candidatePlan) {
-    change({candidatePlan,unresolved:[]});
+  return {reopen:showWorking,acceptIfReady,selectMeasure:visual.selectMeasure,get musicRanges(){return musicRanges;},replaceMapping(candidatePlan,gapSuggestions=[]) {
+    change({candidatePlan,unresolved:[],gapSuggestions});
   },update(time,playing){if(original&&!rows.hidden)visual.update(time,playing);},load(draft){original=copyDraftJson(draft);working={candidatePlan:copyDraftJson(draft.candidatePlan),unresolved:copyDraftJson(draft.unresolved)};undo=[];redo=[];evidenceText.value=JSON.stringify(original,null,2);showWorking();},complete(){stop();visual.clear();revision++;reviewActions.hidden=reviewStatus.hidden=true;title.textContent='Reviewed timing — original draft retained';warning.hidden=rows.hidden=advanced.hidden=true;issues.replaceChildren();for(const b of actions.children)b.hidden=b!==exportButton;},clear(){stop();original=null;working=null;revision++;panel.hidden=true;visual.clear();},get active(){return !panel.hidden;}};
 }

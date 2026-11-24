@@ -136,7 +136,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   editMeasures.addEventListener('click',action(reopenAudioDraft));
   const draftEditor=createDraftEditor({container:get('selection').parentElement,
     options:()=>({notation:AppState.score,timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:draftTiming?.recordingId,durationMs:player?.backingTrackDuration}),
-    transport(action,seconds){if(!draftTiming||!player)return;if(action==='pause'){stopDraftPreview();return;}if(action==='seek'){player.seekTo(seconds*1000);return;}beforeEdit();draftPreviewEnd=player.backingTrackDuration;player.play();},
+    transport(action,seconds){if(!draftTiming||!player)return;if(action==='pause'){stopDraftPreview();return;}if(action==='seek'){player.seekTo(seconds*1000);return;}beforeEdit();draftPreviewEnd=action==='audition'?seconds*1000:player.backingTrackDuration;player.play();},
     highlight:(position,reveal)=>host.showDraftPosition(position,reveal),
     stop:stopDraftPreview,exportFile:download,
     async apply(compiled,isCurrent,reviewedPlan){
@@ -202,7 +202,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       };
       check();await returnToPractice();check();stopDraftPreview();player.pause();
       alternateAlignment=null;
-      if(draftTiming)draftEditor.replaceMapping({...draft.candidatePlan,recordingId:draftTiming.recordingId});
+      if(draftTiming)draftEditor.replaceMapping({...draft.candidatePlan,recordingId:draftTiming.recordingId},draft.matchingEvidence.gapSuggestions);
       else {
         draftTiming=draft;points=[];timingPlan=null;profileId='';selected=-1;undo=[];redo=[];
         get('profile-name').value=source.label+' · Audio timing';

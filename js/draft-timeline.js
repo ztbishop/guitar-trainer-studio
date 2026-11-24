@@ -51,6 +51,7 @@ export function createDraftTimeline({container,options,transport,highlight,chang
     v.anchors.push({offset480:o,seconds:current});v.anchors.sort((a,b)=>a.offset480-b.offset480);
     const index=v.anchors.findIndex(a=>a.offset480===o);change(editDraftPiece(next,selected,String(index),current,options().durationMs/1000).working);});
 
+  const gapChoices=node('section');gapChoices.id='media-draft-gap-suggestions';
   let visitsByNumber=new Map();
   const missing=createMissingMeasureForm({
     measures:()=>options().timeline.measures,notation:()=>options().notation,playhead:()=>current,
@@ -61,7 +62,7 @@ export function createDraftTimeline({container,options,transport,highlight,chang
       change({...working,candidatePlan:plan});select(selected);
     }
   });
-  container.append(controls,seek,missing.box,legend,scroll,shelf,selectedTools,add);
+  container.append(controls,seek,gapChoices,missing.box,legend,scroll,shelf,selectedTools,add);
   function selectMeasure(number,fraction,clock,editing){
     if(!working)return false;
     const target=draftSeekTarget(working.candidatePlan,options().timeline,number,fraction,clock);
@@ -96,6 +97,40 @@ export function createDraftTimeline({container,options,transport,highlight,chang
       visitsByNumber=new Map(working.candidatePlan.musicalVisits.map(v=>[v.originalVisit,v]));
       missing.refresh();
     }else missing.box.hidden=true;
+    gapChoices.replaceChildren();
+    const offers=working.gapSuggestions??original.matchingEvidence?.gapSuggestions;
+    const duration=options().durationMs/1000;
+    for(const offer of Array.isArray(offers)?offers:[]) {
+      const number=offer?.number, measure=options().timeline.measures[number-1];
+      if(!Number.isInteger(number) || !measure || working.candidatePlan.musicalVisits.some(v=>v.originalVisit===number) || !Array.isArray(offer.takes))continue;
+      const takes=offer.takes.filter(t=>finite(t?.start)&&finite(t.end)&&t.start>=0&&t.end>t.start&&t.end<=duration);
+      if(!takes.length)continue;
+      const row=node('div');row.className='media-actions';
+      const name=`Measure ${written(measure.measureNumber)} · pass ${measure.occurrence}`;
+      const label=node('label',name+' '),select=node('select');
+      const stamp=s=>{const cs=Math.round(s*100);return `${Math.floor(cs/6000)}:${((cs%6000)/100).toFixed(2).padStart(5,'0')}`;};
+      takes.forEach((t,i)=>select.add(new Option(`${i?'Other take':'Suggested take'} · ${stamp(t.start)}–${stamp(t.end)}`,String(i))));
+      label.append(select);row.append(label);
+      const choice=()=>takes[Number(select.value)];
+      button(row,'','Play with lead-in',()=>{const t=choice();seekTo(Math.max(0,t.start-2));transport('audition',t.end);});
+      const use=button(row,'','Use this take',()=>{
+        const t=choice();
+        const plan=insertTimedMeasure(working.candidatePlan,options().timeline.measures,number,t.start,t.end,duration);
+        selected='music:'+plan.musicalVisits.findIndex(v=>v.originalVisit===number);
+        change({...working,candidatePlan:plan});reveal();
+      });
+      const reason=node('small');row.append(reason);
+      function check(){
+        const t=choice(),plan=working.candidatePlan;
+        const conflict=plan.musicalVisits.some(v=>v.originalVisit<number?v.endSeconds>t.start:v.startSeconds<t.end);
+        use.disabled=conflict;
+        reason.textContent=conflict?'This take falls outside the current gap. Review the neighboring measures first.':'';
+      }
+      select.onchange=check;check();gapChoices.append(row);
+    }
+    gapChoices.hidden=!gapChoices.childElementCount;
+    if(!gapChoices.hidden)gapChoices.prepend(node('h4','Suggested takes for missing measures'),
+      node('p','Listen to the two seconds before each take. Choose Use this take to add that measure, or leave the gap open.'));
     alternativeList.replaceChildren();
     const suggestions=original.matchingEvidence?.visitAlternatives;
     alternatives.hidden=!Array.isArray(suggestions)||!suggestions.length;

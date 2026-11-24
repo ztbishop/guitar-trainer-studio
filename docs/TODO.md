@@ -2,7 +2,7 @@
 
 - [x] Benchmark lesson Auto-sync across 200 archived lesson pages. [Coverage and per-lesson results](AUTO-SYNC-BASELINE.md)
 - [x] Test one-sided recovery across the remaining 44 gaps, including projected attacks in marked breaks. [Results and wrong-performance case](AUTO-SYNC-BASELINE.md#partial-recovery-beside-a-recording-break)
-- [ ] Trial one-sided proposals as auditionable choices in draft review. Keep Country Shuffle Electric Guitar Rhythm and The Phrygian Mode as paired controls before considering automatic acceptance.
+- [x] Offer missing-measure takes in audio draft review with a two-second lead-in, explicit selection and undo. Country Shuffle Electric Guitar Rhythm and The Phrygian Mode are the paired controls. Owner listening feedback is pending.
 - [x] Test all 65 missing runs and apply the phrase check supported by synced measures on both sides. [Comparison and remaining gaps](AUTO-SYNC-BASELINE.md#recovery-between-two-synced-measures)
 
 - [x] Recover short runs between synced visits in Auto-sync. Checked five saved lesson pairs, Jazz Discovery measures 15–17, recorded explanations and withheld second passes. [Results and limits](DEV-NOTES.md#auto-sync-across-several-missing-measures-november-22-2026)

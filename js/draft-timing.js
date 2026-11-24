@@ -37,7 +37,8 @@ export function checkDraftBinding(draft,{timeline,scoreSha256,recordingId}) {
 }
 export function inspectDraft(draft,working,options) {
   working=copyDraftJson(working);
-  if(!working || Object.keys(working).some(k=>!['candidatePlan','unresolved'].includes(k)))fail('Working draft requires candidatePlan and unresolved only.');
+  if(!working || Object.keys(working).some(k=>!['candidatePlan','unresolved','gapSuggestions'].includes(k)) ||
+     (working.gapSuggestions!==undefined && !Array.isArray(working.gapSuggestions)))fail('Invalid working draft fields.');
   validateDraft({...draft,candidatePlan:working.candidatePlan,unresolved:working.unresolved});
   const candidate=working.candidatePlan;
   if(!Array.isArray(candidate.musicalVisits)||candidate.musicalVisits.length>4096||candidate.musicalVisits.some(v=>!v||typeof v!=='object'||Array.isArray(v)||!Array.isArray(v.anchors)||v.anchors.some(a=>!a||typeof a!=='object')))fail('Candidate musicalVisits need visit objects and anchor arrays.');

@@ -97,7 +97,7 @@ The first two rules also proposed three and two visits respectively without time
 - In **Country Shuffle Electric Guitar Rhythm** (90635), it proposed measure 6, pass 2 at 470.156 s. The reference starts at 26.462 s. The matcher's existing candidate list included both performances. An apparently consistent neighboring pin and a matching candidate can reinforce the wrong performance.
 - All five variants preserved the 90.28–206.73 s breakdown in **Right Hand Technique**. None recovered the two remaining target measures (11 and 47) in **Shuffle in E**.
 
-**Decision.** Keep one-sided placements experimental. For a review-only trial, present the candidate next to its competing take and let the player audition the approach into each. The two-bar competitor veto also discarded the useful example before the break, so it is insufficient for automatic acceptance. Use 90635 and 98104 together when testing further changes.
+**Review trial.** Lesson audio drafts now offer the candidate and competing takes with a two-second lead-in. The user can accept one timed measure, undo it, or leave it open. Automatic selections are unchanged. The two-bar competitor veto also discarded the useful example before the break, so it is insufficient for automatic acceptance. Use 90635 and 98104 together when testing further changes.
 
 Replay with `node tools/experiments/benchmark-partial-gaps.mjs` after preparing the pinned-gap baseline and feature cache. It writes per-visit errors, repeat identifiers, labeled-break overlap and projected attacks to the private `partial-results.json` beside `comparison.json`.
 

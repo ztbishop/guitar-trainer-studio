@@ -314,7 +314,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     applying = true; sync();
     try {
       const draft = await suggestionDraft({measures:s.timeline.measures,matches:r.matches,choices,
-        scoreSha256:s.scoreSha256,sourceSha256:r.sourceSha256,trackId:s.trackId});
+        gapSearch:continuous.checked?null:r,scoreSha256:s.scoreSha256,sourceSha256:r.sourceSha256,trackId:s.trackId});
       if (!unchanged()) throw Error('The recording or selection changed. Review the current takes.');
       await review(draft,unchanged,automatic,continuous.checked);
       if (result === r) panel.open = false;
