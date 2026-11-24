@@ -35,6 +35,26 @@ async function readRecording({file,url}, signal) {
   return new Blob(chunks).arrayBuffer();
 }
 
+async function decodeRecording(bytes,duration,signal) {
+  const decoder = new OfflineAudioContext(1,1,SAMPLE_RATE);
+  let decoded;
+  try { decoded = await decoder.decodeAudioData(bytes); }
+  catch { throw Error('This browser could not decode the audio track. Try an audio copy with the same start and duration.'); }
+  signal.throwIfAborted();
+  if (Math.abs(decoded.duration-duration) > 0.35)
+    throw Error('The decoded audio and player have different durations. Choose a matching audio copy.');
+  // Pick the strongest channel so an empty left channel or phase-cancelled
+  // stereo mix cannot turn a usable recording into silence.
+  let samples, highest = -1;
+  for (let i = 0; i < decoded.numberOfChannels; i++) {
+    const channel = decoded.getChannelData(i);
+    let energy = 0;
+    for (let t = 0; t < channel.length; t += 97) energy += channel[t] ** 2;
+    if (energy > highest) { samples = channel; highest = energy; }
+  }
+  return samples.slice(0,Math.floor(duration*SAMPLE_RATE));
+}
+
 function analyze(request,transfer,signal,progress) {
   signal.throwIfAborted();
   const worker = new Worker(new URL('./audio-sync-worker.js',import.meta.url),{type:'module'});
@@ -44,7 +64,7 @@ function analyze(request,transfer,signal,progress) {
     signal.addEventListener('abort',cancel,{once:true});
     worker.onmessage = ({data}) => {
       if (data.error) reject(Error(data.error));
-      else if (data.matches || data.points) resolve(data);
+      else if (data.matches || data.points || data.features) resolve(data);
       else progress(data);
     };
     worker.onerror = () => reject(Error('The audio analysis worker could not finish.'));
@@ -111,10 +131,10 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       result.locked[i]=true;draw();sync();
     }
   });
-  panel.append(title,help,start,cancel,status,apply,manual.box,rows,passage,comparisons); after.after(panel);
-  let job = null, result = null, applying = false;
+  panel.append(title,help,start,cancel,status,apply,passage,comparisons,manual.box,rows); after.after(panel);
+  let job = null, result = null, applying = false, cachedAudio = null;
   let modeSource=null,modeScore=null;
-  continuous.onchange=()=>{reset();sync();};
+  continuous.onchange=()=>{reset({keepAudio:true});sync();};
   let musicRanges=null;
 
   function current(snapshot) {
@@ -122,7 +142,8 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     return now.source === snapshot.source && now.score === snapshot.score &&
       now.trackId === snapshot.trackId && now.generation === snapshot.generation;
   }
-  function reset() {
+  function reset({keepAudio=false}={}) {
+    if(!keepAudio) cachedAudio=null;
     job?.controller.abort(); job = result = null;
     musicRanges=null;manual.box.hidden=true;
     rows.replaceChildren(); passage.replaceChildren(); status.textContent = ''; apply.hidden = cancel.hidden = true;
@@ -131,6 +152,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
   }
   function sync() {
     const now = context();
+    if(cachedAudio && !current(cachedAudio.snapshot)) cachedAudio=null;
     if (now.source!==modeSource || now.score!==modeScore) {
       continuous.checked=false;modeSource=now.source;modeScore=now.score;
     }
@@ -173,28 +195,13 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       const bytes = await readRecording(snapshot,signal);
       check();
       const sourceSha256 = await fingerprint(bytes); check();
-      const decoder = new OfflineAudioContext(1,1,SAMPLE_RATE);
-      let decoded;
-      try { decoded = await decoder.decodeAudioData(bytes); }
-      catch { throw Error('This browser could not decode the audio track. Try an audio copy with the same start and duration.'); }
-      check();
-      if (Math.abs(decoded.duration-snapshot.duration) > 0.35)
-        throw Error('The decoded audio and player have different durations. Choose a matching audio copy.');
-      // Pick the strongest channel so an empty left channel or phase-cancelled
-      // stereo mix cannot turn a usable recording into silence.
-      let samples, highest = -1;
-      for (let i = 0; i < decoded.numberOfChannels; i++) {
-        const channel = decoded.getChannelData(i);
-        let energy = 0;
-        for (let t = 0; t < channel.length; t += 97) energy += channel[t] ** 2;
-        if (energy > highest) { samples = channel; highest = energy; }
-      }
+      const samples=await decodeRecording(bytes,snapshot.duration,signal); check();
       status.textContent = 'Listening for pitch patterns…';
-      samples = samples.slice(0,Math.floor(snapshot.duration*SAMPLE_RATE));
       const analysis = await analyze({bars,score,samples,continuous:continuous.checked},samples,signal,({phase,done,total}) => {
         if (job === task) status.textContent = `${phase} · ${done} of ${total}`;
       });
       check();
+      cachedAudio={snapshot,features:analysis.features};
       if (continuous.checked) setPerformanceAnchors(snapshot.timeline,analysis.matches);
       result = {snapshot,sourceSha256,score,...analysis,locked:bars.map(() => false)};
       draw();
@@ -326,7 +333,28 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
     finally { applying = false; sync(); }
   }
   reset();
-  return {sync,reset,get musicRanges(){return musicRanges;},selectScoreBeat(index,fraction){
+  async function refineStandard(edges,start,end,signal) {
+    const snapshot=context();
+    const check=()=>{
+      signal.throwIfAborted();
+      if(!current(snapshot))throw Error('The score or recording changed. Choose the two points again.');
+    };
+    let features=cachedAudio && current(cachedAudio.snapshot) ? cachedAudio.features : null;
+    if(!features){
+      const bytes=await readRecording(snapshot,signal);check();
+      const samples=await decodeRecording(bytes,snapshot.duration,signal);check();
+      const analysis=await analyze({featuresOnly:true,samples},samples,signal);
+      check();
+      features=analysis.features;cachedAudio={snapshot,features};
+    }
+    const {notes}=passageScore(snapshot.timeline,snapshot.trackId);
+    const window=features.slice(Math.floor(start/0.04)*12,Math.ceil(end/0.04)*12);
+    const range={first:0,last:edges.length-2,start,end};
+    const response=await analyze({range,score:{edges,notes},features:window,standard:true},window,signal);
+    check();
+    return response.points;
+  }
+  return {sync,reset,refineStandard,get musicRanges(){return musicRanges;},selectScoreBeat(index,fraction){
     if(!result || !panel.open || !current(result.snapshot) || job || applying)return false;
     const take=result.matches[index]?.[result.choices[index]];
     if(!take)return manual.choose(index+1);

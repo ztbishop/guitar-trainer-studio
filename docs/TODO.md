@@ -1,5 +1,7 @@
 # Guitar Trainer Studio status and to-do
 
+- [x] Refine existing points between two fixed blue timeline markers after Fill gaps, with cached audio and one-step Undo.
+
 - [x] Use the strict seven-measure take comparison in lesson Auto-sync and show verified fill groups for listening when the ordinary search has no matches. [Results and player checks](AUTO-SYNC-BASELINE.md#whole-phrase-take-selection-and-searches-with-no-initial-match)
 
 - [x] Use the selected online recording for timing-blind analysis with a compatible lesson sender when the direct read fails.

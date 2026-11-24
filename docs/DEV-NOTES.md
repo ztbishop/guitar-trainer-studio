@@ -1,5 +1,11 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Refining standard points after Fill gaps
+
+The standard editor accepts a first and a later blue marker. The second click refines the existing points inside that recording interval using the selected practice track. One Undo restores the whole edit. Draft passage refinement keeps its two measure dropdowns, now above the take list.
+
+An isolated Chrome check loaded the owner's local Arirang GPX and video, ran continuous Auto-sync and converted the result with Fill gaps. Selecting markers at 91.347 and 111.829 seconds moved 11 interior points. All 225 other points kept their exact values, the recording needed no further decoding and Undo restored all 236. This checks editing behavior. Listening acceptance for those timing changes is pending.
+
 ## Phrase takes and sparse fills in lesson Auto-sync
 
 The stricter take comparison and the fill search are now connected to the browser worker. Normal lesson Auto-sync may choose a better supported take. Fill proposals open in the draft reviewer, where Use reviewed timing activates them. Real-button checks included R&B Fill 1, Chord Scale 6 and Easy Guitar Playalong. [Comparison and limitations](AUTO-SYNC-BASELINE.md#whole-phrase-take-selection-and-searches-with-no-initial-match)

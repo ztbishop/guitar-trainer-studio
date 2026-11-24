@@ -14,11 +14,12 @@ self.onmessage = async ({data}) => {
     if (data.range) {
       const {first,last,start,end} = data.range;
       const points = refinePassage(data.score,data.features,first,last,start,end);
-      const alternatives = alternativeStarts(data.score,data.features,first,last,start,points);
+      const alternatives = data.standard ? [] : alternativeStarts(data.score,data.features,first,last,start,points);
       self.postMessage({points,alternatives});
       return;
     }
     const features = recordingFeatures(data.samples), duration = data.samples.length/SAMPLE_RATE;
+    if(data.featuresOnly){self.postMessage({features},[features.buffer]);return;}
     const singles = matchSingleMeasures(data.bars,features,duration,(done,total) =>
       self.postMessage({phase:'Searching measures',done,total}));
     let matches = phraseMatches(data.score,features,duration,singles,(done,total) =>

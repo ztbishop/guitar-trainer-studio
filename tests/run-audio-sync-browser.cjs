@@ -22,6 +22,15 @@ async function run() {
     browser = await chromium.launch({headless:true,channel:process.env.GTS_BROWSER_CHANNEL || 'chrome'});
     const page = await browser.newPage({viewport:{width:1440,height:1000}});
     const errors = []; page.on('pageerror',e => errors.push(e.message));
+    await page.addInitScript(()=>{
+      window.pointWorkerCalls=[];
+      window.Worker=class extends Worker {
+        postMessage(data,...rest){
+          if(data?.standard || data?.featuresOnly || data?.bars)window.pointWorkerCalls.push(data.standard?'pins':data.featuresOnly?'features':'search');
+          return super.postMessage(data,...rest);
+        }
+      };
+    });
     await page.goto('http://127.0.0.1:'+server.address().port);
     await page.locator('#score-file-input').setInputFiles({name:'lesson.gp',mimeType:'application/octet-stream',buffer:gp});
     await page.waitForFunction(async () => {
@@ -108,6 +117,30 @@ async function run() {
     await page.locator('#media-draft-use').click();
     await page.waitForFunction(() => s.media.preview && s.media.timingPlan?.visits.length === 4);
     await page.locator('#media-show-editor').evaluate(box=>{box.checked=true;box.dispatchEvent(new Event('change'));});
+    const convert=page.locator('#media-continuous-points');
+    await convert.click();
+    await page.waitForFunction(()=>s.media.points?.length>=5 && !s.media.timingPlan);
+    const readPoints=()=>page.evaluate(()=>s.media.points);
+    const end=(await readPoints()).length-1;
+    const pin=i=>page.locator(`#media-timeline [data-point="${i}"] rect`).click();
+    await pin(end-1);
+    await page.locator('#media-nudge-right').click();
+    const before=await readPoints(), calls=await page.evaluate(()=>window.pointWorkerCalls.length);
+    await page.locator('#media-refine-points').click();
+    await pin(end-2);await pin(end-1);
+    assert.match(await page.locator('#media-refine-hint').innerText(),/at least one point/);
+    await pin(end);
+    await page.waitForFunction(()=>document.querySelector('#media-refine-hint').textContent.includes('Undo restores'));
+    const after=await readPoints();
+    assert.notEqual(before[end-1].millisecondOffset,after[end-1].millisecondOffset);
+    assert.deepEqual(after,before.map((p,i)=>i===end-1?{...p,millisecondOffset:after[i].millisecondOffset}:p));
+    assert.deepEqual(await page.evaluate(i=>window.pointWorkerCalls.slice(i),calls),['pins']);
+    await page.locator('#media-undo').click();
+    assert.deepEqual(await readPoints(),before);
+    await page.locator('#media-redo').click();
+    assert.deepEqual(await readPoints(),after);
+    await convert.click();
+    await page.waitForFunction(()=>s.media.timingPlan?.visits.length===4);
     await page.locator('#media-edit-timed-measures').click();
     await page.locator('#media-draft-use').waitFor();
     assert.deepEqual(JSON.parse(await draftJSON.inputValue()).candidatePlan,plan);
@@ -117,8 +150,22 @@ async function run() {
     await page.locator('#media-show-editor').evaluate(box=>{box.checked=true;box.dispatchEvent(new Event('change'));});
     await page.locator('#media-save-profile').click();
     await page.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('profile saved'));
+    // Reload the recording to discard the in-memory audio analysis.
+    const priorAudioUrl=await page.locator('#media-audio').getAttribute('src');
+    await page.locator('#media-file').dispatchEvent('change');
+    await page.waitForFunction(url=>s.media.preview && s.playerReady && document.querySelector('#media-audio').src!==url &&
+      /Saved alignment restored|Recording selected/.test(document.querySelector('#media-status').textContent),priorAudioUrl);
     await page.locator('#media-profile-select').evaluate(select=>{select.value=[...select.options].find(o=>o.value).value;select.dispatchEvent(new Event('change'));});
     await page.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('Saved alignment restored'));
+    await convert.click();
+    await page.waitForFunction(()=>s.media.points?.length>=5 && !s.media.timingPlan);
+    const restoredCalls=await page.evaluate(()=>window.pointWorkerCalls.length);
+    await page.locator('#media-refine-points').click();
+    await pin(end-2);await pin(end);
+    await page.waitForFunction(()=>/Undo restores|already match/.test(document.querySelector('#media-refine-hint').textContent));
+    assert.deepEqual(await page.evaluate(i=>window.pointWorkerCalls.slice(i),restoredCalls),['features','pins']);
+    await convert.click();
+    await page.waitForFunction(()=>s.media.timingPlan?.visits.length===4);
     await page.locator('#media-edit-timed-measures').click();
     await page.locator('#media-draft-use').waitFor();
     assert.deepEqual(JSON.parse(await draftJSON.inputValue()).candidatePlan.musicalVisits,plan.musicalVisits);

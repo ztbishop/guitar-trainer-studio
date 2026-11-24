@@ -3,6 +3,7 @@ import {printedMeasure} from './printed-measure.js';
 import {createDraftEditor} from './draft-controls.js';
 import {createAudioSuggestions} from './audio-sync-controls.js';
 import {takePosition} from './audio-sync-score.js';
+import {tickToTimeMs} from './score-playback.js';
 import {draftPosition} from './draft-alignment.js';
 import {validateDraft,checkDraftBinding,DRAFT_CAPABILITY} from './draft-timing.js';
 import {AppState} from './app-state.js';
@@ -75,6 +76,11 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   editMeasures.textContent='Edit timed measures';editMeasures.id='media-edit-timed-measures';
   get('editor-toolbar').append(editMeasures);
   let alternateAlignment=null;
+  let pointRefinement=null;
+  const refineButton=document.createElement('button'),refineHint=document.createElement('span');
+  refineButton.id='media-refine-points';refineButton.type='button';refineButton.textContent='Refine between points';
+  refineHint.id='media-refine-hint';refineHint.className='field-help';refineHint.setAttribute('role','status');
+  get('zoom-toolbar').append(refineButton,refineHint);
   const switchAlignment=document.createElement('button');
   switchAlignment.type='button';switchAlignment.id='media-continuous-points';
   editMeasures.after(switchAlignment);
@@ -94,7 +100,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       name:source.label+' · Continuous points',profileId:'',dirty:true,selected:-1,undo:[],redo:[]};
     busy=true;
     try {
-      suggestions.reset();sync();
+      suggestions.reset({keepAudio:true});sync();
       await returnToPractice();
       if(token!==generation)return;
       useAlignment(next);
@@ -265,6 +271,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('audio').muted=get('video').muted=silent;
     if(silent && player?.masterVolume)player.masterVolume=0;
     const ready=Boolean(player && player.backingTrackDuration>0 && (timingPlan || points.length>=2) && AppState.playbackTimeline && !busy && !dragging && !AppState.media.returning && (!AppState.media.preview || AppState.playerReady));
+    refineButton.hidden=Boolean(timingPlan || draftTiming || !player || source?.kind==='youtube');
+    refineHint.hidden=refineButton.hidden;
+    refineButton.disabled=!ready || points.length<3 || player.backingTrackDuration>45*60*1000;
+    refineButton.title=points.length<3?'Place at least one sync point between the two endpoints.':'Choose two blue markers to refine the points between them using the recording.';
+    if(pointRefinement && (refineButton.hidden || refineButton.disabled || !showEditor ||
+        pointRefinement.points!==points || pointRefinement.track!==AppState.practiceTrackId)) stopPointRefinement();
     get('listen').disabled=Boolean(draftTiming) || !ready;get('listen').setAttribute('aria-pressed',String(AppState.media.preview));
     get('practice').disabled=busy || AppState.media.returning;get('practice').setAttribute('aria-pressed',String(!AppState.media.preview));
     get('unload').disabled=!player || busy;get('save-profile').disabled=Boolean(draftTiming) || !ready || !scoreHash;
@@ -371,6 +383,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   }
   function disposal() {
     alternateAlignment=null;
+    stopPointRefinement();
     stopAudition();
     acceptedAudioDraft=null;
     suggestions.reset();
@@ -501,6 +514,41 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     host.applyMediaSyncPoints(checked,{preservePlayback});
     undo.push(structuredClone(points));if(undo.length>100)undo.shift();redo=[];
     points=checked;dirty=true;renderPoints();sync();message('Alignment edited. Save profile to keep these changes.');
+  }
+  function stopPointRefinement(text='') {
+    pointRefinement?.controller.abort();pointRefinement=null;
+    refineButton.textContent='Refine between points';refineHint.textContent=text;
+  }
+  refineButton.addEventListener('click',()=>{
+    if(pointRefinement){stopPointRefinement();return;}
+    pointRefinement={points,track:AppState.practiceTrackId,first:null,running:false,controller:new AbortController()};
+    refineButton.textContent='Cancel refinement';refineHint.textContent='Click the first blue point.';
+  });
+  async function pickRefinementPoint(index){
+    const task=pointRefinement;
+    if(!task || task.running)return;
+    if(task.first===null){
+      task.first=index;selectPoint(index,{preserveTime:true});
+      refineHint.textContent='Click the end blue point. Leave at least one point between them.';return;
+    }
+    if(index<=task.first+1){
+      refineHint.textContent='Choose a later blue point with at least one point between the two.';return;
+    }
+    task.running=true;
+    refineHint.textContent='Matching the points between your pins…';
+    const first=task.first,original=task.points,timeline=AppState.playbackTimeline;
+    try {
+      const edges=original.slice(first,index+1).map(p=>tickToTimeMs(timeline,pointTick(p,timeline))/1000);
+      const offsets=await suggestions.refineStandard(edges,original[first].millisecondOffset/1000,
+        original[index].millisecondOffset/1000,task.controller.signal);
+      if(pointRefinement!==task || points!==original)return;
+      const next=original.map((p,i)=>i>first && i<index?{...p,millisecondOffset:Math.round(offsets[i-first]*1000)}:p);
+      const count=next.filter((p,i)=>p.millisecondOffset!==original[i].millisecondOffset).length;
+      if(count)edit(next);
+      stopPointRefinement(count?`Refined ${count} interior ${count===1?'point':'points'}. Undo restores the previous timing.`:'The interior points already match.');
+    }catch(error){
+      if(pointRefinement===task)stopPointRefinement(error.message);
+    }
   }
   function resetMovement() {
     get('move-scope').value='point';sectionFirst=sectionLast=0;movementPositions='';
@@ -773,7 +821,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       const position=pointTick(point,AppState.playbackTimeline)===0?'Start':syncPointLabel(point,AppState.score,AppState.playbackTimeline)==='End'?'End':`Measure ${printedMeasure(AppState.score,point.barIndex+1)}, beat ${Number(beat.toFixed(2))}`;
       button.textContent=`${position}${point.barOccurence?` (repeat ${point.barOccurence+1})`:''} → ${clock(point.millisecondOffset)}`;
       button.title=`Measure ${printedMeasure(AppState.score,point.barIndex+1)}, beat ${Number(beat.toFixed(2))} matches ${clock(point.millisecondOffset)} in the recording. Click to select.`;
-      button.addEventListener('click',()=>selectPoint(index,{preserveTime:true}));get('point-list').append(button);
+      button.addEventListener('click',()=>pointRefinement?pickRefinementPoint(index):selectPoint(index,{preserveTime:true}));get('point-list').append(button);
     });
   }
   function renderProfiles() {
@@ -917,6 +965,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     lastTimelineInteraction=performance.now();
     if(event.button!==0 || !player || busy || dragging || AppState.media.returning)return;
     const marker=event.target.closest('[data-point]'),guide=event.target.closest('[data-guide]');
+    if(pointRefinement){event.preventDefault();if(marker)pickRefinementPoint(Number(marker.dataset.point));return;}
     if(!marker) {
       if(guide){
         if(timingPlan)action(()=>seekRecording(Number(guide.dataset.time)))();
