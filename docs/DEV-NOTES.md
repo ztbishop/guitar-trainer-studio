@@ -1,5 +1,21 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Continuous PDF scrolling and Arirang tap experiment, November 24, 2026
+
+Both PDF workflows scroll across page boundaries. The score pane has a Show PDF button after Show notation. Chrome checks covered switching back, marking on a scrolled-to page, seeking and loop shading, playback crossing pages, and manual browsing with follow disabled. The original six-page Arirang PDF and MP4 also exercised saved auto-scroll off/on, sparse taps, correction and looping without a playable score.
+
+The offline experiment in `tools/experiments/pdf-tap-audio.py` takes mono float32 PCM at 11025 Hz. Approximate downbeat references for measures 1–17 come from the printed bass line and corresponding bass attacks in the recording. Each trial gives the estimator just two endpoint times and a measure count. These controlled taps simulate a user tapping the boundaries. The references have not been independently verified by a musician.
+
+| Pinned measures | Held-out starts | Largest absolute error, even spacing | Nearby attack | Sequence of attacks |
+| --- | --- | ---: | ---: | ---: |
+| 1 and 5 | 2–4 | 0.57 s | 0.05 s | 0.05 s |
+| 5 and 9 | 6–8, including the slowdown | 2.32 s | 2.45 s | 0.04 s |
+| 8 and 10 | 9, after the hold | 1.49 s | 1.93 s | <0.01 s |
+| 10 and 14 | 11–13 | 0.10 s | 0.02 s | 0.02 s |
+| 14 and 17 | 15–16 | 0.15 s | 0.02 s | 0.02 s |
+
+The sequence search rewards bass and broadband attacks and allows uneven bar lengths. Holding out the whole interior from measures 1–9 gave a worst error of about 0.05 s. Moving the M5 tap 0.18 s late and the M9 tap 0.18 s early gave a worst interior error of 0.04 s. Widening the pins to measures 1–17 increased the worst error to 0.78 s. This is a single performance with prominent bass downbeats. The experiment runs outside the app. The shipped tap editor still interpolates.
+
 ## PDF measure detection and navigation, November 24, 2026
 
 Standalone realtime check: an isolated Chrome session opened the original six-page Arirang PDF through the main file picker and selected the 375.30-second MP4. It found 145 measure boxes. No playable score was loaded. Test taps at 1.36 and 7.98 seconds for measures 1 and 3 estimated measure 2 at 4.67. Pinning it and changing the pin to 4.80 moved its seek target. A measure 2 loop returned to that point during playback, including after a speed change from 50% to 150%. Reopening the pair restored the taps. The chosen points exercise the editor and transport. They are not an independently verified transcription of the performance. The generated PDF/WAV fixture exercises the same workflow with audio only.

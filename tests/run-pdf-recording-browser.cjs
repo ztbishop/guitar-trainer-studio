@@ -24,6 +24,7 @@ function audioFixture() {
       pdf={name:'exercise.pdf',mimeType:'application/pdf',buffer:await page.pdf()};recording=audioFixture();
     }
     await page.goto('http://127.0.0.1:'+server.address().port);
+    await page.evaluate(()=>localStorage.setItem('gts.displayPreferences',JSON.stringify({ui:{autoScroll:false}})));
     await page.waitForFunction(()=>!document.getElementById('btn-scores').disabled && document.querySelector('#pdf-map'));
     const accept=await page.locator('#score-file-input').getAttribute('accept');
     for(const ext of ['.mid','.midi','.pdf'])assert.ok(accept.split(',').includes(ext));
@@ -46,6 +47,22 @@ function audioFixture() {
     assert.equal(await room.locator('.tap-cue').getAttribute('data-measure'),'1');
     console.log('Pages',await room.locator('#pdf-page option').count(),'measure boxes',measures,'duration',await player.evaluate(v=>v.duration));
     assert.ok(measures>=3);
+    if(await room.locator('.pdf-reading-page').count()>1) {
+      const scroll=room.locator('#pdf-scroll');
+      const later=Number(await room.locator('.pdf-reading-page[data-page="2"] button').first().getAttribute('data-measure'));
+      await room.locator('#tap-measure').selectOption(String(later));
+      assert.equal(await scroll.evaluate(el=>el.scrollTop),0);
+      await scroll.evaluate(el=>el.scrollTop=el.scrollHeight);
+      await room.locator('#tap-measure').selectOption('1');
+      assert.ok(await scroll.evaluate(el=>el.scrollTop>el.clientHeight));
+      await page.evaluate(()=>localStorage.setItem('gts.displayPreferences',JSON.stringify({ui:{autoScroll:true}})));
+      await room.locator('#tap-measure').selectOption(String(later));
+      await room.locator('#tap-measure').selectOption('1');
+      await room.locator('.tap-cue').evaluate(box=>{
+        const frame=document.getElementById('pdf-scroll').getBoundingClientRect(), rect=box.getBoundingClientRect();
+        if(rect.top<frame.top-1 || rect.bottom>frame.bottom+1)throw Error('Selected measure stayed offscreen');
+      });
+    }
     await tap(1,1.36);await tap(3,7.98);await seek(4.70);
     assert.equal(await room.locator('#following').textContent(),'Measure 2');
     assert.equal(await room.locator('.pdf-box.current').getAttribute('data-measure'),'2');

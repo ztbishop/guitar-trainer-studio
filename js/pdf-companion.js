@@ -6,6 +6,7 @@ import {practiceTimingPlan} from './media-practice.js';
 import {editPageBoxes, availableVisit, replacePageBoxes} from './pdf-box-review.js';
 import {barlineHandle} from './pdf-barline-controls.js';
 import {mountPdfEditor} from './pdf-editor-layout.js';
+import {readingPages} from './pdf-reading-pages.js';
 
 export function writtenMeasureAt(measures, tick) {
   let low = 0, high = measures?.length ?? 0;
@@ -42,9 +43,16 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
   const pageSelect = byId('page'), measure = byId('measure'), mark = byId('map'), target = byId('target');
   const native = document.getElementById('alphatab-wrapper');
   let pdf, documentTask, key, boxes = {}, page = 1, editing = false, visible = false, generation = 0;
-  let renderVersion = 0, renderTask, drawnWidth = 0, drawnPage = 0, drag, current, trainerState;
+  let drag, current, trainerState;
   let proposals=null, scanVersion=0, loopRange=null, loopMeasures=null, noteVisit=null, tapCue=null;
   const find=byId('find'), action=byId('action'), note=byId('note'), replace=byId('replace');
+  const pagesRoot=byId('pages');
+  const reader=readingPages(scroll,pagesRoot,jumpToMeasure,number=>{
+    if(number===page || !visible || view.hidden)return;
+    if(editing){
+      if(!proposals && !drag && !find.disabled && !sheet.querySelector(':active'))goPage(number,false);
+    } else {page=number;pageSelect.value=String(number);}
+  },message);
   function extendNumbers(last) {
     while(measure.length<last) {
       const number=String(measure.length+1);
@@ -77,26 +85,25 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
     return el;
   }
   function paintBoxes(reveal = false) {
-    const focused=overlay.contains(document.activeElement) ? document.activeElement.dataset.measure : null;
+    if (!editing) {
+      if (visible && !view.hidden) {
+        renderPage();
+        reader.update(current,tapCue,loopMeasures,reveal && state.ui.autoScroll);
+      }
+      return;
+    }
     overlay.replaceChildren();
-    const selected = editing ? Number(measure.value) : current;
+    const selected = Number(measure.value);
     const entries = proposals ? proposals.map((box,i)=>[Number(measure.options[measure.selectedIndex+i]?.value),box]) : Object.entries(boxes);
     let previous=null;
     for (const [i,[number, box]] of entries.entries()) {
       if (box?.page !== page) continue;
       const active = Number(number) === selected;
-      const el = boxElement(box, active, !editing);
+      const el = boxElement(box, active);
       const label=Number.isFinite(Number(number)) ? printedMeasure(state.score, Number(number)) : '—';
-      if (editing) el.textContent = label;
-      else {
-        el.setAttribute('aria-label','Go to measure '+label);
-        el.dataset.measure=number;
-        if(recording && Number(number)===tapCue)el.classList.add('tap-cue');
-        el.classList.toggle('outside-loop', !!loopMeasures && !loopMeasures.has(Number(number)));
-        el.onclick=()=>jumpToMeasure(Number(number));
-      }
+      el.textContent = label;
       overlay.append(el);
-      if(editing && (!proposals || action.value==='draw') && previous && (proposals || Number(number)===Number(previous.number)+1)) {
+      if((!proposals || action.value==='draw') && previous && (proposals || Number(number)===Number(previous.number)+1)) {
         const left=previous;
         const handle=barlineHandle(sheet,left.box,box,left.el,el,'Move barline before measure '+label,(a,b)=>{
           if(proposals) {proposals[i-1]=a;proposals[i]=b;}
@@ -109,12 +116,6 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
         if(handle){handle.dataset.boundary=i;overlay.append(handle);}
       }
       previous={number,box,el};
-      if (focused && String(number)===focused) el.focus({preventScroll:true});
-      if (active && reveal && state.ui.autoScroll && !editing) {
-        const frame = scroll.getBoundingClientRect(), rect = el.getBoundingClientRect();
-        if (rect.top < frame.top || rect.bottom > frame.bottom) scroll.scrollTop += rect.top - frame.top - 12;
-        if (rect.left < frame.left || rect.right > frame.right) scroll.scrollLeft += rect.left - frame.left - 8;
-      }
     }
     byId('remove').disabled = !boxes[measure.value];
   }
@@ -198,35 +199,11 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
     drag = null;
     overlay.querySelector('.drawing')?.remove();
   }
-  async function renderPage() {
-    if (!pdf || view.hidden || !scroll.clientWidth) return;
-    const width = Math.max(1, Math.round(scroll.clientWidth * state.ui.zoomPercent / 100));
-    if (page === drawnPage && width === drawnWidth) return;
-    cancelDrag();
-    const version = ++renderVersion;
-    drawnPage = page; drawnWidth = width;
-    renderTask?.cancel();
-    sheet.style.visibility = 'hidden';
-    try {
-      const pdfPage = await pdf.getPage(page);
-      if (version !== renderVersion) return;
-      const base = pdfPage.getViewport({scale:1});
-      const ratio = Math.min(devicePixelRatio || 1, 2, Math.sqrt(8000000 / (width * width * base.height / base.width)));
-      const viewport = pdfPage.getViewport({scale:width * ratio / base.width});
-      const canvas = byId('canvas');
-      canvas.width = Math.max(1, Math.round(viewport.width));
-      canvas.height = Math.max(1, Math.round(viewport.height));
-      sheet.style.width = width + 'px';
-      renderTask = pdfPage.render({canvas, viewport});
-      await renderTask.promise;
-      if (version !== renderVersion) return;
-      sheet.style.visibility = '';
-      paintBoxes(true);
-    } catch (error) {
-      if (version === renderVersion) message('Could not render this PDF page. ' + error.message);
-    }
+  function renderPage() {
+    if (pdf && !view.hidden && scroll.clientWidth)
+      reader.resize(Math.max(1, Math.round(scroll.clientWidth * state.ui.zoomPercent / 100)));
   }
-  function goPage(number) {
+  function goPage(number, scrollToPage=true) {
     if(page!==number) {
       endReview();cancelDrag();message('');
       noteVisit=null;byId('position').hidden=true;
@@ -240,8 +217,8 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
     }
     page = number;
     pageSelect.value = String(page);
-    scroll.scrollTo(0, 0);
-    renderPage();
+    if(editing) {reader.placeEditor(page,sheet);paintBoxes();}
+    if(scrollToPage)reader.jump(page);
   }
   function setEditing(value) {
     editing = value;
@@ -250,6 +227,14 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
     mark.textContent = editing ? 'Done marking' : 'Mark measures';
     mark.setAttribute('aria-pressed', String(editing));
     byId('edit').hidden = !editing;
+    sheet.hidden=!editing;
+    pagesRoot.classList.toggle('marking',editing);
+    if(editing) {
+      reader.placeEditor(page,sheet);
+    } else {
+      overlay.replaceChildren();
+      reader.populate(boxes,boxElement,n=>printedMeasure(state.score,n));
+    }
     sheet.classList.toggle('mapping', editing);
     message(editing ? 'Find boxes on this page, drag a blue divider between measures, or choose a measure and redraw its box.' : '');
     paintBoxes();
@@ -262,8 +247,6 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
       const cue=number===null ? recording.selectedMeasure() : null;
       if(current!==number || loopRange!==range || tapCue!==cue) {
         current=number;tapCue=cue;loopRange=range;loopMeasures=range?.measures;
-        const follow=boxes[number??cue];
-        if(!editing && follow && state.ui.autoScroll && follow.page!==page)goPage(follow.page);
         paintBoxes(true);
       }
       renderPage();return;
@@ -279,6 +262,8 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
     const showButton = byId('show');
     const canShow = Boolean(pdf && !shown && !state.media.editing);
     if (showButton.hidden === canShow) showButton.hidden = !canShow;
+    const returnButton=byId('return');
+    if(returnButton.hidden===canShow)returnButton.hidden=!canShow;
     if (!shown) return;
     const event = trainer?.currentEvent;
     const waiting = state.mode === 'wait';
@@ -297,19 +282,17 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
     if(noteVisit && (number!==noteVisit.measureNumber || state.isPlaying)) {noteVisit=null;byId('position').hidden=true;}
     if (current !== number || changedRange) {
       current = number;
-      if (!editing && boxes[number] && state.ui.autoScroll && boxes[number].page !== page) goPage(boxes[number].page);
       paintBoxes(true);
     }
     renderPage();
   }
   function reset() {
-    generation++; renderVersion++;
-    renderTask?.cancel(); documentTask?.destroy(); documentTask = null;
-    pdf = null; key = null; boxes = {}; visible = false; drawnPage = 0; current = null;loopRange=null;loopMeasures=null;
+    generation++;
+    reader.clear();
+    documentTask?.destroy(); documentTask = null;
+    pdf = null; key = null; boxes = {}; visible = false; current = null;loopRange=null;loopMeasures=null;
     file.value = '';
     setEditing(false); updateAttachStatus(''); sync(null);
-    const canvas = byId('canvas');
-    canvas.width = canvas.height = 1;
   }
   async function open(selected) {
     const score = state.currentScoreFile, version = ++generation;
@@ -341,8 +324,11 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
         }
         if(version!==generation){await task.destroy();return;}
       }
-      renderVersion++; renderTask?.cancel(); documentTask?.destroy(); documentTask = task;
-      pdf = loaded; page = 1; drawnPage = 0; current = undefined;
+      const pages=await Promise.all(Array.from({length:loaded.numPages},(_,i)=>loaded.getPage(i+1)));
+      if(version!==generation){await task.destroy();return;}
+      documentTask?.destroy(); documentTask = task;
+      reader.load(pages);
+      pdf = loaded; page = 1; current = undefined;
       key=storageKey;boxes=mapping;
       pageSelect.replaceChildren();
       for (let i = 1; i <= pdf.numPages; i++) pageSelect.add(new Option(String(i), String(i)));
@@ -368,14 +354,22 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
     const clamp = n => Math.max(0, Math.min(1, n));
     return {x:clamp((event.clientX - rect.left) / rect.width), y:clamp((event.clientY - rect.top) / rect.height)};
   }
-  sheet.onpointerdown = event => {
+  function startBox(event) {
     if (!editing || !event.isPrimary || event.button !== 0) return;
     event.preventDefault();
     const start=point(event);
     const hit=proposals?.findIndex(b=>start.x>=b.x && start.x<=b.x+b.w && start.y>=b.y && start.y<=b.y+b.h) ?? -1;
     drag = {id:event.pointerId, start, hit};
     sheet.setPointerCapture(event.pointerId);
-  };
+  }
+  sheet.onpointerdown=startBox;
+  pagesRoot.addEventListener('pointerdown',event=>{
+    if(!editing || sheet.contains(event.target) || event.button!==0 || !event.isPrimary)return;
+    const number=Number(event.target.closest('[data-page]')?.dataset.page);
+    if(!number || number===page || proposals || drag || find.disabled)return;
+    goPage(number,false);
+    startBox(event);
+  });
   sheet.onpointermove = event => {
     if (drag?.id !== event.pointerId || (proposals && action.value!=='draw')) return;
     overlay.querySelector('.drawing')?.remove();
@@ -407,7 +401,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null) {
   byId('remove').onclick = () => { delete boxes[measure.value]; saveBoxes(); paintBoxes(); sync(); };
   mark.onclick = () => { setEditing(!editing); current = undefined; sync(); };
   byId('native').onclick = () => { visible = false; sync(); };
-  if(!recording)byId('show').onclick = () => { closeMenu(); visible = true; current = undefined; sync(); };
+  if(!recording)byId('return').onclick=byId('show').onclick = () => { closeMenu(); visible = true; current = undefined; sync(); };
   attach.onclick = () => file.click();
   file.onchange = () => { const selected = file.files[0]; file.value = ''; if (selected) open(selected); };
   new ResizeObserver(renderPage).observe(scroll);

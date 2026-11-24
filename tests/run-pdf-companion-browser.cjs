@@ -38,13 +38,16 @@ function twoBarMidi() {
       }));
       assert.deepEqual(loaded, {bars:2, pitches:[60,62,64,65,67,69,71,72], bytes:midi.buffer.length});
       await page.locator('#pdf-file').setInputFiles(pdf);
-      await page.waitForFunction(() => !document.querySelector('#pdf-view').hidden && document.querySelector('#pdf-canvas').width > 1);
+      await page.waitForFunction(() => !document.querySelector('#pdf-view').hidden && document.querySelector('.pdf-reading-page canvas'));
     };
     await loadPair();
     assert.equal(await page.locator('#pdf-page option').count(), 2);
     for (const pageNumber of [1,2]) {
-      await page.locator('#pdf-page').selectOption(String(pageNumber));
-      await page.waitForFunction(() => document.querySelector('#pdf-sheet').style.visibility !== 'hidden');
+      if(pageNumber===2) {
+        await page.locator('#pdf-scroll').evaluate(el=>{el.scrollTop=el.scrollHeight;});
+        await page.waitForFunction(()=>document.querySelector('#pdf-sheet').parentElement.dataset.page==='2');
+        await page.locator('#pdf-page').selectOption('2');
+      }
       if(pageNumber===2) {
         await page.locator('#pdf-find').click();
         await page.locator('#pdf-use').waitFor();
@@ -67,12 +70,26 @@ function twoBarMidi() {
     }
     await page.locator('#pdf-map').click();
     assert.equal(await page.locator('#pdf-page').inputValue(), '1');
+    await page.locator('#pdf-native').click();
+    assert.ok(await page.locator('#pdf-return').isVisible());
+    await page.locator('#pdf-return').click();
+    assert.ok(await page.locator('#pdf-view').isVisible());
+    const scroll=page.locator('#pdf-scroll');
+    await page.evaluate(()=>{practiceState.ui.autoScroll=false;});
+    await scroll.evaluate(el=>{el.scrollTop=el.scrollHeight;});
+    await page.waitForFunction(()=>document.querySelector('#pdf-page').value==='2');
+    await page.getByRole('button',{name:'Go to measure 2',exact:true}).click();
+    await scroll.evaluate(el=>{el.scrollTop=0;});
+    await page.waitForFunction(()=>document.querySelector('#pdf-page').value==='1');
+    assert.equal(await page.locator('#pdf-pages .current').getAttribute('data-measure'),'2');
+    await page.getByRole('button',{name:'Go to measure 1',exact:true}).click();
+    await page.evaluate(()=>{practiceState.ui.autoScroll=true;});
     await page.locator('#play-pause-button').click();
-    await page.waitForFunction(() => document.querySelector('#pdf-page').value === '2' && document.querySelector('#pdf-boxes .current'));
+    await page.waitForFunction(() => document.querySelector('#pdf-page').value === '2' && document.querySelector('#pdf-pages .current'));
     await page.locator('#play-pause-button').click();
     await loadPair();
     assert.equal(await page.locator('#pdf-map').getAttribute('aria-pressed'), 'false');
-    assert.equal(await page.locator('#pdf-boxes .current').count(), 1);
+    assert.equal(await page.locator('#pdf-pages .current').count(), 1);
     await page.locator('#pdf-page').selectOption('2');
     await page.getByRole('button',{name:'Go to measure 2',exact:true}).click();
     await page.waitForFunction(()=>Math.abs(practiceState.tickPosition-practiceState.playbackTimeline.measures[1].startTick)<=1);

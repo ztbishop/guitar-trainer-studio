@@ -115,7 +115,9 @@ Use a PDF with a MIDI when the print is your reference for reading the music. A 
 4. In **Mark measures**, drag the blue **↔** handle between touching boxes to move their shared barline. You can also focus it and use the arrow keys. Moving the start of measure 5 widens or narrows measure 4 and adjusts measure 5. Measure 6 stays put. The handle stops before either box collapses. For an isolated box, choose its measure and redraw it.
 5. To rebuild an already mapped page, choose **Find boxes on page**, check **First measure**, then select **Replace saved boxes on this page → Use page boxes**. If an earlier page had an extra division, check the first measure on each subsequent page. The editor blocks replacement if a number belongs to another page.
 
-Written repeats reuse their box. If your MIDI writes out a repeat as separate measures, assign the additional measures to the same printed passage by hand. **Show notation** returns to the interactive score. **Scores → Show PDF** switches back. Zoom and auto-scroll use your usual display settings.
+Written repeats reuse their box. If your MIDI writes out a repeat as separate measures, assign the additional measures to the same printed passage by hand. **Show notation** returns to the interactive score. **Show PDF** beside the full-screen button switches back.
+
+In both PDF workflows, scroll vertically from one page to the next or use **Page** for a direct jump. With **Auto-scroll** enabled, the trainer brings the current measure into view as you play. Turn it off to browse freely. Both views use your saved zoom.
 
 Boxes are saved in this browser for this exact pair of files. Reattach the PDF when you reopen the score. Library backups currently cover the companion score and sync profiles only. PDF pages are read on your device. The printed notes keep their original appearance, and grading continues through the companion.
 

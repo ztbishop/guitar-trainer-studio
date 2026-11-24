@@ -18,6 +18,7 @@ export function mountPdfEditor(view) {
           </div>
           <p id="pdf-status" role="status" hidden></p>
           <div id="pdf-scroll" tabindex="0" aria-label="PDF page">
-            <div id="pdf-sheet"><canvas id="pdf-canvas" aria-label="Printed score page"></canvas><div id="pdf-boxes"></div></div>
+            <div id="pdf-pages"></div>
+            <div id="pdf-sheet"><div id="pdf-boxes"></div></div>
           </div>`;
 }

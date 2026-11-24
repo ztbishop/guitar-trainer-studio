@@ -1,4 +1,5 @@
 import {initPdfCompanion} from './pdf-companion.js';
+import {readDisplayPreferences, DISPLAY_PREFERENCES_KEY} from './display-preferences.js';
 import {fingerprint} from './library-store.js';
 import {measureIntervals,putAnchor,recordingLoop} from './pdf-recording-timing.js';
 
@@ -60,7 +61,8 @@ function current() {
   return spans.find(s=>s.start<=t && t<s.end)?.measure ??
     anchors.find(a=>!a.end && Math.abs(t-a.time)<.035)?.measure ?? null;
 }
-const editor=initPdfCompanion({ui:{zoomPercent:100,autoScroll:true}},()=>{},null,{
+const display=readDisplayPreferences();
+const editor=initPdfCompanion(display,()=>{},null,{
   current,selectedMeasure:()=>Number(selected.value)||null,loop:()=>loop,boxesChanged:setBoxes,autoFind:()=>el('auto-find').checked,
   opened(hash,name,boxes) {
     media.pause();pdfHash=hash;el('pdf-attach').textContent=name;
@@ -76,6 +78,9 @@ const editor=initPdfCompanion({ui:{zoomPercent:100,autoScroll:true}},()=>{},null
   }
 });
 document.addEventListener('open-printed-score',e=>editor.open(e.detail));
+window.addEventListener('storage',e=>{
+  if(e.key===DISPLAY_PREFERENCES_KEY || e.key===null){display.ui=readDisplayPreferences().ui;editor.sync();}
+});
 selected.onchange=()=>editor.sync();
 function tick() {
   if(loop && !media.paused && (media.currentTime>=loop.end || media.currentTime<loop.start-.02))media.currentTime=loop.start;

@@ -6,7 +6,9 @@ Opening a PDF through the score picker opens the standalone PDF + recording docu
 
 `pdf-recording-timing.js` interpolates written measure starts between recording-time taps. A marked passage end closes the final measure and leaves a gap until the next start. Loops require consecutive timed measures in one span of recording time. Playback rate changes the media clock's speed while preserving all stored times.
 
-`js/pdf-companion.js` renders one local PDF page at a time with the bundled PDF.js worker. Its measure overlay reads the repeat-expanded timeline and existing practice target. Its normalized rectangles use the written measure number, so repeated visits reuse the box. The browser stores only rectangles under fingerprints of both files. Score loading clears the open PDF. Opening Media Sync temporarily exposes the interactive native score. The Loop menu uses the same transport in both views.
+`js/pdf-companion.js` shares a continuous page stack with the PDF + recording room. `js/pdf-reading-pages.js` reserves each page’s actual aspect ratio and renders nearby canvases on demand with the bundled PDF.js worker. Distant pages release their canvas memory. The marking overlay uses the same page geometry and stays on its proposal page during review. PDF + recording reads the trainer’s saved zoom and auto-scroll settings.
+
+The companion measure overlay reads the repeat-expanded timeline and existing practice target. Its normalized rectangles use the written measure number, so repeated visits reuse the box. The browser stores only rectangles under fingerprints of both files. Score loading clears the open PDF. Opening Media Sync temporarily exposes the interactive native score. The Loop menu uses the same transport in both views.
 
 Opening a MIDI invokes `js/midi-score-import.js` on demand. The standalone webmscore worker returns MusicXML for the host's native score loader, then terminates. The library and media sync retain the original MIDI identity. The virtual fretboard uses its existing tuning and written position requirements. Expected pitch names in the PDF use the trainer's current event and Wait note states.
 

@@ -1,5 +1,8 @@
 # Guitar Trainer Studio status and to-do
 
+- [x] Scroll continuously through PDF pages, follow the saved Auto-scroll setting in both PDF workflows, and return from notation with Show PDF.
+- [ ] Check the PDF-only tap experiment on another performance with weak downbeats before exposing audio-based timing suggestions. Arirang results and tap-spacing limits are in DEV-NOTES.
+
 - [ ] Listen to optional per-point comparisons on additional performances. Current timing is the initial choice for each point.
 
 - [x] Refine existing points between two fixed blue timeline markers after Fill gaps, with cached audio and one-step Undo.
