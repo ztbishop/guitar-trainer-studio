@@ -1,6 +1,46 @@
 // Mixer presentation and preferences. Native audio calls stay in alphatab-host.
 import {AppState} from './app-state.js';
 
+// Bank zero in the bundled Sonivox General MIDI soundfont, in program order.
+const presetFamilies = [
+  ['Pianos','Grand piano|Bright piano|Electric grand piano|Honky-tonk piano|Electric piano 1|Electric piano 2|Harpsichord|Clavinet'],
+  ['Chromatic percussion','Celesta|Glockenspiel|Music box|Vibraphone|Marimba|Xylophone|Tubular bells|Dulcimer'],
+  ['Organs','Drawbar organ|Percussive organ|Rock organ|Church organ|Reed organ|Accordion|Harmonica|Bandoneon'],
+  ['Guitars','Nylon-string guitar|Steel-string guitar|Jazz guitar|Clean guitar|Muted guitar|Overdriven guitar|Distortion guitar|Guitar harmonics'],
+  ['Basses','Acoustic bass|Fingered bass|Picked bass|Fretless bass|Slap bass 1|Slap bass 2|Synth bass 1|Synth bass 2'],
+  ['Strings','Violin|Viola|Cello|Contrabass|Tremolo strings|Pizzicato strings|Harp|Timpani'],
+  ['Ensembles','String ensemble|Slow strings|Synth strings 1|Synth strings 2|Choir aahs|Voice oohs|Synth voice|Orchestra hit'],
+  ['Brass','Trumpet|Trombone|Tuba|Muted trumpet|French horn|Brass section|Synth brass 1|Synth brass 2'],
+  ['Reeds','Soprano sax|Alto sax|Tenor sax|Baritone sax|Oboe|English horn|Bassoon|Clarinet'],
+  ['Pipes','Piccolo|Flute|Recorder|Pan flute|Blown bottle|Shakuhachi|Whistle|Ocarina'],
+  ['Synth leads','Square lead|Saw lead|Calliope lead|Chiff lead|Charang|Solo vox|Fifths lead|Bass and lead'],
+  ['Synth pads','Fantasia|Warm pad|Polysynth|Space voice|Bowed glass|Metal pad|Halo pad|Sweep pad'],
+  ['Synth effects','Ice rain|Soundtrack|Crystal|Atmosphere|Brightness|Goblin|Echoes|Star theme'],
+  ['World instruments','Sitar|Banjo|Shamisen|Koto|Kalimba|Bagpipe|Fiddle|Shanai'],
+  ['Percussive sounds','Tinkle bell|Agogo|Steel drums|Woodblock|Taiko|Melodic tom|Synth drum|Reverse cymbal'],
+  ['Sound effects','Guitar fret noise|Breath noise|Seashore|Bird|Telephone|Helicopter|Applause|Gunshot'],
+];
+
+function soundMenu() {
+  const select=document.createElement('select');
+  select.className='mixer-sound';
+  select.append(new Option('Score instrument',''));
+  let program=0;
+  for(const [family,names] of presetFamilies) {
+    const group=document.createElement('optgroup');
+    group.label=family;
+    for(const name of names.split('|'))group.append(new Option(name,String(program++)));
+    select.append(group);
+  }
+  return select;
+}
+
+export function canChangeTrackSound() {
+  const wait=AppState.waitTrainer;
+  return AppState.playerReady && !AppState.media.preview && !AppState.isPlaying && !AppState.countInActive &&
+    !(AppState.mode==='wait' && wait?.active && wait.phase!=='paused');
+}
+
 export function clampVolume(value, fallback=100) {
   return String(value).trim()!=='' && Number.isFinite(Number(value)) ? Math.max(0,Math.min(100,Number(value))) : fallback;
 }
@@ -52,10 +92,21 @@ export function initAudioControls(onChange) {
   mediaNumber.addEventListener('change',()=>commitMedia(mediaNumber.value));
   mediaNumber.addEventListener('blur',()=>commitMedia(mediaNumber.value));
   mediaNumber.addEventListener('keydown',event=>{if(event.key==='Enter')commitMedia(mediaNumber.value);});
+  let template, soundControls=[], soundEnabled;
+  function syncAvailability() {
+    const enabled=canChangeTrackSound();
+    if(enabled===soundEnabled)return;
+    soundEnabled=enabled;
+    for(const select of soundControls) {
+      select.disabled=!enabled;
+      select.title=enabled?'Synth playback instrument':'Choose a sound while synth playback is paused';
+    }
+  }
   function sync() {
     slider.value=number.value=String(AppState.audio.masterPercent);
     mediaSlider.value=mediaNumber.value=String(AppState.audio.mediaPercent);
     mixer.replaceChildren();
+    soundControls=[];soundEnabled=undefined;
     if(!AppState.tracks.length){mixer.textContent='Load a score to adjust its tracks.';return;}
     for(const group of playbackGroups(AppState.tracks)) {
       const state=AppState.audio.tracks[group.id] ?? {volumePercent:100,muted:false};
@@ -71,12 +122,25 @@ export function initAudioControls(onChange) {
       mute.setAttribute('aria-label',`Mute ${label.textContent}`);
       muteLabel.append(mute,' Mute');
       function update() {
-        AppState.audio.tracks[group.id]={volumePercent:Number(volume.value),muted:mute.checked};
+        AppState.audio.tracks[group.id]={...AppState.audio.tracks[group.id],volumePercent:Number(volume.value),muted:mute.checked};
         output.textContent=`${volume.value}%`;onChange('tracks');
       }
       volume.addEventListener('input',update);mute.addEventListener('change',update);
-      row.append(label,volume,output,muteLabel);mixer.append(row);
+      row.append(label);
+      if(group.channels.size && !group.channels.has(9) && !group.tracks.some(track=>track.staves?.some(staff=>staff.isPercussion))) {
+        template??=soundMenu();
+        const select=template.cloneNode(true);
+        select.setAttribute('aria-label',`Synth sound for ${label.textContent}`);
+        select.value=String(state.program??'');
+        select.addEventListener('change',()=>{
+          const program=select.value===''?null:Number(select.value);
+          if(!onChange('sound',{id:group.id,program}))select.value=String(AppState.audio.tracks[group.id]?.program??'');
+        });
+        soundControls.push(select);row.append(select);
+      }
+      row.append(volume,output,muteLabel);mixer.append(row);
     }
+    syncAvailability();
   }
-  sync();return {sync};
+  sync();return {sync,syncAvailability};
 }

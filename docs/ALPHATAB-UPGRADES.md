@@ -4,6 +4,8 @@ Guitar Trainer Studio v1.0.2 ships the qualified alphaTab 1.9.0 bundles. Use the
 
 ## Qualifying 1.9 and later releases
 
+Run `node tests/run-track-sounds-browser.cjs` against the installed candidate. The synth mixer relies on mutable bank and program events from `midiLoad`, public player MIDI reload, and ordered load and seek acknowledgements to restore the paused position. Check shared-channel overrides, the original instrument on reset, loop bounds and subsequent playback.
+
 Check `planCursor` when the recording enters an unmapped span between reviewed measures. Retain the previous passage position until the next synced measure. The local reviewed-passages regression in `tests/draft-timing.test.js` covers both sides of the gap.
 
 Qualify pause and resume after skipping into a later recorded take of the same written bar. Native Pause can issue an asynchronous seek to an earlier beat. The adapter retains recording time and the audio sync browser regression checks the second take.

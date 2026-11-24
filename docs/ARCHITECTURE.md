@@ -1,5 +1,7 @@
 # Guitar Trainer Studio architecture
 
+The Audio mixer groups tracks by shared channels. The alphaTab host indexes generated MIDI program and bank changes on the first sound override, retains their original values, and reloads the synth MIDI when the user selects a sound. It keeps the score model, cached traversal and grading timeline intact. The responsive toolbar checks each overflow trigger's visibility when layout changes to determine which shortcuts appear in More.
+
 The Scores dropdowns use native popovers. `js/toolbar-ui.js` positions each open list in viewport coordinates from its trigger, including when the Scores panel scrolls or the window resizes.
 
 ## PDF practice and MIDI file import

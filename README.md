@@ -276,7 +276,9 @@ For one uninterrupted performance, check **Continuous** before running Auto-sync
 
 To tighten part of a standard alignment, choose **Refine between points** beside **Undo** and **Redo**. Click two blue markers whose timing you trust, with at least one point between them. Listen through the passage afterward. **Undo** restores the original points in one step. **Save profile** keeps the alignment for another session.
 
-Audio has separate synth and synced-recording volumes, practice/backing playback switches, and track volume/mute controls. These control the app's sounds, not your guitar interface's own sounds. Track mix resets for each score; master volumes are remembered.
+Open **More → Audio → Track sounds, volume & mute** while synth playback is paused. Each melodic track has a sound menu. Try **Grand piano** or **Electric piano 1**, or choose **Score instrument** to restore the written sounds, including instrument changes within the piece. Tracks that share MIDI channels share one row. Drum tracks keep their kit. Track settings reset when you load a score.
+
+Audio also has separate synth and recording volumes and switches for playing the practice and backing tracks. Both master volumes are remembered. On narrower screens, **More** also contains **Tempo** and **Loop**.
 
 Synth playback pitch shifts the synthesized sound only. It does not transpose the written score, tab, MIDI targets or recordings.
 

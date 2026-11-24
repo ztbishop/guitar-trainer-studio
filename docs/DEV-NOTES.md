@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Track sounds and responsive More menu, November 24, 2026
+
+Audio offers the bundled melodic presets grouped by instrument family. The host sends the selected bank and program to the synth for both channels, including later program changes. Choosing Score instrument restores each original event. Selections follow the lifetime of the track's mute and volume settings. More exposes Tempo and Loop when the toolbar collapses. The isolated Chrome regression exercises both layouts and the native synth path. Listening through the owner's audio setup remains a manual check.
+
 ## Library attachments, November 24, 2026
 
 Save to Library captures the currently attached companion PDF and links the selected recording. IndexedDB schema 3 stores PDF blobs by SHA-256, with independent boxes for each score. Local recordings use a read-only file handle where supported and metadata for reconnecting. Save profile remains the action for edited media timing. Library backup version 4 carries the PDF bytes, box mappings, recording references and saved profiles. File handles stay local.

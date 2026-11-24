@@ -47,7 +47,7 @@ import { initAttemptControls } from './attempt-controls.js';
 import { initDisplayControls } from './display-controls.js';
 import { applyScoreDisplay,printScore } from './alphatab-host.js';
 import {initScorePrintControls} from './score-print-controls.js';
-import {applyMasterVolume,applyTrackMixer,applyPlaybackPitchOffset} from './alphatab-host.js';
+import {applyMasterVolume,applyTrackMixer,applyPlaybackPitchOffset,setTrackSound} from './alphatab-host.js';
 import {initAudioControls} from './audio-controls.js';
 import {initPitchControls} from './pitch-controls.js';
 import {readPracticePreferences,savePracticePreferences,FEEDBACK_PREFERENCE_KEYS} from './practice-preferences.js';
@@ -626,6 +626,7 @@ function requestTrainerPaint() {
 }
 
 function renderTrainerUi() {
+  audioControls?.syncAvailability();
   // Input, seeks and controls still paint immediately. Cancel an older queued
   // clock paint so it cannot repeat the same full-score visual projection.
   if(trainerPaintFrame!==null){cancelAnimationFrame(trainerPaintFrame);trainerPaintFrame=null;}
@@ -856,7 +857,12 @@ async function bootstrap() {
     }catch(error){if(score===AppState.currentScoreFile)document.getElementById('library-status').textContent=error.message;}
   }
   initDemoScores(loadScoreFile);
-  audioControls=initAudioControls((kind,value)=>{if(kind==='master')applyMasterVolume();else if(kind==='media')mediaControls?.setVolume(value);else applyTrackMixer();});
+  audioControls=initAudioControls((kind,value)=>{
+    if(kind==='sound')return setTrackSound(value);
+    if(kind==='master')applyMasterVolume();
+    else if(kind==='media')mediaControls?.setVolume(value);
+    else applyTrackMixer();
+  });
   pitchControls=initPitchControls(applyPlaybackPitchOffset);
   mediaControls=initMediaControls({beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTime,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setMediaEditing,revealMediaScoreTarget,showDraftPosition,setSpeed:setPlaybackSpeed},
     {closeMenu:toolbar.closeAllPopups,beforeEdit(){if(waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);if(AppState.mode==='wait')pauseWaitTransport();clearActiveMidiNotes();},afterEdit(){clearActiveMidiNotes();configureWaitSession();resetRealtimeSession('sync-editor-closed');renderTrainerUi();},beforeListen(){if(AppState.mode==='wait' && waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);pauseWaitTransport();clearActiveMidiNotes();},afterPractice(){clearActiveMidiNotes();if(AppState.mode==='realtime' && !AppState.media.editing)handlePlaybackState();renderTrainerUi();}});

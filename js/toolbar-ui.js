@@ -152,7 +152,15 @@ export function initToolbar({ onIntent } = {}) {
     });
   });
 
-  const updateToolbarLayout = () => applyToolbarResponsiveState(toolbar);
+  const overflowShortcuts = launchButtons.flatMap(shortcut => {
+    const trigger = buttons.find(button => button.dataset?.toolbarCollapse === 'more' &&
+      PANEL_BY_BUTTON[button.id] === shortcut.dataset.launchPanel);
+    return trigger ? [{shortcut, trigger}] : [];
+  });
+  const updateToolbarLayout = () => {
+    applyToolbarResponsiveState(toolbar);
+    for (const {shortcut, trigger} of overflowShortcuts) shortcut.hidden = trigger.getClientRects().length > 0;
+  };
   updateToolbarLayout();
   window.addEventListener('resize', updateToolbarLayout);
   if (typeof ResizeObserver !== 'undefined' && toolbar) {

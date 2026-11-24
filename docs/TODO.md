@@ -1,6 +1,6 @@
 # Guitar Trainer Studio status and to-do
 
-- [ ] Add an instrument sound selector to the track mixer for synth playback. Offer the bundled Sonivox presets (including piano and electric piano), default to the score's instrument, and allow restoring that default. The choice should affect sound only.
+- [x] Choose a bundled synth sound for a melodic track in Audio and restore the score's original instrument changes.
 - [x] Restore companion PDFs, edited measure boxes and recording references from saved scores. Include PDFs and timing in portable library backups and support reconnecting a missing recording.
 
 - [x] Scroll continuously through PDF pages, follow the saved Auto-scroll setting in both PDF workflows, and return from notation with Show PDF.

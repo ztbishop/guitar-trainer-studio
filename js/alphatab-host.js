@@ -18,7 +18,7 @@ import { wrongFretGeometry } from './tab-feedback.js';
 import { notationFeedbackGeometry, accidentalPath } from './notation-feedback.js';
 import {outsideLoopBounds,wholeMeasureSelection} from './loop-visuals.js';
 import {countInTiming,scheduleCountIn} from './count-in.js';
-import {playbackGroups} from './audio-controls.js';
+import {canChangeTrackSound,playbackGroups} from './audio-controls.js';
 import {validatePoints,tickAtMediaTime,mediaTimeAtTick,tempoAlignedPoints} from './media-sync.js';
 import {planPositionAtTime,planTimeAtTick,validateTimingPlanDuration} from './explanation-timing.js';
 import {effectiveChordDiagramPlacement} from './display-preferences.js';
@@ -615,6 +615,47 @@ const VISUAL_MODES = {
 };
 
 let alphaTabApi = null;
+let mixerMidi=null, mixerEvents=null, mixerReload=null;
+
+// Keep the original program and bank of every instrument change, including
+// changes midway through a score. Only the generated synth MIDI is edited.
+function applyMixerPrograms() {
+  const overrides=new Map();
+  for(const group of playbackGroups(AppState.tracks)) {
+    const program=AppState.audio.tracks[group.id]?.program;
+    if(Number.isInteger(program))for(const channel of group.channels)overrides.set(channel,program);
+  }
+  if(!mixerEvents) {
+    if(!overrides.size)return;
+    mixerEvents=[];
+    const types=window.alphaTab.midi.MidiEventType;
+    for(const track of mixerMidi.tracks)for(const event of track.events) {
+      if(event.type===types.ProgramChange)mixerEvents.push({event,key:'program',original:event.program});
+      else if(event.type===types.ControlChange && (event.controller===0 || event.controller===32))
+        mixerEvents.push({event,key:'value',original:event.value});
+    }
+  }
+  for(const {event,key,original} of mixerEvents) {
+    const override=overrides.get(event.channel);
+    event[key]=override===undefined?original:(key==='program'?override:0);
+  }
+}
+
+export function setTrackSound({id,program}) {
+  if(!canChangeTrackSound() || !mixerMidi || mixerReload)return false;
+  if(program!==null && (!Number.isInteger(program) || program<0 || program>127))return false;
+  const state=AppState.audio.tracks[id]??{volumePercent:100,muted:false};
+  AppState.audio.tracks[id]={...state,program};
+  applyMixerPrograms();
+  const time=alphaTabApi.timePosition,range=alphaTabApi.playbackRange;
+  mixerReload={time,loaded:false};
+  // Loading the MIDI also loads the selected SoundFont presets. The commands
+  // go to the same synth in order, including the final seek after its reset.
+  alphaTabApi.player.loadMidiFile(mixerMidi);
+  if(range)alphaTabApi.playbackRange=range;
+  alphaTabApi.timePosition=time;
+  return true;
+}
 let pauseSeekPending = false;
 
 function expectPauseSnap() {
@@ -1070,6 +1111,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
     AppState.currentScoreFile=pendingScoreFile;
     pendingScoreFile=null;
     AppState.audio.tracks={};
+    mixerMidi=null;mixerEvents=null;mixerReload=null;
     AppState.tracks = loadedScore?.tracks ?? [];
     scoreNoteLookup=new Map();notationMarks=[];notationSignature='';notationOverlay?.replaceChildren();
     for(const track of AppState.tracks)for(const staff of track.staves||[])for(const bar of staff.bars||[])
@@ -1104,8 +1146,15 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
 
   // midiLoad supplies the generated file for this exact traversal before player acknowledgement.
   const generatedMidi=new WeakMap();
-  alphaTabApi.midiLoad.on(file=>{if(alphaTabApi.tickCache)generatedMidi.set(alphaTabApi.tickCache,file);});
+  alphaTabApi.midiLoad.on(file=>{
+    mixerReload=null;
+    mixerMidi=file;
+    mixerEvents=null;
+    applyMixerPrograms();
+    if(alphaTabApi.tickCache)generatedMidi.set(alphaTabApi.tickCache,file);
+  });
   alphaTabApi.midiLoaded.on(() => {
+    if(mixerReload){mixerReload.loaded=true;return;}
     if(AppState.media.preview)return;
     AppState.playbackTimeline = buildPlaybackTimeline(alphaTabApi.tickCache, {
       score:AppState.score,
@@ -1117,6 +1166,11 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   });
 
   alphaTabApi.playerReady.on(() => {
+    if(mixerReload) {
+      applyTrackPlaybackStateInternal();
+      applyPlaybackPitchOffset(AppState.pitchOffsetSemitones);
+      return;
+    }
     AppState.playerReady = true;
     applyMasterVolume();
     applyPlaybackPitchOffset(AppState.pitchOffsetSemitones);
@@ -1151,6 +1205,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   });
 
   alphaTabApi.playerStateChanged.on((event) => {
+    if(mixerReload)return;
     const state = event?.state ?? event;
     const normalizedState = typeof state === 'number' ? state : String(state).toLowerCase();
     if (normalizedState === 1 || normalizedState === 'playing' || event?.stopped) pauseSeekPending = false;
@@ -1163,6 +1218,10 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   });
 
   alphaTabApi.playerPositionChanged.on((event) => {
+    if(mixerReload) {
+      if(mixerReload.loaded && Math.abs(event.currentTime-mixerReload.time)<0.01)mixerReload=null;
+      return;
+    }
     // A recreated synthesizer sends initial zero-position messages before its
     // saved seek acknowledgement. Keep those out of both practice controllers.
     if(AppState.media.returning) {
@@ -1252,6 +1311,7 @@ export async function initAlphaTab(containerEl, callbacks = {}) {
   });
 
   alphaTabApi.error.on((error) => {
+    mixerReload=null;
     pendingScoreFile=null;
     hostCallbacks.onScoreLoadError?.(error);
     console.error('alphaTab error:', error);

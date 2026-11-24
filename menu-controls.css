@@ -351,6 +351,8 @@
 .library-dialog-label input, .library-dialog-label select { min-width: 0; min-height: 44px; width: 100%; padding: 8px 10px; border: 1px solid #c6d0db; border-radius: 8px; background: #fff; color: inherit; box-sizing: border-box; }
 .mixer-track { display: grid; grid-template-columns: minmax(0,1fr) 44px auto; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--section-rule); }
 .mixer-title { grid-column: 1 / -1; font-size: .85rem; overflow-wrap: anywhere; }
+.mixer-sound { grid-column: 1 / -1; min-width: 0; width: 100%; }
+#more-popup .more-shortcut-button[hidden] { display: none; }
 .mixer-track input[type='range'] { min-width: 0; width: 100%; }
 .mixer-track output { font-size: .82rem; }
 .library-confirm p { font-size: .9rem; line-height: 1.5; }
