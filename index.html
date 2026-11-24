@@ -415,7 +415,7 @@
       <h2>Help &amp; Guide</h2>
       <p><strong>Guitar recognition requires MIDI input, not standard guitar audio.</strong> The app does not listen to your microphone/audio interface or convert audio to MIDI. Use a MIDI guitar system such as Fishman TriplePlay, or separate conversion software such as MIDI Guitar 3, then select its MIDI input in Settings. Scores and playback work without MIDI; grading and Wait progression need it.</p>
       <ol class="menu-help-list">
-        <li>In Scores, open your Guitar Pro, MusicXML or MIDI file, or try a demo. To follow a printed score, choose Attach PDF, drag a box around each measure you want to follow, then choose Done marking.</li>
+        <li>In Scores, open your Guitar Pro, MusicXML or MIDI file, or try a demo. To follow a printed score, choose Attach PDF → Find boxes on page. Check the first measure and use Correction for missed or extra barlines, then choose Use page boxes. You can also draw boxes by hand. After Done marking, click a measure to seek or use Jump to for a specific note. Gray shading shows measures outside the active loop.</li>
         <li>Select your MIDI input in Settings. Match Poly or Hex and its channels to your device.</li>
         <li>In Practice, choose one guitar track. Try Wait to learn the notes, or Realtime to practice timing.</li>
         <li>Press Play. Use Tempo to slow down and Loop to repeat a section. Pause preserves results.</li>
@@ -666,8 +666,15 @@
             <button id="pdf-native" type="button">Show notation</button>
             <label>Page <select id="pdf-page"></select></label>
             <button id="pdf-map" type="button" aria-pressed="false">Mark measures</button>
-            <span id="pdf-edit" hidden><label>Measure <select id="pdf-measure"></select></label>
-              <button id="pdf-remove" type="button">Remove box</button></span>
+            <span id="pdf-edit" hidden><label><span id="pdf-number-label">Measure</span> <select id="pdf-measure"></select></label>
+              <button id="pdf-remove" type="button">Remove box</button>
+              <button id="pdf-find" type="button">Find boxes on page</button>
+              <span id="pdf-review" hidden><label>Correction <select id="pdf-action">
+                <option value="draw">Draw or redraw</option><option value="split">Split at click</option>
+                <option value="join">Join with next</option><option value="remove">Remove extra</option>
+              </select></label>
+              <button id="pdf-use" type="button">Use page boxes</button><button id="pdf-cancel" type="button">Cancel</button></span></span>
+            <label id="pdf-position" hidden>Jump to <select id="pdf-note"></select></label>
             <span id="pdf-target"></span>
           </div>
           <p id="pdf-status" role="status" hidden></p>

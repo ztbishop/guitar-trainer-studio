@@ -3,6 +3,39 @@ import assert from 'node:assert/strict';
 import {writtenMeasureAt, measureBox, expectedPdfNotes} from '../js/pdf-companion.js';
 import {SCORE_EXTENSIONS} from '../js/library-store.js';
 import {midiToMusicXml} from '../js/midi-score-import.js';
+import {editPageBoxes,availableVisit} from '../js/pdf-box-review.js';
+import {detectMeasureBoxes} from '../js/pdf-measure-detection.js';
+
+test('pairs notation with TAB and ignores a stem with no corresponding TAB barline',()=>{
+  const width=360,height=180,ink=new Uint8Array(width*height).fill(255);
+  for(const [top,count] of [[20,5],[90,6]]) {
+    for(let n=0;n<count;n++) ink.fill(0,(top+n*6)*width+10,(top+n*6)*width+350);
+    for(const x of [10,160,349]) for(let y=top;y<=top+(count-1)*6;y++) ink[y*width+x]=0;
+  }
+  for(let y=14;y<48;y++)ink[y*width+70]=0;
+  const boxes=detectMeasureBoxes(ink,width,height,3);
+  assert.equal(boxes.length,2);
+  assert.equal(boxes[1].x,160/width);
+  assert.ok(boxes.every(b=>b.page===3 && b.y<20/height && b.y+b.h>120/height));
+});
+test('page corrections stay in reading order and preserve the original proposal',()=>{
+  const first={page:1,x:.1,y:.1,w:.4,h:.1}, last={...first,y:.4};
+  const original=[first,last], split=editPageBoxes(original,0,'split',.25);
+  assert.equal(split.length,3);
+  assert.deepEqual(editPageBoxes(split,0,'join'),original);
+  assert.deepEqual(editPageBoxes(original,0,'join'),original);
+  const middle={...first,x:.6};
+  assert.deepEqual(editPageBoxes(original,-1,'draw',0,middle),[first,middle,last]);
+  assert.deepEqual(editPageBoxes(original,0,'remove'),[last]);
+  assert.deepEqual(original,[first,last]);
+});
+test('PDF seeking chooses the current repeated pass, constrained by loop and recording',()=>{
+  const bars=[1,2,1,2].map((measureNumber,i)=>({measureNumber,startTick:i*100,endTick:i*100+100}));
+  assert.equal(availableVisit(bars,1,260,null,null),bars[2]);
+  assert.equal(availableVisit(bars,1,0,{startTick:100,endTick:300},null),bars[2]);
+  assert.equal(availableVisit(bars,2,0,null,{visits:[bars[3]]}),bars[3]);
+  assert.equal(availableVisit(bars,2,0,{startTick:0,endTick:100},null),null);
+});
 
 test('a PDF box follows written repeats and clears outside music', () => {
   const visits = [1, 2, 1, 3].map((measureNumber, i) => ({measureNumber, startTick:i*100, endTick:(i+1)*100}));

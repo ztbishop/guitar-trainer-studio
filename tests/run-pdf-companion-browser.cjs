@@ -20,7 +20,8 @@ function twoBarMidi() {
   try {
     browser = await chromium.launch({channel:process.env.GTS_BROWSER_CHANNEL || 'chrome', headless:true});
     const page = await browser.newPage();
-    await page.setContent('<p>Measure one</p><p style="break-before:page">Measure two</p>');
+    const staff='<svg width="600" height="90"><path d="M10 20h560 M10 28h560 M10 36h560 M10 44h560 M10 52h560 M10 20v32 M570 20v32" fill="none" stroke="black"/></svg>';
+    await page.setContent('<div>'+staff+'</div><div style="break-before:page">'+staff+'</div>');
     const pdf = {name:'exercise.pdf', mimeType:'application/pdf', buffer:await page.pdf()};
     const midi = {name:'exercise.mid', mimeType:'audio/midi', buffer:twoBarMidi()};
     await page.goto('http://127.0.0.1:' + server.address().port);
@@ -44,6 +45,22 @@ function twoBarMidi() {
     for (const pageNumber of [1,2]) {
       await page.locator('#pdf-page').selectOption(String(pageNumber));
       await page.waitForFunction(() => document.querySelector('#pdf-sheet').style.visibility !== 'hidden');
+      if(pageNumber===2) {
+        await page.locator('#pdf-find').click();
+        await page.locator('#pdf-use').waitFor();
+        const proposed=page.locator('#pdf-boxes .pdf-box');
+        assert.equal(await proposed.count(),1);
+        await page.locator('#pdf-action').selectOption('split');
+        const box=await proposed.first().boundingBox();
+        await page.mouse.click(box.x+box.width/2, box.y+box.height/2);
+        assert.equal(await proposed.count(),2);
+        assert.equal(await page.locator('#pdf-use').isDisabled(),true);
+        await page.locator('#pdf-action').selectOption('join');
+        await page.mouse.click(box.x+box.width/4, box.y+box.height/2);
+        assert.equal(await proposed.count(),1);
+        await page.locator('#pdf-use').click();
+        continue;
+      }
       const rect = await page.locator('#pdf-sheet').boundingBox();
       await page.mouse.move(rect.x + 20, rect.y + 25);
       await page.mouse.down(); await page.mouse.move(rect.x + 180, rect.y + 80); await page.mouse.up();
@@ -56,8 +73,19 @@ function twoBarMidi() {
     await loadPair();
     assert.equal(await page.locator('#pdf-map').getAttribute('aria-pressed'), 'false');
     assert.equal(await page.locator('#pdf-boxes .current').count(), 1);
+    await page.locator('#pdf-page').selectOption('2');
+    await page.getByRole('button',{name:'Go to measure 2',exact:true}).click();
+    await page.waitForFunction(()=>Math.abs(practiceState.tickPosition-practiceState.playbackTimeline.measures[1].startTick)<=1);
+    await page.locator('#pdf-note').selectOption({index:2});
+    await page.waitForFunction(()=>Math.abs(practiceState.tickPosition-practiceState.expectedEvents[5].startTick)<=1 && !practiceState.isPlaying);
+    await page.locator('#practice-loop-enabled').evaluate(el=>el.click());
+    await page.locator('#practice-loop-end').evaluate(el=>{el.value='1';el.dispatchEvent(new Event('change'));});
+    await page.locator('#pdf-page').selectOption('2');
+    await page.locator('button.outside-loop').waitFor();
+    await page.locator('#practice-loop-enabled').evaluate(el=>el.click());
+    assert.equal(await page.locator('button.outside-loop').count(),0);
     assert.deepEqual(errors, []);
-    console.log('Passed MIDI conversion, original bytes, PDF mapping, playback page turn and restored boxes.');
+    console.log('Passed MIDI conversion, manual and detected PDF boxes, split/join, page turn, restore, measure/note seek and loop shading.');
   } finally {
     await browser?.close();
     await new Promise(resolve => server.close(resolve));

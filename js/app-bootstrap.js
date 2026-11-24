@@ -93,12 +93,18 @@ function stepFretboard(direction) {
   const browsing=fretboardBrowseTick!==null && Math.abs(fretboardBrowseTick-AppState.tickPosition)<=3 && !AppState.isPlaying;
   const origin=browsing?fretboardBrowseTick:trainer?.currentEvent?.startTick??AppState.tickPosition;
   const tick=fretboardStepTick(fretboardBeatList(),origin,direction);
-  if(tick===null)return;
+  browsePracticeTick(tick,'fretboard-step');
+}
+
+function browsePracticeTick(tick,reason) {
+  if(!Number.isFinite(tick) || !AppState.playerReady || AppState.media.editing)return false;
   // Reuse the existing new-attempt lifecycle; no grading rules change.
   waitController.stop();pauseWaitTransport();clearActiveMidiNotes();
-  configureWaitSession();resetRealtimeSession('fretboard-step');
-  if(seekPausedTick(tick))fretboardBrowseTick=tick;
+  configureWaitSession();resetRealtimeSession(reason);
+  const positioned=seekPausedTick(tick);
+  if(positioned)fretboardBrowseTick=tick;
   renderTrainerUi();
+  return positioned;
 }
 
 function configureWaitSession() {
@@ -808,7 +814,7 @@ async function bootstrap() {
   applyAppearance(AppState.ui.appearance);
   loadMidiDebugPreference();
   const toolbar=initToolbar();
-  pdfCompanion=initPdfCompanion(AppState,toolbar.closeAllPopups);
+  pdfCompanion=initPdfCompanion(AppState,toolbar.closeAllPopups,tick=>browsePracticeTick(tick,'pdf-seek'));
   scoreLibrary=initScoreLibrary(loadScoreFile);
   initDemoScores(loadScoreFile);
   audioControls=initAudioControls((kind,value)=>{if(kind==='master')applyMasterVolume();else if(kind==='media')mediaControls?.setVolume(value);else applyTrackMixer();});

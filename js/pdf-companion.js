@@ -2,6 +2,8 @@ import {fingerprint} from './library-store.js';
 import {printedMeasure} from './printed-measure.js';
 import {midiToNoteName} from './note-utils.js';
 import {outsideRecordingScore} from './media-score-range.js';
+import {practiceTimingPlan} from './media-practice.js';
+import {editPageBoxes, availableVisit} from './pdf-box-review.js';
 
 export function writtenMeasureAt(measures, tick) {
   let low = 0, high = measures?.length ?? 0;
@@ -30,7 +32,7 @@ export function expectedPdfNotes(event, states, waiting) {
 }
 
 const assets = new URL('../assets/vendor/pdfjs/', import.meta.url);
-export function initPdfCompanion(state, closeMenu) {
+export function initPdfCompanion(state, closeMenu, seek) {
   const byId = id => document.getElementById('pdf-' + id);
   const view = byId('view'), sheet = byId('sheet'), scroll = byId('scroll'), overlay = byId('boxes');
   const file = byId('file'), attach = byId('attach'), attachStatus = byId('attach-status');
@@ -38,6 +40,8 @@ export function initPdfCompanion(state, closeMenu) {
   const native = document.getElementById('alphatab-wrapper');
   let pdf, documentTask, key, boxes = {}, page = 1, editing = false, visible = false, generation = 0;
   let renderVersion = 0, renderTask, drawnWidth = 0, drawnPage = 0, drag, current, trainerState;
+  let proposals=null, scanVersion=0, loopRange=null, loopMeasures=null, noteVisit=null;
+  const find=byId('find'), action=byId('action'), note=byId('note');
 
   function message(text) {
     const status = byId('status');
@@ -52,22 +56,32 @@ export function initPdfCompanion(state, closeMenu) {
     try { if (!key) throw Error(); localStorage.setItem(key, JSON.stringify(boxes)); }
     catch { message('Boxes are available for this session. This browser could not save them.'); }
   }
-  function boxElement(box, active) {
-    const el = document.createElement('div');
+  function boxElement(box, active, interactive=false) {
+    const el = document.createElement(interactive?'button':'div');
+    if(interactive) el.type='button';
     el.className = active ? 'pdf-box current' : 'pdf-box';
     for (const [style, field] of [['left','x'],['top','y'],['width','w'],['height','h']]) el.style[style] = (box[field] * 100) + '%';
     return el;
   }
   function paintBoxes(reveal = false) {
+    const focused=overlay.contains(document.activeElement) ? document.activeElement.dataset.measure : null;
     overlay.replaceChildren();
     const selected = editing ? Number(measure.value) : current;
-    const entries = editing ? Object.entries(boxes) : [[selected, boxes[selected]]];
+    const entries = proposals ? proposals.map((box,i)=>[Number(measure.options[measure.selectedIndex+i]?.value),box]) : Object.entries(boxes);
     for (const [number, box] of entries) {
       if (box?.page !== page) continue;
       const active = Number(number) === selected;
-      const el = boxElement(box, active);
-      if (editing) el.textContent = printedMeasure(state.score, Number(number));
+      const el = boxElement(box, active, !editing);
+      const label=Number.isFinite(Number(number)) ? printedMeasure(state.score, Number(number)) : '—';
+      if (editing) el.textContent = label;
+      else {
+        el.setAttribute('aria-label','Go to measure '+label);
+        el.dataset.measure=number;
+        el.classList.toggle('outside-loop', !!loopMeasures && !loopMeasures.has(Number(number)));
+        el.onclick=()=>jumpToMeasure(Number(number));
+      }
       overlay.append(el);
+      if (focused && String(number)===focused) el.focus({preventScroll:true});
       if (active && reveal && state.ui.autoScroll && !editing) {
         const frame = scroll.getBoundingClientRect(), rect = el.getBoundingClientRect();
         if (rect.top < frame.top || rect.bottom > frame.bottom) scroll.scrollTop += rect.top - frame.top - 12;
@@ -76,6 +90,66 @@ export function initPdfCompanion(state, closeMenu) {
     }
     byId('remove').disabled = !boxes[measure.value];
   }
+  function jumpToMeasure(number) {
+    const visit=availableVisit(state.playbackTimeline.measures,number,state.tickPosition,loopRange,practiceTimingPlan(state));
+    if(!visit) { message(loopMeasures && !loopMeasures.has(number)?'This measure is outside the loop.':'This measure has no timing in the active recording.');return; }
+    message('');
+    if(!seek(visit.startTick)) {message('Playback could not move to this measure.');return;}
+    noteVisit=visit;
+    note.replaceChildren(new Option('Measure start',String(visit.startTick)));
+    const events=state.expectedEvents.filter(e=>e.startTick>=visit.startTick && e.startTick<visit.endTick);
+    for(const [i,event] of events.entries()) note.add(new Option('Note '+(i+1)+' · '+expectedPdfNotes(event),String(event.startTick)));
+    byId('position').hidden=!events.length;
+  }
+  note.onchange=()=>{if(noteVisit)seek(Number(note.value));};
+  function reviewControls() {
+    byId('review').hidden=!proposals;
+    find.hidden=!!proposals;
+    byId('remove').hidden=!!proposals;
+    byId('number-label').textContent=proposals?'First measure':'Measure';
+    byId('use').disabled=!proposals?.length || proposals.length>measure.options.length-measure.selectedIndex;
+  }
+  function endReview() {
+    scanVersion++; proposals=null; find.disabled=false;
+    reviewControls();
+  }
+  function describeReview() {
+    reviewControls();
+    const overflow=proposals.length-(measure.options.length-measure.selectedIndex);
+    const instructions={draw:'Drag in blank space to add a box, or start inside a box to redraw it.',
+      split:'Click the missing barline inside a box.',join:'Click the first of two boxes on the same line.',remove:'Click the extra box.'};
+    message(proposals.length+' boxes on this page. '+(overflow>0?'The numbering goes past the end of the score. Check the first measure and extra boxes. ': '')+instructions[action.value]);
+    paintBoxes();
+  }
+  find.onclick=async()=>{
+    const version=++scanVersion;
+    find.disabled=true;message('Finding measure boxes on this page…');
+    try {
+      const [{detectPdfPage},pdfPage]=await Promise.all([import('./pdf-measure-detection.js'),pdf.getPage(page)]);
+      if(version!==scanVersion)return;
+      const result=await detectPdfPage(pdfPage,page);
+      if(version!==scanVersion)return;
+      const mapped=Object.keys(boxes).filter(n=>boxes[n].page===page);
+      if(mapped.length) measure.value=String(Math.min(...mapped.map(Number)));
+      proposals=result;action.value='draw';describeReview();
+    } catch(error) {if(version===scanVersion)message('Could not detect boxes. You can draw them on this page. '+error.message);}
+    finally {if(version===scanVersion)find.disabled=false;}
+  };
+  byId('cancel').onclick=()=>{endReview();message('Page suggestions discarded.');paintBoxes();};
+  action.onchange=describeReview;
+  byId('use').onclick=()=>{
+    if(!proposals || byId('use').disabled)return;
+    const count=proposals.length, first=measure.selectedIndex;
+    let added=0;
+    proposals.forEach((box,i)=>{
+      const number=measure.options[first+i].value;
+      if(!boxes[number]) {boxes[number]=box;added++;}
+    });
+    endReview();
+    measure.selectedIndex=Math.min(measure.options.length-1,first+count);
+    message(added+' new boxes saved on page '+page+'. '+(added<count?'Existing mappings were kept. ':'')+'Select another page or choose Done marking.');
+    saveBoxes();paintBoxes();sync();
+  };
   function cancelDrag() {
     drag = null;
     overlay.querySelector('.drawing')?.remove();
@@ -109,6 +183,17 @@ export function initPdfCompanion(state, closeMenu) {
     }
   }
   function goPage(number) {
+    if(page!==number) {
+      endReview();cancelDrag();message('');
+      noteVisit=null;byId('position').hidden=true;
+      if(editing) {
+        const mapped=Object.entries(boxes);
+        const onPage=mapped.filter(([,b])=>b.page===number).map(([n])=>Number(n));
+        const before=mapped.filter(([,b])=>b.page<number).map(([n])=>Number(n));
+        const first=onPage.length?Math.min(...onPage):before.length?Math.max(...before)+1:null;
+        if(first!==null && Array.from(measure.options).some(o=>Number(o.value)===first))measure.value=String(first);
+      }
+    }
     page = number;
     pageSelect.value = String(page);
     scroll.scrollTo(0, 0);
@@ -116,12 +201,13 @@ export function initPdfCompanion(state, closeMenu) {
   }
   function setEditing(value) {
     editing = value;
+    endReview();noteVisit=null;byId('position').hidden=true;
     cancelDrag();
     mark.textContent = editing ? 'Done marking' : 'Mark measures';
     mark.setAttribute('aria-pressed', String(editing));
     byId('edit').hidden = !editing;
     sheet.classList.toggle('mapping', editing);
-    message(editing ? 'Choose the companion measure, then drag a box around it on the page. The selector advances after each box.' : '');
+    message(editing ? 'Find boxes on this page, or choose a measure and drag its box by hand.' : '');
     paintBoxes();
   }
   function sync(trainer = trainerState) {
@@ -146,7 +232,14 @@ export function initPdfCompanion(state, closeMenu) {
     const notes = !outside && event?.measureNumber === number ? expectedPdfNotes(event, trainer.noteStates, waiting) : '';
     const label = !number ? '' : 'Measure ' + printedMeasure(state.score, number) + (!boxes[number] ? ' · Unmarked' : '') + (notes ? ' · Play ' + notes : '');
     if (target.textContent !== label) target.textContent = label;
-    if (current !== number) {
+    const range=state.practiceLoop?.enabled ? state.practiceLoop.range : null;
+    const changedRange=range!==loopRange;
+    if(changedRange) {
+      loopRange=range;
+      loopMeasures=range?new Set(state.playbackTimeline.measures.filter(v=>v.startTick<range.endTick && v.endTick>range.startTick).map(v=>v.measureNumber)):null;
+    }
+    if(noteVisit && (number!==noteVisit.measureNumber || state.isPlaying)) {noteVisit=null;byId('position').hidden=true;}
+    if (current !== number || changedRange) {
       current = number;
       if (!editing && boxes[number] && state.ui.autoScroll && boxes[number].page !== page) goPage(boxes[number].page);
       paintBoxes(true);
@@ -156,7 +249,7 @@ export function initPdfCompanion(state, closeMenu) {
   function reset() {
     generation++; renderVersion++;
     renderTask?.cancel(); documentTask?.destroy(); documentTask = null;
-    pdf = null; key = null; boxes = {}; visible = false; drawnPage = 0; current = null;
+    pdf = null; key = null; boxes = {}; visible = false; drawnPage = 0; current = null;loopRange=null;loopMeasures=null;
     file.value = '';
     setEditing(false); updateAttachStatus(''); sync(null);
     const canvas = byId('canvas');
@@ -201,19 +294,26 @@ export function initPdfCompanion(state, closeMenu) {
   sheet.onpointerdown = event => {
     if (!editing || !event.isPrimary || event.button !== 0) return;
     event.preventDefault();
-    drag = {id:event.pointerId, start:point(event)};
+    const start=point(event);
+    const hit=proposals?.findIndex(b=>start.x>=b.x && start.x<=b.x+b.w && start.y>=b.y && start.y<=b.y+b.h) ?? -1;
+    drag = {id:event.pointerId, start, hit};
     sheet.setPointerCapture(event.pointerId);
   };
   sheet.onpointermove = event => {
-    if (drag?.id !== event.pointerId) return;
+    if (drag?.id !== event.pointerId || (proposals && action.value!=='draw')) return;
     overlay.querySelector('.drawing')?.remove();
     const box = measureBox(page, drag.start, point(event));
     if (box) { const el = boxElement(box, true); el.classList.add('drawing'); overlay.append(el); }
   };
   sheet.onpointerup = event => {
     if (drag?.id !== event.pointerId) return;
-    const box = measureBox(page, drag.start, point(event));
+    const end=point(event), box = measureBox(page, drag.start, end);
+    const hit=drag.hit;
     cancelDrag();
+    if(proposals) {
+      proposals=editPageBoxes(proposals,hit,action.value,end.x,box);
+      describeReview();return;
+    }
     if (!box) return;
     boxes[measure.value] = box;
     saveBoxes();
@@ -221,7 +321,11 @@ export function initPdfCompanion(state, closeMenu) {
     paintBoxes(); sync();
   };
   sheet.onlostpointercapture = sheet.onpointercancel = cancelDrag;
-  measure.onchange = () => { if (boxes[measure.value]) goPage(boxes[measure.value].page); paintBoxes(); };
+  measure.onchange = () => { if(proposals){describeReview();return;}
+    const selected=measure.value;
+    if (boxes[selected]) goPage(boxes[selected].page);
+    measure.value=selected;paintBoxes();
+  };
   pageSelect.onchange = () => goPage(Number(pageSelect.value));
   byId('remove').onclick = () => { delete boxes[measure.value]; saveBoxes(); paintBoxes(); sync(); };
   mark.onclick = () => { setEditing(!editing); current = undefined; sync(); };

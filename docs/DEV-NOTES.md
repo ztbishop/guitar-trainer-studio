@@ -1,5 +1,11 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## PDF measure detection and navigation, November 24, 2026
+
+The detector ran in Chrome on all 25 local pages. Compared by printed staff system, the eight-page Arirang notation/TAB PDF matched all 145 expected box counts. The eleven-page TrueFire Bernie Song matched all 128. The six-page notation-only Arirang produced 147 boxes for 145 written measures. Three systems had one extra division each and the final system had one missing division. Counts check the divisions per system. They do not establish the exact pixel placement of every boundary.
+
+In the trainer, Chrome accepted the opening page and sought to measure 3 with each of the original Arirang PDF + GPX, the Arirang TAB PDF + MIDI, and Bernie Song PDF + GP5. An independent two-page browser regression covers manual drawing, detection, splitting and rejoining a box, persistence, note seeking, page turns during playback and loop shading. Physical MIDI and owner review of box comfort at practice zoom remain open.
+
 ## Local PDF companions and MIDI
 
 An isolated Chrome check opened the eleven-page Bernie Song PDF with its matching TrueFire GP5. Marked boxes kept their normalized positions at 150% zoom and after resizing. Playback returned from the second measure to the first using the normal Loop menu. Reopening identical files restored boxes. A different companion started with its own empty mapping. The local Arirang GPX loaded with 180 playback visits and Drop D tuning.

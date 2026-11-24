@@ -2,9 +2,11 @@
 
 ## PDF practice and MIDI file import
 
-`js/pdf-companion.js` renders one local PDF page at a time with the bundled PDF.js worker. A display-only overlay reads the repeat-expanded timeline and existing practice target. Its normalized rectangles use the written measure number, so repeated visits reuse the box. The browser stores only rectangles under fingerprints of both files. Score loading clears the open PDF. Opening Media Sync temporarily exposes the interactive native score. The Loop menu uses the same transport in both views.
+`js/pdf-companion.js` renders one local PDF page at a time with the bundled PDF.js worker. Its measure overlay reads the repeat-expanded timeline and existing practice target. Its normalized rectangles use the written measure number, so repeated visits reuse the box. The browser stores only rectangles under fingerprints of both files. Score loading clears the open PDF. Opening Media Sync temporarily exposes the interactive native score. The Loop menu uses the same transport in both views.
 
 Opening a MIDI invokes `js/midi-score-import.js` on demand. The standalone webmscore worker returns MusicXML for the host's native score loader, then terminates. The library and media sync retain the original MIDI identity. The virtual fretboard uses its existing tuning and written position requirements. Expected pitch names in the PDF use the trainer's current event and Wait note states.
+
+Find boxes loads `pdf-measure-detection.js` on demand and rasterizes only the selected page at a bounded resolution, independent of display zoom. The detector groups parallel staff lines and tests vertical barlines, including agreement between notation and TAB. Corrections stay in a temporary page proposal until accepted. Acceptance fills empty written-measure mappings. Clicking a saved box uses the trainer's paused seek on an eligible playback visit. The note selector uses actual practice attacks. Loop shading uses the union of written measures visited by the enabled range.
 
 The standard pin editor can compare optional candidate timings before committing a point edit. Only a local trainer probes for that capability. All review choices are temporary and use the existing recording audition and Undo paths.
 

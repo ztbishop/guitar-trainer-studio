@@ -1326,4 +1326,9 @@ body.has-score .alphatab-wrapper {
 #pdf-sheet.mapping { cursor: crosshair; touch-action: none; user-select: none; }
 .pdf-box { position: absolute; box-sizing: border-box; border: 2px dashed #2563a8; color: #123653; font: bold .8rem sans-serif; }
 .pdf-box.current { border: 2px solid #1474bb; background: rgb(61 164 226 / 23%); }
+#pdf-boxes button.pdf-box { pointer-events: auto; border: 0; border-radius: 0; padding: 0; min-width: 0; min-height: 0; box-shadow: none; background: transparent; }
+#pdf-boxes button.outside-loop { background: rgb(65 71 79 / 19%); }
+#pdf-boxes button.pdf-box:not(.outside-loop) { z-index: 1; }
+#pdf-boxes button.current { z-index: 2; border: 2px solid #1474bb; background: rgb(61 164 226 / 23%); }
+#pdf-boxes button:hover, #pdf-boxes button:focus-visible { outline: 2px solid #2563a8; outline-offset: -2px; }
 #pdf-target { font-weight: 600; }
