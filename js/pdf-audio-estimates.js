@@ -19,7 +19,24 @@ function localContrast(times,energy,time,pace) {
   return nearby.length?peak/percentile95(nearby):NaN;
 }
 
-function suggestedStarts(audio,start,pace,times,bass,upper) {
+// A pair of late accents can skip a shorter run of downbeats after a tap.
+// Look for the intervening attack and its continuation, also working back from the end tap.
+function competingPulse(tap,first,second,times,bass) {
+  const step=(first-tap)/2;
+  const continuation=first+step;
+  if((second-continuation)/step<.25)return false;
+  const radius=Math.min(.18,Math.abs(step)*.08);
+  function peak(time) {
+    let strength=0;
+    for(let i=0;i<times.length;i++)
+      if(Math.abs(times[i]-time)<=radius)strength=Math.max(strength,bass[i]);
+    return strength;
+  }
+  const middle=peak(tap+step),later=peak(continuation);
+  return middle>0 && middle>=peak(first)/3 && later>0 && later>=peak(second);
+}
+
+function reviewStarts(audio,start,end,pace,times,bass,upper) {
   const even=audio.map((_,i)=>start+(i+1)*pace);
   const shifts=audio.map((time,i)=>time-even[i]);
   const clear=audio.map((time,i)=>{
@@ -28,11 +45,16 @@ function suggestedStarts(audio,start,pace,times,bass,upper) {
       localContrast(times,bass,time,pace)>=3 &&
       localContrast(times,bass,even[i],pace)<.8 && localContrast(times,upper,even[i],pace)<.8;
   });
-  return audio.map((time,i)=>{
-    const supported=clear[i] && [i-1,i+1].some(j=>clear[j] &&
-      shifts[i]*shifts[j]>0 && Math.abs(shifts[i]-shifts[j])<.2*pace);
-    return supported?time:even[i];
-  });
+  function agree(i,j) {
+    return clear[i] && clear[j] && shifts[i]*shifts[j]>0 && Math.abs(shifts[i]-shifts[j])<.2*pace;
+  }
+  const last=audio.length-1;
+  const skipFirst=agree(0,1) && shifts[0]>0 && competingPulse(start,audio[0],audio[1],times,bass);
+  const skipLast=agree(last,last-1) && shifts[last]<0 && competingPulse(end,audio[last],audio[last-1],times,bass);
+  if(skipFirst){clear[0]=false;clear[1]=false;}
+  if(skipLast){clear[last]=false;clear[last-1]=false;}
+  const suggested=audio.map((time,i)=>(agree(i,i-1) || agree(i,i+1))?time:even[i]);
+  return {audio,suggested,hasCompetingPulse:Boolean(skipFirst || skipLast)};
 }
 
 // The caller supplies audio and two taps. No notes or reference sync map enter this search.
@@ -86,7 +108,7 @@ export function compareAudioEstimates(samples,offset,start,end,count) {
   let j=last;
   for(let i=count-1;i>0;i--){j=parents[i][j];result.push(choices[j]);}
   const audio=result.reverse();
-  return {audio,suggested:suggestedStarts(audio,start,pace,times,bass,upper)};
+  return reviewStarts(audio,start,end,pace,times,bass,upper);
 }
 
 export function audioEstimates(samples,offset,start,end,count) {

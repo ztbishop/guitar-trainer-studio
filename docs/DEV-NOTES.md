@@ -1,5 +1,17 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## PDF tap review on Chord Scale 7, November 24, 2026
+
+In the saved recording, M9 starts at 44.203 s, M10 at 46.937 s, M11 at 49.907 s, M12 at 52.871 s and M13 at 63.295 s. Measuring from M9 to M13 spreads the unusually long M12 across four bars. The old reviewer assigned the bass attacks at 49.916 and 54.296 s to M10 and M11. The first of those attacks agrees with the reference for M11. The recording has an earlier bass attack around 47.02 s and another around 52.82 s, consistent with a faster pulse from the start tap.
+
+The worker checks for an intervening bass attack halfway from the tap to the proposed start and a strong continuation one more such interval later. It checks either end of the tapped passage. When both interpretations fit it holds back the two suggested changes and the reviewer prompts for an additional tap. Full audio estimates remain available for listening. With just M9 and M13 tapped, even spacing puts M10/M11 2039/3842 ms late. In a second test, a tap at the reference start of M12 reduced those errors to 155/74 ms. The app received only the recording and the taps for each run.
+
+On the original 18 recordings plus 13 additional saved recordings, the standard four-bar comparison changed only those two starts across 613 interior measures. All eight earlier improvements remained, including M26/M27 on Single-Note Rhythmic Ideas. Simulated tap offsets of ±120 ms also changed only those two Chord Scale 7 starts relative to the previous version. Three-, five- and six-bar tap spacing on the same recordings produced identical old and new recommendations. Isolated Chrome checked the Chord Scale 7 message with its video and a generated PDF layout, and the M26/M27 recommendations with the publisher PDF and video. Synthetic regression fixtures cover both tap directions and isolated competing accents.
+
+The wider replay inspected all 200 archived entries and ran the old and new workers' estimation code on identical locally decoded samples using only passage endpoint times and measure count. Of these, 198 had eligible continuous passages, one had only a deliberately unmarked break trial and one had no eligible interval. Across 3,167 continuous interior starts, only Chord Scale 7 M10/M11 changed, both with rounded reference endpoints and with simulated ±120 ms tap offsets. All available raw audio estimates matched the previous version. Across 368 deliberately break-spanning starts (370 with offset taps), recommendations also matched the previous version.
+
+With rounded endpoints, the new reviewer recommended 21 moves on continuous passages. Thirteen were closer to the archived reference and eight were farther away. Seven of those eight had started within 100 ms using even spacing. Those errors also occurred in the previous version, on the two Easy Guitar FYLT recordings at M95/M96 and the Acoustic Guitar FWYS playalong at M10–M12. The eighth was Octave Shapes M10, where absolute error grew by 22 ms. References include both original timing and reviewed draft timing.
+
 ## PDF-only audio timing review on Single-Note Rhythmic Ideas, November 24, 2026
 
 ### Follow-up on keeping even spacing

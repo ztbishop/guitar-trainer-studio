@@ -89,6 +89,7 @@ export function initAudioReview({recording,media,listen,changed}) {
       el('keep-audio').disabled=false;
       hint.textContent=moves?'Audio suggests moving '+moves+' of '+suggested.length+' starts. Listen before applying.':
         'Keep even spacing for this passage. You can still audition each audio estimate.';
+      if(result.hasCompetingPulse)hint.textContent+=' The accents fit two possible rhythms. Add a tap at a measure start you recognize to narrow it down.';
     }catch(error){if(!signal.aborted)hint.textContent=error.message;}
     finally{worker?.terminate();if(pending===controller){pending=null;el('audio-find').disabled=false;}}
   }

@@ -101,7 +101,9 @@ Mac Finder launch, physical printing, touch layout, and other devices or recordi
 - [ ] Broaden detection checks to skewed scans, piano grand staves and multi-column layouts. [AudioLabs measure-box reference](https://www.audiolabs-erlangen.de/resources/MIR/2019-ISMIR-LBD-Measures)
 - [x] **PDF with a local audio or video recording.** Find printed boxes before timing, tap starts and passage ends, correct drift, seek, change tempo and loop a timed passage in ungraded realtime practice.
 - [x] Compare PDF audio estimates with even spacing on 18 archived recordings, including marked breaks. Show conservative per-measure suggestions and allow listening before applying.
-- [ ] Owner listening checks on rubato and repeated takes remain open. Chord Scale 7 still has two misleading neighboring accents. A closer tap can disambiguate the passage.
+- [x] Use the pulse near a tap to flag the misleading M10/M11 accents in Chord Scale 7. The reviewer suggests keeping even spacing and adding a closer tap.
+- [ ] Investigate the remaining PDF suggestions that moved already-close starts in the 200-entry replay, especially Easy Guitar FYLT M95/M96 and Acoustic Guitar FWYS M10–M12. Keep the closer Chord Scale and Single-Note estimates as controls.
+- [ ] Owner listening checks on rubato and repeated takes remain open.
 - [x] **Standard MIDI File as a companion.** Local conversion supplies selectable parts, pitches and a measure timeline. Assign any converted measure to a printed rectangle, including multiple measures at the same printed location for expanded repeats.
 - [ ] Check real MIDI exports with pickups or missing meter. A box can correct the visual assignment. Correcting a beat or bar boundary inside the converted score would require a change to the score itself.
 - [ ] **Evaluate Piano Trainer after the guitar workflow works on real lessons.** Keep audio analysis, timing by playback pass, and PDF page coordinates independent of the renderer. Assess a Piano Trainer adapter for its OSMD score, transport, MIDI import and feedback before planning Media Sync there.

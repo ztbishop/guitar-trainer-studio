@@ -107,6 +107,8 @@ For other hardware/software paths, see the [MIDI input comparison appendix](#app
 
 If even spacing drifts during a slowdown, open **Compare audio timing between taps**. Choose one uninterrupted passage and click **Find audio estimates**. Each interior measure shows **Keep even spacing** or **Try audio**. Listen to either start. When the suggestions are mixed, **Use suggested starts** moves only the measures marked **Try audio**. Choose **Use all audio estimates** if you hear that they fit better throughout. **Restore even spacing** undoes the choice for that passage. Your taps stay fixed. For a spoken break, mark the end of the last measure and tap the first start after the break.
 
+If the reviewer says the accents fit two possible rhythms, tap a measure start you recognize inside the passage. For example, tapping the start of a long held measure keeps its extra time from shifting the estimates for the preceding measures.
+
 Reopen the same two files to restore the taps and any reviewed passage timing. The browser saves box positions and timing. PDF practice and the optional audio comparison run in the hosted app using your local files. For Wait mode and pitch grading, use the playable-score workflow below.
 
 Use a PDF with a MIDI when the print is your reference for reading the music. A Guitar Pro or MusicXML companion also works when you prefer the publisher's layout. Written fingerings for the virtual fretboard come from the companion. TAB printed on a PDF is visible to you but supplies no string data to the trainer.
