@@ -1,7 +1,7 @@
 // Original score bytes and folder metadata only; no renderer/trainer dependency.
 export const LIBRARY_FORMAT='guitar-trainer-library';
 import {validateProfile} from './media-sync.js';
-export const SCORE_EXTENSIONS=/\.(gp|gp3|gp4|gp5|gpx|xml|musicxml|mxl)$/i;
+export const SCORE_EXTENSIONS=/\.(gp|gp3|gp4|gp5|gpx|xml|musicxml|mxl|mid|midi)$/i;
 const id=()=>crypto.randomUUID();
 const name=value=>String(value || '').trim().slice(0,240);
 

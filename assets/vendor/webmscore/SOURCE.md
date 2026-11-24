@@ -1,0 +1,5 @@
+# webmscore
+
+The standalone MIDI converter uses the browser worker and data from the official webmscore 0.21.0 npm distribution. Guitar Trainer exchanges MIDI input and MusicXML output with the worker. The bundled worker includes one correction also used by Piano Trainer. Inside the MIDI reload branch of the static load method, `WebMscore.load('mscx', ...)` replaces `this.load('mscx', ...)` because the worker invokes the method without a receiver. The WASM and packaged data are unmodified.
+
+The license is in LICENSE.GPL. Corresponding source including the web build scripts and third-party notices is available from the [upstream source tree for v0.21.0](https://github.com/LibreScore/webmscore/tree/v0.21.0) and the [downloadable source archive](https://github.com/LibreScore/webmscore/archive/refs/tags/v0.21.0.tar.gz). The [published runtime package](https://registry.npmjs.org/webmscore/-/webmscore-0.21.0.tgz) has SHA-512 integrity `46IUT0c+PIFLmAmtLUG5KMc/FoLCmI/KMkSGtbE0ywWTVV4Qtdjx6RyZ3lZs//XDUpyiTpfoGBjTSSF7wPIJog==`.

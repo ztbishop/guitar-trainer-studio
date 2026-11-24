@@ -16,3 +16,6 @@ assets/vendor/alphatab/font/Bravura.svg text eol=lf -whitespace
 # Reapplicable vendor patches preserve upstream context and indentation.
 docs/licenses/*.patch text eol=lf -whitespace
 docs/licenses/alphatab-1.9.0/*.patch text eol=lf -whitespace
+# Preserve the published PDF renderer, fonts, codecs and MIDI converter bytes.
+assets/vendor/pdfjs/** -text -whitespace
+assets/vendor/webmscore/** -text -whitespace

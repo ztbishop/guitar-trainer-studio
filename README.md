@@ -94,7 +94,18 @@ For other hardware/software paths, see the [MIDI input comparison appendix](#app
 
 ## Scores and your library
 
-Supported files are **Guitar Pro** (`.gp`, `.gp3`, `.gp4`, `.gp5`, `.gpx`) and **MusicXML** (`.xml`, `.musicxml`, `.mxl`). A PDF, image, ordinary text tab, MIDI file or webpage is not a supported score file.
+**Scores → Open File** accepts Guitar Pro (`.gp`, `.gp3`, `.gp4`, `.gp5`, `.gpx`), MusicXML (`.xml`, `.musicxml`, `.mxl`) and Standard MIDI Files (`.mid`, `.midi`). MIDI opens through a bundled MIDI-to-MusicXML converter. Select the part to grade in **Practice**. MIDI supplies pitches and rhythm. For written string and fret positions, use a companion with tablature.
+
+### Practice with a printed PDF
+
+Use a PDF with a MIDI when the print is your reference for reading the music. A Guitar Pro or MusicXML companion also works when you prefer the publisher's layout. Written fingerings for the virtual fretboard come from the companion. TAB printed on a PDF is visible to you but supplies no string data to the trainer.
+
+1. Open the playable score, then choose **Scores → Attach PDF…**. For a lesson with a downloadable PDF, select the saved PDF from your device.
+2. Choose the page and companion measure, then drag a box around the printed measure. Include both notation and TAB if desired. The selector advances to the next measure. Skip cover pages, change the selector for pickups, or mark the same printed box again for a repeat written out as separate measures in a MIDI.
+3. Click **Done marking**, then **Play**. The PDF highlights each marked measure and shows the expected pitches during practice. Written score repeats reuse their box. An unmarked measure still plays and grades.
+4. Use **Mark measures** to redraw or remove a box. **Show notation** returns to the interactive score. **Scores → Show PDF** switches back. Use the **Loop** menu for measure ranges and the regular display settings for zoom and auto-scroll. With auto-scroll off, turn pages using **Page**.
+
+Boxes are saved in this browser for this exact pair of files. Reattach the PDF when you reopen the score. Library backups currently cover the companion score and sync profiles only. PDF pages are read on your device. The printed notes keep their original appearance, and grading continues through the companion.
 
 - **Open File** opens a score for this session. It does not save it automatically.
 - **Save to Library** keeps a browser copy of the open score.

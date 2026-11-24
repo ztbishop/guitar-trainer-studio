@@ -1,3 +1,4 @@
+import {initPdfCompanion} from './pdf-companion.js';
 import {initTrackVisibilityControls} from './track-visibility-controls.js';
 import {applyVisibleTracks} from './alphatab-host.js';
 import {applyAppearance} from './appearance.js';
@@ -596,6 +597,7 @@ function renderPracticeFretboard(trainer) {
 }
 
 let trainerPaintFrame=null;
+let pdfCompanion;
 function requestTrainerPaint() {
   if(trainerPaintFrame!==null)return;
   trainerPaintFrame=requestAnimationFrame(()=>{trainerPaintFrame=null;renderTrainerUi();});
@@ -656,6 +658,7 @@ function renderTrainerUi() {
   captureFeedbackView(marks,trainer);
   setNotationFeedback(AppState.media.editing?[]:marks,{notation:AppState.ui.showNotationFeedback,tabCircles:AppState.ui.showTabCircles,tabFrets:AppState.ui.showTabMistakes});
   renderPracticeFretboard(trainer);
+  pdfCompanion?.sync(trainer);
   const playButton=document.getElementById('play-pause-button');
   if(playButton && !(AppState.media.editing && (document.body.classList.contains('draft-timing-active') || document.body.classList.contains('media-take-audition')))) {
     const running=AppState.countInActive || (AppState.mode==='wait' && !AppState.media.editing ? trainer.active && trainer.phase!=='paused' : AppState.isPlaying);
@@ -805,6 +808,7 @@ async function bootstrap() {
   applyAppearance(AppState.ui.appearance);
   loadMidiDebugPreference();
   const toolbar=initToolbar();
+  pdfCompanion=initPdfCompanion(AppState,toolbar.closeAllPopups);
   scoreLibrary=initScoreLibrary(loadScoreFile);
   initDemoScores(loadScoreFile);
   audioControls=initAudioControls((kind,value)=>{if(kind==='master')applyMasterVolume();else if(kind==='media')mediaControls?.setVolume(value);else applyTrackMixer();});
@@ -870,9 +874,9 @@ async function bootstrap() {
         if(!AppState.media.returning && !AppState.media.editing && AppState.mode==='realtime')handlePlaybackState();
         renderTrainerUi();
       },
-      onScoreDisplayChanged: () => displayControls.sync(),
+      onScoreDisplayChanged: () => {displayControls.sync();pdfCompanion.sync();},
       onPlayerReady: () => {printControls.sync();audioControls?.sync();pitchControls?.sync({enabled:true,value:AppState.pitchOffsetSemitones});renderTrainerUi();},
-      onScoreLoading: () => {displayControls.sync();printControls.loading(true);lessonImport.scoreLoading();mediaControls?.scoreLoading();scoreLibrary?.sync();audioControls?.sync();pitchControls?.sync({enabled:false,value:AppState.pitchOffsetSemitones});},
+      onScoreLoading: () => {pdfCompanion.reset();displayControls.sync();printControls.loading(true);lessonImport.scoreLoading();mediaControls?.scoreLoading();scoreLibrary?.sync();audioControls?.sync();pitchControls?.sync({enabled:false,value:AppState.pitchOffsetSemitones});},
       onScoreLoadError: () => {printControls.loading(true);scoreLibrary?.sync();},
       onMetronomeTick: () => transportControls?.pulse(),
       onMetronomeError: () => renderTrainerUi(),

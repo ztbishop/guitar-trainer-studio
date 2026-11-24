@@ -1,5 +1,13 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Local PDF companions and MIDI
+
+An isolated Chrome check opened the eleven-page Bernie Song PDF with its matching TrueFire GP5. Marked boxes kept their normalized positions at 150% zoom and after resizing. Playback returned from the second measure to the first using the normal Loop menu. Reopening identical files restored boxes. A different companion started with its own empty mapping. The local Arirang GPX loaded with 180 playback visits and Drop D tuning.
+
+A Standard MIDI File imported with 11 playback measures, 44 targets, preserved source bytes and no string tuning. Wait displayed F4 beside the PDF and credited a simulated MIDI F4 attack. A notation-only MusicXML also supplied pitch targets without string tuning. The generated two-page regression in `tests/run-pdf-companion-browser.cjs` also checks automatic page turns and reattachment.
+
+With the Arirang GPX, the six-page original highlighted the second measure on its notation staff. The eight-page Soundslice print highlighted notation and TAB together. Both showed D2 + A3 at the start of that measure, and reattaching the original restored its own boxes. The matching MIDI also followed the first two marked measures with the Soundslice PDF. Its conversion yielded 182 linear bars and 1,695 practice targets, compared with 145 written GPX bars, 180 playback visits and 1,694 targets. Both had 180 visits with attacks. The first difference in the sequence of pitch groups per visit was visit 74. A MIDI export and a repeat-aware GPX can therefore require different box assignments even for the same print. These were isolated browser checks of the opening, not a full manual mapping of the piece. Physical MIDI acceptance remains open.
+
 An optional local comparison in the standard editor now retains current timing until the user applies a choice. Browser checks cover capability discovery, unchecked defaults, audition and a one-step undo. On Connecting Intervals the comparison moved measure 21 from 520.553 to 520.802 seconds against a published start of 520.838, preserving every other point. Audible owner acceptance is pending.
 
 ## Refining standard points after Fill gaps

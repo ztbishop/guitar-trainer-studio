@@ -67,15 +67,19 @@
         <div class="scores-library-actions" aria-label="Score library actions">
           <label class="file-picker scores-action-button" for="score-file-input">
             <span class="button-like">Open File</span>
-            <input id="score-file-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl" />
+            <input id="score-file-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl,.mid,.midi" />
           </label>
           <button id="library-save" type="button" disabled>Save to Library</button>
           <button id="score-print" type="button" disabled>Print / Save PDF…</button>
+          <button id="pdf-attach" type="button" disabled>Attach PDF…</button>
+          <input id="pdf-file" type="file" accept=".pdf,application/pdf" hidden />
+          <button id="pdf-show" type="button" hidden>Show PDF</button>
           <button id="library-backup" type="button">Backup Library</button>
           <button id="library-restore" type="button">Import Library (Merge)</button>
         </div>
         <p class="field-help library-backup-warning">Saved in this browser only. Back up your library to protect scores and sync points.</p>
-        <input id="library-import-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl" multiple hidden />
+        <input id="library-import-input" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.xml,.musicxml,.mxl,.mid,.midi" multiple hidden />
+        <p id="pdf-attach-status" class="field-help" role="status" hidden></p>
         <input id="library-backup-input" type="file" accept=".json,application/json" hidden />
         <p id="library-status" class="field-help" role="status" aria-live="polite"></p>
         <p id="score-print-status" class="field-help" role="status" aria-live="polite"></p>
@@ -411,7 +415,7 @@
       <h2>Help &amp; Guide</h2>
       <p><strong>Guitar recognition requires MIDI input, not standard guitar audio.</strong> The app does not listen to your microphone/audio interface or convert audio to MIDI. Use a MIDI guitar system such as Fishman TriplePlay, or separate conversion software such as MIDI Guitar 3, then select its MIDI input in Settings. Scores and playback work without MIDI; grading and Wait progression need it.</p>
       <ol class="menu-help-list">
-        <li>In Scores, open your Guitar Pro or MusicXML file, or try a demo.</li>
+        <li>In Scores, open your Guitar Pro, MusicXML or MIDI file, or try a demo. To follow a printed score, choose Attach PDF, drag a box around each measure you want to follow, then choose Done marking.</li>
         <li>Select your MIDI input in Settings. Match Poly or Hex and its channels to your device.</li>
         <li>In Practice, choose one guitar track. Try Wait to learn the notes, or Realtime to practice timing.</li>
         <li>Press Play. Use Tempo to slow down and Loop to repeat a section. Pause preserves results.</li>
@@ -653,10 +657,24 @@
           <div id="score-empty-state" class="score-empty-state">
             <div class="score-empty-icon" aria-hidden="true">♪</div>
             <div class="score-empty-title">Load a score to begin</div>
-            <div class="score-empty-copy">Choose a Guitar Pro or MusicXML file from Scores to render notation here.</div>
+            <div class="score-empty-copy">Choose a Guitar Pro, MusicXML or MIDI file from Scores to begin.</div>
           </div>
           <div id="alphatab-container"></div>
         </div>
+        <section id="pdf-view" aria-label="Companion PDF" hidden>
+          <div class="pdf-tools">
+            <button id="pdf-native" type="button">Show notation</button>
+            <label>Page <select id="pdf-page"></select></label>
+            <button id="pdf-map" type="button" aria-pressed="false">Mark measures</button>
+            <span id="pdf-edit" hidden><label>Measure <select id="pdf-measure"></select></label>
+              <button id="pdf-remove" type="button">Remove box</button></span>
+            <span id="pdf-target"></span>
+          </div>
+          <p id="pdf-status" role="status" hidden></p>
+          <div id="pdf-scroll" tabindex="0" aria-label="PDF page">
+            <div id="pdf-sheet"><canvas id="pdf-canvas" aria-label="Printed score page"></canvas><div id="pdf-boxes"></div></div>
+          </div>
+        </section>
       </section>
       <div id="media-divider" class="media-divider" role="separator" tabindex="0" aria-label="Resize recording panel" aria-valuemin="20" aria-valuemax="65" aria-valuenow="35" hidden></div>
       <section id="media-player-panel" class="panel media-player-panel" aria-label="Video panel" hidden>

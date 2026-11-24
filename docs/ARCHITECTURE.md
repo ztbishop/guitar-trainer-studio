@@ -1,5 +1,11 @@
 # Guitar Trainer Studio architecture
 
+## PDF practice and MIDI file import
+
+`js/pdf-companion.js` renders one local PDF page at a time with the bundled PDF.js worker. A display-only overlay reads the repeat-expanded timeline and existing practice target. Its normalized rectangles use the written measure number, so repeated visits reuse the box. The browser stores only rectangles under fingerprints of both files. Score loading clears the open PDF. Opening Media Sync temporarily exposes the interactive native score. The Loop menu uses the same transport in both views.
+
+Opening a MIDI invokes `js/midi-score-import.js` on demand. The standalone webmscore worker returns MusicXML for the host's native score loader, then terminates. The library and media sync retain the original MIDI identity. The virtual fretboard uses its existing tuning and written position requirements. Expected pitch names in the PDF use the trainer's current event and Wait note states.
+
 The standard pin editor can compare optional candidate timings before committing a point edit. Only a local trainer probes for that capability. All review choices are temporary and use the existing recording audition and Undo paths.
 
 Standard point refinement retains recording pitch features in memory when switching between an audio plan and continuous points. It maps the selected repeat-aware score positions to written score times, aligns that interval in the audio worker and commits the interior time changes through the standard editor’s validated Undo history. Selecting another score, recording or practice track invalidates the analysis. A restored profile can lazily extract features from its recording.

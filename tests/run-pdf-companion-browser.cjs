@@ -1,0 +1,65 @@
+// Run with Node and Playwright. Both input files are generated in memory.
+const {chromium} = require(process.env.GTS_PLAYWRIGHT_MODULE || 'playwright');
+const assert = require('node:assert/strict');
+const {createAppServer} = require('../local-web-server.cjs');
+
+function twoBarMidi() {
+  const track = [];
+  for (const pitch of [60,62,64,65,67,69,71,72]) {
+    track.push(0, 0x90, pitch, 96, 96, 0x80, pitch, 0);
+  }
+  track.push(0, 0xff, 0x2f, 0);
+  return Buffer.concat([Buffer.from('MThd'), Buffer.from([0,0,0,6,0,0,0,1,0,96]),
+    Buffer.from('MTrk'), Buffer.from([0,0,0,track.length]), Buffer.from(track)]);
+}
+
+(async () => {
+  const server = createAppServer();
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  let browser;
+  try {
+    browser = await chromium.launch({channel:process.env.GTS_BROWSER_CHANNEL || 'chrome', headless:true});
+    const page = await browser.newPage();
+    await page.setContent('<p>Measure one</p><p style="break-before:page">Measure two</p>');
+    const pdf = {name:'exercise.pdf', mimeType:'application/pdf', buffer:await page.pdf()};
+    const midi = {name:'exercise.mid', mimeType:'audio/midi', buffer:twoBarMidi()};
+    await page.goto('http://127.0.0.1:' + server.address().port);
+    await page.evaluate(async () => {window.practiceState = (await import('/js/app-state.js')).AppState;});
+    await page.waitForFunction(() => practiceState.ui.playerStatus.includes('Choose'));
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    const loadPair = async () => {
+      await page.locator('#score-file-input').setInputFiles(midi);
+      await page.waitForFunction(() => practiceState.playerReady && !document.querySelector('#pdf-attach').disabled);
+      const loaded = await page.evaluate(() => ({
+        bars:practiceState.playbackTimeline.measures.length, pitches:practiceState.expectedEvents.map(e => e.pitches[0]),
+        bytes:practiceState.currentScoreFile.bytes.length
+      }));
+      assert.deepEqual(loaded, {bars:2, pitches:[60,62,64,65,67,69,71,72], bytes:midi.buffer.length});
+      await page.locator('#pdf-file').setInputFiles(pdf);
+      await page.waitForFunction(() => !document.querySelector('#pdf-view').hidden && document.querySelector('#pdf-canvas').width > 1);
+    };
+    await loadPair();
+    assert.equal(await page.locator('#pdf-page option').count(), 2);
+    for (const pageNumber of [1,2]) {
+      await page.locator('#pdf-page').selectOption(String(pageNumber));
+      await page.waitForFunction(() => document.querySelector('#pdf-sheet').style.visibility !== 'hidden');
+      const rect = await page.locator('#pdf-sheet').boundingBox();
+      await page.mouse.move(rect.x + 20, rect.y + 25);
+      await page.mouse.down(); await page.mouse.move(rect.x + 180, rect.y + 80); await page.mouse.up();
+    }
+    await page.locator('#pdf-map').click();
+    assert.equal(await page.locator('#pdf-page').inputValue(), '1');
+    await page.locator('#play-pause-button').click();
+    await page.waitForFunction(() => document.querySelector('#pdf-page').value === '2' && document.querySelector('#pdf-boxes .current'));
+    await page.locator('#play-pause-button').click();
+    await loadPair();
+    assert.equal(await page.locator('#pdf-map').getAttribute('aria-pressed'), 'false');
+    assert.equal(await page.locator('#pdf-boxes .current').count(), 1);
+    assert.deepEqual(errors, []);
+    console.log('Passed MIDI conversion, original bytes, PDF mapping, playback page turn and restored boxes.');
+  } finally {
+    await browser?.close();
+    await new Promise(resolve => server.close(resolve));
+  }
+})().catch(error => {console.error(error); process.exitCode = 1;});

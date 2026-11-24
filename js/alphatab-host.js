@@ -1306,6 +1306,19 @@ export async function loadScoreFile(file) {
   const wrapperEl = document.getElementById('alphatab-wrapper');
   if (wrapperEl) wrapperEl.scrollTop = 0;
   let input=bytes;
+  if (/\.midi?$/i.test(file.name)) {
+    setStatus('Importing MIDI…');
+    try {
+      const {midiToMusicXml} = await import('./midi-score-import.js');
+      input = await midiToMusicXml(bytes);
+    } catch (error) {
+      if (generation !== scoreLoadGeneration) return false;
+      setScoreTitle('MIDI import failed');
+      setStatus(error.message || 'Could not convert MIDI to MusicXML.');
+      hostCallbacks.onScoreLoadError?.(error);
+      throw error;
+    }
+  }
   // Only explicit partwise MusicXML pairs qualify. Other formats retain their
   // native loader path; bulk library storage never parses or repairs scores.
   if(/\.(xml|musicxml)$/i.test(file.name) && typeof DOMParser!=='undefined') {

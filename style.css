@@ -1308,3 +1308,22 @@ body.has-score .alphatab-wrapper {
 .notation-feedback-overlay .wrong-fret-number { fill:#dc2626; font-family:Arial,sans-serif; font-weight:600; }
 
 .notation-feedback-overlay .wrong-fret-feedback[data-retained='true'] .wrong-fret-number { fill-opacity:0.8; }
+.pdf-covered { visibility: hidden; }
+#pdf-view:not([hidden]) {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg, #edf1f4);
+}
+.pdf-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .45rem 3rem .45rem .6rem; }
+.pdf-tools button, .pdf-tools select { min-height: 2rem; font-size: .9rem; }
+#pdf-status { margin: 0; padding: .2rem .6rem .5rem; font-size: .9rem; }
+#pdf-scroll { overflow: auto; flex: 1; min-height: 0; scrollbar-gutter: stable; }
+#pdf-sheet { position: relative; margin-inline: auto; background: white; }
+#pdf-canvas { display: block; width: 100%; height: auto; }
+#pdf-boxes { position: absolute; inset: 0; pointer-events: none; }
+#pdf-sheet.mapping { cursor: crosshair; touch-action: none; user-select: none; }
+.pdf-box { position: absolute; box-sizing: border-box; border: 2px dashed #2563a8; color: #123653; font: bold .8rem sans-serif; }
+.pdf-box.current { border: 2px solid #1474bb; background: rgb(61 164 226 / 23%); }
+#pdf-target { font-weight: 600; }
