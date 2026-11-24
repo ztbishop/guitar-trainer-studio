@@ -7,6 +7,7 @@ import {recoverSteadyPassages} from './audio-sync-steady.js';
 import {recoverChordSequences} from './audio-sync-chord-sequence.js';
 import {recoverChordVariations} from './audio-sync-chord-takes.js';
 import {refineOpeningChord} from './audio-sync-ringing.js';
+import {recoverPinnedPhrases} from './audio-sync-pinned-phrases.js';
 
 self.onmessage = async ({data}) => {
   try {
@@ -42,7 +43,7 @@ self.onmessage = async ({data}) => {
       self.postMessage({phase:'Following the continuous performance',done:0,total:1});
       const {continuousPerformance}=await import('./audio-sync-continuous.js');
       continuousPerformance(data.score,data.samples,features,matches,choices,data.bars);
-    }
+    } else recoverPinnedPhrases(data.score,features,matches,choices);
     self.postMessage({matches,choices,features},[features.buffer]);
   } catch (error) {
     self.postMessage({error:error.message});

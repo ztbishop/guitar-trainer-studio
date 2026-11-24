@@ -10,7 +10,7 @@ Continuous music uses the surrounding synced measures and the recorded notes to 
 
 When a passage is played several times, **Auto-sync** can use the measures before and after it to choose a take. If an earlier choice conflicts with that passage, its measure may show **Leave unmapped**. Open the take list to audition the alternatives with **Play from take**.
 
-**Matched between synced measures** appears when Auto-sync recovers one to four missing measures between two selected takes. It uses both takes as pins and checks the recording for each measure. If it cannot confirm the whole passage, the gap stays open for review. Listen with **Play from take** or choose a different take. For an existing draft, **Time a missing measure** offers the end of the previous measure and the start of the next as editable boundaries.
+**Matched between synced measures** appears when Auto-sync recovers missing measures between two selected takes. With Continuous off, it can also fill a longer phrase automatically when the pitches fit throughout and other synced bars on both sides confirm the tempo. Both surrounding takes stay pinned. If it cannot confirm the whole passage, the gap stays open for review. Listen with **Play from take** or choose a different take. For an existing draft, **Time a missing measure** offers the end of the previous measure and the start of the next as editable boundaries.
 
 Open **More → Media Sync** after loading a score. There is no separate top-toolbar Media Sync button. Opening/closing the editor does not change the playback source or mode.
 

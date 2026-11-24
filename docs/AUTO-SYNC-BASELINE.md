@@ -50,6 +50,33 @@ The analyzer ran on each recording. Both official video qualities agreed on medi
 | R&B Fill 2 (64198) | 217 s | 214.85 s |
 | R&B Fill 9 (64205) | 143 s | 129.30 s |
 
+## Recovery between two synced measures
+
+The ordinary lesson matcher now uses a gap only when the pitches fit the missing phrase and an additional selected measure on **each** side supports the same tempo. It estimates bar lines from the two pins in proportion to their written durations, including written tempo changes. The earlier one-to-four-bar recovery still runs. No new setting or manual pin is required.
+
+### Blind comparison
+
+We tested every archived page against the frozen selections from the original benchmark. All variants saw only the score, analyzed audio and the baseline selections. The 65 target gaps were identified afterward using the same reference rules as before. They contain 159 missed visits with accurate neighbors and continuous reference music. We used Shuffle in E to develop the phrase check. Its results are included below.
+
+| Rule tested | Accurate visits in the 65 gaps / 159 | Target gaps fully accurate / 65 | Accurate / added timed visits across 197 pages | New starts over 2 s off | Added overlap with marked breaks |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Fill every positive gap between pins | 153 | 63 | 256 / 1,084 | 583 | 2,766.87 s |
+| Check neighboring tempo | 144 | 55 | 220 / 281 | 14 | 17.17 s |
+| Check tempo and pitches in every bar | 57 | 29 | 74 / 88 | 2 | 0 s |
+| Tighten both checks and require an adjacent synced bar | 24 | 14 | 29 / 31 | 1 | 0 s |
+| Also refine interior points with pinned pitch alignment | 24 | 14 | 29 / 31 | 1 | 0 s |
+| Check pitches across the phrase | 96 | 37 | 149 / 206 | 14 | 15.71 s |
+| **Shipped: phrase check and independent tempo support on both sides** | **78** | **21** | **91 / 94** | **0** | **0 s** |
+
+“Accurate” requires both boundaries within 250 ms on the correct measure visit. The unconditional fill also proposed 21 visits with no timed reference. For the shipped rule every addition had a timed reference. All 78 additions in the target gaps were accurate. Outside those gaps it placed another 16 visits, 13 accurately. Across 16 lesson pages, placements rose from 3,568 to 3,662 of 5,235 and accurate placements from 2,249 to 2,340. None of the three remaining additions missed by more than 0.324 s at either end. No added midpoint landed on a different known pass with a start error over two seconds. None of the existing choices, normalized endpoints or interior anchors moved. Total marked-break overlap stayed at 286.11 s. The three duration-exception recordings received no additions under the shipped rule.
+
+- **Shuffle in E (97031).** Measures 21–32 filled the long gap. Maximum absolute boundary error was 0.092 s. Measures 11 and 47 stayed open. Unconditional filling recovered all 14 target visits here, but it also filled the entire known breakdown in Right Hand Technique.
+- **Right Hand Technique (97797).** The 12 existing placements remained identical. The introduction and the 90.28–206.73 s breakdown had zero overlap. On Easy Guitar Lesson (90720), the shipped rule also made zero additions. Its pre-existing 21.37 s overlap remains.
+- **Three near misses.** A boundary shared by visits 9 and 10 on lesson 20984 was 0.324 s early. Visit 73 on lesson 91546 started 0.265 s late. These are good cases for testing beat-level refinement.
+- **Browser verification.** Fresh one-click runs through the actual worker on 97031, 97797, 90720, 20984 and 91546 reproduced the predicted selections and endpoints. The shipped rule also made no additions to the three earlier controls outside the inventory (98027, 98109 and 99463).
+
+To reproduce from the private baseline inputs, run `node tools/experiments/cache-gap-features.cjs` with Playwright and Chrome available, then `node tools/experiments/benchmark-pinned-gaps.mjs`. The first command reads local recordings for the 110 pages with interior holes. The second evaluates all 200 pages, checks the production stage against the comparison and saves per-visit results under `tests/.media-fixtures/gap-benchmark/comparison.json`. These figures measure archived recording boundaries. They do not establish live MIDI accuracy or guarantee protection of unmarked speech in other recordings.
+
 ## Per-lesson results
 
 | Lesson ID | Lesson | Reference | Timed visits | Placed | Both within 250 ms | Start over 2 s off | Marked break overlap (s) |

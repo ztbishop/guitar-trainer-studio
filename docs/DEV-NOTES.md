@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Filling missing phrases in lesson recordings
+
+Compared seven variants over all 200 archived lesson pages. The shipped rule added 94 placements on the 197 comparable pages, with 91 within 250 ms at both ends. Existing endpoints stayed fixed and the new placements added zero overlap with labeled breaks. [Results, limits and replay commands](AUTO-SYNC-BASELINE.md#recovery-between-two-synced-measures)
+
 ## Blind Auto-sync benchmark across archived Lesson Bridge lessons
 
 Auto-sync ran on all 200 identified lesson pages with the reference timing withheld. Across 197 duration-checked recordings, it placed 3,568 of 5,235 timed measure visits. Both endpoints were within 250 ms on 2,249 visits. See the [baseline, owner-checked examples and per-lesson results](AUTO-SYNC-BASELINE.md).
