@@ -98,6 +98,15 @@ For other hardware/software paths, see the [MIDI input comparison appendix](#app
 
 ### Practice with a printed PDF
 
+**Scores → Open File** also accepts `.pdf` for realtime play-along with just a local recording.
+
+1. Open the PDF. The trainer finds the printed measure boxes across its pages. Use **Mark measures** to check the result. For manual marking from scratch, open **Scores → PDF + recording…** and clear **Find measure boxes on open** before choosing the PDF.
+2. Choose **Open audio or video…** and play the recording. Click **Tap measure start** on a downbeat. The measure selector advances after each tap. To skip from measure 1 to measure 5, choose 5 and tap when you hear it. The trainer estimates measures 2–4 between those taps.
+3. Add a tap at a previously estimated measure wherever a hold or tempo change causes drift. To correct a saved tap, choose it under **Adjust taps and mark breaks**, then enter seconds or use the playhead. Before an explanation, select the last played measure and **Mark end of selected measure**. Tap the next downbeat after the break.
+4. Click a timed box to seek. Select the first and last measures and choose **Loop section**. The loop needs a later downbeat or a marked end. For a repeated passage, seek near the desired take first. **Tempo** adjusts playback from 25% to 200%.
+
+Reopen the same two files to restore the taps. The browser saves box positions and timing. The recording plays directly from the selected file. For Wait mode and pitch grading, use the playable-score workflow below.
+
 Use a PDF with a MIDI when the print is your reference for reading the music. A Guitar Pro or MusicXML companion also works when you prefer the publisher's layout. Written fingerings for the virtual fretboard come from the companion. TAB printed on a PDF is visible to you but supplies no string data to the trainer.
 
 1. Open the playable score, then choose **Scores → Attach PDF…**. For a lesson with a downloadable PDF, select the saved PDF from your device.

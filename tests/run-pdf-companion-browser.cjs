@@ -29,8 +29,8 @@ function twoBarMidi() {
     await page.waitForFunction(() => practiceState.ui.playerStatus.includes('Choose'));
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
-    const loadPair = async () => {
-      await page.locator('#score-file-input').setInputFiles(midi);
+    const loadPair = async (name=midi.name) => {
+      await page.locator('#score-file-input').setInputFiles({...midi,name});
       await page.waitForFunction(() => practiceState.playerReady && !document.querySelector('#pdf-attach').disabled);
       const loaded = await page.evaluate(() => ({
         bars:practiceState.playbackTimeline.measures.length, pitches:practiceState.expectedEvents.map(e => e.pitches[0]),
@@ -115,7 +115,7 @@ function twoBarMidi() {
     await page.mouse.move(pos.x+1500,pos.y);await page.mouse.up();
     assert.equal(await handle.getAttribute('aria-valuenow'),await handle.getAttribute('aria-valuemax'));
     const maximum=await handle.getAttribute('aria-valuenow');
-    await loadPair();await page.locator('#pdf-map').click();
+    await loadPair('exercise.midi');await page.locator('#pdf-map').click();
     assert.equal(await handle.getAttribute('aria-valuenow'),maximum);
     assert.deepEqual(errors, []);
     console.log('Passed MIDI conversion, manual and detected PDF boxes, split/join, page turn, restore, measure/note seek and loop shading.');

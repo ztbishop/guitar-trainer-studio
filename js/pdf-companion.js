@@ -5,6 +5,7 @@ import {outsideRecordingScore} from './media-score-range.js';
 import {practiceTimingPlan} from './media-practice.js';
 import {editPageBoxes, availableVisit, replacePageBoxes} from './pdf-box-review.js';
 import {barlineHandle} from './pdf-barline-controls.js';
+import {mountPdfEditor} from './pdf-editor-layout.js';
 
 export function writtenMeasureAt(measures, tick) {
   let low = 0, high = measures?.length ?? 0;
@@ -33,16 +34,23 @@ export function expectedPdfNotes(event, states, waiting) {
 }
 
 const assets = new URL('../assets/vendor/pdfjs/', import.meta.url);
-export function initPdfCompanion(state, closeMenu, seek) {
+export function initPdfCompanion(state, closeMenu, seek, recording=null) {
   const byId = id => document.getElementById('pdf-' + id);
+  mountPdfEditor(byId('view'));
   const view = byId('view'), sheet = byId('sheet'), scroll = byId('scroll'), overlay = byId('boxes');
   const file = byId('file'), attach = byId('attach'), attachStatus = byId('attach-status');
   const pageSelect = byId('page'), measure = byId('measure'), mark = byId('map'), target = byId('target');
   const native = document.getElementById('alphatab-wrapper');
   let pdf, documentTask, key, boxes = {}, page = 1, editing = false, visible = false, generation = 0;
   let renderVersion = 0, renderTask, drawnWidth = 0, drawnPage = 0, drag, current, trainerState;
-  let proposals=null, scanVersion=0, loopRange=null, loopMeasures=null, noteVisit=null;
+  let proposals=null, scanVersion=0, loopRange=null, loopMeasures=null, noteVisit=null, tapCue=null;
   const find=byId('find'), action=byId('action'), note=byId('note'), replace=byId('replace');
+  function extendNumbers(last) {
+    while(measure.length<last) {
+      const number=String(measure.length+1);
+      measure.add(new Option(number,number));
+    }
+  }
 
   function message(text) {
     const status = byId('status');
@@ -54,6 +62,10 @@ export function initPdfCompanion(state, closeMenu, seek) {
     attachStatus.hidden = !text;
   }
   function saveBoxes() {
+    if(recording) {
+      extendNumbers(Math.max(0,...Object.keys(boxes).map(Number))+1);
+      recording.boxesChanged(boxes);
+    }
     try { if (!key) throw Error(); localStorage.setItem(key, JSON.stringify(boxes)); }
     catch { message('Boxes are available for this session. This browser could not save them.'); }
   }
@@ -79,6 +91,7 @@ export function initPdfCompanion(state, closeMenu, seek) {
       else {
         el.setAttribute('aria-label','Go to measure '+label);
         el.dataset.measure=number;
+        if(recording && Number(number)===tapCue)el.classList.add('tap-cue');
         el.classList.toggle('outside-loop', !!loopMeasures && !loopMeasures.has(Number(number)));
         el.onclick=()=>jumpToMeasure(Number(number));
       }
@@ -106,6 +119,7 @@ export function initPdfCompanion(state, closeMenu, seek) {
     byId('remove').disabled = !boxes[measure.value];
   }
   function jumpToMeasure(number) {
+    if(recording){recording.seek(number);return;}
     const visit=availableVisit(state.playbackTimeline.measures,number,state.tickPosition,loopRange,practiceTimingPlan(state));
     if(!visit) { message(loopMeasures && !loopMeasures.has(number)?'This measure is outside the loop.':'This measure has no timing in the active recording.');return; }
     message('');
@@ -129,6 +143,7 @@ export function initPdfCompanion(state, closeMenu, seek) {
     reviewControls();
   }
   function describeReview() {
+    if(recording)extendNumbers(measure.selectedIndex+proposals.length+1);
     reviewControls();
     const overflow=proposals.length-(measure.options.length-measure.selectedIndex);
     const collision=replace.checked && proposals.some((_,i)=>{
@@ -241,6 +256,18 @@ export function initPdfCompanion(state, closeMenu, seek) {
   }
   function sync(trainer = trainerState) {
     trainerState = trainer;
+    if(recording) {
+      if(!pdf || !visible)return;
+      const number=recording.current(), range=recording.loop();
+      const cue=number===null ? recording.selectedMeasure() : null;
+      if(current!==number || loopRange!==range || tapCue!==cue) {
+        current=number;tapCue=cue;loopRange=range;loopMeasures=range?.measures;
+        const follow=boxes[number??cue];
+        if(!editing && follow && state.ui.autoScroll && follow.page!==page)goPage(follow.page);
+        paintBoxes(true);
+      }
+      renderPage();return;
+    }
     const canAttach = Boolean(state.currentScoreFile && state.playbackTimeline?.measures.length);
     if (attach.disabled === canAttach) attach.disabled = !canAttach;
     const shown = visible && !!pdf && !state.media.editing;
@@ -291,25 +318,46 @@ export function initPdfCompanion(state, closeMenu, seek) {
       updateAttachStatus('Opening PDF…');
       const [lib, bytes] = await Promise.all([import('../assets/vendor/pdfjs/build/pdf.min.mjs'), selected.arrayBuffer()]);
       if (version !== generation) return;
-      const hash = score.hash && await fingerprint(bytes);
+      const hash = (recording || score?.hash) && await fingerprint(bytes);
       lib.GlobalWorkerOptions.workerSrc = new URL('build/pdf.worker.min.mjs', assets).href;
-      task = lib.getDocument({data:bytes, wasmUrl:new URL('wasm/', assets).href, cMapUrl:new URL('cmaps/', assets).href,
+      task = lib.getDocument({data:new Uint8Array(bytes), wasmUrl:new URL('wasm/', assets).href, cMapUrl:new URL('cmaps/', assets).href,
         cMapPacked:true, standardFontDataUrl:new URL('standard_fonts/', assets).href, iccUrl:new URL('iccs/', assets).href, isEvalSupported:false});
       const loaded = await task.promise;
       if (version !== generation || score !== state.currentScoreFile) { await task.destroy(); return; }
+      const storageKey=recording?'gts.pdf.recording.boxes.v1.'+hash:hash && 'gts.pdf.v1.'+score.hash+'.'+hash;
+      let mapping={};
+      try {mapping=JSON.parse(localStorage.getItem(storageKey)) || {};} catch { /* Session-only. */ }
+      const missedPages=[];
+      if(recording?.autoFind() && !Object.keys(mapping).length) {
+        const {detectPdfPage}=await import('./pdf-measure-detection.js');
+        let number=1;
+        for(let i=1;i<=loaded.numPages;i++) {
+          if(version!==generation){await task.destroy();return;}
+          updateAttachStatus('Finding measure boxes on page '+i+' of '+loaded.numPages+'…');
+          let found=[];
+          try {found=await detectPdfPage(await loaded.getPage(i),i);} catch { /* Page can still be marked by hand. */ }
+          if(!found.length)missedPages.push(i);
+          for(const box of found)mapping[number++]=box;
+        }
+        if(version!==generation){await task.destroy();return;}
+      }
       renderVersion++; renderTask?.cancel(); documentTask?.destroy(); documentTask = task;
       pdf = loaded; page = 1; drawnPage = 0; current = undefined;
-      key = hash && 'gts.pdf.v1.' + score.hash + '.' + hash;
-      boxes = {};
-      try { boxes = JSON.parse(localStorage.getItem(key)) || {}; } catch { /* Session-only mapping. */ }
+      key=storageKey;boxes=mapping;
       pageSelect.replaceChildren();
       for (let i = 1; i <= pdf.numPages; i++) pageSelect.add(new Option(String(i), String(i)));
       measure.replaceChildren();
-      for (const number of new Set(state.playbackTimeline.measures.map(m => m.measureNumber))) {
+      if(recording) {
+        view.hidden=false;byId('native').hidden=true;
+        recording.opened(hash,selected.name,boxes);
+        saveBoxes();
+      } else for (const number of new Set(state.playbackTimeline.measures.map(m => m.measureNumber))) {
         measure.add(new Option(printedMeasure(state.score, number), String(number)));
       }
       visible = true; updateAttachStatus(''); closeMenu();
       setEditing(!Object.keys(boxes).length); sync();
+      if(recording && Object.keys(boxes).length)message(Object.keys(boxes).length+' measure boxes across '+loaded.numPages+' pages. Choose Mark measures to review them.');
+      if(missedPages.length)message('Check pages '+missedPages.join(', ')+'. No boxes found there. Use Mark measures to check numbering and draw any missing boxes.');
     } catch (error) {
       await task?.destroy();
       if (version === generation) updateAttachStatus('Could not open this PDF. ' + error.message);
@@ -359,9 +407,9 @@ export function initPdfCompanion(state, closeMenu, seek) {
   byId('remove').onclick = () => { delete boxes[measure.value]; saveBoxes(); paintBoxes(); sync(); };
   mark.onclick = () => { setEditing(!editing); current = undefined; sync(); };
   byId('native').onclick = () => { visible = false; sync(); };
-  byId('show').onclick = () => { closeMenu(); visible = true; current = undefined; sync(); };
+  if(!recording)byId('show').onclick = () => { closeMenu(); visible = true; current = undefined; sync(); };
   attach.onclick = () => file.click();
   file.onchange = () => { const selected = file.files[0]; file.value = ''; if (selected) open(selected); };
   new ResizeObserver(renderPage).observe(scroll);
-  return {sync, reset};
+  return {sync, reset,open};
 }

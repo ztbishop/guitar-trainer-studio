@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <base href="../">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PDF + recording · Guitar Trainer Studio</title>
+  <link rel="icon" href="assets/icons/favicon.ico"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="assets/styles/pdf-recording.css">
+</head>
+<body class="pdf-recording">
+  <header><h1>PDF + recording</h1>
+    <button id="pdf-attach" type="button">Open PDF…</button><input id="pdf-file" type="file" accept=".pdf,application/pdf" hidden>
+    <label><input id="auto-find" type="checkbox" checked> Find measure boxes on open</label>
+    <button id="choose-media" type="button">Open audio or video…</button><input id="recording-file" type="file" accept="audio/*,video/*" hidden>
+    <span>Realtime · ungraded</span>
+  </header>
+  <p id="pdf-attach-status" role="status" hidden></p>
+  <main>
+    <section id="paper" aria-label="Printed score">
+      <p>Open a PDF to find its measure boxes.</p>
+      <section id="pdf-view" aria-label="Printed PDF" hidden></section>
+    </section>
+    <aside aria-label="Recording and timing">
+      <h2 id="recording-name">Recording</h2>
+      <video id="recording" controls playsinline preload="metadata"></video>
+      <div class="line"><label>Tempo <select id="speed" disabled></select></label><output id="following" aria-live="off"></output></div>
+      <fieldset id="timing" disabled><legend>Measure timing</legend>
+        <p>Play the recording. Tap at a measure’s first beat. Skip ahead in the selector to estimate the measures between taps.</p>
+        <div class="line"><label>Measure <select id="tap-measure"></select></label><button id="tap">Tap measure start</button></div>
+        <details><summary>Adjust taps and mark breaks</summary>
+          <p>Choose the last measure of a passage and mark its end at the playhead. Tap the next start after the break.</p>
+          <button id="passage-end">Mark end of selected measure</button>
+          <div class="line"><label>Saved tap <select id="anchors"></select></label></div>
+          <div class="line"><label>Seconds <input id="seconds" type="number" min="0" step=".001"></label>
+            <button id="adjust">Save time</button><button id="retap">Use playhead</button><button id="remove">Remove tap</button></div>
+        </details>
+      </fieldset>
+      <fieldset id="loop-controls" disabled><legend>Loop section</legend>
+        <div class="line"><label>From <select id="loop-first"></select></label><label>Through <select id="loop-last"></select></label>
+          <button id="loop" aria-pressed="false">Loop section</button></div>
+      </fieldset>
+      <p id="status" role="status">Open a PDF and a local audio or video file to start.</p>
+    </aside>
+  </main>
+  <script type="module" src="js/pdf-recording.js"></script>
+</body></html>

@@ -1,0 +1,27 @@
+body.pdf-recording { margin:0; height:100dvh; display:flex; flex-direction:column; overflow:hidden; background:#edf1f4; color:#233649; color-scheme:light; }
+.pdf-recording header,.pdf-recording .line { display:flex; align-items:center; flex-wrap:wrap; gap:.55rem; }
+.pdf-recording header { padding:.6rem 1rem; border-bottom:1px solid #c2ced7; }
+.pdf-recording h1,.pdf-recording h2 { font-size:1.08rem; margin:.35rem 0; }
+.pdf-recording header span { margin-inline-start:auto; }
+.pdf-recording main { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) minmax(18rem,31%); }
+#paper { position:relative; min-height:0; }
+#paper>p { text-align:center; margin:3rem 1rem; }
+.pdf-recording aside { padding:.8rem; overflow:auto; background:#fafbfc; border-inline-start:1px solid #c2ced7; }
+.pdf-recording video { width:100%; max-height:34vh; background:#131b25; }
+.pdf-recording video.audio-only { height:3.5rem; }
+.pdf-recording fieldset { min-width:0; margin:1rem 0 0; padding:.65rem; border:1px solid #c2ced7; border-radius:.5rem; }
+.pdf-recording legend { font-weight:650; }
+.pdf-recording fieldset p,.pdf-recording #status { font-size:.92rem; line-height:1.4; }
+.pdf-recording fieldset p { margin:0 0 .5rem; }
+.pdf-recording details { margin-top:.7rem; }
+.pdf-recording details>* { margin-block:.5rem; }
+.pdf-recording input[type=number] { width:6.5rem; }
+.pdf-recording select { max-width:100%; }
+#pdf-boxes button.tap-cue { border:2px dashed #54697b; }
+#pdf-boxes button.tap-cue::after { content:'Next tap'; position:absolute; bottom:100%; left:0; padding:.1em .4em; background:#405466; color:white; font-size:.72rem; }
+.pdf-recording button[aria-pressed=true] { outline:2px solid #2563a8; }
+.pdf-recording #pdf-attach-status { margin:.25rem 1rem; }
+@media(max-width:700px) {
+  .pdf-recording main { grid-template-columns:1fr; grid-template-rows:minmax(0,1fr) minmax(10rem,40%); }
+  .pdf-recording video { max-height:20vh; }
+}

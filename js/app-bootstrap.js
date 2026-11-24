@@ -270,9 +270,23 @@ function wireScoreStageUi() {
   return {sync(){displayControls.sync();trackVisibilityControls.sync();}};
 }
 
-function wireFilePicker() {
+function wireFilePicker(closeMenu) {
   const fileInput = document.getElementById('score-file-input');
   if (!fileInput) return;
+  const room=document.getElementById('pdf-recording-room');
+  function openRecordingRoom(file) {
+    if(room.open)return;
+    closeMenu();
+    if(AppState.isPlaying || AppState.countInActive || (waitController.active && waitController.phase!=='paused'))
+      document.getElementById('play-pause-button').click();
+    const frame=document.createElement('iframe');
+    frame.title='PDF and recording practice';
+    frame.src='assets/pdf-recording.html';
+    if(file)frame.onload=()=>frame.contentDocument.dispatchEvent(new CustomEvent('open-printed-score',{detail:file}));
+    room.append(frame);room.showModal();
+  }
+  room.onclose=()=>room.querySelector('iframe')?.remove();
+  document.getElementById('open-pdf-recording').onclick=()=>openRecordingRoom(null);
 
   fileInput.addEventListener('change', async (event) => {
     const file = event.target?.files?.[0];
@@ -280,7 +294,8 @@ function wireFilePicker() {
     // Selecting the same file again must fire change and offer pairing again.
     event.target.value='';
     try {
-      await loadScoreFile(file);
+      if(/\.pdf$/i.test(file.name) || file.type==='application/pdf')openRecordingRoom(file);
+      else await loadScoreFile(file);
     } catch (error) {
       console.error('Could not load score file.', error);
       alert(error?.message || 'Could not load that score file. Check the browser console for details.');
@@ -828,7 +843,7 @@ async function bootstrap() {
   document.getElementById('play-pause-button').addEventListener('click',()=>{fretboardBrowseTick=null;renderTrainerUi();});
   initWorkspacePanels();
   document.getElementById('fretboard-close').addEventListener('click',()=>{const toggle=document.getElementById('show-fretboard');toggle.checked=false;toggle.dispatchEvent(new Event('change'));document.getElementById('btn-more').focus();});
-  wireFilePicker();
+  wireFilePicker(toolbar.closeAllPopups);
   wireTransportButtons();
   wirePracticeControls();
   wireTempoAndLoopControls();
