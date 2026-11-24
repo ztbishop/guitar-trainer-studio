@@ -1,5 +1,13 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## PDF-only audio timing review on Single-Note Rhythmic Ideas, November 24, 2026
+
+Isolated Chrome opened the publisher’s three-page PDF and the cached demonstration video for TrueFire lesson 101209. The room received only the PDF, recording, and sparse endpoint taps rounded to milliseconds. Controlled taps used the verified reference’s endpoints to isolate estimation error. The six test ranges were M1–5, 5–8, 9–13, 13–16, 25–28 and 29–32, each within one continuous printed example. All 14 interior times were withheld from analysis. The browser saved predictions before the test compared them with the archived timing. No GPX or MIDI was opened in the room. To reproduce the numerical experiment, run `tools/experiments/benchmark-pdf-taps.mjs` with the recording’s 11025 Hz mono float32 PCM and the private baseline JSON.
+
+Audio improved 3 of 14 starts. Median absolute error went from 65 ms with interpolation to 400 ms with audio. In the chord example, M26 and M27 improved from 449 and 544 ms to 187 and 76 ms. In the syncopated example, M15 went from 6 ms late to 1285 ms early. A development check limiting shifts to 125 ms still worsened median error to 71 ms. An exploratory four-beat pulse model improved median error to 56 ms but increased mean and worst error. Neither variant is part of the app. The audio comparison is optional per passage and requires a separate action to change the active timing.
+
+The printed staff-system counts were 2/2/2/2, 2/2/2/2/2/2 and 2/2/4/2/2. The browser reproduced all 32 boxes. All stayed within the score area, clear of the photo banners, title and copyright footers. Inspection covers this publication and these pages. Chrome checks also covered listening, applying, reopening and restoring on the original Arirang pair and a generated WAV. The Practice menu and PDF recording room explain the playable-score requirement for scoring and Wait mode.
+
 ## Continuous PDF scrolling and Arirang tap experiment, November 24, 2026
 
 Both PDF workflows scroll across page boundaries. The score pane has a Show PDF button after Show notation. Chrome checks covered switching back, marking on a scrolled-to page, seeking and loop shading, playback crossing pages, and manual browsing with follow disabled. The original six-page Arirang PDF and MP4 also exercised saved auto-scroll off/on, sparse taps, correction and looping without a playable score.

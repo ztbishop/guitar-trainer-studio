@@ -3,6 +3,7 @@ body.pdf-recording { margin:0; height:100dvh; display:flex; flex-direction:colum
 .pdf-recording header { padding:.6rem 1rem; border-bottom:1px solid #c2ced7; }
 .pdf-recording h1,.pdf-recording h2 { font-size:1.08rem; margin:.35rem 0; }
 .pdf-recording header span { margin-inline-start:auto; }
+.pdf-recording .practice-note { font-size:.9rem; color:#405466; }
 .pdf-recording main { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) minmax(18rem,31%); }
 #paper { position:relative; min-height:0; }
 #paper>p { text-align:center; margin:3rem 1rem; }

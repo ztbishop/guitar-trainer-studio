@@ -2,6 +2,7 @@ import {initPdfCompanion} from './pdf-companion.js';
 import {readDisplayPreferences, DISPLAY_PREFERENCES_KEY} from './display-preferences.js';
 import {fingerprint} from './library-store.js';
 import {measureIntervals,putAnchor,recordingLoop} from './pdf-recording-timing.js';
+import {initAudioReview} from './pdf-audio-review.js';
 
 const el=id=>document.getElementById(id);
 const media=el('recording'), fileInput=el('recording-file'), selected=el('tap-measure'), saved=el('anchors');
@@ -11,6 +12,11 @@ const status=text=>{el('status').textContent=text;};
 const stamp=t=>Math.floor(t/60)+':'+(t%60).toFixed(2).padStart(5,'0');
 const key=()=>pdfHash && mediaHash && 'gts.pdf.recording.taps.v1.'+pdfHash+'.'+mediaHash;
 const time=()=>Math.round(media.currentTime*1000)/1000;
+let localRecording=null;
+const audioReview=initAudioReview({recording:()=>localRecording,media,
+  listen(t){stopLoop();media.currentTime=t;tick();media.play().catch(e=>status(e.message));},
+  changed(accepted){spans=measureIntervals(anchors,accepted);stopLoop();tick();}
+});
 
 function stopLoop() {
   loop=null;el('loop').setAttribute('aria-pressed','false');el('loop').textContent='Loop section';
@@ -21,7 +27,7 @@ function refreshAnchorFields() {
   for(const id of ['seconds','adjust','retap','remove'])el(id).disabled=!anchor;
 }
 function refreshTiming(selectTime) {
-  spans=measureIntervals(anchors);stopLoop();
+  spans=measureIntervals(anchors,audioReview.sync(anchors,key()));stopLoop();
   saved.replaceChildren(...anchors.map(a=>new Option('M'+a.measure+(a.end?' end':' start')+' · '+stamp(a.time),String(a.time))));
   if(selectTime!=null)saved.value=String(selectTime);
   refreshAnchorFields();updateReady();
@@ -108,7 +114,7 @@ el('choose-media').onclick=()=>fileInput.click();
 fileInput.onchange=async()=>{
   const file=fileInput.files[0];fileInput.value='';if(!file)return;
   const version=++loading;
-  media.pause();mediaHash='';restore();status('Opening recording…');
+  media.pause();localRecording=null;mediaHash='';restore();status('Opening recording…');
   try {
     // Read a small sample for identity. Native media playback streams the file.
     const sample=new Blob([String(file.size),file.slice(0,65536),file.slice(-65536)]);
@@ -116,7 +122,7 @@ fileInput.onchange=async()=>{
     if(version!==loading)return;
     const old=objectUrl;objectUrl=URL.createObjectURL(file);media.src=objectUrl;
     if(old)URL.revokeObjectURL(old);
-    el('recording-name').textContent=file.name;mediaHash=hash;restore();
+    el('recording-name').textContent=file.name;localRecording=file;mediaHash=hash;restore();
     if(!pdfHash)status('Open the printed PDF to find its measures.');
   } catch(e){if(version===loading)status('Could not open the recording. '+e.message);}
 };

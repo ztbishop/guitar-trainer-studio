@@ -1309,6 +1309,7 @@ body.has-score .alphatab-wrapper {
 
 .notation-feedback-overlay .wrong-fret-feedback[data-retained='true'] .wrong-fret-number { fill-opacity:0.8; }
 .pdf-covered { visibility: hidden; }
+body.has-score .pdf-practice-hint { display:none; }
 #pdf-view:not([hidden]) {
   position: absolute;
   inset: 0;

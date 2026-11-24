@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {measureIntervals,putAnchor,recordingLoop} from '../js/pdf-recording-timing.js';
+import {measureIntervals,putAnchor,recordingLoop,tapPassages} from '../js/pdf-recording-timing.js';
 
 test('sparse downbeats interpolate locally and an interior correction leaves outer pins fixed',()=>{
   let pins=[{time:1,measure:1},{time:9,measure:5}];
@@ -17,4 +17,18 @@ test('passage ends preserve breaks and loop selection follows the nearest repeat
   assert.equal(recordingLoop(spans,1,2,36).start,35);
   assert.equal(recordingLoop(spans,1,2,3).end,8);
   assert.equal(recordingLoop(spans,1,3,3),null);
+});
+
+test('reviewed estimates belong to the exact two taps and take, with a continuous loop and unchanged breaks',()=>{
+  const taps=[{measure:1,time:3},{measure:3,time:9,end:true},{measure:1,time:13},{measure:4,time:22}];
+  const [first,second]=tapPassages(taps);
+  const overrides={[first.id]:[4.8,6.9],[second.id]:[14.1,19.5]};
+  const raw=JSON.stringify(taps),spans=measureIntervals(taps,overrides);
+  assert.deepEqual(spans.map(s=>[s.start,s.end]),[[3,4.8],[4.8,6.9],[6.9,9],[13,14.1],[14.1,19.5],[19.5,22]]);
+  assert.equal(recordingLoop(spans,2,3,16).start,14.1);
+  assert.equal(JSON.stringify(taps),raw);
+  for(const invalid of [[5,4],[3,7],[5,9],[NaN,7],[]])
+    assert.deepEqual(measureIntervals(taps,{[first.id]:invalid}),measureIntervals(taps));
+  const changed=putAnchor(taps,{measure:2,time:5.25});
+  assert.deepEqual(measureIntervals(changed,overrides).map(s=>s.start),[3,5.25,7.125,13,14.1,19.5]);
 });

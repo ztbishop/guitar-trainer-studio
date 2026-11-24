@@ -11,7 +11,7 @@
     <button id="pdf-attach" type="button">Open PDF…</button><input id="pdf-file" type="file" accept=".pdf,application/pdf" hidden>
     <label><input id="auto-find" type="checkbox" checked> Find measure boxes on open</label>
     <button id="choose-media" type="button">Open audio or video…</button><input id="recording-file" type="file" accept="audio/*,video/*" hidden>
-    <span>Realtime · ungraded</span>
+    <span class="practice-note"><strong>Realtime practice</strong> · Scoring and Wait mode require a MIDI, MusicXML or Guitar Pro score.</span>
   </header>
   <p id="pdf-attach-status" role="status" hidden></p>
   <main>
@@ -32,6 +32,17 @@
           <div class="line"><label>Saved tap <select id="anchors"></select></label></div>
           <div class="line"><label>Seconds <input id="seconds" type="number" min="0" step=".001"></label>
             <button id="adjust">Save time</button><button id="retap">Use playhead</button><button id="remove">Remove tap</button></div>
+        </details>
+        <details id="audio-review"><summary>Compare audio timing between taps</summary>
+          <p id="audio-hint">Tap across at least two measures in one continuous passage.</p>
+          <div class="line"><label>Passage <select id="audio-passage"></select></label>
+            <button id="audio-find" type="button">Find audio estimates</button></div>
+          <div id="audio-comparison" hidden>
+            <label>Compare start <select id="audio-measure"></select></label>
+            <div class="line"><button id="hear-even">Hear even spacing</button><button id="hear-audio">Hear audio estimate</button></div>
+            <button id="keep-audio">Use audio timing for passage</button>
+          </div>
+          <button id="restore-even" hidden>Restore even spacing</button>
         </details>
       </fieldset>
       <fieldset id="loop-controls" disabled><legend>Loop section</legend>

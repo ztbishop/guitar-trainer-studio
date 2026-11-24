@@ -5,32 +5,28 @@ const HOP = 441;
 const STEP = HOP / SAMPLE_RATE;
 const WINDOW = 2048;
 
-// Centered Hann-window FFT. Fold prominent spectral peaks onto the twelve
-// pitch classes so guitar timbre and octave doubling need no instrument model.
-export function recordingFeatures(samples, lowestMidi=-Infinity, highestMidi=Infinity) {
-  const frames = Math.ceil(samples.length / HOP);
-  const features = new Float32Array(frames * 12);
-  const real = new Float64Array(WINDOW), imag = new Float64Array(WINDOW);
-  const reverse = new Uint16Array(WINDOW), window = new Float64Array(WINDOW);
-  const cos = new Float64Array(WINDOW / 2), sin = new Float64Array(WINDOW / 2);
-  const power = new Float64Array(WINDOW / 2);
-  for (let i = 0; i < WINDOW; i++) {
-    reverse[i] = (reverse[i >> 1] >> 1) | ((i & 1) * (WINDOW / 2));
-    window[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / WINDOW);
-    if (i < WINDOW / 2) {
-      cos[i] = Math.cos(2 * Math.PI * i / WINDOW);
-      sin[i] = -Math.sin(2 * Math.PI * i / WINDOW);
+// Reuse the transform buffers across windows. The PDF attack experiment uses
+// the symmetric Hann convention of its reference implementation.
+export function windowedSpectrum(size, symmetric=false) {
+  const real = new Float64Array(size), imag = new Float64Array(size);
+  const reverse = new Uint16Array(size), window = new Float64Array(size);
+  const cos = new Float64Array(size / 2), sin = new Float64Array(size / 2);
+  for (let i = 0; i < size; i++) {
+    reverse[i] = (reverse[i >> 1] >> 1) | ((i & 1) * (size / 2));
+    window[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (symmetric ? size - 1 : size));
+    if (i < size / 2) {
+      cos[i] = Math.cos(2 * Math.PI * i / size);
+      sin[i] = -Math.sin(2 * Math.PI * i / size);
     }
   }
-  for (let frame = 0; frame < frames; frame++) {
-    const first = frame * HOP - WINDOW / 2;
-    for (let i = 0; i < WINDOW; i++) {
+  return function transform(samples, first, power) {
+    for (let i = 0; i < size; i++) {
       real[reverse[i]] = (samples[first + i] || 0) * window[i];
     }
     imag.fill(0);
-    for (let width = 2; width <= WINDOW; width *= 2) {
-      const half = width / 2, stride = WINDOW / width;
-      for (let block = 0; block < WINDOW; block += width) {
+    for (let width = 2; width <= size; width *= 2) {
+      const half = width / 2, stride = size / width;
+      for (let block = 0; block < size; block += width) {
         for (let k = 0; k < half; k++) {
           const a = block + k, b = a + half, t = k * stride;
           const x = real[b] * cos[t] - imag[b] * sin[t];
@@ -40,9 +36,22 @@ export function recordingFeatures(samples, lowestMidi=-Infinity, highestMidi=Inf
         }
       }
     }
+    for(let b=0;b<power.length;b++)power[b]=real[b]**2+imag[b]**2;
+  };
+}
+
+// Centered Hann-window FFT. Fold prominent spectral peaks onto the twelve
+// pitch classes so guitar timbre and octave doubling need no instrument model.
+export function recordingFeatures(samples, lowestMidi=-Infinity, highestMidi=Infinity) {
+  const frames = Math.ceil(samples.length / HOP);
+  const features = new Float32Array(frames * 12);
+  const transform=windowedSpectrum(WINDOW);
+  const highBin=Math.ceil(2200*WINDOW/SAMPLE_RATE);
+  const power=new Float64Array(highBin+2);
+  for (let frame = 0; frame < frames; frame++) {
+    const first = frame * HOP - WINDOW / 2;
+    transform(samples,first,power);
     const base = frame * 12;
-    const highBin = Math.ceil(2200 * WINDOW / SAMPLE_RATE);
-    for (let b = 1; b <= highBin + 1; b++) power[b] = real[b] ** 2 + imag[b] ** 2;
     for (let b = 10; b <= highBin; b++) {
       if (power[b] < 0.00001 || power[b] <= power[b-1] || power[b] <= power[b+1]) continue;
       const left = Math.log(power[b-1] + 1e-14), mid = Math.log(power[b]), right = Math.log(power[b+1] + 1e-14);

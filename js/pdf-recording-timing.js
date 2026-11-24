@@ -7,14 +7,33 @@ export function putAnchor(anchors,anchor,replaceTime=null) {
   return [...next,anchor].sort((a,b)=>a.time-b.time);
 }
 
-export function measureIntervals(anchors) {
-  const spans=[];
+export function tapPassages(anchors) {
+  const passages=[];
   for(let i=1;i<anchors.length;i++) {
-    const a=anchors[i-1], b=anchors[i], stop=b.measure+(b.end?1:0);
-    if(a.end || stop<=a.measure)continue;
-    const duration=(b.time-a.time)/(stop-a.measure);
-    for(let n=a.measure;n<stop;n++)spans.push({measure:n,start:a.time+(n-a.measure)*duration,
-      end:n+1===stop?b.time:a.time+(n+1-a.measure)*duration});
+    const a=anchors[i-1],b=anchors[i],count=b.measure+(b.end?1:0)-a.measure;
+    if(a.end || count<=0 || b.time<=a.time)continue;
+    const id=[a.measure,a.time,b.measure,b.time,Boolean(b.end)].join('/');
+    passages.push({id,first:a.measure,last:b.measure,start:a.time,end:b.time,count,endsAtRelease:!!b.end});
+  }
+  return passages;
+}
+
+export function validEstimates(p,starts) {
+  return Array.isArray(starts) && starts.length===p.count-1 &&
+    starts.every((t,i)=>Number.isFinite(t) && t>(i?starts[i-1]:p.start) && t<p.end);
+}
+
+export function measureIntervals(anchors,overrides={}) {
+  const spans=[];
+  for(const p of tapPassages(anchors)) {
+    const duration=(p.end-p.start)/p.count, starts=overrides[p.id];
+    const refined=validEstimates(p,starts);
+    let start=p.start;
+    for(let i=0;i<p.count;i++) {
+      const end=i+1===p.count?p.end:refined?starts[i]:p.start+(i+1)*duration;
+      spans.push({measure:p.first+i,start,end});
+      start=end;
+    }
   }
   return spans;
 }

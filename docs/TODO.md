@@ -1,7 +1,7 @@
 # Guitar Trainer Studio status and to-do
 
 - [x] Scroll continuously through PDF pages, follow the saved Auto-scroll setting in both PDF workflows, and return from notation with Show PDF.
-- [ ] Check the PDF-only tap experiment on another performance with weak downbeats before exposing audio-based timing suggestions. Arirang results and tap-spacing limits are in DEV-NOTES.
+- [x] Compare PDF-only timing with verified TrueFire timing on a syncopated lesson. Offer per-passage audition, explicit application and restoration. Even spacing remains the default. See DEV-NOTES for the single-note and chord results.
 
 - [ ] Listen to optional per-point comparisons on additional performances. Current timing is the initial choice for each point.
 

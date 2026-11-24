@@ -9,6 +9,10 @@ function audioFixture() {
   data.writeUInt32LE(16,16);data.writeUInt16LE(1,20);data.writeUInt16LE(1,22);
   data.writeUInt32LE(rate,24);data.writeUInt32LE(rate*2,28);data.writeUInt16LE(2,32);
   data.writeUInt16LE(16,34);data.write('data',36);data.writeUInt32LE(size,40);
+  for(const start of [1.36,4.3,7.98])for(let i=0;i<rate/3;i++){
+    const sample=Math.round(20000*Math.sin(2*Math.PI*130*i/rate)*Math.exp(-18*i/rate));
+    data.writeInt16LE(sample,44+2*(Math.round(start*rate)+i));
+  }
   return {name:'exercise.wav',mimeType:'audio/wav',buffer:data};
 }
 (async()=>{
@@ -66,8 +70,25 @@ function audioFixture() {
     await tap(1,1.36);await tap(3,7.98);await seek(4.70);
     assert.equal(await room.locator('#following').textContent(),'Measure 2');
     assert.equal(await room.locator('.pdf-box.current').getAttribute('data-measure'),'2');
+    await room.locator('#audio-review summary').click();
+    await room.locator('#audio-find').click();await room.locator('#keep-audio:enabled').waitFor();
+    const before=await room.locator('#anchors').innerText();
+    await room.locator('#hear-audio').click();
+    await player.evaluate(v=>v.pause());
+    await room.locator('#keep-audio').click();
+    assert.equal(await room.locator('#anchors').innerText(),before);
+    await room.getByRole('button',{name:'Go to measure 2',exact:true}).click();
+    const refined=await player.evaluate(v=>v.currentTime);
+    if(!process.argv[2])assert.ok(Math.abs(refined-4.3)<.08);
+    await page.getByRole('button',{name:'Back to trainer'}).click();await open();
+    await room.locator('#audio-review summary').click();await room.locator('#restore-even').waitFor();
+    await room.getByRole('button',{name:'Go to measure 2',exact:true}).click();
+    assert.ok(Math.abs(await player.evaluate(v=>v.currentTime)-refined)<.02);
+    await room.locator('#restore-even').click();
+    await room.getByRole('button',{name:'Go to measure 2',exact:true}).click();
+    assert.ok(Math.abs(await player.evaluate(v=>v.currentTime)-4.67)<.02);
     await tap(2,4.75);
-    await room.locator('summary').click();
+    await room.getByText('Adjust taps and mark breaks',{exact:true}).click();
     await room.locator('#seconds').fill('4.80');await room.locator('#adjust').click();
     await room.getByRole('button',{name:'Go to measure 2',exact:true}).click();
     assert.ok(Math.abs(await player.evaluate(v=>v.currentTime)-4.8)<.02);

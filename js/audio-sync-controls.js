@@ -35,7 +35,7 @@ async function readRecording({file,url}, signal) {
   return new Blob(chunks).arrayBuffer();
 }
 
-async function decodeRecording(bytes,duration,signal) {
+export async function decodeRecording(bytes,duration,signal) {
   const decoder = new OfflineAudioContext(1,1,SAMPLE_RATE);
   let decoded;
   try { decoded = await decoder.decodeAudioData(bytes); }
