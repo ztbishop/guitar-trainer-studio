@@ -123,7 +123,9 @@ Written repeats reuse their box. If your MIDI writes out a repeat as separate me
 
 In both PDF workflows, scroll vertically from one page to the next or use **Page** for a direct jump. With **Auto-scroll** enabled, the trainer brings the current measure into view as you play. Turn it off to browse freely. Both views use your saved zoom.
 
-Choose **Save to Library** with the PDF attached. Opening that library score restores its PDF and measure markings. Later marking edits update the saved pair automatically. If the score was saved in an older version, attach its PDF once and choose **Save to Library** again. For a session opened directly from files, reattaching the same pair recalls its local markings.
+Choose **Scores → Save to Library** with the companion PDF attached. If you already saved the MIDI or other playable score before attaching the PDF, choose **Save to Library** again. This updates the existing library entry with the PDF and its current measure boxes. Do the same whenever you replace the PDF with a different edition.
+
+Once the PDF is saved with the score, **measure box edits save automatically** as you add, move, or remove boxes. Reopen the song from your library to see the PDF with your latest markings. For a session opened directly from files, reattaching the same pair recalls its local markings.
 
 - **Open File** opens a score for this session. It does not save it automatically.
 - **Save to Library** keeps a browser copy of the open score.
