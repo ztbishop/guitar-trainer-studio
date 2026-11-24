@@ -1,5 +1,15 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Steady accompaniment in PDF tap review, November 24, 2026
+
+With taps at Easy Guitar FYLT M94 and M98, the bass attacks suggested for M95/M96 fell about 0.46–0.48 s after the evenly spaced starts, roughly a quarter of a bar. Both the practice and playalong entries showed the same error. In Acoustic Guitar FWYS M9–M13, the suggested M10–M12 attacks were 0.21–0.23 s after even spacing, roughly an eighth of a bar. Both bass envelopes repeated at the half-bar and whole-bar periods implied by the taps. That repetition was weak on Single-Note Rhythmic Ideas M25–M28.
+
+The reviewer keeps the even starts when a neighboring pair shows a nearly constant displacement and the local bass rhythm supports the tapped tempo. It searches within 5% of that tempo using the same period for both repetition checks. The comparison takes only the recording, tap times and bar count. Interior reference times are used to evaluate the predictions afterward. With reference endpoint taps rounded to milliseconds, Easy Guitar M95/M96 went from 422/368 ms absolute error to 54/88 ms. Acoustic Guitar M10–M12 went from 223/241/219 ms to 10/30/10 ms. Single-Note M26/M27 retained their 187/76 ms results.
+
+The before-and-after Chrome replay checked all 200 saved entries against revision `c485c4b`. The 198 entries with continuous test passages supplied 3,167 withheld starts. Exactly seven recommendations changed (five printed measures across three recordings), all closer to the reference. All 2,802 starts already within 100 ms using even spacing stayed in place. Thirteen of the remaining 14 audio moves improved timing. Octave Shapes M10 still worsened by 22 ms. With simulated ±120 ms tap offsets, only the same seven recommendations changed and all seven improved. Across 368 deliberately break-spanning starts (370 with offset taps), the recommendations matched the prior revision. The standard workflow still requires a marked end and restart around a spoken break.
+
+Additional tests on 34 recordings used three-, five- and six-bar passages. They also protected later offbeat accents in the Acoustic Guitar playalong around M89–M94. Every recommendation changed by this check improved on the archived timing in those tests. Stop tuning against isolated small errors on this archive. Revisit the reviewer if an independent performance exposes an audible, recurring issue.
+
 ## PDF tap review on Chord Scale 7, November 24, 2026
 
 In the saved recording, M9 starts at 44.203 s, M10 at 46.937 s, M11 at 49.907 s, M12 at 52.871 s and M13 at 63.295 s. Measuring from M9 to M13 spreads the unusually long M12 across four bars. The old reviewer assigned the bass attacks at 49.916 and 54.296 s to M10 and M11. The first of those attacks agrees with the reference for M11. The recording has an earlier bass attack around 47.02 s and another around 52.82 s, consistent with a faster pulse from the start tap.

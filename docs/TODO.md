@@ -102,7 +102,7 @@ Mac Finder launch, physical printing, touch layout, and other devices or recordi
 - [x] **PDF with a local audio or video recording.** Find printed boxes before timing, tap starts and passage ends, correct drift, seek, change tempo and loop a timed passage in ungraded realtime practice.
 - [x] Compare PDF audio estimates with even spacing on 18 archived recordings, including marked breaks. Show conservative per-measure suggestions and allow listening before applying.
 - [x] Use the pulse near a tap to flag the misleading M10/M11 accents in Chord Scale 7. The reviewer suggests keeping even spacing and adding a closer tap.
-- [ ] Investigate the remaining PDF suggestions that moved already-close starts in the 200-entry replay, especially Easy Guitar FYLT M95/M96 and Acoustic Guitar FWYS M10–M12. Keep the closer Chord Scale and Single-Note estimates as controls.
+- [x] Protect already-close Easy Guitar FYLT M95/M96 and Acoustic Guitar FWYS M10–M12 starts when a steady bass pattern emphasizes an offbeat. Keep Single-Note M26/M27 as controls.
 - [ ] Owner listening checks on rubato and repeated takes remain open.
 - [x] **Standard MIDI File as a companion.** Local conversion supplies selectable parts, pitches and a measure timeline. Assign any converted measure to a printed rectangle, including multiple measures at the same printed location for expanded repeats.
 - [ ] Check real MIDI exports with pickups or missing meter. A box can correct the visual assignment. Correcting a beat or bar boundary inside the converted score would require a change to the score itself.

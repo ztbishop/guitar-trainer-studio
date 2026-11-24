@@ -2,6 +2,8 @@
 
 ## PDF practice and MIDI file import
 
+When two neighboring estimates shift by nearly the same amount, the PDF reviewer checks up to four surrounding bars of bass attacks. Strong repetition at both half-bar and full-bar intervals near the tapped tempo supports keeping even spacing. This check runs on candidate pairs during audio review. The listener can still audition every audio estimate.
+
 The PDF timing worker returns the full set of audio estimates and a conservative set for review. A suggested move requires a strong local bass attack, weak attacks at the evenly spaced start, and a neighboring interior start supporting a similar shift in the same direction. For pairs beside either tap, the worker also checks for an intervening bass attack and a strong continuation of that faster pulse. If the two rhythms compete, the reviewer keeps even spacing for that pair and suggests adding a tap. Passages with just one interior start always recommend even spacing. The reviewer can still audition the full set. Only an explicit apply action writes timing.
 
 Opening a PDF through the score picker opens the standalone PDF + recording document in a modal, also available directly from Scores. It mounts the same page renderer and box editor as the companion workflow. Automatic discovery runs sequentially on first open. The recording document owns its native media element and realtime loop. Closing the dialog releases the document and its file URL. Box keys use the PDF fingerprint. Tap keys additionally use a recording identity derived from file length and small samples at each end. The browser stores geometry and timestamps only.

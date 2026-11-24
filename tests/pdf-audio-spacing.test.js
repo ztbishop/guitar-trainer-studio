@@ -34,3 +34,23 @@ for(const reverse of [false,true]){
     assert.deepEqual(ambiguous.audio,clear.audio);
   });
 }
+
+test('a repeating offbeat bass pattern preserves the tapped spacing and the audio audition',()=>{
+  function estimate(repeating) {
+    const samples=new Float32Array(10*SAMPLE_RATE);
+    for(let bar=0;bar<4;bar++){
+      const accents=repeating?[[.25,1],[1.25,.8]]:[[.25,1]];
+      for(const [offset,level] of accents){
+        const start=Math.round((1+bar*2+offset)*SAMPLE_RATE);
+        for(let i=0;i<1100;i++)
+          samples[start+i]+=level*Math.sin(i*2*Math.PI*100/SAMPLE_RATE)*Math.exp(-i/210);
+      }
+    }
+    return compareAudioEstimates(samples,0,1,9,4);
+  }
+  const steady=estimate(true),singleAttacks=estimate(false);
+  assert.deepEqual(steady.suggested,[3,5,7]);
+  assert.deepEqual(steady.audio,singleAttacks.audio);
+  assert.deepEqual(singleAttacks.suggested,singleAttacks.audio);
+  steady.audio.forEach((t,i)=>assert.ok(Math.abs(t-(3.25+2*i))<.02));
+});

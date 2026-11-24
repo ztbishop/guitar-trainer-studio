@@ -36,6 +36,27 @@ function competingPulse(tap,first,second,times,bass) {
   return middle>0 && middle>=peak(first)/3 && later>0 && later>=peak(second);
 }
 
+// A repeating accompaniment can emphasize the same offbeat in every bar.
+// Compare the attack envelope with itself one bar and half a bar earlier.
+function repeatingBass(bass,firstFrame,lastFrame,barFrames) {
+  const attacks=bass.slice(firstFrame,lastFrame).map(Math.sqrt);
+  const mean=attacks.reduce((sum,value)=>sum+value,0)/attacks.length;
+  const centered=attacks.map(value=>value-mean);
+  function correlation(lag) {
+    let cross=0,previous=0,current=0;
+    for(let i=lag;i<centered.length;i++){
+      const a=centered[i-lag],b=centered[i];
+      cross+=a*b;previous+=a*a;current+=b*b;
+    }
+    return cross/Math.sqrt(previous*current);
+  }
+  for(let percent=95;percent<=105;percent++){
+    const period=barFrames*percent/100;
+    if(correlation(Math.round(period))>=.5 && correlation(Math.round(period/2))>=.5)return true;
+  }
+  return false;
+}
+
 function reviewStarts(audio,start,end,pace,times,bass,upper) {
   const even=audio.map((_,i)=>start+(i+1)*pace);
   const shifts=audio.map((time,i)=>time-even[i]);
@@ -53,7 +74,17 @@ function reviewStarts(audio,start,end,pace,times,bass,upper) {
   const skipLast=agree(last,last-1) && shifts[last]<0 && competingPulse(end,audio[last],audio[last-1],times,bass);
   if(skipFirst){clear[0]=false;clear[1]=false;}
   if(skipLast){clear[last]=false;clear[last-1]=false;}
-  const suggested=audio.map((time,i)=>(agree(i,i-1) || agree(i,i+1))?time:even[i]);
+  const suggested=even.slice();
+  const barFrames=pace*SAMPLE_RATE/hop;
+  for(let i=0;i<last;i++){
+    if(!agree(i,i+1))continue;
+    // Look at up to four bars around the pair. A distant steady section
+    // should not rule out an adjustment within a slowdown.
+    const firstBar=Math.max(0,Math.min(i-1,audio.length+1-4));
+    if(Math.abs(shifts[i]-shifts[i+1])<=.08*pace &&
+       repeatingBass(bass,Math.round(firstBar*barFrames),Math.round((firstBar+4)*barFrames),barFrames))continue;
+    suggested[i]=audio[i];suggested[i+1]=audio[i+1];
+  }
   return {audio,suggested,hasCompetingPulse:Boolean(skipFirst || skipLast)};
 }
 
