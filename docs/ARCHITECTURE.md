@@ -1,5 +1,7 @@
 # Guitar Trainer Studio architecture
 
+In lesson mode, the Auto-sync worker uses the surrounding seven measures to rank competing takes after pinned gap recovery. If the ordinary search returns no candidates, it searches the practice track’s sounding notes through written rests and verifies each four-measure group against the rest of the recording. The Auto-sync button opens these fill proposals as an editable draft for listening before activation.
+
 When a remote recording plays but its bytes cannot be read, the audio analyzer can decode a user-selected local copy for that run. The existing player supplies the duration check and continues to play the remote source. The retry belongs to the active score, recording and practice track.
 
 Lesson audio drafts use normalized selected visits as fixed pins for an optional missing-measure search. The draft builder loads this search on demand. Suggestions and alternative performances live in draft evidence, or in working draft data after replacing a mapping. The practice timeline changes only when the reviewer inserts a take and applies the draft.

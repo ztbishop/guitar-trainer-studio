@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import {sparseFillTakes} from '../../js/audio-sync-sparse.js';
 const base=path.resolve(process.argv[2]??'tests/.media-fixtures/bridge-baseline');
 const read=file=>JSON.parse(fs.readFileSync(path.join(base,file)));
 
@@ -67,7 +68,11 @@ for(const file of fs.readdirSync(base).filter(f=>f.endsWith('.ready.json'))){
   const features=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.byteLength/4);
   assert.ok(Math.abs(features.length/12*0.04-u.duration)<0.35);
   inputs.push({key,score:u.queries.score,features,duration:u.duration});
-  runs.push({key,...search(u.queries.score,features,u.duration)});
+  const expected=search(u.queries.score,features,u.duration);
+  const live=sparseFillTakes(u.queries.score,features,u.duration);
+  assert.deepEqual(live.map(t=>[t.index+1,t.start,t.end]),
+    expected.bars.filter(b=>b.supported).map(b=>[b.visit,b.start,b.end]),key);
+  runs.push({key,...expected});
 }
 // Swap the development score onto every other no-candidate recording.
 // These are challenge pairs, not annotated negatives: a fill could occur in another lesson.

@@ -1,5 +1,7 @@
 # Guitar Trainer Studio status and to-do
 
+- [x] Use the strict seven-measure take comparison in lesson Auto-sync and show verified fill groups for listening when the ordinary search has no matches. [Results and player checks](AUTO-SYNC-BASELINE.md#whole-phrase-take-selection-and-searches-with-no-initial-match)
+
 - [x] Retry audio analysis of a playable remote recording with a matching local copy directly from the read error.
 
 - [x] Benchmark lesson Auto-sync across 200 archived lesson pages. [Coverage and per-lesson results](AUTO-SYNC-BASELINE.md)

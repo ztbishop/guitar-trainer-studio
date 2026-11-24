@@ -221,7 +221,10 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       return;
     }
     finally { if (job === task) { job = null; cancel.hidden = true; sync(); } }
-    if(automatic && result && current(snapshot) && result.choices.some(c=>c>=0))await openDraft(true);
+    if(automatic && result && current(snapshot) && result.choices.some(c=>c>=0)){
+      const needsListen=result.choices.some((c,i)=>result.matches[i][c]?.sparseFill);
+      await openDraft(!needsListen);
+    }
   }
   function draw() {
     const {matches,choices,snapshot} = result;
@@ -245,7 +248,7 @@ export function createAudioSuggestions({after,context,playhead,preview,review}) 
       const label = document.createElement('label'), select = document.createElement('select');
       label.append(`Measure ${printedMeasure(snapshot.notation,m.measureNumber)} · pass ${m.occurrence} `,select);
       select.add(new Option(takes.length ? 'Leave unmapped' : 'No match','-1'));
-      takes.forEach((t,j) => select.add(new Option(`${t.reviewOnly ? 'Possible continuous passage · review' : t.continuous ? 'Continuous performance' : t.betweenMeasures ? 'Matched between synced measures' : t.backward ? 'Matched from next measure' : t.manual ? 'Manually timed' : t.refined ? 'Pinned passage' : 'Take '+(j+1)} · ${time(t.start)}–${time(t.end)}`,String(j))));
+      takes.forEach((t,j) => select.add(new Option(`${t.sparseFill ? 'Suggested fill' : t.reviewOnly ? 'Possible continuous passage · review' : t.continuous ? 'Continuous performance' : t.betweenMeasures ? 'Matched between synced measures' : t.backward ? 'Matched from next measure' : t.manual ? 'Manually timed' : t.refined ? 'Pinned passage' : 'Take '+(j+1)} · ${time(t.start)}–${time(t.end)}`,String(j))));
       select.value = String(choices[i]); select.disabled = !takes.length;
       const listen = button('Play from take',async () => {
         try { if (current(snapshot)) await preview(takes[choices[i]],i); }
