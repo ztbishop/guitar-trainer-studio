@@ -3,7 +3,8 @@ import {printedMeasure} from './printed-measure.js';
 import {midiToNoteName} from './note-utils.js';
 import {outsideRecordingScore} from './media-score-range.js';
 import {practiceTimingPlan} from './media-practice.js';
-import {editPageBoxes, availableVisit} from './pdf-box-review.js';
+import {editPageBoxes, availableVisit, replacePageBoxes} from './pdf-box-review.js';
+import {barlineHandle} from './pdf-barline-controls.js';
 
 export function writtenMeasureAt(measures, tick) {
   let low = 0, high = measures?.length ?? 0;
@@ -41,7 +42,7 @@ export function initPdfCompanion(state, closeMenu, seek) {
   let pdf, documentTask, key, boxes = {}, page = 1, editing = false, visible = false, generation = 0;
   let renderVersion = 0, renderTask, drawnWidth = 0, drawnPage = 0, drag, current, trainerState;
   let proposals=null, scanVersion=0, loopRange=null, loopMeasures=null, noteVisit=null;
-  const find=byId('find'), action=byId('action'), note=byId('note');
+  const find=byId('find'), action=byId('action'), note=byId('note'), replace=byId('replace');
 
   function message(text) {
     const status = byId('status');
@@ -68,7 +69,8 @@ export function initPdfCompanion(state, closeMenu, seek) {
     overlay.replaceChildren();
     const selected = editing ? Number(measure.value) : current;
     const entries = proposals ? proposals.map((box,i)=>[Number(measure.options[measure.selectedIndex+i]?.value),box]) : Object.entries(boxes);
-    for (const [number, box] of entries) {
+    let previous=null;
+    for (const [i,[number, box]] of entries.entries()) {
       if (box?.page !== page) continue;
       const active = Number(number) === selected;
       const el = boxElement(box, active, !editing);
@@ -81,6 +83,19 @@ export function initPdfCompanion(state, closeMenu, seek) {
         el.onclick=()=>jumpToMeasure(Number(number));
       }
       overlay.append(el);
+      if(editing && (!proposals || action.value==='draw') && previous && (proposals || Number(number)===Number(previous.number)+1)) {
+        const left=previous;
+        const handle=barlineHandle(sheet,left.box,box,left.el,el,'Move barline before measure '+label,(a,b)=>{
+          if(proposals) {proposals[i-1]=a;proposals[i]=b;}
+          else {boxes[left.number]=a;boxes[number]=b;saveBoxes();}
+          // Refresh the limits of the handles on either side of this pair.
+          const refocus=document.activeElement===handle;
+          paintBoxes();
+          if(refocus)overlay.querySelector('[data-boundary="'+i+'"]')?.focus({preventScroll:true});
+        });
+        if(handle){handle.dataset.boundary=i;overlay.append(handle);}
+      }
+      previous={number,box,el};
       if (focused && String(number)===focused) el.focus({preventScroll:true});
       if (active && reveal && state.ui.autoScroll && !editing) {
         const frame = scroll.getBoundingClientRect(), rect = el.getBoundingClientRect();
@@ -110,15 +125,22 @@ export function initPdfCompanion(state, closeMenu, seek) {
     byId('use').disabled=!proposals?.length || proposals.length>measure.options.length-measure.selectedIndex;
   }
   function endReview() {
-    scanVersion++; proposals=null; find.disabled=false;
+    scanVersion++; proposals=null; find.disabled=false;replace.checked=false;
     reviewControls();
   }
   function describeReview() {
     reviewControls();
     const overflow=proposals.length-(measure.options.length-measure.selectedIndex);
-    const instructions={draw:'Drag in blank space to add a box, or start inside a box to redraw it.',
+    const collision=replace.checked && proposals.some((_,i)=>{
+      const existing=boxes[measure.options[measure.selectedIndex+i]?.value];
+      return existing && existing.page!==page;
+    });
+    if(collision)byId('use').disabled=true;
+    const instructions={draw:'Drag a blue divider to adjust two neighboring boxes. Drag in blank space to add a box or inside a box to redraw it.',
       split:'Click the missing barline inside a box.',join:'Click the first of two boxes on the same line.',remove:'Click the extra box.'};
-    message(proposals.length+' boxes on this page. '+(overflow>0?'The numbering goes past the end of the score. Check the first measure and extra boxes. ': '')+instructions[action.value]);
+    const warning=overflow>0?'The numbering goes past the end of the score. Check the first measure and extra boxes. ':
+      collision?'A measure in this range belongs to another page. Check the first measure or correct that page first. ':'';
+    message(proposals.length+' boxes on this page. '+warning+instructions[action.value]);
     paintBoxes();
   }
   find.onclick=async()=>{
@@ -130,24 +152,31 @@ export function initPdfCompanion(state, closeMenu, seek) {
       const result=await detectPdfPage(pdfPage,page);
       if(version!==scanVersion)return;
       const mapped=Object.keys(boxes).filter(n=>boxes[n].page===page);
+      byId('replace-label').hidden=!mapped.length;
       if(mapped.length) measure.value=String(Math.min(...mapped.map(Number)));
       proposals=result;action.value='draw';describeReview();
     } catch(error) {if(version===scanVersion)message('Could not detect boxes. You can draw them on this page. '+error.message);}
     finally {if(version===scanVersion)find.disabled=false;}
   };
   byId('cancel').onclick=()=>{endReview();message('Page suggestions discarded.');paintBoxes();};
-  action.onchange=describeReview;
+  action.onchange=replace.onchange=describeReview;
   byId('use').onclick=()=>{
     if(!proposals || byId('use').disabled)return;
     const count=proposals.length, first=measure.selectedIndex;
+    const replacing=replace.checked;
     let added=0;
-    proposals.forEach((box,i)=>{
-      const number=measure.options[first+i].value;
-      if(!boxes[number]) {boxes[number]=box;added++;}
+    const numbers=proposals.map((_,i)=>measure.options[first+i].value);
+    if(replacing) {
+      const next=replacePageBoxes(boxes,page,numbers,proposals);
+      if(!next)return;
+      boxes=next;
+    } else proposals.forEach((box,i)=>{
+      if(!boxes[numbers[i]]) {boxes[numbers[i]]=box;added++;}
     });
     endReview();
     measure.selectedIndex=Math.min(measure.options.length-1,first+count);
-    message(added+' new boxes saved on page '+page+'. '+(added<count?'Existing mappings were kept. ':'')+'Select another page or choose Done marking.');
+    const summary=replacing?count+' boxes replaced on page '+page+'. ':added+' new boxes saved on page '+page+'. '+(added<count?'Existing mappings were kept. ':'');
+    message(summary+'Select another page or choose Done marking.');
     saveBoxes();paintBoxes();sync();
   };
   function cancelDrag() {
@@ -207,7 +236,7 @@ export function initPdfCompanion(state, closeMenu, seek) {
     mark.setAttribute('aria-pressed', String(editing));
     byId('edit').hidden = !editing;
     sheet.classList.toggle('mapping', editing);
-    message(editing ? 'Find boxes on this page, or choose a measure and drag its box by hand.' : '');
+    message(editing ? 'Find boxes on this page, drag a blue divider between measures, or choose a measure and redraw its box.' : '');
     paintBoxes();
   }
   function sync(trainer = trainerState) {

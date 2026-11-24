@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {writtenMeasureAt, measureBox, expectedPdfNotes} from '../js/pdf-companion.js';
 import {SCORE_EXTENSIONS} from '../js/library-store.js';
 import {midiToMusicXml} from '../js/midi-score-import.js';
-import {editPageBoxes,availableVisit} from '../js/pdf-box-review.js';
+import {editPageBoxes,availableVisit,replacePageBoxes} from '../js/pdf-box-review.js';
+import {sharedBarline,moveBarline} from '../js/pdf-barline-controls.js';
 import {detectMeasureBoxes} from '../js/pdf-measure-detection.js';
 
 test('pairs notation with TAB and ignores a stem with no corresponding TAB barline',()=>{
@@ -17,6 +18,45 @@ test('pairs notation with TAB and ignores a stem with no corresponding TAB barli
   assert.equal(boxes.length,2);
   assert.equal(boxes[1].x,160/width);
   assert.ok(boxes.every(b=>b.page===3 && b.y<20/height && b.y+b.h>120/height));
+});
+
+test('a changing digit contour and a tie crossing produce different barline decisions',()=>{
+  const width=480,height=110,gap=12,top=25,bottom=73;
+  const pixels=new Uint8Array(width*height).fill(255);
+  for(let y=top;y<=bottom;y++) {
+    if((y-top)%gap===0)pixels.fill(0,y*width+10,y*width+471);
+    for(const x of [10,150,156,320,470])pixels[y*width+x]=0;
+    // A central column survives thresholding through both meter digits.
+    const side=(y-top)%4;
+    pixels.fill(0,y*width+173-side,y*width+175+(3-side));
+  }
+  for(let x=305;x<336;x++) {
+    const y=bottom-8+Math.round((x-320)**2/110);
+    for(let dy=0;dy<4;dy++) pixels[(y+dy)*width+x]=0;
+  }
+  const divisions=detectMeasureBoxes(pixels,width,height,1).map(box=>Math.round(box.x*width));
+  assert.deepEqual(divisions,[10,150,320]);
+});
+
+test('moving a shared edge clamps both boxes and preserves their outside edges',()=>{
+  const a={page:1,x:.2,y:.1,w:.2,h:.1}, b={...a,x:.4},range=sharedBarline(a,b);
+  const [left,right]=moveBarline(a,b,range,100);
+  assert.equal(left.x,a.x);
+  assert.equal(left.x+left.w,right.x);
+  assert.ok(right.w>=.005-1e-12);
+  assert.equal(right.x+right.w,b.x+b.w);
+  assert.ok(moveBarline(a,b,range,-100)[0].w>=.005-1e-12);
+  assert.equal(sharedBarline(a,{...b,page:2}),null);
+  assert.equal(sharedBarline(a,{...b,y:.5}),null);
+  assert.equal(sharedBarline(a,{...b,x:.5}),null);
+});
+
+test('replacing a reviewed page releases obsolete numbers and protects other pages',()=>{
+  const first={page:1}, second={page:2}, replacement={page:1,x:.3};
+  const saved={1:first,2:first,3:second};
+  assert.deepEqual(replacePageBoxes(saved,1,[1],[replacement]),{1:replacement,3:second});
+  assert.equal(replacePageBoxes(saved,1,[2,3],[replacement,replacement]),null);
+  assert.deepEqual(saved,{1:first,2:first,3:second});
 });
 test('page corrections stay in reading order and preserve the original proposal',()=>{
   const first={page:1,x:.1,y:.1,w:.4,h:.1}, last={...first,y:.4};

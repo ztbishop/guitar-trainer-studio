@@ -84,6 +84,39 @@ function twoBarMidi() {
     await page.locator('button.outside-loop').waitFor();
     await page.locator('#practice-loop-enabled').evaluate(el=>el.click());
     assert.equal(await page.locator('button.outside-loop').count(),0);
+    // Re-scan page one with two proposed boxes. Measure two initially
+    // belongs to page two, so a replacement must protect that assignment.
+    await page.locator('#pdf-map').click();
+    await page.locator('#pdf-page').selectOption('1');
+    const splitFirstPage=async()=>{
+      await page.locator('#pdf-find').click();
+      await page.locator('#pdf-use').waitFor();
+      const rect=await page.locator('#pdf-boxes .pdf-box').first().boundingBox();
+      await page.locator('#pdf-action').selectOption('split');
+      await page.mouse.click(rect.x+rect.width/2,rect.y+rect.height/2);
+      await page.locator('#pdf-action').selectOption('draw');
+      await page.locator('#pdf-replace').check();
+    };
+    await splitFirstPage();
+    assert.ok(await page.locator('#pdf-use').isDisabled());
+    await page.locator('#pdf-cancel').click();
+    await page.locator('#pdf-measure').selectOption('2');
+    await page.locator('#pdf-remove').click();
+    await page.locator('#pdf-page').selectOption('1');
+    await splitFirstPage();
+    const handle=page.getByRole('slider',{name:'Move barline before measure 2'});
+    await handle.focus();
+    const initial=Number(await handle.getAttribute('aria-valuenow'));
+    await handle.press('ArrowRight');
+    assert.ok(Number(await handle.getAttribute('aria-valuenow'))>initial);
+    await page.locator('#pdf-use').click();
+    const pos=await handle.boundingBox();
+    await page.mouse.move(pos.x+pos.width/2,pos.y+pos.height/2);await page.mouse.down();
+    await page.mouse.move(pos.x+1500,pos.y);await page.mouse.up();
+    assert.equal(await handle.getAttribute('aria-valuenow'),await handle.getAttribute('aria-valuemax'));
+    const maximum=await handle.getAttribute('aria-valuenow');
+    await loadPair();await page.locator('#pdf-map').click();
+    assert.equal(await handle.getAttribute('aria-valuenow'),maximum);
     assert.deepEqual(errors, []);
     console.log('Passed MIDI conversion, manual and detected PDF boxes, split/join, page turn, restore, measure/note seek and loop shading.');
   } finally {

@@ -56,12 +56,13 @@ function verticals(pixels, width, staff) {
   return columns.map(c=>Math.round((c.start+c.end)/2));
 }
 
-function cleanBar(pixels,width,height,staff,left,right) {
+function cleanBar(pixels,width,height,staff,left,right,previousBar) {
   // Look beside both outer strokes of a double bar. Stems attach to heads
   // or beams, while a genuine barline has whitespace between staff lines.
   const {top,bottom,gap} = staff;
   const side=Math.max(2,Math.round(gap*.35));
-  let touching=0;
+  let touching=0, crossing=false, samples=0, mostFrequent=0;
+  const profiles=new Map();
   for(let y=Math.max(0,Math.floor(top-gap*.42));y<=Math.min(height-1,bottom+gap*.42);y++) {
     if (Math.abs(y-top-Math.round((y-top)/gap)*gap)<Math.max(1.4,gap*.16)) continue;
     let joinsLeft=true, joinsRight=true;
@@ -70,10 +71,32 @@ function cleanBar(pixels,width,height,staff,left,right) {
       if(pixels[y*width+right+dx]>207) joinsRight=false;
     }
     if(joinsLeft || joinsRight) touching++;
+    if(y<=top || y>=bottom || left!==right) continue;
+    if(joinsLeft && joinsRight) crossing=true;
+    // In the spaces between staff lines, a bar usually has two parallel
+    // edges. Stacked meter digits can cover one column from top to bottom
+    // too, but their contours widen and narrow around it.
+    let before=0, after=0;
+    const limit=Math.ceil(gap);
+    while(before<limit && left-before>0 && pixels[y*width+left-before-1]<211) before++;
+    while(after<limit && right+after+1<width && pixels[y*width+right+after+1]<211) after++;
+    samples++;
+    if(pixels[y*width+left]>=211 || before+after>=limit) continue;
+    const profile=before*(limit+1)+after;
+    const frequency=(profiles.get(profile)??0)+1;
+    profiles.set(profile,frequency);
+    mostFrequent=Math.max(mostFrequent,frequency);
   }
   const extension=Math.max(3,Math.round(gap*.43));
   const extendsAt = y => y>=0 && y<height && pixels[y*width+left]<180;
-  return (right>left || touching<gap*.34) && !extendsAt(top-extension) && !extendsAt(bottom+extension);
+  if(extendsAt(top-extension) || extendsAt(bottom+extension)) return false;
+  if(right>left) return true;
+  // Immediately following a confirmed bar, require a consistent width to
+  // distinguish meter digits. Keep the existing tolerance for uneven scans
+  // elsewhere. A crossing tie can join both sides of an otherwise clean bar.
+  const nearBar=left-previousBar<=gap*2.5;
+  if(touching<gap*.34) return !nearBar || mostFrequent>=samples*.6;
+  return crossing && samples>0 && mostFrequent>=samples*.78;
 }
 
 export function detectMeasureBoxes(pixels, width, height, page) {
@@ -105,10 +128,11 @@ export function detectMeasureBoxes(pixels, width, height, page) {
           (stroke.right>stroke.left && stroke.left-upper.left<gap*9)) continue;
       // A nearby stem can sit next to the actual barline in a beamed passage.
       const members=upper.columns.filter(x=>x>=stroke.left && x<=stroke.right);
-      const bar=members.find(x=>lower===upper ? cleanBar(pixels,width,height,upper,x,x)
+      const previousBar=inner.at(-1)??upper.left;
+      const bar=members.find(x=>lower===upper ? cleanBar(pixels,width,height,upper,x,x,previousBar)
         : lower.columns.some(b=>Math.abs(b-x)<=gap*.55));
       if(bar!==undefined) inner.push(bar);
-      else if(lower===upper && stroke.right>stroke.left && cleanBar(pixels,width,height,upper,stroke.left,stroke.right)) inner.push(stroke.left);
+      else if(lower===upper && stroke.right>stroke.left && cleanBar(pixels,width,height,upper,stroke.left,stroke.right,previousBar)) inner.push(stroke.left);
     }
     const edges=[upper.left];
     for (const x of inner) if (x-edges.at(-1)>gap*1.35) edges.push(x);

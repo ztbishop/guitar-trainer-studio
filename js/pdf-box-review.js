@@ -21,6 +21,15 @@ export function editPageBoxes(boxes, index, action, x, drawn) {
   return result;
 }
 
+// Replacing one page may release old numbers for the following page. Reject
+// the whole change if any requested number belongs to a different page.
+export function replacePageBoxes(saved,page,numbers,proposals) {
+  if(numbers.length!==proposals.length || !numbers.length || numbers.some(n=>saved[n] && saved[n].page!==page))return null;
+  const result=Object.fromEntries(Object.entries(saved).filter(([,box])=>box.page!==page));
+  numbers.forEach((n,i)=>{result[n]=proposals[i];});
+  return result;
+}
+
 export function availableVisit(visits, number, tick, range, plan) {
   const eligible=visits.filter(v=>v.measureNumber===number && (!range || (v.startTick>=range.startTick && v.startTick<range.endTick)) &&
     (!plan || plan.visits.some(p=>v.startTick>=p.startTick && v.startTick<p.endTick)));

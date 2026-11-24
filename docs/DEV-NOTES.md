@@ -2,6 +2,10 @@ For the active checklist, see [Current status and to-do](TODO.md). Older entries
 
 ## PDF measure detection and navigation, November 24, 2026
 
+Follow-up on the notation-only Arirang: on pages 1, 3 and 5 the side of stacked meter digits following a double bar passed the vertical-line test. On the last line of page 6 a tie joined both sides of a genuine bar. The detector now compares ink widths between staff lines near a preceding bar and accepts a brief crossing on an otherwise straight stroke. The final Chrome comparison added one division and removed the three extras. All other divisions matched the earlier run. The original now has 145 boxes with the expected count on every staff line. The Arirang TAB edition's 145 rectangles and Bernie Song's 128 rectangles matched the saved geometry exactly across all pages.
+
+The editor now lets the player move a shared edge within its two boxes, before or after accepting a page. A Chrome regression moved a proposed divider by keyboard, dragged a saved divider past its limit and verified the clamped position after reattachment. It also checked that an explicit page replacement could not take a measure assigned to another page.
+
 The detector ran in Chrome on all 25 local pages. Compared by printed staff system, the eight-page Arirang notation/TAB PDF matched all 145 expected box counts. The eleven-page TrueFire Bernie Song matched all 128. The six-page notation-only Arirang produced 147 boxes for 145 written measures. Three systems had one extra division each and the final system had one missing division. Counts check the divisions per system. They do not establish the exact pixel placement of every boundary.
 
 In the trainer, Chrome accepted the opening page and sought to measure 3 with each of the original Arirang PDF + GPX, the Arirang TAB PDF + MIDI, and Bernie Song PDF + GP5. An independent two-page browser regression covers manual drawing, detection, splitting and rejoining a box, persistence, note seeking, page turns during playback and loop shading. Physical MIDI and owner review of box comfort at practice zoom remain open.
