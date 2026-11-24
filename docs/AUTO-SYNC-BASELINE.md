@@ -40,6 +40,28 @@ The owner confirmed the R&B timing, reported that Song 1 lined up and spot-check
 4. Compare recording length to the archived duration with the same two-second tolerance used in the earlier benchmark. Union overlapping labeled explanations before measuring seconds. Exclude ordinary rests and unmatched source rests from that metric. The 24 previous saved controls, including three outside this inventory, reproduced all 458 previously selected visit starts and ends exactly.
 5. Local evidence is under tests/.media-fixtures/bridge-baseline. full.json contains reference identities and visit maps. Each lesson has a worker result keyed by lesson ID and score/timing digest prefixes. score.mjs, qualify.cjs and totals.cjs regenerate the comparison from those saved results without requesting recordings. compare-controls.mjs compares earlier endpoint selections. Recordings, private plans and authenticated links stay outside version control. The run exercised the working trainer at base commit 20a204a. This is a timing benchmark; live MIDI grading and individual note attacks were outside the measurement.
 
+## Whole-phrase take selection and searches with no initial match
+
+November 24, 2026. These are offline experiments. The Guitar Trainer player and matcher still use the existing selections. Candidate generation and selection ran without the reference times. The comparisons below use the same 250 ms tolerance at **both** ends of a measure visit.
+
+**Competing takes.** Across the 197 comparable recordings, 208 inaccurate or missing visits on 75 pages already had an accurate raw candidate, including 75 unselected visits. We tested whether a candidate's observed tempo could explain a consecutive run of other candidates on the same recording clock. The search kept the surrounding selected visits in playback order.
+
+| Context around each take | Visits changed | Newly accurate | Previously accurate lost | Newly over 2 s late or early at start | Additional overlap with marked breaks |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Five measures | 9 | 4 | 1 | 1 | 1.81 s |
+| Seven measures | 12 | 4 | 2 | 1 | 0 s |
+| Seven measures, winning take supported by at least two more neighbors than its nearest competitor in support | 6 | 3 | 0 | 0 | 0 s |
+
+All six changed visits in the strict variant improved their maximum endpoint error. Chord Scale 6 visit 21 improved from 3.31 s to 0.14 s. Easy Guitar Playalong visits 75 and 76 improved from over 4.59 s to under 0.025 s. Major & Minor Chord Barre visit 9 still missed by over 19 s. No variant changed the three duration exceptions or the three extra saved controls (98027, 98109, 99463). The strict variant takes the total from 2,340 to 2,343 accurate visits, with 3,662 placed. The gain is concentrated in two lessons. Keep it experimental pending independent examples.
+
+**R&B Fill 1.** The selected guitar track plays four repetitions of a short fill with substantial written rests. Searching ordinary two-, three-, five- and seven-measure pitch windows yielded zero candidates on both stereo channels, even when limited to the written guitar register. A second search compared only sounding note events, preserving their spacing through rests. It scanned the full recording across 71 tempo scales. Using the trainer's channel selection and the written register, it located the first musical measure at 23.32 s against 23.351 s. All eight visits containing a sounding note were within 0.137 s at both ends. The other two reference visits had no sounding notes in the captured track and received no proposal.
+
+**Every recording with zero candidates.** Eleven of the 200 archived captures qualified. A single tempo and offset proposed 93 timed visits and got 77 right. All 16 large errors occurred after the first section of *Creative Rhythmics Concepts — Demonstration*, where projecting one clock across several breakdowns put 37.23 s of measures in marked breaks. An additional check compared each four-measure group's pitch fit at its projected time against its best fit anywhere in the recording at that tempo. Requiring at least 85% of that best fit and an absolute contrast of 0.20 retained **72 proposals, all accurate**. On Creative Rhythmics it kept the first 16 and dropped the other 16. Total measured overlap across the 11 recordings was under 0.18 s. The four-bar check was devised after inspecting the failure, and nine of the 11 recordings belong to the same fill series.
+
+**Mismatched-score check.** Pairing the R&B Fill 1 score with each of the ten other recordings, using the same guitar register, still yielded proposals on seven. These are different lesson/score pairs. Their reference files do not certify that a similar fill is absent everywhere. The result shows that the check cannot establish recording identity or distinguish every similar riff. Auditionable suggestions would be a better first trial than silently applying this fallback. No new app setting or processing time was added.
+
+Replay against the ignored private capture folder with `node tools/experiments/benchmark-phrase-takes.mjs`. For the zero-candidate cases, run `node tools/experiments/cache-gap-features.cjs tests/.media-fixtures/bridge-baseline tests/.media-fixtures/bridge-baseline --sparse` once with Chrome and Playwright, then `node tools/experiments/benchmark-sparse-fills.mjs`. The pitch features and worker outputs suffice to replay both comparisons without the MP4s.
+
 ## Recording-duration exceptions
 
 The analyzer ran on each recording. Both official video qualities agreed on media duration. Without a verified explanation for the metadata discrepancy, these rows are retained for diagnosis and excluded from the headline totals.
