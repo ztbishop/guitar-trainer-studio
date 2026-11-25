@@ -2,6 +2,10 @@ For the active checklist, see [Current status and to-do](TODO.md). Older entries
 
 ## Roadmap verification, November 24, 2026
 
+Forget markings was checked with both Arirang editions mapped in one disposable browser. Cancel preserved both mappings. Confirming on the library-saved TAB pair cleared its 145 boxes, reopened the editor at measure 1, and left the saved PDF attached. Reopening the original PDF restored its 145 boxes. Both PDFs also passed the Realtime keyboard check for D2 correct, A3 expected and A♯3 wrong.
+
+Disposable Chrome sessions opened the Arirang MIDI with the six-page original and eight-page TAB PDF. In Wait mode the keyboard outlined D2 and A3. Synthetic MIDI D2 earned a green check while A3 stayed expected. A♯3 showed a red cross until release. Playing A3 completed the chord and advanced the target to F♯3, with two correct and one wrong attack recorded. Reload restored Keyboard, and selecting Fretboard restored the neck. This check used synthetic MIDI input.
+
 Companion PDF reading now uses the full score pane. Scores → PDF provides page selection, notation switching, note navigation after a box click, and entry to marking. Done marking and accepting a whole-score scan return to reading. Isolated Chrome checks cover both transitions, score and loop Reset, note seeking, library reopening and the separate PDF + recording room.
 
 Companion PDF navigation was checked in separate Chrome sessions with the Arirang MIDI and both the six-page original and eight-page TAB PDF. After browsing to the last page with the playhead already at its destination, Reset revealed measure 1 or the loop start at measure 40. With auto-scroll off, the last page stayed visible. Temporarily removing the first score visit while retaining its printed box produced the unlinked-measure message. Restoring the visit allowed a click from measure 2 back to measure 1.

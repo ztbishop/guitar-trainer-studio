@@ -42,6 +42,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
   const file = byId('file'), attach = byId('attach'), attachStatus = byId('attach-status');
   const pageSelect = byId('page'), measure = byId('measure'), mark = byId('map'), target = byId('target');
   const toolbar=byId('toolbar'), readingControls=byId('reading-controls');
+  const forget=byId('forget');
   const pageLabel=pageSelect.closest('label');
   if(readingControls)readingControls.append(byId('position'));
   const native = document.getElementById('alphatab-wrapper');
@@ -79,6 +80,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     attachStatus.hidden = !text;
   }
   function saveBoxes() {
+    if(forget)forget.disabled=!Object.keys(boxes).length;
     if(attachedHash && saveLibraryBoxes){
       const version=generation;
       saveLibraryBoxes(state.currentScoreFile.hash,attachedHash,structuredClone(boxes)).catch(()=>{
@@ -335,6 +337,8 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     const canAttach = Boolean(state.currentScoreFile && state.playbackTimeline?.measures.length);
     if (attach.disabled === canAttach) attach.disabled = !canAttach;
     const shown = visible && !!pdf && !state.media.editing;
+    const canForget=Boolean(pdf && !state.media.editing);
+    if(forget.hidden===canForget)forget.hidden=!canForget;
     const showReadingControls=shown && !editing;
     if(readingControls.hidden===showReadingControls)readingControls.hidden=!showReadingControls;
     if (view.hidden === shown) {
@@ -418,6 +422,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
       reader.load(pages);
       pdf = loaded; page = 1; current = undefined;
       key=storageKey;boxes=mapping;
+      if(forget)forget.disabled=!Object.keys(boxes).length;
       attachedFile=libraryFile;attachedHash=libraryFile?hash:null;
       pageSelect.replaceChildren();
       for (let i = 1; i <= pdf.numPages; i++) pageSelect.add(new Option(String(i), String(i)));
@@ -496,6 +501,22 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     if(!editing)scroll.focus({preventScroll:true});
   };
   if(!recording) {
+    forget.onclick=()=>{
+      if(!pdf || forget.disabled)return;
+      const count=Object.keys(boxes).length;
+      if(!window.confirm('Forget all '+count+' measure boxes for this pair?\n\n'+state.currentScoreFile.fileName+'\n'+attachedFile.name))return;
+      closeMenu();
+      boxes={};
+      reader.populate(boxes,boxElement,n=>printedMeasure(state.score,n));
+      visible=true;
+      setEditing(true);
+      measure.selectedIndex=0;
+      sync();
+      goPage(1);
+      message('Markings cleared. Find boxes in the score or draw the first measure.');
+      saveBoxes();
+      find.focus({preventScroll:true});
+    };
     byId('start-marking').onclick=()=>{
       closeMenu();
       setEditing(true);

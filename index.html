@@ -83,6 +83,7 @@
             <button id="pdf-attach" type="button" disabled>Attach PDF…</button>
             <button id="open-pdf-recording" type="button">PDF + recording…</button>
             <button id="pdf-show" type="button" hidden>Show PDF</button>
+            <button id="pdf-forget" type="button" hidden disabled>Forget markings…</button>
             <button id="score-print" type="button" disabled>Print / Save PDF…</button>
           </div>
           <button type="button" popovertarget="score-library-tools">Library tools <span aria-hidden="true">▾</span></button>
@@ -421,8 +422,8 @@
             <p class="field-help">Choose at least one track to show. This does not change your practice track or audio. Choices are remembered for this song.</p>
             <div id="custom-track-list" role="group" aria-label="Custom visible tracks"></div>
           </div>
-          <div class="popup-card-title">Virtual fretboard</div>
-          <label class="toggle-row" for="show-fretboard"><input id="show-fretboard" type="checkbox" /><span>Show virtual fretboard</span></label>
+          <div class="popup-card-title">Instrument view</div>
+          <label class="toggle-row" for="show-fretboard"><input id="show-fretboard" type="checkbox" /><span>Show fretboard or keyboard</span></label>
         </div>
       </div>
     </section>
@@ -437,7 +438,7 @@
         <li>In Practice, choose one guitar track. Try Wait to learn the notes, or Realtime to practice timing.</li>
         <li>Press Play. Use Tempo to slow down and Loop to repeat a section. Pause preserves results.</li>
       </ol>
-      <p>Practice controls score feedback. Display controls zoom, visible tracks and fretboard visibility. The fretboard gear holds its views, labels and left-handed option. Open More → Audio to adjust volumes or choose a track sound while synth playback is paused. Choose Score instrument to restore the original sound.</p>
+      <p>Practice controls score feedback. Display controls zoom, visible tracks and instrument panel visibility. Use the panel gear to choose Fretboard or Keyboard. The keyboard shows expected and played pitches even when a score has no string positions. Open More → Audio to adjust volumes or choose a track sound while synth playback is paused. Choose Score instrument to restore the original sound.</p>
       <p>Tracking errors can make correctly played notes appear wrong or remain unrecognized. Review your MIDI setup and Practice → MIDI input tolerance. If the visuals are distracting, turn off Tab feedback highlights, Incorrect fret numbers or Estimate incorrect frets (Poly) under Practice → Score feedback. Hiding feedback changes neither grading nor Wait progression and does not fix missing detections.</p>
       <p>Using Fishman TriplePlay or MIDI Guitar 3? Check pickup sensitivity or interface input gain and the tracking gate first. Conversion can add or miss notes, especially with complex chords from ordinary guitar audio. Try a slower, even rake in Wait → One at a time; Together still requires attacks within its chord window. <a href="./README.html#getting-clean-midi-from-a-standard-guitar" target="_blank" rel="noopener">MIDI options and clean-input setup</a>.</p>
       <p class="field-help">Both MIDI modes grade pitch; Poly fret estimates are guidance, not detected positions. Left-handed display does not reverse MIDI channels. Back up your browser score library from Scores.</p>
@@ -722,30 +723,37 @@
         </div>
       </section>
 
-      <section id="fretboard-container" class="panel fretboard-panel hidden" aria-hidden="true" aria-label="Practice fretboard">
-        <div class="panel-resizer" data-resize-panel="fretboard-container" role="separator" tabindex="0" aria-orientation="horizontal" aria-label="Resize virtual fretboard" title="Drag or use Up/Down to save a height; double-click or Home to fit the neck"></div>
-        <button id="fretboard-close" class="panel-close" type="button" aria-label="Hide virtual fretboard" title="Hide virtual fretboard">×</button>
+      <section id="fretboard-container" class="panel fretboard-panel hidden" aria-hidden="true" aria-label="Practice instrument">
+        <div class="panel-resizer" data-resize-panel="fretboard-container" role="separator" tabindex="0" aria-orientation="horizontal" aria-label="Resize instrument view" title="Drag or use Up/Down to save a height; double-click or Home for automatic sizing"></div>
+        <button id="fretboard-close" class="panel-close" type="button" aria-label="Hide instrument view" title="Hide instrument view">×</button>
         <div id="fretboard-tools" class="fretboard-tools">
           <button id="fretboard-previous" type="button" aria-label="Previous beat" title="Pause and move to previous beat" disabled>←</button>
           <button id="fretboard-next" type="button" aria-label="Next beat" title="Pause and move to next beat" disabled>→</button>
-          <button id="fretboard-settings" type="button" aria-label="Fretboard settings" aria-expanded="false" aria-controls="fretboard-options">⚙</button>
+          <button id="fretboard-settings" type="button" aria-label="Instrument view settings" aria-expanded="false" aria-controls="fretboard-options">⚙</button>
           <div id="fretboard-options" popover="manual" hidden>
+            <label>Instrument <select id="instrument-view"><option value="fretboard">Fretboard</option><option value="keyboard">Keyboard</option></select></label>
+            <div id="fretboard-only-options">
             <label>Show <select id="fretboard-view"><option value="beat">Beat</option><option value="next">Beat + Next Beat</option><option value="bar" selected>Beat + Bar</option></select></label>
             <label>Labels <select id="fretboard-labels"><option value="notes">Note names</option><option value="frets">Fret numbers</option><option value="fingers">Finger numbers</option><option value="none">None</option></select></label>
             <label><input id="fretboard-left" type="checkbox"> Left-handed</label>
             <label><input id="fretboard-alternates" type="checkbox"> Show alternate positions</label>
+            </div>
             <button id="fretboard-help" type="button" aria-expanded="false" aria-controls="fretboard-local-help">Help</button>
             <div id="fretboard-local-help" hidden>
+              <p id="keyboard-help" hidden>Blue outlines mark the current pitches. A green check marks a correct pitch, a red cross marks a wrong attack, and a purple dot shows other held input.</p>
+              <div id="fretboard-only-help">
               <p>Beat + Bar previews the next beat when the current measure runs out of future beats, including loop returns. Show alternate positions adds faint dashed blue guides for the current target's exact pitches elsewhere on the neck. These are possible positions, not detected fingering or octave substitutions; alternate finger labels stay blank.</p>
               <p>Blue: current target. Gold outline: upcoming. Faint outline: earlier in this bar. Green: required pitch accepted, including alternate positions. Red: existing error feedback. Missed notes stay blue on the fretboard; their history remains on the score. Finger labels use score data only (T = thumb); missing fingers stay blank. Arrows pause and start a fresh attempt at the chosen beat.</p>
               <p>Separate rings show held pitches: green for accepted, red for wrong, purple without a current result. Rings disappear on release. Poly shows possible positions, not detected strings. Configured six-channel input maps strings only on six-string tracks; both modes still grade pitch.</p>
               <p>The selected tablature supplies string count, tuning and capo. Fret numbers are relative to the capo; inlays follow physical frets. Open notes sit outside the nut. String thickness is a pitch cue. Left-handed orientation mirrors the neck without changing MIDI channel mapping.</p>
               <p>Scroll horizontally for higher frets. Targets above 24 extend the display through fret 36; unsupported positions remain in score feedback.</p>
               <p id="fretboard-help-status" class="field-help">Select a tablature track with usable string tuning to show its fretboard.</p>
+              </div>
             </div>
           </div>
         </div>
         <div id="fretboard-content" class="panel-content"></div>
+        <div id="keyboard-content" class="panel-content" hidden><div id="practice-keyboard" role="img" aria-label="Practice keyboard"></div></div>
       </section>
     </main>
 

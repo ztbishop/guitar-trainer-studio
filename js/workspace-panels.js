@@ -26,7 +26,7 @@ export function initWorkspacePanels() {
   const panels=Object.keys(PANELS).map(id=>document.getElementById(id));
   const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({...preferred,fretboardAutoHeight:automaticFretboard}));}catch{}};
   function minimums() {
-    const panel=document.getElementById('fretboard-container'),svg=panel.querySelector('svg');
+    const panel=document.getElementById('fretboard-container'),svg=panel.querySelector('#fretboard-content:not([hidden]) svg');
     if(!svg)return {};
     const css=getComputedStyle(panel);
     const frame=['paddingTop','paddingBottom','borderTopWidth','borderBottomWidth'].reduce((sum,key)=>sum+(parseFloat(css[key])||0),0);
@@ -67,6 +67,6 @@ export function initWorkspacePanels() {
   const observer=new MutationObserver(fit);
   panels.forEach(panel=>observer.observe(panel,{attributes:true,attributeFilter:['hidden','class']}));
   observer.observe(document.body,{attributes:true,attributeFilter:['class']});
-  observer.observe(document.getElementById('fretboard-content'),{childList:true,subtree:true});
+  observer.observe(document.getElementById('fretboard-content'),{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   fit();
 }

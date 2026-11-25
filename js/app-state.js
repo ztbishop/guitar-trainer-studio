@@ -81,6 +81,7 @@ export const AppState = {
     tabRhythm: 'automatic',
     layoutMode: 'page',
     showFretboard: true,
+    instrumentView: 'fretboard',
     showNotationFeedback: true,
     showTabCircles: true,
     showTabMistakes: true,

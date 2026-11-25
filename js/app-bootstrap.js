@@ -17,6 +17,7 @@ import { WaitController } from './wait-controller.js';
 import { formatStringHint, midiToNoteName } from './note-utils.js';
 import { initFretboard, renderFretboard } from './fretboard-ui.js';
 import {initFretboardControls} from './fretboard-controls.js';
+import {initPracticeKeyboard,keyboardFeedback} from './practice-keyboard.js';
 import {FretboardHeldNotes} from './fretboard-held-notes.js';
 import {fretboardBeats,fretboardStepTick,fretboardContext} from './fretboard-context.js';
 import {seekPausedTick} from './alphatab-host.js';
@@ -82,6 +83,7 @@ const waitController = new WaitController({
 
 const MIDI_DEBUG_STORAGE_KEY = 'gts.showMidiDebug';
 let fretboardControls=null,fretboardBrowseTick=null;
+let renderKeyboard;
 const fretboardHeldNotes=new FretboardHeldNotes();
 
 function fretboardBeatList() {
@@ -612,6 +614,15 @@ function renderPracticeFretboard(trainer) {
   const fretboardEvent=AppState.media.editing?null:browseEvent??fretboardDisplayEvent({trainer,events:AppState.expectedEvents,tick:AppState.tickPosition,editing:AppState.media.editing});
   const origin=browsing?fretboardBrowseTick:fretboardEvent?.startTick??AppState.tickPosition;
   fretboardControls?.sync({previous:AppState.playerReady && !AppState.media.editing && fretboardStepTick(beats,origin,-1)!==null,next:AppState.playerReady && !AppState.media.editing && fretboardStepTick(beats,origin,1)!==null});
+  if(AppState.ui.instrumentView==='keyboard') {
+    const states=trainer.noteStates??{};
+    const held=Array.from(AppState.midi.activeNotes.values(),note=>{
+      const pitch=fretboardHeldNotes.creditedPitch(note,states);
+      return {midi:pitch??note.midi,credited:pitch!=null};
+    });
+    renderKeyboard?.(keyboardFeedback(fretboardEvent,browsing?{}:states,held,trainer.liveWrongNotes??[]));
+    return;
+  }
   renderFretboard(buildFretboardModel({track,noScore:!AppState.score,currentEvent:fretboardEvent,contextEvents:fretboardContext(beats,fretboardEvent,AppState.ui.fretboardView,{loop:AppState.practiceLoop.enabled}),labelMode:AppState.ui.fretboardLabels,showAlternatePositions:AppState.ui.showAlternatePositions,noteStates:!browsing && trainer.currentEvent?trainer.noteStates:{},
     activeNotes:fretboardHeldNotes.visible([...AppState.midi.activeNotes.values()],trainer).map(n=>{
       const projected=AppState.mode==='wait' && AppState.inputMode==='hex-6ch'?waitController.pitchState.interpret(n):n;
@@ -868,6 +879,7 @@ async function bootstrap() {
   mediaControls=initMediaControls({beginMediaPlayback,endMediaPlayback,toggleMediaPlayback,pauseMediaPlayback,updateMediaPosition,seekMediaTime,seekMediaTick,embeddedMedia,applyMediaSyncPoints,setMediaEditing,revealMediaScoreTarget,showDraftPosition,setSpeed:setPlaybackSpeed},
     {closeMenu:toolbar.closeAllPopups,beforeEdit(){if(waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);if(AppState.mode==='wait')pauseWaitTransport();clearActiveMidiNotes();},afterEdit(){clearActiveMidiNotes();configureWaitSession();resetRealtimeSession('sync-editor-closed');renderTrainerUi();},beforeListen(){if(AppState.mode==='wait' && waitController.active && waitController.phase!=='paused')waitController.toggle(AppState.tickPosition);pauseWaitTransport();clearActiveMidiNotes();},afterPractice(){clearActiveMidiNotes();if(AppState.mode==='realtime' && !AppState.media.editing)handlePlaybackState();renderTrainerUi();}});
   initFretboard(document.getElementById('fretboard-content'),document.getElementById('fretboard-help-status'));
+  renderKeyboard=initPracticeKeyboard(document.getElementById('practice-keyboard'));
   const displayControls=wireScoreStageUi();
   const printControls=initScorePrintControls(printScore);
   fretboardControls=initFretboardControls(()=>renderTrainerUi(),stepFretboard);

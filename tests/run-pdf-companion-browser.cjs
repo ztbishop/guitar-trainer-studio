@@ -265,6 +265,22 @@ function twoBarMidi() {
     await fresh.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('Saved alignment restored'));
     const profiles=await fresh.evaluate(async()=>new (await import('/js/library-store.js')).LibraryStore().listProfiles());
     assert.deepEqual(profiles[0].points,backup.mediaProfiles[0].points);
+    const forget=async accept=>{
+      await fresh.locator('#btn-scores').click();
+      await fresh.locator('button[popovertarget="score-pdf-tools"]').click();
+      fresh.once('dialog',dialog=>accept?dialog.accept():dialog.dismiss());
+      await fresh.locator('#pdf-forget').click();
+    };
+    await forget(false);
+    assert.equal(await fresh.locator('#pdf-pages button[data-measure]').count(),2);
+    await fresh.keyboard.press('Escape');
+    await forget(true);
+    await fresh.locator('#pdf-find').waitFor();
+    assert.equal(await fresh.locator('#pdf-measure').inputValue(),'1');
+    const cleared=await fresh.evaluate(async()=>new (await import('/js/library-store.js')).LibraryStore().backup());
+    assert.deepEqual(cleared.scores[0].pdf.boxes,{});
+    assert.deepEqual(cleared.pdfs,backup.pdfs);
+    assert.deepEqual(cleared.mediaProfiles,profiles);
     const counts=await fresh.evaluate(async backup=>{
       const store=new (await import('/js/library-store.js')).LibraryStore();
       const [original]=(await store.list()).scores;

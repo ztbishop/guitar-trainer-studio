@@ -102,14 +102,15 @@ const path=require('node:path');
         const box=circle.getBoundingClientRect();
         return {height:svg.getBoundingClientRect().height,markerWidth:box.width,markerHeight:box.height,
           font:getComputedStyle(svg.querySelector('.fretboard-marker-target text')).fontSize,
-          labels:[...svg.querySelectorAll('[data-fret-label]')].map(el=>Number(el.dataset.fretLabel))};
+          labels:[...svg.querySelectorAll('[data-fret-label]')].map(el=>Number(el.dataset.fretLabel)),
+          firstFretTarget:!!svg.querySelector('.fretboard-marker-target[data-fret="1"]')};
       });
       neckHeight??=dimensions.height;assert.equal(dimensions.height,neckHeight);
       await page.waitForFunction(()=>['#fretboard-container','#fretboard-content','.fretboard-scroll'].every(id=>{const el=document.querySelector(id);return el.scrollHeight<=el.clientHeight+1;}));
       assert(await page.evaluate(()=>{const svg=document.querySelector('#fretboard-content svg'),scroll=svg.parentElement,nut=svg.querySelector('.fretboard-nut').getBoundingClientRect(),box=scroll.getBoundingClientRect();return nut.x>box.x && nut.x<box.right;}),'left-handed nut stays in view when a full neck becomes scrollable');
       assert.equal(dimensions.markerWidth,20);assert.equal(dimensions.markerHeight,20);assert.equal(dimensions.font,'12px');
       assert(dimensions.labels.includes(0));
-      if(width<=800)assert(!dimensions.labels.includes(1),'sparse labels omit 1');
+      if(width<=800)assert.equal(dimensions.labels.includes(1),dimensions.firstFretTarget,'sparse labels retain fret 1 only for a current target');
       await page.locator('#fretboard-settings').click();
       assert(await page.locator('#fretboard-options').isVisible());
       const box=await page.locator('#fretboard-options').boundingBox();assert(box.x>=0 && box.x+box.width<=width,'popup fits viewport');
@@ -132,8 +133,10 @@ const path=require('node:path');
     assert.equal(manual.fretboardAutoHeight,false);
     assert(manual['fretboard-container']<automaticHeight-10,'divider drag saves a smaller height');
     await page.waitForFunction(()=>{const svg=document.querySelector('#fretboard-content svg'),scroll=svg.parentElement;return Number(svg.dataset.scale)<1 && scroll.scrollHeight<=scroll.clientHeight+1;});
-    const scaledCircle=await page.locator('.fretboard-marker-target circle').first().boundingBox();
-    assert(scaledCircle.width<20 && Math.abs(scaledCircle.width-scaledCircle.height)<0.1,'short-frame markers shrink evenly and remain round');
+    await page.waitForFunction(()=>{
+      const rect=document.querySelector('.fretboard-marker-target circle')?.getBoundingClientRect();
+      return rect && rect.width>0 && rect.width<20 && Math.abs(rect.width-rect.height)<0.1;
+    });
     if(process.env.GTS_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.GTS_SCREENSHOT_DIR,'fretboard-short.png')});
     await page.reload();await page.locator('#fretboard-content svg').waitFor();
     await page.waitForFunction(height=>Math.abs(document.querySelector('#fretboard-container').getBoundingClientRect().height-height)<1,manual['fretboard-container']);

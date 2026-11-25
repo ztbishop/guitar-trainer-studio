@@ -3,6 +3,10 @@
 export class FretboardHeldNotes {
   constructor(){this.accepted=new WeakMap();this.ungradedAttacks=new WeakSet();}
   isUngraded(note){return this.ungradedAttacks.has(note);}
+  creditedPitch(note,states) {
+    const credit=this.accepted.get(note);
+    return credit?.noteIds.some(id=>['correct','completed-with-errors'].includes(states[id]))?credit.midi:null;
+  }
   remember(event,outcome,activeNotes,{events=[],noteStates={}}={}) {
     if(event.type==='note-on' && !outcome) {
       const source=activeNotes.get(`${event.channel}:${event.midi}`);

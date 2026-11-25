@@ -13,6 +13,10 @@ The copyright statement above identifies the application contributors, not owner
 - Distribution of modified covered versions requires the applicable notices, license and corresponding source. AGPL section 13 also requires modified versions supporting remote interaction to prominently offer their corresponding source to those users. Commercial use is permitted; AGPL is not a noncommercial license. Read the full license for the conditions.
 - Before public hosting, make the matching application source accessible to recipients. A link to a private repository is not a public source offer. This licensing update does not change repository visibility or publish a release.
 
+## Piano Trainer Studio keyboard
+
+The read-only keyboard in `js/practice-keyboard.js` adapts key construction from `createKeyboard` in Piano Trainer Studio's `js/trainer-core.js`. The white and black key proportions in `style.css` come from its virtual keyboard styles. The upstream project supplies these under the GNU Affero General Public License v3. [Piano Trainer Studio source](https://github.com/ztbishop/piano-trainer-studio) · [License text](../LICENSE)
+
 ## alphaTab 1.9.0
 
 The bundled alphaTab runtime is copyright Daniel Kuschny and Contributors, licensed under [MPL-2.0](../assets/vendor/alphatab/LICENSE). The [upstream source for v1.9.0](https://github.com/CoderLine/alphaTab/tree/v1.9.0), [integration header](../assets/vendor/alphatab/LICENSE.header) and [installed manifest](../assets/vendor/alphatab/vendor-manifest.json) identify the source, original package integrity and installed file hashes. The readable classic and core JavaScript bundles incorporate the following local modifications, maintained as MPL-2.0 patches against the official npm distribution.

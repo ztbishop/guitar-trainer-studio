@@ -3,10 +3,12 @@
 Guitar grading, PDF companions, MIDI import, Auto-sync and library recovery are implemented. The current milestone is normal practice with the released features. Physical Fishman response and personal take preferences are optional owner checks. Recording comparisons, browser recovery and fixture coverage can be tested by the project maintainer. The remaining timing ideas below are accuracy research.
 
 - [x] Choose a bundled synth sound for a melodic track in Audio and restore the score's original instrument changes.
+- [x] Offer a remembered Fretboard or Keyboard view and verify pitch feedback on the Arirang MIDI with both companion PDF editions.
 - [x] Restore companion PDFs, edited measure boxes and recording references from saved scores. Include PDFs and timing in portable library backups and support reconnecting a missing recording.
 
 - [x] Scroll continuously through PDF pages, follow the saved Auto-scroll setting in both PDF workflows, and return from notation with Show PDF.
 - [x] Give companion PDFs the full reading area and reopen the marking toolbar from Scores → PDF.
+- [x] Clear all printed boxes for one companion score/PDF pair from the PDF menu.
 - [x] Verify that Reset reveals the companion PDF box at the score or loop start after browsing away, and identify unlinked printed measures when clicked.
 - [x] Compare PDF-only timing with verified TrueFire timing on a syncopated lesson. Offer per-passage audition, explicit application and restoration. Even spacing remains the default. See DEV-NOTES for the single-note and chord results.
 

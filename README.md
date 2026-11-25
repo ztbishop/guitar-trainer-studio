@@ -127,6 +127,8 @@ Choose **Scores → Save to Library** with the companion PDF attached. If you al
 
 Once the PDF is saved with the score, **measure box edits save automatically** as you add, move, or remove boxes. Reopen the song from your library to see the PDF with your latest markings. For a session opened directly from files, reattaching the same pair recalls its local markings.
 
+To start over, choose **Scores → PDF → Forget markings…** and confirm the two filenames. This clears the measure boxes for that score and PDF, including their saved library mapping. The PDF stays attached and opens on page 1 ready to draw or scan again.
+
 - **Open File** opens a score for this session. It does not save it automatically.
 - **Save to Library** keeps a browser copy of the open score.
 - Saving with a recording attached remembers its source. Use **Save profile** in Media Sync to keep edited sync points. The trainer can reopen a local recording when the browser grants access to its file. If the file moves or permission expires, choose **Reconnect recording** beside the score. A missing recording leaves its saved sync profiles available. To relink a renamed recording, select its saved profile in Media Sync before choosing the file.
@@ -241,6 +243,8 @@ Loop selects the section to repeat. Native score dragging selects whole measures
 The menus keep controls compact; this guide provides the detailed explanations. Input errors appear when needed. Scores actions share one row on wider screens and wrap on smaller screens.
 
 ### Display and the fretboard
+
+Open the **gear on the instrument panel → Instrument → Keyboard** for pitch feedback with any playable score, including MIDI with a companion PDF. The keyboard shows the selected track’s current pitches with blue outlines, correct pitches with green checks, and wrong attacks with red crosses. Purple dots show held input without a grade. Each marked key includes its note name and octave. Use **Instrument → Fretboard** to switch back. One view is visible at a time, and the browser remembers your choice. To reopen the panel, use **Display → Show fretboard or keyboard**.
 
 Choose **Display → Appearance** for **Light** (the default white page), **Soft Light** (a very light gray page) or **Dark** (soft-white notation on charcoal). Your choice returns across visits and score loads. After updating the app, reload the browser to load the latest appearance styles; the local launcher can keep running. Practice feedback keeps the same meanings in each appearance. Printing and Save as PDF use black notation on white regardless of your screen choice.
 

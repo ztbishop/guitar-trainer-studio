@@ -6,6 +6,8 @@ The Scores dropdowns use native popovers. `js/toolbar-ui.js` positions each open
 
 ## PDF practice and MIDI file import
 
+The instrument panel uses the shared display preference `instrumentView`. Its keyboard projects the selected practice event, per-note credit, held input and live wrong pitches independently of string positions and PDF geometry. The same MIDI router and Wait/Realtime graders drive both views.
+
 When two neighboring estimates shift by nearly the same amount, the PDF reviewer checks up to four surrounding bars of bass attacks. Strong repetition at both half-bar and full-bar intervals near the tapped tempo supports keeping even spacing. This check runs on candidate pairs during audio review. The listener can still audition every audio estimate.
 
 The PDF timing worker returns the full set of audio estimates and a conservative set for review. A suggested move requires a strong local bass attack, weak attacks at the evenly spaced start, and a neighboring interior start supporting a similar shift in the same direction. For pairs beside either tap, the worker also checks for an intervening bass attack and a strong continuation of that faster pulse. If the two rhythms compete, the reviewer keeps even spacing for that pair and suggests adding a tap. Passages with just one interior start always recommend even spacing. The reviewer can still audition the full set. Only an explicit apply action writes timing.
@@ -21,6 +23,8 @@ In PDF + recording, an explicit comparison decodes the selected media locally an
 For a playable score with a companion PDF, Reset passes the destination tick to the reader. With auto-scroll enabled, the reader looks up its written measure and reveals its box even when the playback measure has stayed the same.
 
 The companion reader keeps its navigation controls in the Scores → PDF menu. The same page selector moves into the on-page toolbar during marking, so scrolling and page selection share one state. The standalone recording room keeps its own on-page controls.
+
+Forget markings saves an empty box map through the same score/PDF fingerprint pair and matching library attachment used for individual box edits.
 
 The companion measure overlay reads the repeat-expanded timeline and existing practice target. Its normalized rectangles use the written measure number, so repeated visits reuse the box. Direct file sessions cache rectangles under fingerprints of both files. Save to Library stores a PDF blob by content hash and marks the score row with its chosen edition and boxes. Deleting the last reference releases the blob. Library reopening waits for the active score and timeline before restoring attachments. Local recording handles stay in IndexedDB. The portable reference identifies the recording, and the separate saved profile owns its sync points. Opening Media Sync temporarily exposes the interactive native score. The Loop menu uses the same transport in both views.
 

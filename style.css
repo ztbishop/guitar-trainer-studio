@@ -1282,6 +1282,26 @@ body.has-score .alphatab-wrapper {
 .fretboard-tools { position:absolute; top:28px; left:8px; display:flex; flex-direction:column; gap:4px; z-index:5; }
 .fretboard-tools > button { width:32px; min-height:32px; padding:2px; }
 #fretboard-content { margin-left:34px; }
+#keyboard-content { margin:0 34px; padding:0; }
+#practice-keyboard {
+  --white-width:clamp(30px, 2.2vw, 40px);
+  display:flex; position:relative; margin:auto; width:calc(var(--white-keys) * var(--white-width));
+  height:100%; max-height:230px; user-select:none;
+}
+.piano-key {
+  box-sizing:border-box; position:relative; flex:none; display:flex; align-items:flex-end; justify-content:center;
+  padding-bottom:.3rem; border:1px solid #17212d; border-radius:0 0 4px 4px; background:white; color:#17212d;
+  width:var(--white-width); white-space:pre; text-align:center; font:bold 11px/1.2 system-ui,sans-serif;
+}
+.piano-key.black {
+  width:calc(var(--white-width) * .6); margin-inline:calc(var(--white-width) * -.3); height:66.7%; z-index:1;
+  background:#1a202a; color:white; border-radius:0 0 3px 3px;
+}
+.piano-key[data-target] { box-shadow:inset 0 0 0 3px #1875bf; }
+.piano-key[data-state="expected"] { background:#c7e7ff; color:#123b61; }
+.piano-key[data-state="correct"] { background:#157044; color:white; }
+.piano-key[data-state="wrong"] { background:#af2530; color:white; }
+.piano-key[data-state="played"] { background:#6c478d; color:white; }
 #fretboard-options { position:fixed; inset:auto; margin:0; z-index:130; width:260px; max-width:calc(100vw - 32px); padding:10px; border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; color:#334155; box-shadow:0 4px 12px #0003; max-height:70vh; overflow:auto; }
 #fretboard-options[hidden] { display:none; }
 #fretboard-options label { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
