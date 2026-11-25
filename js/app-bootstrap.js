@@ -845,7 +845,7 @@ async function bootstrap() {
   const toolbar=initToolbar();
   const libraryStore=new LibraryStore();
   pdfCompanion=initPdfCompanion(AppState,toolbar.closeAllPopups,tick=>browsePracticeTick(tick,'pdf-seek'),null,
-    (scoreHash,pdfHash,boxes)=>libraryStore.updatePdfBoxes(scoreHash,pdfHash,boxes));
+    (scoreHash,pdfHash,boxes,mapping)=>libraryStore.updatePdfBoxes(scoreHash,pdfHash,boxes,mapping));
   let pendingLibraryRow=null;
   scoreLibrary=initScoreLibrary((file,row)=>{
     const loading=loadScoreFile(file);
@@ -861,7 +861,7 @@ async function bootstrap() {
       const saved=await libraryStore.attachments(row.id);
       if(!saved || score!==AppState.currentScoreFile)return;
       if(saved.pdf && revision===pdfCompanion.revision){
-        if(saved.pdf.blob)await pdfCompanion.open(new File([saved.pdf.blob],saved.pdf.fileName,{type:'application/pdf'}),saved.pdf.boxes);
+        if(saved.pdf.blob)await pdfCompanion.open(new File([saved.pdf.blob],saved.pdf.fileName,{type:'application/pdf'}),saved.pdf.boxes,saved.pdf.mapping);
         else document.getElementById('library-status').textContent='The saved PDF is missing. Attach the original PDF again.';
       }
       if(saved.recording && score===AppState.currentScoreFile && mediaRevision===mediaControls.recordingRevision)

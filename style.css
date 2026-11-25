@@ -1348,6 +1348,8 @@ body.has-score .pdf-practice-hint { display:none; }
 }
 .pdf-tools:not([hidden]) { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .45rem 3rem .45rem .6rem; }
 .pdf-tools button, .pdf-tools select { min-height: 2rem; font-size: .9rem; }
+#pdf-order[open] { flex-basis:100%; }
+#pdf-order label { display:inline-flex; flex-wrap:wrap; align-items:center; gap:.35rem; margin:.2rem .5rem .2rem 0; }
 #pdf-status { margin: 0; padding: .2rem .6rem .5rem; font-size: .9rem; }
 #pdf-scroll { overflow: auto; flex: 1; min-height: 0; scrollbar-gutter: stable; }
 #pdf-sheet { position:absolute; inset:0; }

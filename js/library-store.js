@@ -63,6 +63,11 @@ export async function validateBackup(data) {
           b.x+b.w>1.000001 || b.y+b.h>1.000001)throw new Error('Invalid PDF measure box.');
       }
       saved.pdf={hash,fileName,boxes};
+      if(score.pdf.mapping!==undefined){
+        const mapping=score.pdf.mapping;
+        if(!Array.isArray(mapping) || !mapping.length || !mapping.every(n=>n===null || Number.isSafeInteger(n) && n>0))throw new Error('Invalid PDF repeat mapping.');
+        saved.pdf.mapping=mapping;
+      }
     }
     if(data.version===4 && score.recording){
       saved.recording=validateSource(score.recording);
@@ -132,9 +137,10 @@ export class LibraryStore {
           const score=duplicate || {id:id(),title:name(title)||name(fileName),fileName:String(fileName),bytes:new Uint8Array(bytes),folderId,hash,createdAt:Date.now()};
           const previous=score.pdf?.hash;
           if(attachments.pdf){
-            const {hash,file,boxes}=attachments.pdf;
+            const {hash,file,boxes,mapping}=attachments.pdf;
             stores.pdfs.put({id:hash,blob:file});
             score.pdf={hash,fileName:file.name,boxes};
+            if(mapping)score.pdf.mapping=mapping;
           }
           if(attachments.recording){
             for(const p of profiles)stores.mediaProfiles.put(p);
@@ -186,11 +192,15 @@ export class LibraryStore {
       };
     });
   }
-  updatePdfBoxes(scoreHash,pdfHash,boxes){
+  updatePdfBoxes(scoreHash,pdfHash,boxes,mapping){
     return this.transaction(['scores'],'readwrite',({scores})=>{
       scores.index('scoreHash').get(scoreHash).onsuccess=event=>{
         const score=event.target.result;
-        if(score?.pdf?.hash===pdfHash){score.pdf.boxes=boxes;scores.put(score);}
+        if(score?.pdf?.hash===pdfHash){
+          score.pdf.boxes=boxes;
+          if(mapping)score.pdf.mapping=mapping;else delete score.pdf.mapping;
+          scores.put(score);
+        }
       };
     });
   }

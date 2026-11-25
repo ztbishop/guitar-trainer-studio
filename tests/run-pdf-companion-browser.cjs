@@ -179,9 +179,7 @@ function twoBarMidi() {
     await page.locator('#pdf-correct-page').click();
     assert.equal(await page.locator('#pdf-boxes .pdf-box').textContent(),'2');
     await page.locator('#pdf-action').selectOption('split');
-    await page.locator('#pdf-boxes .pdf-box').scrollIntoViewIfNeeded();
-    const splitBox=await page.locator('#pdf-boxes .pdf-box').boundingBox();
-    await page.mouse.click(splitBox.x+splitBox.width/2,splitBox.y+splitBox.height/2);
+    await page.locator('[data-page="2"] #pdf-boxes .pdf-box').click({force:true});
     assert.ok(await page.locator('#pdf-use-score').isDisabled());
     await page.getByRole('button',{name:'Review whole score'}).click();
     await page.locator('#pdf-page').selectOption('1');
@@ -411,6 +409,61 @@ function twoBarMidi() {
       await real.locator('#pdf-use-score').click();
       assert.equal(await real.locator('#pdf-pages button[data-measure]').count(),count);
       console.log('Verified '+count+' boxes across '+pages+' pages at 1440 and 390 pixels.');
+      if(process.env.GTS_PDF_TEST_ARIRANG_REPEATS){
+        await real.setViewportSize({width:1440,height:900});
+        const pdfMenu=async()=>{
+          await real.locator('#btn-scores').click();
+          await real.locator('button[popovertarget="score-pdf-tools"]').click();
+        };
+        const mapRange=async(a,b,n)=>{
+          await real.locator('#pdf-from').selectOption(String(a));
+          await real.locator('#pdf-through').selectOption(String(b));
+          if(n!==null)await real.locator('#pdf-first').selectOption(String(n));
+          await real.locator(n===null?'#pdf-unmap':'#pdf-apply-range').click();
+        };
+        const box=n=>real.getByRole('button',{name:'Go to measure '+n,exact:true});
+        await real.locator('#btn-scores').click();await real.locator('#library-save').click();
+        await real.waitForFunction(()=>!document.querySelector('#library-save').disabled);
+        await real.keyboard.press('Escape');await pdfMenu();await real.locator('#pdf-start-order').click();
+        await mapRange(41,48,33);await mapRange(49,64,41);await mapRange(182,182,null);
+        await real.locator('#pdf-map').click();
+        await box(40).click();await real.locator('#play-pause-button').click();
+        await real.waitForFunction(()=>document.querySelector('#pdf-pages .current')?.dataset.measure==='33',null,{timeout:10000});
+        await real.locator('#play-pause-button').click();
+        await box(33).click();await pdfMenu();
+        assert.equal(await real.locator('#pdf-pass option').count(),2);
+        assert.equal(await real.locator('#pdf-pass').inputValue(),'40');
+        await real.locator('#pdf-pass').selectOption('32');
+        await real.waitForFunction(async()=>{
+          const s=(await import('/js/app-state.js')).AppState;
+          return Math.abs(s.tickPosition-s.playbackTimeline.measures[32].startTick)<=1;
+        });
+        const saved=await real.evaluate(async()=>new (await import('/js/library-store.js')).LibraryStore().backup());
+        const order=saved.scores[0].pdf.mapping;
+        assert.deepEqual(order.slice(40,48),[33,34,35,36,37,38,39,40]);
+        assert.deepEqual([order[48],order[63],order[64],order[181]],[41,56,65,null]);
+        const restored=await browser.newPage();
+        await restored.goto(real.url());
+        const restoredOrder=await restored.evaluate(async backup=>{
+          const store=new (await import('/js/library-store.js')).LibraryStore();
+          await store.merge(backup);
+          const [score]=(await store.list()).scores;
+          return (await store.attachments(score.id)).pdf.mapping;
+        },saved);
+        assert.deepEqual(restoredOrder,order);await restored.close();
+        await real.reload();await real.locator('#btn-scores').click();await real.locator('.library-score-open').click();
+        await box(33).click();await pdfMenu();
+        assert.equal(await real.locator('#pdf-pass option').count(),2);
+        await real.keyboard.press('Escape');await real.keyboard.press('Escape');
+        await real.locator('#practice-loop-enabled').evaluate(el=>el.click());
+        await real.locator('#practice-loop-end').evaluate(el=>{el.value='48';el.dispatchEvent(new Event('change'));});
+        await real.locator('#practice-loop-start').evaluate(el=>{el.value='41';el.dispatchEvent(new Event('change'));});
+        await real.locator('#stop-button').click();
+        await real.waitForFunction(()=>document.querySelector('#pdf-pages .current')?.dataset.measure==='33');
+        assert.equal(await box(33).evaluate(el=>el.classList.contains('outside-loop')),false);
+        assert.equal(await box(41).evaluate(el=>el.classList.contains('outside-loop')),true);
+        console.log('Verified Arirang playback 40 → 33, both visit choices, library repeat mapping, and Reset into a second-pass loop.');
+      }
       await real.close();
     }
   } finally {

@@ -43,10 +43,19 @@ export function addScoreBoxes(saved,numbers,proposals) {
   return result;
 }
 
-export function availableVisit(visits, number, tick, range, plan) {
-  const eligible=visits.filter(v=>v.measureNumber===number && (!range || (v.startTick>=range.startTick && v.startTick<range.endTick)) &&
+export function printedBoxForVisit(visit,mapping){
+  return mapping ? mapping[visit.playbackMeasureIndex] : visit.measureNumber;
+}
+
+export function eligiblePdfVisits(visits, number, range, plan, mapping){
+  return visits.filter(v=>printedBoxForVisit(v,mapping)===number && (!range || (v.startTick>=range.startTick && v.startTick<range.endTick)) &&
     (!plan || plan.visits.some(p=>v.startTick>=p.startTick && v.startTick<p.endTick)));
+}
+export function nearestPdfVisit(eligible,tick){
   // Keep the current pass when it is eligible, otherwise prefer the nearest start.
   return eligible.find(v=>tick>=v.startTick && tick<v.endTick) ??
     eligible.reduce((best,v)=>!best || Math.abs(v.startTick-tick)<Math.abs(best.startTick-tick)?v:best,null);
+}
+export function availableVisit(visits,number,tick,range,plan,mapping=null){
+  return nearestPdfVisit(eligiblePdfVisits(visits,number,range,plan,mapping),tick);
 }

@@ -79,6 +79,8 @@
               <span id="pdf-target"></span>
               <button id="pdf-native" type="button">Show notation</button>
               <button id="pdf-start-marking" type="button">Mark measures</button>
+              <button id="pdf-start-order" type="button">Map repeats and endings</button>
+              <label id="pdf-pass-label" hidden>Score visit <select id="pdf-pass"></select></label>
             </div>
             <button id="pdf-attach" type="button" disabled>Attach PDF…</button>
             <button id="open-pdf-recording" type="button">PDF + recording…</button>
@@ -434,6 +436,7 @@
       <ol class="menu-help-list">
         <li>For a PDF and a recording alone, open the PDF from Scores → Open File. Review the detected boxes, open your audio or video, then tap measure starts during playback. Add a tap where the highlight drifts. Select the first and last measures and choose Loop section. Tempo changes playback speed.</li>
         <li>With a Guitar Pro, MusicXML or MIDI score, choose Scores → PDF → Attach PDF, then Find boxes in score. Scroll through the preview. Choose Correct this page for edits, then Review whole score to return. Use score boxes saves all pages and returns to reading. Click a measure to seek, then use Scores → PDF → Jump to for a specific note. Gray shading shows measures outside the active loop.</li>
+        <li>If your MIDI plays a passage twice and the PDF prints it once, use Scores → PDF → Map repeats and endings. Select the first and last playback visits and the first printed measure, then choose Map range. Map the following passage too if its numbering has shifted. After clicking a repeated box, use Score visit in the PDF menu to choose a pass.</li>
         <li>Select your MIDI input in Settings. Match Poly or Hex and its channels to your device.</li>
         <li>In Practice, choose one guitar track. Try Wait to learn the notes, or Realtime to practice timing.</li>
         <li>Press Play. Use Tempo to slow down and Loop to repeat a section. Pause preserves results.</li>

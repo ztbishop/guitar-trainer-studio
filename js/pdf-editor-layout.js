@@ -16,6 +16,14 @@ export function mountPdfEditor(view) {
               <button id="pdf-correct-page" type="button" hidden>Correct this page</button>
               <button id="pdf-use" type="button">Use page boxes</button><button id="pdf-cancel" type="button">Cancel</button></span></span>
             <label id="pdf-position" hidden>Jump to <select id="pdf-note"></select></label>
+            <details id="pdf-order" hidden><summary>Map repeats and endings</summary>
+              <p>Visits count measures in playback order. Link a range of visits to consecutive printed measures.</p>
+              <label>From visit <select id="pdf-from"></select></label>
+              <label>Through visit <select id="pdf-through"></select></label>
+              <label>First printed measure <select id="pdf-first"></select></label>
+              <button id="pdf-apply-range" type="button">Map range</button>
+              <button id="pdf-unmap" type="button">Leave unmapped</button>
+            </details>
           </div>
           <p id="pdf-status" role="status" hidden></p>
           <div id="pdf-scroll" tabindex="0" aria-label="PDF page">

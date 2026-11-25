@@ -6,6 +6,8 @@ The Scores dropdowns use native popovers. `js/toolbar-ui.js` positions each open
 
 ## PDF practice and MIDI file import
 
+A companion PDF defaults to the written measure of each playback visit. An optional array on the PDF attachment assigns each zero-based playback visit a one-based printed box number or null. The PDF projection, click-to-seek, pass selection, loop shading and Reset use this mapping. The playback timeline, media sync points and MIDI grading keep their original visit identities. Existing geometry-only attachments use the written order. The standalone PDF + recording room continues to use its measure taps.
+
 Full-score box detection keeps a draft for every page. The overview draws all suggested rectangles over the virtualized page canvases. Correct this page uses the existing geometry editor. Changes to box counts flow forward to pages without an explicit first measure. Applying checks the complete mapping against the written score and existing markings before writing it.
 
 Save to Library commits the score, its selected recording reference, and both available alignment profiles in one IndexedDB transaction. A browser file handle takes precedence for local recordings. A File from the fallback picker is stored separately by score ID so listing scores and exporting a backup avoid reading recording bytes. Replacement and deletion release that copy. A local recording identity uses SHA-256 over the ordered SHA-256 digests of fixed 4 MiB blocks. Reconnecting an identical file updates the link and matching profiles together. Online relocation uses explicit confirmation and the saved profile duration.

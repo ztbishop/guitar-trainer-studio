@@ -91,6 +91,15 @@ test('a PDF box follows written repeats and clears outside music', () => {
   const visits = [1, 2, 1, 3].map((measureNumber, i) => ({measureNumber, startTick:i*100, endTick:(i+1)*100}));
   assert.deepEqual([-1,0,99,100,200,399,400].map(t => writtenMeasureAt(visits,t)), [null,1,1,2,1,3,null]);
 });
+test('custom PDF visit order follows a repeat, skips a visit and jumps to a coda within recording and loop limits',()=>{
+  const visits=Array.from({length:6},(_,i)=>({measureNumber:i+1,playbackMeasureIndex:i,startTick:i*100,endTick:(i+1)*100}));
+  const mapping=[1,2,1,2,null,6];
+  assert.deepEqual(visits.map(v=>writtenMeasureAt(visits,v.startTick,mapping)),mapping);
+  assert.equal(availableVisit(visits,1,220,null,null,mapping),visits[2]);
+  assert.equal(availableVisit(visits,1,0,{startTick:200,endTick:400},null,mapping),visits[2]);
+  assert.equal(availableVisit(visits,1,220,null,{visits:[visits[0]]},mapping),visits[0]);
+  assert.equal(availableVisit(visits,5,420,null,null,mapping),null);
+});
 test('measure boxes use page coordinates in either drag direction and ignore clicks', () => {
   const a = {x:0.25,y:0.125}, b = {x:0.75,y:0.375};
   assert.deepEqual(measureBox(2,b,a), {page:2,x:0.25,y:0.125,w:0.5,h:0.25});

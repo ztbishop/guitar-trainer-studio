@@ -1,5 +1,11 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Companion PDF repeats and endings, November 25, 2026
+
+Scores → PDF → Map repeats and endings links a run of playback visits to consecutive printed measures or leaves the selected visits unmapped. Native written-measure order remains the default. After clicking a box shared by multiple eligible visits, Score visit lets the player choose a pass. Repeat edits follow the same per-score, per-PDF storage and library backup workflow as measure boxes.
+
+In disposable Chrome sessions, the Arirang MIDI and eight-page TAB PDF yielded 145 boxes. Linking visits 41–48 to printed measures 33–40 made playback jump from 40 to 33. Both passes of measure 33 were selectable. Reset with a loop on visits 41–48 revealed printed measure 33 and shaded boxes outside that passage. Reopening the saved library entry restored the pass choices, and importing its backup in a fresh session reproduced the full mapping, including an unmapped visit. The standalone PDF + recording check also passed. The Node suite passed 984 tests with nine skipped.
+
 ## Library recording restoration and whole-score PDF review, November 25, 2026
 
 Save to Library now saves the recording and its usable sync profiles in the same transaction as a new or updated score. The active profile is selected on reopening. Disposable Chrome restored unsaved point edits after a resave, recovered identical bytes under a different filename, rejected different bytes with the original name and size, and reopened a replacement URL with its original points. The file-input fallback reopened from device storage. The audio-sync browser check saved both a reviewed plan and its continuous points and verified that saving retained the decoded audio used for refinement.

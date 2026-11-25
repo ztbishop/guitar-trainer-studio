@@ -3,12 +3,13 @@ import {printedMeasure} from './printed-measure.js';
 import {midiToNoteName} from './note-utils.js';
 import {outsideRecordingScore} from './media-score-range.js';
 import {practiceTimingPlan} from './media-practice.js';
-import {editPageBoxes, availableVisit, replacePageBoxes, addScoreBoxes} from './pdf-box-review.js';
+import {editPageBoxes, eligiblePdfVisits, nearestPdfVisit, printedBoxForVisit, replacePageBoxes, addScoreBoxes} from './pdf-box-review.js';
+import {initRepeatControls,visitLabel} from './pdf-repeat-controls.js';
 import {barlineHandle} from './pdf-barline-controls.js';
 import {mountPdfEditor} from './pdf-editor-layout.js';
 import {readingPages} from './pdf-reading-pages.js';
 
-export function writtenMeasureAt(measures, tick) {
+export function writtenMeasureAt(measures, tick, mapping=null) {
   let low = 0, high = measures?.length ?? 0;
   while (low < high) {
     const mid = (low + high) >>> 1;
@@ -16,7 +17,7 @@ export function writtenMeasureAt(measures, tick) {
     else high = mid;
   }
   const bar = measures?.[low];
-  return bar && tick >= bar.startTick ? bar.measureNumber : null;
+  return bar && tick >= bar.startTick ? printedBoxForVisit(bar,mapping) : null;
 }
 
 export function measureBox(page, a, b) {
@@ -49,6 +50,11 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
   let pdf, documentTask, key, boxes = {}, page = 1, editing = false, visible = false, generation = 0;
   let drag, current, trainerState;
   let attachedFile=null,attachedHash=null;
+  let visitMapping=null;
+  const repeatControls=recording?null:initRepeatControls(state,()=>visitMapping,next=>{
+    visitMapping=next;current=undefined;loopRange=undefined;
+    clearVisitSelection();sync();saveBoxes();
+  },message);
   let proposals=null, scanVersion=0, loopRange=null, loopMeasures=null, noteVisit=null, tapCue=null;
   const find=byId('find'), action=byId('action'), note=byId('note'), replace=byId('replace');
   const findPage=byId('find-page'),useScore=byId('use-score');
@@ -57,7 +63,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
   const reader=readingPages(scroll,pagesRoot,jumpToMeasure,number=>{
     if(number===page || !visible || view.hidden)return;
     if(editing){
-      if((scoreReview || !proposals) && !drag && !find.disabled && !sheet.querySelector(':active'))goPage(number,false);
+      if((!proposals || (scoreReview && !scoreReview.correcting)) && !drag && !find.disabled && !sheet.querySelector(':active'))goPage(number,false);
     } else {page=number;pageSelect.value=String(number);}
   },message);
   function extendNumbers(last) {
@@ -80,10 +86,10 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     attachStatus.hidden = !text;
   }
   function saveBoxes() {
-    if(forget)forget.disabled=!Object.keys(boxes).length;
+    if(forget)forget.disabled=!visitMapping && !Object.keys(boxes).length;
     if(attachedHash && saveLibraryBoxes){
       const version=generation;
-      saveLibraryBoxes(state.currentScoreFile.hash,attachedHash,structuredClone(boxes)).catch(()=>{
+      saveLibraryBoxes(state.currentScoreFile.hash,attachedHash,structuredClone(boxes),visitMapping?.slice()).catch(()=>{
         if(version===generation)message('Could not update the PDF markings in your library. Try Save to Library again.');
       });
     }
@@ -91,7 +97,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
       extendNumbers(Math.max(0,...Object.keys(boxes).map(Number))+1);
       recording.boxesChanged(boxes);
     }
-    try { if (!key) throw Error(); localStorage.setItem(key, JSON.stringify(boxes)); }
+    try { if (!key) throw Error(); localStorage.setItem(key, JSON.stringify(visitMapping?{boxes,mapping:visitMapping}:boxes)); }
     catch { message('Boxes are available for this session. This browser could not save them.'); }
   }
   function boxElement(box, active, interactive=false) {
@@ -145,12 +151,18 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     }
     byId('remove').disabled = !boxes[measure.value];
   }
-  function jumpToMeasure(number) {
+  function clearVisitSelection(){
+    noteVisit=null;byId('position').hidden=true;
+    if(!recording)byId('pass-label').hidden=true;
+  }
+  function jumpToMeasure(number,preferred=null) {
     if(recording){recording.seek(number);return;}
     const visits=state.playbackTimeline.measures;
-    const visit=availableVisit(visits,number,state.tickPosition,loopRange,practiceTimingPlan(state));
+    const eligible=eligiblePdfVisits(visits,number,loopRange,practiceTimingPlan(state),visitMapping);
+    const visit=preferred===null?nearestPdfVisit(eligible,state.tickPosition):eligible.find(v=>v.playbackMeasureIndex===preferred);
     if(!visit) {
-      if(!state.media.preview && !visits.some(v=>v.measureNumber===number))
+      clearVisitSelection();
+      if(!state.media.preview && !visits.some(v=>printedBoxForVisit(v,visitMapping)===number))
         message('This printed measure isn’t linked to a score measure.');
       else if(loopMeasures && !loopMeasures.has(number))
         message('This measure is outside the loop.');
@@ -160,6 +172,13 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     message('');
     if(!seek(visit.startTick)) {message('Playback could not move to this measure.');return;}
     noteVisit=visit;
+    const pass=byId('pass');
+    byId('pass-label').hidden=eligible.length<2;
+    if(eligible.length>1){
+      pass.replaceChildren(...eligible.map(v=>new Option(visitLabel(state.score,v),v.playbackMeasureIndex)));
+      pass.value=String(visit.playbackMeasureIndex);
+      pass.onchange=()=>{closeMenu();jumpToMeasure(number,Number(pass.value));};
+    }
     note.replaceChildren(new Option('Measure start',String(visit.startTick)));
     const events=state.expectedEvents.filter(e=>e.startTick>=visit.startTick && e.startTick<visit.endTick);
     for(const [i,event] of events.entries()) note.add(new Option('Note '+(i+1)+' · '+expectedPdfNotes(event),String(event.startTick)));
@@ -183,6 +202,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     measure.closest('label').hidden=action.closest('label').hidden=!!overview;
     sheet.hidden=!editing || !!overview;
     mark.hidden=!!scoreReview;
+    byId('order').hidden=!!recording || !!proposals;
     byId('remove').hidden=!!proposals;
     byId('number-label').textContent=proposals?'First measure':'Measure';
     byId('use').disabled=!proposals?.length || proposals.length>measure.options.length-measure.selectedIndex;
@@ -347,7 +367,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     }
     if(page!==number) {
       endReview();cancelDrag();message('');
-      noteVisit=null;byId('position').hidden=true;
+      clearVisitSelection();
       if(editing) {
         const mapped=Object.entries(boxes);
         const onPage=mapped.filter(([,b])=>b.page===number).map(([n])=>Number(n));
@@ -368,7 +388,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
       else readingControls.insertBefore(pageLabel,byId('position'));
       toolbar.hidden=!editing;
     }
-    endReview();noteVisit=null;byId('position').hidden=true;
+    endReview();clearVisitSelection();byId('order').open=false;
     cancelDrag();
     mark.textContent = editing ? 'Done marking' : 'Mark measures';
     mark.setAttribute('aria-pressed', String(editing));
@@ -419,16 +439,16 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     const waiting = state.mode === 'wait';
     const tick = waiting && event ? event.startTick : state.tickPosition;
     const outside = outsideRecordingScore(state);
-    const number = outside ? null : writtenMeasureAt(state.playbackTimeline?.measures, tick);
+    const number = outside ? null : writtenMeasureAt(state.playbackTimeline?.measures, tick,visitMapping);
     const label = !number ? '' : 'Measure ' + printedMeasure(state.score, number) + (!boxes[number] ? ' · Unmarked' : '');
     if (target.textContent !== label) target.textContent = label;
     const range=state.practiceLoop?.enabled ? state.practiceLoop.range : null;
     const changedRange=range!==loopRange;
     if(changedRange) {
       loopRange=range;
-      loopMeasures=range?new Set(state.playbackTimeline.measures.filter(v=>v.startTick<range.endTick && v.endTick>range.startTick).map(v=>v.measureNumber)):null;
+      loopMeasures=range?new Set(state.playbackTimeline.measures.filter(v=>v.startTick<range.endTick && v.endTick>range.startTick).map(v=>printedBoxForVisit(v,visitMapping))):null;
     }
-    if(noteVisit && (number!==noteVisit.measureNumber || state.isPlaying)) {noteVisit=null;byId('position').hidden=true;}
+    if(noteVisit && (tick<noteVisit.startTick || tick>=noteVisit.endTick || state.isPlaying || changedRange))clearVisitSelection();
     if (current !== number || changedRange) {
       current = number;
       paintBoxes(true);
@@ -438,13 +458,14 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
   function reset() {
     generation++;
     attachedFile=attachedHash=null;
+    visitMapping=null;repeatControls?.reset();
     reader.clear();
     documentTask?.destroy(); documentTask = null;
     pdf = null; key = null; boxes = {}; visible = false; current = null;loopRange=null;loopMeasures=null;
     file.value = '';
     setEditing(false); updateAttachStatus(''); sync(null);
   }
-  async function open(selected,savedBoxes=null) {
+  async function open(selected,savedBoxes=null,savedMapping=null) {
     const score = state.currentScoreFile, version = ++generation;
     if(pdf){endReview();paintBoxes();}
     let task;
@@ -465,6 +486,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
       let mapping={};
       try {mapping=JSON.parse(localStorage.getItem(storageKey)) || {};} catch { /* Session-only. */ }
       if(savedBoxes)mapping=savedBoxes;
+      else if(!recording && mapping.boxes){savedMapping=mapping.mapping;mapping=mapping.boxes;}
       const missedPages=[];
       if(recording?.autoFind() && !Object.keys(mapping).length) {
         const {detectPdfPage}=await import('./pdf-measure-detection.js');
@@ -485,7 +507,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
       reader.load(pages);
       pdf = loaded; page = 1; current = undefined;
       key=storageKey;boxes=mapping;
-      if(forget)forget.disabled=!Object.keys(boxes).length;
+      visitMapping=null;loopRange=undefined;repeatControls?.reset();
       attachedFile=libraryFile;attachedHash=libraryFile?hash:null;
       pageSelect.replaceChildren();
       for (let i = 1; i <= pdf.numPages; i++) pageSelect.add(new Option(String(i), String(i)));
@@ -494,9 +516,13 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
         view.hidden=false;
         recording.opened(hash,selected.name,boxes);
         saveBoxes();
-      } else for (const number of new Set(state.playbackTimeline.measures.map(m => m.measureNumber))) {
-        measure.add(new Option(printedMeasure(state.score, number), String(number)));
+      } else {
+        const visits=state.playbackTimeline.measures,limit=state.score.masterBars.length;
+        for(let number=1;number<=limit;number++)measure.add(new Option(printedMeasure(state.score,number),String(number)));
+        if(Array.isArray(savedMapping) && savedMapping.length===visits.length &&
+          savedMapping.every(n=>n===null || Number.isSafeInteger(n) && n>=1 && n<=limit))visitMapping=savedMapping;
       }
+      if(forget)forget.disabled=!visitMapping && !Object.keys(boxes).length;
       visible = true; updateAttachStatus(''); closeMenu();
       setEditing(!Object.keys(boxes).length); sync();
       if(recording && Object.keys(boxes).length)message(Object.keys(boxes).length+' measure boxes across '+loaded.numPages+' pages. Choose Mark measures to review them.');
@@ -579,9 +605,9 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     forget.onclick=()=>{
       if(!pdf || forget.disabled)return;
       const count=Object.keys(boxes).length;
-      if(!window.confirm('Forget all '+count+' measure boxes for this pair?\n\n'+state.currentScoreFile.fileName+'\n'+attachedFile.name))return;
+      if(!window.confirm('Forget all '+count+' measure boxes and custom repeat mappings for this pair?\n\n'+state.currentScoreFile.fileName+'\n'+attachedFile.name))return;
       closeMenu();
-      boxes={};
+      boxes={};visitMapping=null;loopRange=undefined;repeatControls.reset();
       reader.populate(boxes,boxElement,n=>printedMeasure(state.score,n));
       visible=true;
       setEditing(true);
@@ -598,6 +624,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
       sync();
       mark.focus({preventScroll:true});
     };
+    byId('start-order').onclick=()=>{closeMenu();setEditing(true);sync();repeatControls.open();};
     byId('native').onclick=()=>{
       closeMenu();
       visible=false;
@@ -617,8 +644,8 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
   new ResizeObserver(renderPage).observe(scroll);
   function revealAtTick(tick) {
     if(visible && !view.hidden && !editing && state.ui.autoScroll)
-      reader.revealMeasure(writtenMeasureAt(state.playbackTimeline?.measures,tick));
+      reader.revealMeasure(writtenMeasureAt(state.playbackTimeline?.measures,tick,visitMapping));
   }
   return {sync,reset,open,revealAtTick,get revision(){return generation;},
-    attachment:()=>attachedHash?{file:attachedFile,hash:attachedHash,boxes:structuredClone(boxes)}:null};
+    attachment:()=>attachedHash?{file:attachedFile,hash:attachedHash,boxes:structuredClone(boxes),mapping:visitMapping?.slice()}:null};
 }
