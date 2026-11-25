@@ -9,7 +9,7 @@ export function passageScore(timeline, trackId) {
   edges.push(tickToTimeMs(timeline,timeline.measures.at(-1)?.endTick ?? 0)/1000);
   const notes = timeline.events.filter(e => e.trackId === String(trackId)).flatMap(e =>
     e.notes.filter(n => n.attack !== false && !n.isDead && Number.isFinite(n.midi)).map(n => ({
-      start:(n.startTimeMs ?? e.startTimeMs)/1000, end:(n.endTimeMs ?? e.endTimeMs)/1000, pitch:n.midi%12
+      start:(n.startTimeMs ?? e.startTimeMs)/1000, end:(n.endTimeMs ?? e.endTimeMs)/1000, pitch:n.midi%12, midi:n.midi
     })));
   return {edges,notes};
 }

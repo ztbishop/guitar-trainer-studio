@@ -30,7 +30,7 @@ export function keyboardFeedback(event,noteStates,heldNotes,wrongNotes) {
 
 export function initPracticeKeyboard(board) {
   const nodes=new Map();
-  let previous=[],lastFocus='',lastWidth=0;
+  let previous=[];
   function build(first,last) {
     nodes.clear();
     const fragment=document.createDocumentFragment();
@@ -40,7 +40,8 @@ export function initPracticeKeyboard(board) {
       el.className='piano-key '+(black?'black':'white');
       el.dataset.midi=midi;
       el.title=midiToNoteName(midi);
-      if(!black)whites++;
+      if(black)el.style.setProperty('--white-index',whites);
+      else whites++;
       const label=document.createElement('span');
       el.append(label);
       fragment.append(el);
@@ -48,7 +49,7 @@ export function initPracticeKeyboard(board) {
     }
     board.style.setProperty('--white-keys',whites);
     board.replaceChildren(fragment);
-    lastFocus='';previous=[];
+    previous=[];
   }
   return function render(markers) {
     const pitches=markers.map(marker=>marker.midi);
@@ -57,17 +58,6 @@ export function initPracticeKeyboard(board) {
       const last=nodes.has(127) || Math.max(...pitches)>108 ? 127 : 108;
       build(first,last);
     }
-    const targets=markers.filter(marker=>marker.target);
-    const focus=(targets.length?targets:markers).map(marker=>marker.midi);
-    const focusId=focus.join(',');
-    const viewport=board.parentElement;
-    if(focus.length && (focusId!==lastFocus || viewport.clientWidth!==lastWidth)) {
-      const left=nodes.get(Math.min(...focus)).offsetLeft;
-      const rightKey=nodes.get(Math.max(...focus)),right=rightKey.offsetLeft+rightKey.offsetWidth;
-      if(left<viewport.scrollLeft || right>viewport.scrollLeft+viewport.clientWidth)
-        viewport.scrollLeft=(left+right-viewport.clientWidth)/2;
-    }
-    lastFocus=focusId;lastWidth=viewport.clientWidth;
     if(markers.length===previous.length && markers.every((m,i)=>m.midi===previous[i].midi && m.target===previous[i].target && m.state===previous[i].state))return;
     for(const {midi} of previous) {
       const el=nodes.get(midi);
@@ -81,6 +71,7 @@ export function initPracticeKeyboard(board) {
       el.firstChild.textContent=(symbols[state]?symbols[state]+'\n':'')+midiToNoteName(midi);
     }
     board.setAttribute('aria-label',['Practice keyboard',...markers.map(m=>midiToNoteName(m.midi)+' '+m.state)].join(', '));
+    board.dataset.feedback=markers.map(m=>[symbols[m.state],midiToNoteName(m.midi)].filter(Boolean).join(' ')).join('   ');
     previous=markers;
   };
 }

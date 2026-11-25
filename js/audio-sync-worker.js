@@ -44,6 +44,8 @@ self.onmessage = async ({data}) => {
       self.postMessage({phase:'Following the continuous performance',done:0,total:1});
       const {continuousPerformance}=await import('./audio-sync-continuous.js');
       continuousPerformance(data.score,data.samples,features,matches,choices,data.bars);
+      const {recoverPaddedEnding}=await import('./audio-sync-ending.js');
+      recoverPaddedEnding(data.score,data.samples,features,matches,choices);
     } else {
       recoverPinnedPhrases(data.score,features,matches,choices);
       if(matches.some(row=>row.length)){

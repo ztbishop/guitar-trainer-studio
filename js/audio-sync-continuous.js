@@ -13,7 +13,7 @@ function pitchMass(features,frame,pitches) {
 // Use the score's opening attack and last sustained harmony only when the
 // recording provides matching activity at that edge. Leave introductions,
 // trailing silence and uncertain releases outside the mapped passage.
-function edgePins(score,samples,features) {
+export function edgePins(score,samples,features,endingBar=score.edges.length-2) {
   const levels=new Float32Array(Math.floor(samples.length/HOP));
   let peak=0;
   for (let i=0;i<levels.length;i++) {
@@ -32,8 +32,8 @@ function edgePins(score,samples,features) {
   if (opening.length && [1,2,3].every(k=>pitchMass(features,first+k,opening)>0.62))
     pins.push({score:edges[0],time:first*FRAME});
   const lastAttack=notes.reduce((max,n)=>Math.max(max,n.start),-Infinity);
-  const final=chordAt(lastAttack), end=edges.at(-1);
-  if (lastAttack<edges.at(-2) || !notes.some(n=>n.start===lastAttack && n.end>=end-0.03)) return pins;
+  const final=chordAt(lastAttack), end=edges[endingBar+1];
+  if (lastAttack<edges[endingBar] || !notes.some(n=>n.start===lastAttack && n.end>=end-0.03)) return pins;
   // A return of the harmony after a different phrase is a separate event.
   let frame=last;
   while (frame>=0 && last-frame<10 && pitchMass(features,frame,final)<0.72) frame--;

@@ -5,6 +5,8 @@ Guitar grading, PDF companions, MIDI import, Auto-sync and library recovery are 
 - [x] Choose a bundled synth sound for a melodic track in Audio and restore the score's original instrument changes.
 - [x] Allow Fill gaps on a continuous performance with unmatched opening or closing measures, and identify the estimated ends in the editor.
 - [x] Offer a remembered Fretboard or Keyboard view and verify pitch feedback on the Arirang MIDI with both companion PDF editions.
+- [x] Fit the full practice keyboard across desktop and phone panels.
+- [x] Test a continuous recording’s closing run against a MIDI export with trailing empty measures and compare its selected timings with the Arirang GPX.
 - [x] Restore companion PDFs, edited measure boxes and recording references from saved scores. Include PDFs and timing in portable library backups and support reconnecting a missing recording.
 
 - [x] Scroll continuously through PDF pages, follow the saved Auto-scroll setting in both PDF workflows, and return from notation with Show PDF.
