@@ -17,8 +17,10 @@ export function initFretboardControls(onChange,onStep) {
     position();
   });
   window.addEventListener('resize',close);
+  function dismiss(){close();gear.focus({preventScroll:true});}
+  get('fretboard-options-close').addEventListener('click',dismiss);
   document.addEventListener('click',event=>{if(!get('fretboard-tools').contains(event.target))close();});
-  get('fretboard-tools').addEventListener('keydown',event=>{if(event.key==='Escape'){close();gear.focus();}});
+  get('fretboard-tools').addEventListener('keydown',event=>{if(event.key==='Escape')dismiss();});
   for(const [id,key,values] of [['instrument-view','instrumentView',INSTRUMENT_VIEWS],['fretboard-view','fretboardView',FRETBOARD_VIEWS],['fretboard-labels','fretboardLabels',FRETBOARD_LABELS]]) {
     get(id).addEventListener('change',event=>{if(values.includes(event.target.value)){AppState.ui[key]=event.target.value;saveDisplayPreferences(AppState);onChange();}});
   }

@@ -734,7 +734,10 @@
           <button id="fretboard-next" type="button" aria-label="Next beat" title="Pause and move to next beat" disabled>→</button>
           <button id="fretboard-settings" type="button" aria-label="Instrument view settings" aria-expanded="false" aria-controls="fretboard-options">⚙</button>
           <div id="fretboard-options" popover="manual" hidden>
-            <label>Instrument <select id="instrument-view"><option value="fretboard">Fretboard</option><option value="keyboard">Keyboard</option></select></label>
+            <div class="instrument-options-row">
+              <label>Instrument <select id="instrument-view"><option value="fretboard">Fretboard</option><option value="keyboard">Keyboard</option></select></label>
+              <button id="fretboard-options-close" class="panel-close" type="button" aria-label="Close instrument settings" title="Close instrument settings">×</button>
+            </div>
             <div id="fretboard-only-options">
             <label>Show <select id="fretboard-view"><option value="beat">Beat</option><option value="next">Beat + Next Beat</option><option value="bar" selected>Beat + Bar</option></select></label>
             <label>Labels <select id="fretboard-labels"><option value="notes">Note names</option><option value="frets">Fret numbers</option><option value="fingers">Finger numbers</option><option value="none">None</option></select></label>

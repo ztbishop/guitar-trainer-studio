@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Instrument settings popup, November 25, 2026
+
+The × beside the instrument selector closes settings and returns focus to the gear. Chrome checks covered the fretboard and keyboard at desktop and phone widths, including pointer and keyboard dismissal.
+
 ## Black-key note labels, November 25, 2026
 
 Active black keys on the practice keyboard show their pitch and feedback symbol in dark text on a white background. In Chrome, expected F#3, correct G#3, wrong A#3 and held C#4 had separate labels at desktop widths. Narrow panels displayed all four names in the existing feedback strip. All 88 keys fit at each of the four tested widths.
