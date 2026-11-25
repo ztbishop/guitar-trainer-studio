@@ -20,6 +20,8 @@ In PDF + recording, an explicit comparison decodes the selected media locally an
 
 For a playable score with a companion PDF, Reset passes the destination tick to the reader. With auto-scroll enabled, the reader looks up its written measure and reveals its box even when the playback measure has stayed the same.
 
+The companion reader keeps its navigation controls in the Scores → PDF menu. The same page selector moves into the on-page toolbar during marking, so scrolling and page selection share one state. The standalone recording room keeps its own on-page controls.
+
 The companion measure overlay reads the repeat-expanded timeline and existing practice target. Its normalized rectangles use the written measure number, so repeated visits reuse the box. Direct file sessions cache rectangles under fingerprints of both files. Save to Library stores a PDF blob by content hash and marks the score row with its chosen edition and boxes. Deleting the last reference releases the blob. Library reopening waits for the active score and timeline before restoring attachments. Local recording handles stay in IndexedDB. The portable reference identifies the recording, and the separate saved profile owns its sync points. Opening Media Sync temporarily exposes the interactive native score. The Loop menu uses the same transport in both views.
 
 Opening a MIDI invokes `js/midi-score-import.js` on demand. The standalone webmscore worker returns MusicXML for the host's native score loader, then terminates. The library and media sync retain the original MIDI identity. The virtual fretboard uses its existing tuning and written position requirements. Expected pitch names in the PDF use the trainer's current event and Wait note states.

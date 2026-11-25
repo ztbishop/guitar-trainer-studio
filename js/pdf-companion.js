@@ -41,6 +41,9 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
   const view = byId('view'), sheet = byId('sheet'), scroll = byId('scroll'), overlay = byId('boxes');
   const file = byId('file'), attach = byId('attach'), attachStatus = byId('attach-status');
   const pageSelect = byId('page'), measure = byId('measure'), mark = byId('map'), target = byId('target');
+  const toolbar=byId('toolbar'), readingControls=byId('reading-controls');
+  const pageLabel=pageSelect.closest('label');
+  if(readingControls)readingControls.append(byId('position'));
   const native = document.getElementById('alphatab-wrapper');
   let pdf, documentTask, key, boxes = {}, page = 1, editing = false, visible = false, generation = 0;
   let drag, current, trainerState;
@@ -63,10 +66,13 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     }
   }
 
-  function message(text) {
+  let statusTimer;
+  function message(text, transient=false) {
+    clearTimeout(statusTimer);
     const status = byId('status');
     status.textContent = text;
     status.hidden = !text;
+    if(transient)statusTimer=setTimeout(()=>message(''),4000);
   }
   function updateAttachStatus(text) {
     attachStatus.textContent = text;
@@ -148,7 +154,12 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     for(const [i,event] of events.entries()) note.add(new Option('Note '+(i+1)+' · '+expectedPdfNotes(event),String(event.startTick)));
     byId('position').hidden=!events.length;
   }
-  note.onchange=()=>{if(noteVisit)seek(Number(note.value));};
+  note.onchange=()=>{
+    if(!noteVisit)return;
+    closeMenu();
+    seek(Number(note.value));
+    scroll.focus({preventScroll:true});
+  };
   function reviewControls() {
     byId('review').hidden=!proposals;
     find.hidden=!!proposals;
@@ -232,8 +243,9 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     if(!next)return;
     const added=Object.keys(next).length-Object.keys(boxes).length,notice=scoreReview.notice;
     boxes=next;setEditing(false);current=undefined;sync();
-    message(added+' new measure boxes. '+Object.keys(boxes).length+' mapped in the score. '+notice);
+    message(added+' new measure boxes. '+Object.keys(boxes).length+' mapped in the score. '+notice,!recording && !notice);
     saveBoxes();
+    scroll.focus({preventScroll:true});
   };
   action.onchange=replace.onchange=describeReview;
   byId('use').onclick=()=>{
@@ -286,6 +298,11 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
   }
   function setEditing(value) {
     editing = value;
+    if(readingControls) {
+      if(editing)toolbar.prepend(pageLabel);
+      else readingControls.insertBefore(pageLabel,byId('position'));
+      toolbar.hidden=!editing;
+    }
     endReview();noteVisit=null;byId('position').hidden=true;
     cancelDrag();
     mark.textContent = editing ? 'Done marking' : 'Mark measures';
@@ -318,6 +335,8 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     const canAttach = Boolean(state.currentScoreFile && state.playbackTimeline?.measures.length);
     if (attach.disabled === canAttach) attach.disabled = !canAttach;
     const shown = visible && !!pdf && !state.media.editing;
+    const showReadingControls=shown && !editing;
+    if(readingControls.hidden===showReadingControls)readingControls.hidden=!showReadingControls;
     if (view.hidden === shown) {
       view.hidden = !shown;
       native.inert = shown;
@@ -334,8 +353,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     const tick = waiting && event ? event.startTick : state.tickPosition;
     const outside = outsideRecordingScore(state);
     const number = outside ? null : writtenMeasureAt(state.playbackTimeline?.measures, tick);
-    const notes = !outside && event?.measureNumber === number ? expectedPdfNotes(event, trainer.noteStates, waiting) : '';
-    const label = !number ? '' : 'Measure ' + printedMeasure(state.score, number) + (!boxes[number] ? ' · Unmarked' : '') + (notes ? ' · Play ' + notes : '');
+    const label = !number ? '' : 'Measure ' + printedMeasure(state.score, number) + (!boxes[number] ? ' · Unmarked' : '');
     if (target.textContent !== label) target.textContent = label;
     const range=state.practiceLoop?.enabled ? state.practiceLoop.range : null;
     const changedRange=range!==loopRange;
@@ -405,7 +423,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
       for (let i = 1; i <= pdf.numPages; i++) pageSelect.add(new Option(String(i), String(i)));
       measure.replaceChildren();
       if(recording) {
-        view.hidden=false;byId('native').hidden=true;
+        view.hidden=false;
         recording.opened(hash,selected.name,boxes);
         saveBoxes();
       } else for (const number of new Set(state.playbackTimeline.measures.map(m => m.measureNumber))) {
@@ -468,11 +486,36 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     if (boxes[selected]) goPage(boxes[selected].page);
     measure.value=selected;paintBoxes();
   };
-  pageSelect.onchange = () => goPage(Number(pageSelect.value));
+  pageSelect.onchange = () => {
+    if(readingControls && !editing){closeMenu();scroll.focus({preventScroll:true});}
+    goPage(Number(pageSelect.value));
+  };
   byId('remove').onclick = () => { delete boxes[measure.value]; saveBoxes(); paintBoxes(); sync(); };
-  mark.onclick = () => { setEditing(!editing); current = undefined; sync(); };
-  byId('native').onclick = () => { visible = false; sync(); };
-  if(!recording)byId('return').onclick=byId('show').onclick = () => { closeMenu(); visible = true; current = undefined; sync(); };
+  mark.onclick = () => {
+    setEditing(!editing); current = undefined; sync();
+    if(!editing)scroll.focus({preventScroll:true});
+  };
+  if(!recording) {
+    byId('start-marking').onclick=()=>{
+      closeMenu();
+      setEditing(true);
+      sync();
+      mark.focus({preventScroll:true});
+    };
+    byId('native').onclick=()=>{
+      closeMenu();
+      visible=false;
+      sync();
+      byId('return').focus({preventScroll:true});
+    };
+    byId('return').onclick=byId('show').onclick=()=>{
+      closeMenu();
+      visible=true;
+      current=undefined;
+      sync();
+      scroll.focus({preventScroll:true});
+    };
+  }
   attach.onclick = () => file.click();
   file.onchange = () => { const selected = file.files[0]; file.value = ''; if (selected) open(selected); };
   new ResizeObserver(renderPage).observe(scroll);

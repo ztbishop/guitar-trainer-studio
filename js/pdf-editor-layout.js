@@ -1,7 +1,6 @@
 export function mountPdfEditor(view) {
   view.innerHTML = `
-          <div class="pdf-tools">
-            <button id="pdf-native" type="button">Show notation</button>
+          <div class="pdf-tools" id="pdf-toolbar">
             <label>Page <select id="pdf-page"></select></label>
             <button id="pdf-map" type="button" aria-pressed="false">Mark measures</button>
             <span id="pdf-edit" hidden><label><span id="pdf-number-label">Measure</span> <select id="pdf-measure"></select></label>
@@ -16,7 +15,6 @@ export function mountPdfEditor(view) {
               <button id="pdf-use-score" type="button" hidden>Use score boxes</button>
               <button id="pdf-use" type="button">Use page boxes</button><button id="pdf-cancel" type="button">Cancel</button></span></span>
             <label id="pdf-position" hidden>Jump to <select id="pdf-note"></select></label>
-            <span id="pdf-target"></span>
           </div>
           <p id="pdf-status" role="status" hidden></p>
           <div id="pdf-scroll" tabindex="0" aria-label="PDF page">

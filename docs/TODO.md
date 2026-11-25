@@ -6,6 +6,7 @@ Guitar grading, PDF companions, MIDI import, Auto-sync and library recovery are 
 - [x] Restore companion PDFs, edited measure boxes and recording references from saved scores. Include PDFs and timing in portable library backups and support reconnecting a missing recording.
 
 - [x] Scroll continuously through PDF pages, follow the saved Auto-scroll setting in both PDF workflows, and return from notation with Show PDF.
+- [x] Give companion PDFs the full reading area and reopen the marking toolbar from Scores → PDF.
 - [x] Verify that Reset reveals the companion PDF box at the score or loop start after browsing away, and identify unlinked printed measures when clicked.
 - [x] Compare PDF-only timing with verified TrueFire timing on a syncopated lesson. Offer per-passage audition, explicit application and restoration. Even spacing remains the default. See DEV-NOTES for the single-note and chord results.
 

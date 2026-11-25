@@ -2,6 +2,8 @@ For the active checklist, see [Current status and to-do](TODO.md). Older entries
 
 ## Roadmap verification, November 24, 2026
 
+Companion PDF reading now uses the full score pane. Scores → PDF provides page selection, notation switching, note navigation after a box click, and entry to marking. Done marking and accepting a whole-score scan return to reading. Isolated Chrome checks cover both transitions, score and loop Reset, note seeking, library reopening and the separate PDF + recording room.
+
 Companion PDF navigation was checked in separate Chrome sessions with the Arirang MIDI and both the six-page original and eight-page TAB PDF. After browsing to the last page with the playhead already at its destination, Reset revealed measure 1 or the loop start at measure 40. With auto-scroll off, the last page stayed visible. Temporarily removing the first score visit while retaining its printed box produced the unlinked-measure message. Restoring the visit allowed a click from measure 2 back to measure 1.
 
 Isolated Chrome reran library backup/merge, companion PDF recovery and missing-recording reconnection. Both the saved markings and original timing came back. The audio-sync browser check also exercised repeat selection, gaps, alternate starts and Undo. The targeted audio, tie-boundary and PDF-spacing suite passed 61 checks with three optional skips.

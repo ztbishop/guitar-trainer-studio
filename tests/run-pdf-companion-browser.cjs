@@ -29,6 +29,19 @@ function twoBarMidi() {
     await page.waitForFunction(() => practiceState.ui.playerStatus.includes('Choose'));
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
+    const openPdfMenu=async()=>{
+      await page.locator('#btn-scores').click();
+      await page.locator('button[popovertarget="score-pdf-tools"]').click();
+    };
+    const readPage=async number=>{
+      await openPdfMenu();
+      await page.locator('#pdf-page').selectOption(String(number));
+    };
+    const markMeasures=async()=>{
+      await openPdfMenu();
+      await page.locator('#pdf-start-marking').click();
+      assert.ok(await page.locator('#pdf-toolbar').isVisible());
+    };
     const loadPair = async (name=midi.name) => {
       await page.locator('#score-file-input').setInputFiles({...midi,name});
       await page.waitForFunction(() => practiceState.playerReady && !document.querySelector('#pdf-attach').disabled);
@@ -75,11 +88,13 @@ function twoBarMidi() {
     }
     await page.locator('#pdf-map').click();
     assert.equal(await page.locator('#pdf-page').inputValue(), '1');
+    assert.ok(await page.locator('#pdf-toolbar').isHidden());
+    await openPdfMenu();
     await page.locator('#pdf-native').click();
     assert.ok(await page.locator('#pdf-return').isVisible());
     await page.locator('#pdf-return').click();
     assert.ok(await page.locator('#pdf-view').isVisible());
-    const resetButton=page.locator('#stop-button'), pageSelect=page.locator('#pdf-page');
+    const resetButton=page.locator('#stop-button');
     const waitForResetBox=number=>page.waitForFunction(number=>{
       const box=document.querySelector('#pdf-pages .current'),rect=box?.getBoundingClientRect();
       const frame=document.querySelector('#pdf-scroll').getBoundingClientRect();
@@ -87,12 +102,12 @@ function twoBarMidi() {
         !practiceState.isPlaying;
     },number);
     // Browse away while already at the reset destination, first without a loop and then with one.
-    await pageSelect.selectOption('2');
+    await readPage(2);
     await resetButton.click();await waitForResetBox(1);
     await page.locator('#practice-loop-enabled').evaluate(el=>el.click());
     await page.locator('#practice-loop-start').evaluate(el=>{el.value='2';el.dispatchEvent(new Event('change'));});
     await resetButton.click();await waitForResetBox(2);
-    await pageSelect.selectOption('1');
+    await readPage(1);
     await resetButton.click();await waitForResetBox(2);
     // Restore the default loop bounds for the later controls checks.
     await page.locator('#practice-loop-start').evaluate(el=>{el.value='1';el.dispatchEvent(new Event('change'));});
@@ -127,20 +142,20 @@ function twoBarMidi() {
     await loadPair();
     assert.equal(await page.locator('#pdf-map').getAttribute('aria-pressed'), 'false');
     assert.equal(await page.locator('#pdf-pages .current').count(), 1);
-    await page.locator('#pdf-page').selectOption('2');
+    await readPage(2);
     await page.getByRole('button',{name:'Go to measure 2',exact:true}).click();
     await page.waitForFunction(()=>Math.abs(practiceState.tickPosition-practiceState.playbackTimeline.measures[1].startTick)<=1);
-    await page.locator('#pdf-note').selectOption({index:2});
+    await openPdfMenu();await page.locator('#pdf-note').selectOption({index:2});
     await page.waitForFunction(()=>Math.abs(practiceState.tickPosition-practiceState.expectedEvents[5].startTick)<=1 && !practiceState.isPlaying);
     await page.locator('#practice-loop-enabled').evaluate(el=>el.click());
     await page.locator('#practice-loop-end').evaluate(el=>{el.value='1';el.dispatchEvent(new Event('change'));});
-    await page.locator('#pdf-page').selectOption('2');
+    await readPage(2);
     await page.locator('button.outside-loop').waitFor();
     await page.locator('#practice-loop-enabled').evaluate(el=>el.click());
     assert.equal(await page.locator('button.outside-loop').count(),0);
     // Re-scan page one with two proposed boxes. Measure two initially
     // belongs to page two, so a replacement must protect that assignment.
-    await page.locator('#pdf-map').click();
+    await markMeasures();
     await page.locator('#pdf-page').selectOption('1');
     // Keep a hand-drawn first bar and recover a missing second page in one scan.
     await page.locator('#pdf-measure').selectOption('2');
@@ -152,7 +167,8 @@ function twoBarMidi() {
     assert.deepEqual((await savedBoxes())[1],manual);
     assert.equal((await savedBoxes())[2].page,2);
     assert.equal(await page.locator('#pdf-pages button[data-measure]').count(),2);
-    await page.locator('#pdf-map').click();
+    assert.ok(await page.locator('#pdf-toolbar').isHidden());
+    await markMeasures();
     await page.locator('#pdf-find').click();
     await page.locator('#pdf-use').click();
     assert.equal(await page.locator('#pdf-page').inputValue(),'2');
@@ -186,7 +202,7 @@ function twoBarMidi() {
     await page.mouse.move(pos.x+1500,pos.y);await page.mouse.up();
     assert.equal(await handle.getAttribute('aria-valuenow'),await handle.getAttribute('aria-valuemax'));
     const maximum=await handle.getAttribute('aria-valuenow');
-    await loadPair('exercise.midi');await page.locator('#pdf-map').click();
+    await loadPair('exercise.midi');await markMeasures();
     assert.equal(await handle.getAttribute('aria-valuenow'),maximum);
     // Supply a real cloneable browser file handle through the picker. The
     // isolated test can remove this WAV without touching the user's files.
