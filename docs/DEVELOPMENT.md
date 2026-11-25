@@ -42,7 +42,7 @@ The tests inspect the actual GP archive's raw note masks independently of the im
 
 Run `node tests/run-text-layout-browser.cjs` with `GTS_PLAYWRIGHT_MODULE` and optional `GTS_BROWSER_CHANNEL`. The synthetic two-track score includes a bar whose first label occurs on beat three. The regression tests left-to-right principal beat order with staff, TAB and both, at widths 390, 600 and 1600 and zoom 75, 100, 150 and 200 percent. It also checks original labels, score clocks, pitches, ties, MIDI, native playback timelines, nonlinear sync mappings, synth Play/Pause and native printing. Grace glyphs have independent placement rules and remain part of musical readback.
 
-`GTS_TEXT_GPX` can point to the saved Hummingbird 101143 original. `GTS_TEXT_GP` can point to the saved label-dense 98063 export, with optional matching `GTS_TEXT_TIMING`. Keep private inputs and screenshots outside tracked files. `GTS_SCREENSHOT_DIR` overrides the default ignored `dist/native-text-layout`. Bounding-box intersections are reported as diagnostic evidence for future renderer qualification. The earlier 1.8.4 results provide a historical comparison. v1.0.2 ships the qualified 1.9.0 renderer.
+`GTS_TEXT_GPX` can point to the saved Hummingbird 101143 original. `GTS_TEXT_GP` can point to the saved label-dense 98063 export, with optional matching `GTS_TEXT_TIMING`. Keep private inputs and screenshots outside tracked files. `GTS_SCREENSHOT_DIR` overrides the default ignored `dist/native-text-layout`. Bounding-box intersections are reported as diagnostic evidence for future renderer qualification. The earlier 1.8.4 results provide a historical comparison. v1.1.0 ships the qualified 1.9.0 renderer.
 
 ## Full recording boundary acceptance
 
@@ -72,7 +72,7 @@ For manual acceptance in the normal Live Server/browser/Fishman setup:
 Browser-origin storage and library backup exclusions remain unchanged. A score with different bytes gets a new identity. Cross-track chord overlays remain deferred. Record physical MIDI/audible/user acceptance separately from automated native/browser results.
 
 
-The root README is the player guide shared by GitHub and README.html. Use [Current status and to-do](TODO.md) for shipped work and open checks, [Development notes](DEV-NOTES.md) for implementation history, and [Architecture](ARCHITECTURE.md) for module contracts. Read [AGENTS.md](../AGENTS.md) before editing. The stable baseline is [v1.0.2](releases/v1.0.2.md). The owner authorizes agents to commit and push completed, verified updates with descriptive messages. See [Publishing](PUBLISHING.md) for the separate release workflow and owner-controlled visibility and Pages settings.
+The root README is the player guide shared by GitHub and README.html. Use [Current status and to-do](TODO.md) for shipped work and open checks, [Development notes](DEV-NOTES.md) for implementation history, and [Architecture](ARCHITECTURE.md) for module contracts. Read [AGENTS.md](../AGENTS.md) before editing. The stable baseline is [v1.1.0](releases/v1.1.0.md). The owner authorizes agents to commit and push completed, verified updates with descriptive messages. See [Publishing](PUBLISHING.md) for the separate release workflow and owner-controlled visibility and Pages settings.
 
 ## Licensing maintenance
 

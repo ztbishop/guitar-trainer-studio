@@ -17,7 +17,7 @@ For a test run only, omit `--install`. Every successful replacement keeps the pr
 
 ## Reinstall or verify the current bundles
 
-Guitar Trainer Studio v1.0.2 includes the qualified alphaTab 1.9.0 bundles. Use an explicit version at the repository root to reinstall the same release.
+Guitar Trainer Studio v1.1.0 includes the qualified alphaTab 1.9.0 bundles. Use an explicit version at the repository root to reinstall the same release.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\alphatab\update-alphatab.ps1 -Version 1.9.0

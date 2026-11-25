@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Stable v1.1.0, November 25, 2026
+
+The owner approved v1.1.0 for GitHub and the hosted trainer. The release adds PDF practice, MIDI file import, recording Auto-sync, keyboard feedback, loop speed training and library attachment recovery. The release check passed 984 Node tests with nine skipped. Physical MIDI response remains an owner check. [Release notes](releases/v1.1.0.md)
+
 ## Instrument settings popup, November 25, 2026
 
 The × beside the instrument selector closes settings and returns focus to the gear. Chrome checks covered the fretboard and keyboard at desktop and phone widths, including pointer and keyboard dismissal.

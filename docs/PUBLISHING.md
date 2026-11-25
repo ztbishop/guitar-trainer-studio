@@ -48,4 +48,6 @@ Stable v1.0.0 was explicitly authorized on 2026-10-29. Preserve the earlier beta
 
 Beta v0.0.4 was explicitly authorized on 2026-10-24, lifting the prior documentation/licensing hold. Its checks and publication result belong in DEV-NOTES.md and the task handoff; physical hardware acceptance and actual public hosting are separate from automated evidence.
 
+The v1.1.0 stable release uses the existing GitHub Pages source, the root of `main`. [Release notes](releases/v1.1.0.md) · [GitHub release](https://github.com/ztbishop/guitar-trainer-studio/releases/tag/v1.1.0) · [Hosted trainer](https://ztbishop.github.io/guitar-trainer-studio/)
+
 Stable v1.0.2 was published on November 20, 2026. The annotated tag points to commit `7cfa56c`. [Release notes](releases/v1.0.2.md) · [GitHub release](https://github.com/ztbishop/guitar-trainer-studio/releases/tag/v1.0.2)

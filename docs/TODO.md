@@ -61,9 +61,9 @@ For a loaded recording, **Use reviewed timing** also offers playback when gradin
 
 The local draft editor can now activate confirmed passages through **Use reviewed timing**. For a draft without a usable passage, check the reason beside the review controls. Zero-length opening rests and reviewed gaps have targeted regression coverage.
 
-**Stable baseline: v1.0.2, published November 20, 2026.** The core practice and usability work is complete. The next milestone is a few normal practice sessions with the released build. Use this page for current priorities and the dated archive for earlier decisions. [Release notes](releases/v1.0.2.md) · [GitHub release](https://github.com/ztbishop/guitar-trainer-studio/releases/tag/v1.0.2) · [Historical to-do entries](TODO-HISTORY.md)
+**Stable release v1.1.0 · November 25, 2026.** The core practice and usability work is complete. The next milestone is a few normal practice sessions with the released build. Use this page for current priorities and the dated archive for earlier decisions. [Release notes](releases/v1.1.0.md) · [GitHub release](https://github.com/ztbishop/guitar-trainer-studio/releases/tag/v1.1.0) · [Historical to-do entries](TODO-HISTORY.md)
 
-## Changes since v1.0.2
+## Practice and recording changes in v1.1.0
 
 - Reviewed recording timing can activate when the generated guitar playback proves that a ringing note ends before a spoken passage or exactly at its start.
 
@@ -96,7 +96,7 @@ The owner previously confirmed basic Hex and Poly input, Wait progression, Realt
 
 - [ ] Try **Suggest sync points from audio** on a familiar guitar lesson with spoken breaks and a repeated demonstration. Compare the preferred take and its measure boundaries with independently supplied Soundslice timing. Listen through one break and confirm practice resumes at the chosen pass.
 
-Use v1.0.2 in your usual browser with your usual guitar. A few representative passages are enough to make this useful.
+Use v1.1.0 in your usual browser with your usual guitar. A few representative passages are enough to make this useful.
 
 - [ ] **Fishman in Wait and Realtime.** Try a short passage with a repeated note, a chord, and a written bend or pre-bend. Check releases, Pause/Resume and a short loop. Compare Hex and Poly if you use both. For a reproducible mismatch, record the measure, input mode, and expected and actual feedback. [MIDI and practice guide](../README.md#getting-clean-midi-from-a-standard-guitar)
 - [ ] **A real synced recording.** Listen through a musical passage and a spoken break, seek back to the music, and check that the TAB follows what you hear. If a read error occurs, check **Reload recording** with that source. If you encounter incomplete timing, review one draft and verify or place its missing endpoints by ear. An arrangement that differs from the recording may need a matching score or separate reference video. [Media Sync guide](MEDIA-SYNC.md)
