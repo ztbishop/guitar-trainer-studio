@@ -2,6 +2,8 @@ For the active checklist, see [Current status and to-do](TODO.md). Older entries
 
 ## Roadmap verification, November 24, 2026
 
+Companion PDF navigation was checked in separate Chrome sessions with the Arirang MIDI and both the six-page original and eight-page TAB PDF. After browsing to the last page with the playhead already at its destination, Reset revealed measure 1 or the loop start at measure 40. With auto-scroll off, the last page stayed visible. Temporarily removing the first score visit while retaining its printed box produced the unlinked-measure message. Restoring the visit allowed a click from measure 2 back to measure 1.
+
 Isolated Chrome reran library backup/merge, companion PDF recovery and missing-recording reconnection. Both the saved markings and original timing came back. The audio-sync browser check also exercised repeat selection, gaps, alternate starts and Undo. The targeted audio, tie-boundary and PDF-spacing suite passed 61 checks with three optional skips.
 
 Fresh blind runs used the original local scores and videos. On *Devil Inside*, the selected passages began at 1:11.64, 3:20.28 and 6:04.36. The verse labeled 4:34 had no selected measures. On *Arirang*, Continuous music and Fill gaps mapped the second pass of measures 69–72 between 175.314 and 182.227 seconds. The interpolated starts for measures 70, 71 and 72 were 177.042, 178.771 and 180.499 seconds. Three earlier audio alignments gave ranges of 177.12–177.44, 178.80–178.88 and 180.24–180.32 seconds respectively. These comparisons establish coverage and highlight possible interior drift. They do not establish exact performed downbeats or physical MIDI response.

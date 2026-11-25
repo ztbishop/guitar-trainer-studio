@@ -323,6 +323,7 @@ function wireTransportButtons() {
     resetRealtimeSession('stop',start);
     updateActiveTargetsFromPlayback(start);
     renderTrainerUi();
+    pdfCompanion?.revealAtTick(start);
   });
 }
 

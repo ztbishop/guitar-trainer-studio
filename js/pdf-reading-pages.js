@@ -86,6 +86,9 @@ export function readingPages(scroll, root, onJump, onPage, onError) {
     if (rect.left < frame.left || rect.right > frame.right) scroll.scrollLeft += rect.left-frame.left-8;
     onPage(Number(el.closest('[data-page]').dataset.page));
   }
+  function revealMeasure(number) {
+    follow(targets.get(number));
+  }
   function update(number, nextCue, loop, reveal) {
     targets.get(active)?.classList.remove('current');
     targets.get(cue)?.classList.remove('tap-cue');
@@ -95,7 +98,7 @@ export function readingPages(scroll, root, onJump, onPage, onError) {
       for (const [n, el] of targets) el.classList.toggle('outside-loop', !!loop && !loop.has(n));
     }
     active = number; cue = nextCue; range = loop;
-    if (reveal) follow(targets.get(number ?? nextCue));
+    if (reveal) revealMeasure(number ?? nextCue);
   }
   scroll.addEventListener('scroll', () => {
     cancelAnimationFrame(scrollFrame);
@@ -113,5 +116,5 @@ export function readingPages(scroll, root, onJump, onPage, onError) {
   function placeEditor(number, sheet) {
     pages[number-1]?.node.append(sheet);
   }
-  return {clear, load, resize, populate, update, jump, placeEditor};
+  return {clear, load, resize, populate, update, revealMeasure, jump, placeEditor};
 }

@@ -79,6 +79,38 @@ function twoBarMidi() {
     assert.ok(await page.locator('#pdf-return').isVisible());
     await page.locator('#pdf-return').click();
     assert.ok(await page.locator('#pdf-view').isVisible());
+    const resetButton=page.locator('#stop-button'), pageSelect=page.locator('#pdf-page');
+    const waitForResetBox=number=>page.waitForFunction(number=>{
+      const box=document.querySelector('#pdf-pages .current'),rect=box?.getBoundingClientRect();
+      const frame=document.querySelector('#pdf-scroll').getBoundingClientRect();
+      return box?.dataset.measure===String(number) && rect.top>=frame.top && rect.bottom<=frame.bottom &&
+        !practiceState.isPlaying;
+    },number);
+    // Browse away while already at the reset destination, first without a loop and then with one.
+    await pageSelect.selectOption('2');
+    await resetButton.click();await waitForResetBox(1);
+    await page.locator('#practice-loop-enabled').evaluate(el=>el.click());
+    await page.locator('#practice-loop-start').evaluate(el=>{el.value='2';el.dispatchEvent(new Event('change'));});
+    await resetButton.click();await waitForResetBox(2);
+    await pageSelect.selectOption('1');
+    await resetButton.click();await waitForResetBox(2);
+    // Restore the default loop bounds for the later controls checks.
+    await page.locator('#practice-loop-start').evaluate(el=>{el.value='1';el.dispatchEvent(new Event('change'));});
+    await page.locator('#practice-loop-enabled').evaluate(el=>el.click());
+    await page.getByRole('button',{name:'Go to measure 2',exact:true}).click();
+    const missingVisit=await page.evaluate(()=>{
+      const timeline=practiceState.playbackTimeline,media=practiceState.media;
+      const first=document.querySelector('#pdf-pages [data-measure="1"]'),status=document.querySelector('#pdf-status');
+      try {
+        practiceState.playbackTimeline={...timeline,measures:timeline.measures.filter(v=>v.measureNumber!==1)};
+        first.click();const synth=status.textContent;
+        practiceState.media={...media,preview:true};
+        first.click();return [synth,status.textContent];
+      } finally {practiceState.playbackTimeline=timeline;practiceState.media=media;}
+    });
+    assert.deepEqual(missingVisit,['This printed measure isn’t linked to a score measure.','This measure has no timing in the active recording.']);
+    await page.getByRole('button',{name:'Go to measure 1',exact:true}).click();
+    await waitForResetBox(1);
     const scroll=page.locator('#pdf-scroll');
     await page.evaluate(()=>{practiceState.ui.autoScroll=false;});
     await scroll.evaluate(el=>{el.scrollTop=el.scrollHeight;});

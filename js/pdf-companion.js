@@ -130,8 +130,16 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
   }
   function jumpToMeasure(number) {
     if(recording){recording.seek(number);return;}
-    const visit=availableVisit(state.playbackTimeline.measures,number,state.tickPosition,loopRange,practiceTimingPlan(state));
-    if(!visit) { message(loopMeasures && !loopMeasures.has(number)?'This measure is outside the loop.':'This measure has no timing in the active recording.');return; }
+    const visits=state.playbackTimeline.measures;
+    const visit=availableVisit(visits,number,state.tickPosition,loopRange,practiceTimingPlan(state));
+    if(!visit) {
+      if(!state.media.preview && !visits.some(v=>v.measureNumber===number))
+        message('This printed measure isn’t linked to a score measure.');
+      else if(loopMeasures && !loopMeasures.has(number))
+        message('This measure is outside the loop.');
+      else message('This measure has no timing in the active recording.');
+      return;
+    }
     message('');
     if(!seek(visit.startTick)) {message('Playback could not move to this measure.');return;}
     noteVisit=visit;
@@ -468,6 +476,10 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
   attach.onclick = () => file.click();
   file.onchange = () => { const selected = file.files[0]; file.value = ''; if (selected) open(selected); };
   new ResizeObserver(renderPage).observe(scroll);
-  return {sync,reset,open,get revision(){return generation;},
+  function revealAtTick(tick) {
+    if(visible && !view.hidden && !editing && state.ui.autoScroll)
+      reader.revealMeasure(writtenMeasureAt(state.playbackTimeline?.measures,tick));
+  }
+  return {sync,reset,open,revealAtTick,get revision(){return generation;},
     attachment:()=>attachedHash?{file:attachedFile,hash:attachedHash,boxes:structuredClone(boxes)}:null};
 }
