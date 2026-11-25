@@ -278,7 +278,7 @@ Fretboard arrows pause and browse targets while clearing the current attempt. Dr
 
 Choose **Auto-sync** in Media Sync for a one-click editable alignment. In **More → Media Sync → Suggest sync points from audio**, choose **Analyze lesson audio** to match the selected practice track to a recording. Listen to the suggested takes, choose one per written repeat pass, and open the draft to check the timing. Explanations and extra demonstrations can stay in the recording as unscored gaps. [Audio suggestions and supported sources](docs/MEDIA-SYNC.md#suggest-sync-points-from-audio)
 
-For one uninterrupted performance, check **Continuous** before running Auto-sync. In **Edit sync**, **Fill gaps with standard sync points** lets the score follow the recording between known points. For a lesson with spoken breaks, keep **Continuous** unchecked and use **Edit timed measures** to adjust individual passages.
+For one uninterrupted performance, check **Continuous** before running Auto-sync. In **Edit sync**, **Fill gaps with standard sync points** lets the score follow the recording between known points. Check the message below the toolbar for an estimated opening or ending, or a gap where two matches share a recording time. For a lesson with spoken breaks, keep **Continuous** unchecked and use **Edit timed measures** to adjust individual passages.
 
 To tighten part of a standard alignment, choose **Refine between points** beside **Undo** and **Redo**. Click two blue markers whose timing you trust, with at least one point between them. Listen through the passage afterward. **Undo** restores the original points in one step. **Save profile** keeps the alignment for another session.
 

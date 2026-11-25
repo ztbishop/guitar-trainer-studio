@@ -115,6 +115,23 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     get('profile-name').value=alignment.name;
     get('profile-select').value=profileId;
   }
+  function continuousNotice(visits) {
+    const measures=AppState.playbackTimeline.measures;
+    const opening=visits[0].originalVisit-1,ending=measures.length-visits.at(-1).originalVisit;
+    const estimated=[[opening,'first'],[ending,'last']].filter(([count])=>count)
+      .map(([count,side])=>'the '+side+(count===1?' measure':' '+count+' measures'));
+    const notes=['Continuous sync points ready.'];
+    if(estimated.length)notes.push('Timing for '+estimated.join(' and ')+' is estimated.');
+    const conflicts=visits.filter((v,i)=>i>0 && v.originalVisit>visits[i-1].originalVisit+1 && v.startMs===visits[i-1].endMs);
+    if(conflicts.length) {
+      const next=conflicts[0],previous=visits[visits.indexOf(next)-1];
+      const label=index=>printedMeasure(AppState.score,measures[index].measureNumber);
+      const first=label(previous.originalVisit),last=label(next.originalVisit-2);
+      notes.push('Check '+(first===last?'measure '+first:'measures '+first+'–'+last)+' near '+clock(next.startMs)+'. The neighboring matches share a recording time.');
+      if(conflicts.length>1)notes.push('Other gaps with the same issue: '+(conflicts.length-1)+'.');
+    }
+    return notes.join(' ');
+  }
   switchAlignment.addEventListener('click',action(async()=>{
     if(busy || draftTiming || !player || !showEditor || (!alternateAlignment && !audioPlan(timingPlan?.plan)))return;
     const token=generation,previous=captureAlignment(),at=player.currentTime;
@@ -132,7 +149,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       if(!AppState.media.preview || recordingError)throw Error('The recording could not be opened with this timing.');
       host.seekMediaTime(at);
       alternateAlignment=previous;
-      message(timingPlan?'Timed measures restored.':'Continuous sync points ready. Check the former gaps, then choose Finish editing to practice.');
+      message(timingPlan?'Timed measures restored.':continuousNotice(previous.timingPlan.visits));
     } catch(error) {
       if(token===generation) {
         await returnToPractice();
@@ -245,6 +262,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       if(automatic && !await draftEditor.acceptIfReady())message('Auto-sync found takes. Preview them here and review the listed timing issues.');
     }
   });
+  get('editor-toolbar').after(get('action-status'));
   // A new editor action owns the transport, including scrubbing and selecting
   // a different suggestion. Capture runs before its own seek or play action.
   const editor=get('editor');

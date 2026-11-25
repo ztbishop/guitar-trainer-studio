@@ -85,16 +85,32 @@ export function defaultPoints(timeline,durationMs) {
 // At a shared bar line ordinary points can hold only one recording time.
 export function continuousSyncPoints(compiled,timeline,durationMs) {
   const visits=compiled.visits, measures=timeline.measures;
-  if (!visits.length || visits[0].startTick!==0 || visits.at(-1).endTick!==timeline.endTick)
-    throw new Error('Time the first and last played measures in Edit timed measures before filling gaps.');
+  if (!visits.length)throw new Error('Time at least one measure in Edit timed measures before filling gaps.');
+  // Scale the written tempo map by the nearest matched bar's performed duration.
+  // Using the entire bar avoids projecting one short attack interval across the ending.
+  function estimateEdge(visit,opening) {
+    const first=visit.anchors[0].timeMs,last=visit.anchors.at(-1).timeMs;
+    const from=tickToTimeMs(timeline,visit.startTick),to=tickToTimeMs(timeline,visit.endTick);
+    const rate=(last-first)/(to-from);
+    const boundary=tickToTimeMs(timeline,opening?0:timeline.endTick);
+    const time=opening?Math.max(0,first-(from-boundary)*rate):Math.min(durationMs,last+(boundary-to)*rate);
+    if(!Number.isFinite(time) || (opening?time>=first:time<=last))
+      throw new Error('There is no recording time available for the missing '+(opening?'opening':'ending')+'. Adjust the nearest match in Edit timed measures, then try Fill gaps again.');
+    const measure=opening?measures[0]:measures.at(-1);
+    return {barIndex:measure.measureNumber-1,barOccurence:measure.occurrence-1,barPosition:opening?0:1,millisecondOffset:time};
+  }
   const points=[];
+  if(visits[0].startTick>0)points.push(estimateEdge(visits[0],true));
   for (const visit of visits) {
     const next=measures[visit.originalVisit];
     for (const anchor of visit.anchors) {
       const previous=points.at(-1);
       // Prefer the following downbeat to the preceding release. This stretches
       // the end of that bar across a hold or pause in a continuous performance.
-      if (previous && anchor.tick===previous.tick) points.pop();
+      // Two takes can also meet at one recording instant across omitted bars.
+      // Drop only the earlier release so those bars can lead into the matched downbeat.
+      if (previous && (anchor.tick===previous.tick ||
+          anchor.tick===visit.startTick && anchor.timeMs===previous.millisecondOffset)) points.pop();
       const atNext=anchor.tick===visit.endTick && next?.startTick===anchor.tick && next.endTick>next.startTick;
       points.push({tick:anchor.tick,barIndex:(atNext?next.measureNumber:visit.scoreMeasure)-1,
         barOccurence:(atNext?next.occurrence:visit.occurrence)-1,
@@ -102,6 +118,7 @@ export function continuousSyncPoints(compiled,timeline,durationMs) {
         millisecondOffset:anchor.timeMs});
     }
   }
+  if(visits.at(-1).endTick<timeline.endTick)points.push(estimateEdge(visits.at(-1),false));
   return validatePoints(points,timeline,durationMs);
 }
 export function tickAtMediaTime(points,timeline,timeMs) {

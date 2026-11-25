@@ -24,9 +24,20 @@ test('continuous conversion interpolates a missing repeat, preserves rubato and 
   assert.equal(mediaTimeAtTick(sparse,timeline,5760),3500);
   const middle=visit(1,[2500,4800]);
   assert.deepEqual(convert([opening,middle,last]).map(p=>p.millisecondOffset),[250,500,2500,5000,8000]);
-  assert.throws(()=>convert([middle,last]),/first and last/);
-  assert.throws(()=>convert([opening,middle]),/first and last/);
-  assert.throws(()=>convert([opening,visit(2,[2000,8000])]),/move forward/);
+  // The last written bar is twice as fast. Use the neighboring bar's
+  // performance rate across the written tempo change.
+  assert.deepEqual(convert([middle,last]).map(p=>p.millisecondOffset),[200,2500,5000,8000]);
+  assert.deepEqual(convert([opening,middle]).map(p=>p.millisecondOffset),[250,500,2500,4800,5950]);
+  const both=convert([visit(1,[400,1400,7800])]);
+  assert.deepEqual(both.map(p=>p.millisecondOffset),[0,400,1400,7800,9000]);
+  assert.deepEqual(both[0],{barIndex:0,barOccurence:0,barPosition:0,millisecondOffset:0});
+  assert.deepEqual(both.at(-1),{barIndex:1,barOccurence:0,barPosition:1,millisecondOffset:9000});
+  assert.throws(()=>convert([]),/at least one measure/);
+  assert.throws(()=>convert([visit(1,[0,7800])]),/missing opening/);
+  assert.throws(()=>convert([visit(1,[2500,9000])]),/missing ending/);
+  const touching=convert([opening,visit(2,[2000,8000])]);
+  assert.deepEqual(touching.map(p=>[pointTick(p,timeline),p.millisecondOffset]),[[0,250],[1920,500],[7680,2000],[11520,8000]]);
+  assert.throws(()=>convert([opening,visit(2,[1900,8000])]),/move forward/);
 });
 
 test('missing profile placement defaults left while valid saved placements remain authoritative',()=>{
