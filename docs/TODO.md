@@ -1,5 +1,7 @@
 # Guitar Trainer Studio status and to-do
 
+Guitar grading, PDF companions, MIDI import, Auto-sync and library recovery are implemented. The current milestone is normal practice with the released features. Physical Fishman response and personal take preferences are optional owner checks. Recording comparisons, browser recovery and fixture coverage can be tested by the project maintainer. The remaining timing ideas below are accuracy research.
+
 - [x] Choose a bundled synth sound for a melodic track in Audio and restore the score's original instrument changes.
 - [x] Restore companion PDFs, edited measure boxes and recording references from saved scores. Include PDFs and timing in portable library backups and support reconnecting a missing recording.
 
@@ -28,10 +30,10 @@
 - [x] Recover missed lead phrases and choose chord demonstrations from neighboring measures. Compared 17 saved lessons and three additional held-out recordings. [Results and remaining errors](DEV-NOTES.md#recovering-melodies-and-chord-changes-from-neighboring-measures)
 - [x] Tighten late opening chords and extrapolated final chord releases. Compared all selected boundaries on 24 saved lessons. [Results and remaining take errors](DEV-NOTES.md#ringing-chords-at-the-start-and-end-of-a-lesson)
 - [x] Check final takes against the preceding chord progression in Chord Scales 1, 5 and 8. Compared 24 saved lessons and timed old and new Auto-sync builds. [Results and limits](DEV-NOTES.md#choosing-the-final-take-from-the-preceding-chord-progression)
-- [ ] Evaluate single-note releases separately. Retain the saved boundary and runtime comparisons for future searches.
+- [x] Screen final single-note measures separately against saved reference boundaries. Of 34 eligible archived examples, 16 ended within 250 ms, 12 earlier and 6 later. Investigate audible release evidence before changing the estimator. [Selection and limits](AUTO-SYNC-BASELINE.md#final-single-note-measures)
 - [ ] When a lesson draft has missing musical measures between known spoken breaks, test a passage-level fill in the draft reviewer. Use mapped measures on both sides within the same musical passage as pins. Preserve explicit break times and repeat passes, leave ambiguous gaps for review, and compare against reference timing before extending grading.
 - [x] Allow a continuous recording's applied audio timing to become a separate set of standard sync points. [Arirang conversion and grading coverage](DEV-NOTES.md#filling-the-gaps-of-a-continuous-performance)
-- [ ] Following the owner's positive playback check, listen across the four-visit Arirang gap at 2:55.31 and check the interpolated beat positions with a MIDI guitar.
+- [x] Reopen the original Arirang score and video and verify that Fill gaps covers measures 69–72 on pass two starting at 2:55.31. The two bounding downbeats agreed with three saved audio alignment estimates within 53 ms. Interior downbeats still vary with the rubato. Listening feel and physical input are separate checks.
 - [x] Add Continuous music to Auto-sync for uninterrupted performances. [Arirang and saved lesson comparisons](DEV-NOTES.md#continuous-music-in-media-sync)
 - [ ] Listen to the recovered Arirang opening, repeated figures, holds and final chord, and check their grading with a physical MIDI guitar.
 
@@ -78,9 +80,9 @@ The owner previously confirmed basic Hex and Poly input, Wait progression, Realt
 
 - [ ] In a lesson with repeated pickups, audition two takes and compare the highlighted bar with draft review.
 
-- [ ] Check coverage of the 4:34 verse section in *Devil Inside*. Measure-label checks and eight matched timestamps do not establish coverage across the lesson.
+- [x] Rerun blind Auto-sync on the saved *Devil Inside* GPX and recording. It selected 12 visits, including the slower take at 3:20.28. The verse at 4:34 remains unmapped. [TrueFire course, lesson 6, Main Riff Guitar](https://truefire.com/guitar-song-lessons/song-devil-inside/c2690)
 
-- [ ] Try the longer riff search on another previously unmatched lesson. For *Devil Inside*, listen to the slower take around 3:20 and confirm which written pass you want to follow.
+- [ ] Try the longer riff search on another previously unmatched lesson. The *Devil Inside* score itself labels 1:11 and 3:20 as demonstrations of the same intro. A time-constrained search located both, and found a weaker candidate for the separately labeled verse at 4:34.56.
 
 - [ ] Try **Suggest sync points from audio** on a familiar guitar lesson with spoken breaks and a repeated demonstration. Compare the preferred take and its measure boundaries with independently supplied Soundslice timing. Listen through one break and confirm practice resumes at the chosen pass.
 
@@ -88,7 +90,7 @@ Use v1.0.2 in your usual browser with your usual guitar. A few representative pa
 
 - [ ] **Fishman in Wait and Realtime.** Try a short passage with a repeated note, a chord, and a written bend or pre-bend. Check releases, Pause/Resume and a short loop. Compare Hex and Poly if you use both. For a reproducible mismatch, record the measure, input mode, and expected and actual feedback. [MIDI and practice guide](../README.md#getting-clean-midi-from-a-standard-guitar)
 - [ ] **A real synced recording.** Listen through a musical passage and a spoken break, seek back to the music, and check that the TAB follows what you hear. If a read error occurs, check **Reload recording** with that source. If you encounter incomplete timing, review one draft and verify or place its missing endpoints by ear. An arrangement that differs from the recording may need a matching score or separate reference video. [Media Sync guide](MEDIA-SYNC.md)
-- [ ] **Restore a backup when convenient.** Check one library backup in a separate browser profile and reopen a score with a saved sync profile. Relink a local recording from its original file. [Library guide](SCORE-LIBRARY.md)
+- [x] **Restore a backup in a fresh browser profile.** Chrome restored scores, folders, six sync profiles and a companion PDF with edited boxes. The separate missing-recording check reconnected the file and recovered its original sync points. [Library guide](SCORE-LIBRARY.md)
 
 Mac Finder launch, physical printing, touch layout, and other devices or recording providers can be checked when you use them. Detailed lesson-specific listening notes remain in the [historical checklist](TODO-HISTORY.md).
 
@@ -115,7 +117,6 @@ Mac Finder launch, physical printing, touch layout, and other devices or recordi
 
 ## Optional for later
 
-- **Exact-string or fret grading.** Scope an opt-in mode for a verified six-channel setup if fingering accuracy becomes a practice goal.
 - **Follow mode.** Decide whether the score cursor or the accompaniment should follow the player's timing before designing the feature.
 - **Other instrument setups and practice tools.** Consider deeper bass and extended-range fretboard support, coordinated score transposition, automatic latency calibration, or scale/chord-tone overlays when a specific workflow calls for them.
 

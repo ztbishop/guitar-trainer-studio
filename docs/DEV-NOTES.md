@@ -1,5 +1,15 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Roadmap verification, November 24, 2026
+
+Isolated Chrome reran library backup/merge, companion PDF recovery and missing-recording reconnection. Both the saved markings and original timing came back. The audio-sync browser check also exercised repeat selection, gaps, alternate starts and Undo. The targeted audio, tie-boundary and PDF-spacing suite passed 61 checks with three optional skips.
+
+Fresh blind runs used the original local scores and videos. On *Devil Inside*, the selected passages began at 1:11.64, 3:20.28 and 6:04.36. The verse labeled 4:34 had no selected measures. On *Arirang*, Continuous music and Fill gaps mapped the second pass of measures 69–72 between 175.314 and 182.227 seconds. The interpolated starts for measures 70, 71 and 72 were 177.042, 178.771 and 180.499 seconds. Three earlier audio alignments gave ranges of 177.12–177.44, 178.80–178.88 and 180.24–180.32 seconds respectively. These comparisons establish coverage and highlight possible interior drift. They do not establish exact performed downbeats or physical MIDI response.
+
+The *Devil Inside* GPX explicitly labels its intro with both 1:11 and 3:20, the verse with 4:34 and the outro with 6:04. A separate four-bar pitch comparison searched 70–73, 199–202 and 270–278 seconds around those first three cues. It sampled the expected pitch class at 20% and 60% of each written note across tempo multipliers from 0.625 to 1.5. Its best starts were 71.64, 200.28 and 274.56 seconds. The mean pitch-feature values were 0.559, 0.646 and 0.452. The verse result is a timing suggestion informed by the printed cue and has no independent downbeat reference. The public Auto-sync output still leaves it open.
+
+The owner retired exact-string/fret grading from the roadmap. Both input modes continue to grade pitch.
+
 ## Track sounds and responsive More menu, November 24, 2026
 
 Audio offers the bundled melodic presets grouped by instrument family. The host sends the selected bank and program to the synth for both channels, including later program changes. Choosing Score instrument restores each original event. Selections follow the lifetime of the track's mute and volume settings. More exposes Tempo and Loop when the toolbar collapses. The isolated Chrome regression exercises both layouts and the native synth path. Listening through the owner's audio setup remains a manual check.

@@ -4,6 +4,12 @@ November 23, 2026. One-click Auto-sync ran on 200 lesson pages with original GPX
 
 ## Results
 
+### Final single-note measures
+
+November 24, 2026. A separate check of the archived predictions used the duration-validated lessons in the 200-page baseline. For each score, the last sounding measure qualified if exactly one score note extended to within 15 ms of the last note end, that end was within 80 ms of the written bar end, and the selected visit matched the reference measure and pass with a start error of at most 250 ms. These filters reduce the effect of written closing rests and wrong takes.
+
+Of 34 qualifying recordings, 16 selected ends were within 250 ms of the published measure end, 12 were early by more than 250 ms and 6 were late by more than 250 ms. This evaluates the saved bar boundaries. A separately labeled audible note release would be needed to evaluate a release detector directly. The largest early errors were on lesson IDs 98063 (1.96 s), 90640 (1.71 s) and 98074 (1.42 s).
+
 ### Refinement after Fill gaps on two saved lessons
 
 November 24, 2026, trainer revision `307a8ac`. Chrome loaded the original scores and recordings locally, ran Auto-sync without reference timing, then used **Fill gaps** and **Refine between points**. Each range started from the same converted alignment. Checks verified that both pins and every outside point kept their original values, and Undo restored the full baseline. For comparison, the offline Trackswitch pitch-and-onset routines at revision `66e8f295` used the same decoded audio, score positions and recording pins. Rerunning the older exact-pin Trackswitch controls reproduced their interior times to within 1 ms.
