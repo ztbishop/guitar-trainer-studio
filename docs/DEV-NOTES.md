@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Black-key note labels, November 25, 2026
+
+Active black keys on the practice keyboard show their pitch and feedback symbol in dark text on a white background. In Chrome, expected F#3, correct G#3, wrong A#3 and held C#4 had separate labels at desktop widths. Narrow panels displayed all four names in the existing feedback strip. All 88 keys fit at each of the four tested widths.
+
 ## Companion PDF repeats and endings, November 25, 2026
 
 Scores → PDF → Map repeats and endings links a run of playback visits to consecutive printed measures or leaves the selected visits unmapped. Native written-measure order remains the default. After clicking a box shared by multiple eligible visits, Score visit lets the player choose a pass. Repeat edits follow the same per-score, per-PDF storage and library backup workflow as measure boxes.

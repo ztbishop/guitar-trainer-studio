@@ -1303,6 +1303,10 @@ body.has-score .alphatab-wrapper {
 .piano-key[data-state="correct"] { background:#157044; color:white; }
 .piano-key[data-state="wrong"] { background:#af2530; color:white; }
 .piano-key[data-state="played"] { background:#6c478d; color:white; }
+.piano-key.black span:not(:empty) {
+  background:white; color:#17212d; border-radius:2px; padding:1px;
+  font-size:clamp(9px, .85cqi, 11px);
+}
 @container (max-width: 1000px) {
   .piano-key span { display:none; }
   #practice-keyboard[data-feedback]:not([data-feedback=""])::after {
