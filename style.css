@@ -1352,6 +1352,7 @@ body.has-score .pdf-practice-hint { display:none; }
 #pdf-scroll { overflow: auto; flex: 1; min-height: 0; scrollbar-gutter: stable; }
 #pdf-sheet { position:absolute; inset:0; }
 #pdf-pages.marking .pdf-boxes { display:none; }
+.pdf-review-boxes { position:absolute; inset:0; pointer-events:none; }
 #pdf-pages { margin-inline:auto; }
 .pdf-reading-page { position:relative; background:white; margin-bottom:12px; }
 .pdf-reading-page canvas { display:block; width:100%; height:100%; }

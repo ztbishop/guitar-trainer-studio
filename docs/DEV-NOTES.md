@@ -1,5 +1,11 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Library recording restoration and whole-score PDF review, November 25, 2026
+
+Save to Library now saves the recording and its usable sync profiles in the same transaction as a new or updated score. The active profile is selected on reopening. Disposable Chrome restored unsaved point edits after a resave, recovered identical bytes under a different filename, rejected different bytes with the original name and size, and reopened a replacement URL with its original points. The file-input fallback reopened from device storage. The audio-sync browser check saved both a reviewed plan and its continuous points and verified that saving retained the decoded audio used for refinement.
+
+Full-score scans now open a scrollable overview with optional page correction and one acceptance action. An Arirang MIDI and its eight-page TAB PDF produced 145 boxes in the preview and in the applied mapping at desktop and phone widths. Removing a proposed measure shifted the next page while a later page with an explicit start retained its numbering. Cancel discarded those edits. Existing single-page correction, missing-media recovery and PDF library backup also passed in disposable Chrome. The Node suite passed 983 tests with nine skipped.
+
 ## Roadmap verification, November 24, 2026
 
 Continuous Auto-sync on the original Arirang MP4 found the D-major chord attack at 355.00 seconds and its fade at 359.28. The MIDI places it inside measure 181, followed by measure 182 without a new attack. The original MIDI selection for measure 178 started at 355.40, already in that chord. Searching the ordered pitches before the chord placed measures 180 and 181 at 349.02 and 351.38 seconds. The same note attacks in the GPX alignment project to 349.08 and 351.43 seconds. These timings are comparisons with another alignment, not independently labeled downbeats. The previous 178 candidate remains available and unselected. The other 115 existing MIDI selections and their anchors, and all 148 GPX selections and anchors, retained their times. Measure 179 has an off-downbeat first attack, and the final empty measure has no independent audio boundary.

@@ -8,6 +8,16 @@ const name=value=>String(value || '').trim().slice(0,240);
 export async function fingerprint(bytes) {
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(byte=>byte.toString(16).padStart(2,'0')).join('');
 }
+// Hash every byte in fixed-size blocks so a long video never needs to fit in RAM.
+export async function recordingContentId(file) {
+  const blockSize=4*1024*1024;
+  const digests=new Uint8Array(32*Math.ceil(file.size/blockSize));
+  for(let start=0;start<file.size;start+=blockSize){
+    const bytes=await file.slice(start,start+blockSize).arrayBuffer();
+    digests.set(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),32*(start/blockSize));
+  }
+  return fingerprint(digests);
+}
 export function encodeBytes(bytes) {
   let text='';for(let offset=0;offset<bytes.length;offset+=8192)text+=String.fromCharCode(...bytes.subarray(offset,offset+8192));
   return btoa(text);
@@ -69,11 +79,12 @@ export class LibraryStore {
   async open() {
     if(!this.factory)throw new Error('This browser cannot store a score library. Open File still works.');
     if(!this.dbPromise)this.dbPromise=new Promise((resolve,reject)=>{
-      const request=this.factory.open('guitarTrainerLibrary',3);
+      const request=this.factory.open('guitarTrainerLibrary',4);
       request.onupgradeneeded=()=>{
-        for(const store of ['folders','scores','mediaProfiles','pdfs'])if(!request.result.objectStoreNames.contains(store))request.result.createObjectStore(store,{keyPath:'id'});
+        for(const store of ['folders','scores','mediaProfiles','pdfs','recordingFiles'])if(!request.result.objectStoreNames.contains(store))request.result.createObjectStore(store,{keyPath:'id'});
         const scores=request.transaction.objectStore('scores');
-        scores.createIndex('pdfHash','pdf.hash');scores.createIndex('scoreHash','hash');
+        if(!scores.indexNames.contains('pdfHash'))scores.createIndex('pdfHash','pdf.hash');
+        if(!scores.indexNames.contains('scoreHash'))scores.createIndex('scoreHash','hash');
       };
       request.onerror=()=>{this.dbPromise=null;reject(request.error || new Error('Could not open the score library.'));};
       request.onblocked=()=>{this.dbPromise=null;reject(new Error('Close other Guitar Trainer tabs and retry.'));};
@@ -112,10 +123,12 @@ export class LibraryStore {
   async save({title,fileName,bytes,folderId=null},attachments={}) {
     if(!bytes?.length || !SCORE_EXTENSIONS.test(fileName))throw new Error('Choose a supported, nonempty score file.');
     const hash=await fingerprint(bytes);
-    return this.transaction(['scores','folders','pdfs'],'readwrite',(stores,done)=>{
+    const profiles=(attachments.profiles || []).map(validateProfile);
+    if(profiles.some(p=>p.scoreHash!==hash || !sourceMatches(p.source,attachments.recording)))throw new Error('The recording or score changed. Save again.');
+    return this.transaction(['scores','folders','pdfs','mediaProfiles','recordingFiles'],'readwrite',(stores,done)=>{
       const write=()=>{
-        stores.scores.getAll().onsuccess=event=>{
-          const duplicate=event.target.result.find(score=>score.hash===hash);
+        stores.scores.index('scoreHash').get(hash).onsuccess=event=>{
+          const duplicate=event.target.result;
           const score=duplicate || {id:id(),title:name(title)||name(fileName),fileName:String(fileName),bytes:new Uint8Array(bytes),folderId,hash,createdAt:Date.now()};
           const previous=score.pdf?.hash;
           if(attachments.pdf){
@@ -124,9 +137,13 @@ export class LibraryStore {
             score.pdf={hash,fileName:file.name,boxes};
           }
           if(attachments.recording){
+            for(const p of profiles)stores.mediaProfiles.put(p);
+            if(attachments.file)stores.recordingFiles.put({id:score.id,file:attachments.file});
+            else stores.recordingFiles.delete(score.id);
+            const keepProfile=attachments.unreviewed && sourceMatches(score.recording,attachments.recording);
             score.recording=attachments.recording;
             score.recordingHandle=attachments.handle || null;
-            score.recordingProfileId=attachments.profileId || '';
+            score.recordingProfileId=attachments.profileId || (keepProfile && score.recordingProfileId) || '';
           }
           if(!duplicate || attachments.pdf || attachments.recording)stores.scores.put(score);
           if(previous && previous!==score.pdf.hash)releasePdf(stores,previous);
@@ -157,13 +174,15 @@ export class LibraryStore {
     });
   }
   attachments(scoreId){
-    return this.transaction(['scores','pdfs'],'readonly',({scores,pdfs},done)=>{
+    return this.transaction(['scores','pdfs','recordingFiles'],'readonly',({scores,pdfs,recordingFiles},done)=>{
       scores.get(scoreId).onsuccess=event=>{
         const row=event.target.result;
         if(!row)return;
         const result={recording:row.recording,handle:row.recordingHandle,profileId:row.recordingProfileId};
-        if(!row.pdf){done(result);return;}
-        pdfs.get(row.pdf.hash).onsuccess=event=>done({...result,pdf:{...row.pdf,blob:event.target.result?.blob}});
+        done(result);
+        if(row.recording?.kind==='local' && !row.recordingHandle)
+          recordingFiles.get(scoreId).onsuccess=e=>{result.file=e.target.result?.file;};
+        if(row.pdf)pdfs.get(row.pdf.hash).onsuccess=e=>{result.pdf={...row.pdf,blob:e.target.result?.blob};};
       };
     });
   }
@@ -175,19 +194,27 @@ export class LibraryStore {
       };
     });
   }
-  updateRecordingLink(scoreId,previous,recording,handle){
-    return this.transaction(['scores'],'readwrite',({scores})=>{
+  updateRecordingLink(scoreId,previous,recording,handle,file,profileId){
+    return this.transaction(['scores','mediaProfiles','recordingFiles'],'readwrite',({scores,mediaProfiles,recordingFiles})=>{
       scores.get(scoreId).onsuccess=e=>{
         const row=e.target.result;
-        if(row && sourceMatches(previous,row.recording))scores.put({...row,recording,recordingHandle:handle});
+        if(!row || !sourceMatches(previous,row.recording))return;
+        scores.put({...row,recording,recordingHandle:handle,recordingProfileId:profileId});
+        if(file && !handle)recordingFiles.put({id:scoreId,file});
+        else recordingFiles.delete(scoreId);
+        mediaProfiles.getAll().onsuccess=event=>{
+          for(const profile of event.target.result)
+            if(profile.scoreHash===row.hash && sourceMatches(profile.source,previous))mediaProfiles.put({...profile,source:recording});
+        };
       };
     });
   }
   deleteScore(scoreId){return this.deleteScores([scoreId]);}
   deleteScores(ids) {
-    return this.transaction(['scores','pdfs'],'readwrite',stores=>{
+    return this.transaction(['scores','pdfs','recordingFiles'],'readwrite',stores=>{
       for(const scoreId of new Set(ids))stores.scores.get(scoreId).onsuccess=event=>{
         stores.scores.delete(scoreId);
+        stores.recordingFiles.delete(scoreId);
         if(event.target.result?.pdf)releasePdf(stores,event.target.result.pdf.hash);
       };
     });
@@ -214,12 +241,13 @@ export class LibraryStore {
   deleteFolderAndScores(folderId) {return this.deleteFoldersAndScores([folderId]);}
   deleteFoldersAndScores(ids) {
     const selected=new Set(ids.filter(folderId=>typeof folderId==='string' && folderId && folderId!=='__all__'));
-    return this.transaction(['scores','folders','pdfs'],'readwrite',({scores,folders,pdfs})=>{
+    return this.transaction(['scores','folders','pdfs','recordingFiles'],'readwrite',({scores,folders,pdfs,recordingFiles})=>{
       folders.getAll().onsuccess=event=>{
         const existing=new Set(event.target.result.filter(folder=>selected.has(folder.id)).map(folder=>folder.id));
         scores.getAll().onsuccess=event=>{
           for(const score of event.target.result)if(existing.has(score.folderId)){
             scores.delete(score.id);
+            recordingFiles.delete(score.id);
             if(score.pdf)releasePdf({scores,pdfs},score.pdf.hash);
           }
           for(const folderId of existing)folders.delete(folderId);

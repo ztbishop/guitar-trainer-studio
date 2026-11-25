@@ -9,7 +9,7 @@ import {draftPosition} from './draft-alignment.js';
 import {validateDraft,checkDraftBinding,DRAFT_CAPABILITY} from './draft-timing.js';
 import {AppState} from './app-state.js';
 import {recordingScoreRange,recordingRegion,nextMusicStart} from './media-score-range.js';
-import {LibraryStore,fingerprint} from './library-store.js';
+import {LibraryStore,fingerprint,recordingContentId} from './library-store.js';
 import {MEDIA_PROFILE_FORMAT,MEDIA_LAYOUTS,mediaUrl,youtubeId,sourceMatches,matchMediaProfile,validatePoints,tempoAlignedPoints,parseProfileExport,pointTick,mediaTimeAtTick,continuousSyncPoints} from './media-sync.js';
 import {htmlMediaPlayer,youtubeMediaPlayer,waveformPeaks} from './media-player.js';
 import {timelineGuides,moveAnchors,timeFromClientX,zoomWindow,anchorIndex,visibleWaveform,syncPointLabel,timelineRuler} from './media-timeline.js';
@@ -56,13 +56,17 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   let projectedGuides=[],timelineFrame=0;
   let sectionFirst=0,sectionLast=0,movementPositions='';
   let player=null,source=null,localFile=null,blobUrl=null,points=[],peaks=[],selected=-1,undo=[],redo=[],profiles=[],scoreHash='',profileId='',pendingProfile=null;
-  let recordingHandle=null,missingRecording=null,pickerReconnect=null;
+  let recordingHandle=null,missingRecording=null,pickerReconnect=null,reconnectUrl=null;
   const reconnect=get('reconnect');
   const localSource=file=>({kind:'local',label:file.name,fileName:file.name,size:file.size,lastModified:file.lastModified});
   function showMissing(link){
     missingRecording=link;
+    reconnectUrl=null;
     reconnect.hidden=!link;
-    if(link)reconnect.title='Reconnect '+link.recording.label;
+    if(link){
+      reconnect.title='The saved recording is unavailable. Reconnect '+link.recording.label;
+      message('The saved recording is unavailable. Choose Reconnect recording to restore its timing.');
+    }
   }
   let timingPlan=null,draftTiming=null,draftPreviewEnd=null,reviewedPlayback=null;
   let audition=null;
@@ -456,12 +460,14 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     if(AppState.media.preview)throw new Error('Practice player is still loading. Wait before changing recordings.');
     afterPractice();sync();
   }
-  async function loadRecording(nextSource,file=null,{deferSelection=false,handle=null}={}) {
+  async function loadRecording(nextSource,file=null,{deferSelection=false,handle=null,linkedProfile=null}={}) {
     if(!AppState.playbackTimeline)throw new Error('Load a score and wait for its player first.');
     const token=++generation;busy=true;sync();
     try {
       await returnToPractice();if(token!==generation)return;
       disposal();source=nextSource;localFile=file;recordingHandle=handle;get('recording-label').textContent=source.label;
+      get('source-kind').value=source.kind;sourceControls();
+      if(source.kind==='url' || source.kind==='youtube')get('url').value=source.url || 'https://www.youtube.com/watch?v='+source.videoId;
       get('profile-name').value=source.label;message('Loading recording…');
       const events={isCurrent:()=>token===generation,onState(state){
         if(token!==generation || reloadInProgress || recordingError)return;
@@ -490,15 +496,16 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
         get('video').hidden=audioOnly;
       }
       await player.ready;if(token!==generation)return;
-      showMissing(null);
       player.masterVolume=AppState.audio.mediaPercent/100;
       if(!(player.backingTrackDuration>0))throw new Error('Choose a recording with a known duration.');
+      if(linkedProfile && Math.abs(linkedProfile.durationMs-player.backingTrackDuration)>250)
+        throw new Error('This recording has a different duration. Choose the same performance to restore its sync points.');
       get('player-panel').classList.toggle('audio-only',source.kind!=='youtube' && (get('video').hidden || !get('video').videoWidth));
-      let matched=deferSelection?null:matchMediaProfile(profiles,scoreHash,source,pendingProfile);
+      let matched=deferSelection?null:linkedProfile || matchMediaProfile(profiles,scoreHash,source,pendingProfile);
       timingPlan=matched?.timingPlan?compileSavedPlan(matched):null;
       points=timingPlan || deferSelection?[]:matched?validatePoints(matched.points,AppState.playbackTimeline,player.backingTrackDuration):
         source.kind==='embedded' && host.embeddedMedia().points.length>=2?validatePoints(host.embeddedMedia().points,AppState.playbackTimeline,player.backingTrackDuration):tempoAlignedPoints(AppState.playbackTimeline,player.backingTrackDuration);
-      const relinked=Boolean(matched && pendingProfile?.id===matched.id && source.kind==='local' && !sourceMatches(matched.source,source));
+      const relinked=Boolean(!linkedProfile && matched && pendingProfile?.id===matched.id && source.kind==='local' && !sourceMatches(matched.source,source));
       if(relinked) {
         matched={...matched,source,durationMs:player.backingTrackDuration};
         if(!timingPlan)await store.saveProfile(matched);
@@ -514,6 +521,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       try {if(!deferSelection)await selectRecording({loading:true});}
       catch(error) {message(`Recording loaded, but playback selection failed: ${error.message} Choose Recording to retry.`);return;}
       if(token!==generation)return;
+      showMissing(null);
       message(relinked && timingPlan?'Imported timing restored for the selected recording. Check alignment; Save profile keeps this file choice.':relinked?'Saved alignment restored and linked to this local file.':matched?'Saved alignment restored.':'Recording selected. Press Preview to listen; choose a measure and recording time, then add/update its sync point.');
       if(localFile)buildWaveform();
 
@@ -940,16 +948,29 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     sync();
   }));
   get('source-kind').addEventListener('change',sourceControls);
+  function libraryProfile(link){
+    return profiles.find(p=>p.id===link.profileId && p.scoreHash===scoreHash && sourceMatches(p.source,link.recording)) ||
+      matchMediaProfile(profiles,scoreHash,link.recording);
+  }
+  async function relinkRecording(link,next,file=null,handle=null){
+    const token=generation+1;
+    await loadRecording(next,file,{handle,linkedProfile:libraryProfile(link)});
+    if(token!==generation || !player)return;
+    await store.updateRecordingLink(link.scoreId,link.recording,next,handle,file,profileId);
+    if(token===generation)await refreshProfiles();
+  }
   async function attachPicked(file,handle,link){
+    const next=localSource(file);
     if(link){
+      const saved=link.recording;
+      if(file.size!==saved.size)throw new Error('Choose the same recording to restore its sync points.');
+      next.contentId=await recordingContentId(file);
       if(link!==missingRecording)return;
-      if(file.size!==link.recording.size || file.name!==link.recording.fileName)
-        throw new Error('Choose the saved recording: '+link.recording.fileName);
-      pendingProfile=profiles.find(p=>p.id===link.profileId && p.scoreHash===scoreHash && sourceMatches(p.source,link.recording)) ||
-        matchMediaProfile(profiles,scoreHash,link.recording);
+      if(saved.contentId && saved.contentId!==next.contentId)throw new Error('This file differs from the saved recording. Choose the same recording to restore its sync points.');
+      if(!saved.contentId && !sourceMatches(saved,next) && !window.confirm('Use the saved sync points for this copy of '+saved.fileName+'?'))return;
+      return relinkRecording(link,next,file,handle);
     }
-    await loadRecording(localSource(file),file,{handle});
-    if(link && localFile===file)await store.updateRecordingLink(link.scoreId,link.recording,source,handle);
+    await loadRecording(next,file,{handle});
   }
   async function chooseRecording(link=null){
     const score=AppState.currentScoreFile;
@@ -973,37 +994,50 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     const token=generation;
     await timelineReady();
     if(token!==generation || link.scoreHash!==scoreHash)return;
-    const preferred=profiles.find(p=>p.id===link.profileId && p.scoreHash===scoreHash && sourceMatches(p.source,link.recording));
+    const preferred=libraryProfile(link);
     if(link.recording.kind==='local'){
-      let file=null;
+      let file=link.file || null,restored=null;
       try{
         const handle=link.handle;
         if(handle && (await handle.queryPermission()==='granted' || (userClick && await handle.requestPermission()==='granted')))
           file=await handle.getFile();
-      }catch { link={...link,handle:null}; }
+        restored=file && localSource(file);
+        if(file && link.recording.contentId)restored.contentId=await recordingContentId(file);
+      }catch { restored=null;link={...link,handle:null,file:null}; }
       if(token!==generation)return;
-      if(!file || !sourceMatches(localSource(file),link.recording)){
+      if(!restored || !sourceMatches(restored,link.recording)){
         const missing=file || userClick?{...link,handle:null}:link;
         showMissing(missing);
         if(userClick)await chooseRecording(missing);
         return;
       }
-      pendingProfile=preferred;
-      await loadRecording(link.recording,file,{handle:link.handle});
+      await loadRecording(link.recording,file,{handle:link.handle,linkedProfile:preferred});
     }else{
-      pendingProfile=preferred;
-      await loadRecording(link.recording);
+      await loadRecording(link.recording,null,{linkedProfile:preferred});
     }
   }
+  reconnect.addEventListener('click',event=>event.stopPropagation());
   reconnect.addEventListener('click',action(async()=>{
     const link=missingRecording;
     if(!link)return;
     if(link.recording.kind==='local' && !link.handle)await chooseRecording(link);
-    else await restoreRecording(link,true);
+    else if(['url','youtube'].includes(link.recording.kind)){
+      reconnectUrl=link;
+      document.querySelector('[data-launch-panel="media-popup"]').click();
+      get('source-kind').value=link.recording.kind;sourceControls();
+      get('url').value=link.recording.url || 'https://www.youtube.com/watch?v='+link.recording.videoId;
+      get('url').focus();get('url').select();
+      message('Retry this link or enter a new link to the same performance.');
+    }else await restoreRecording(link,true);
   }));
   get('load-link').addEventListener('click',action(()=>{
     const kind=get('source-kind').value,value=get('url').value.trim();
-    return loadRecording(kind==='youtube'?{kind,videoId:youtubeId(value),label:'YouTube '+youtubeId(value)}:{kind:'url',url:mediaUrl(value),label:mediaUrl(value)});
+    const next=kind==='youtube'?{kind,videoId:youtubeId(value),label:'YouTube '+youtubeId(value)}:{kind:'url',url:mediaUrl(value),label:mediaUrl(value)};
+    if(reconnectUrl && reconnectUrl===missingRecording){
+      if(!sourceMatches(next,reconnectUrl.recording) && !window.confirm('Is this the same performance? Use its saved sync points at this new link?'))return;
+      return relinkRecording(reconnectUrl,next);
+    }
+    return loadRecording(next);
   }));
   get('load-embedded').addEventListener('click',action(()=>loadRecording({kind:'embedded',label:'Embedded backing audio'})));
   async function reloadSource(resume=false){
@@ -1151,14 +1185,47 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     cancelDrag=cleanup;
     timeline.addEventListener('pointermove',move);timeline.addEventListener('pointerup',finish);timeline.addEventListener('pointercancel',cancel);
   });
+  function buildProfile(alignment,recording,name){
+    const durationMs=player.backingTrackDuration,plan=alignment.timingPlan?.plan;
+    if(plan)compileSavedPlan({timingPlan:plan});
+    const timing=plan?{timingPlan:plan}:{points:validatePoints(alignment.points,AppState.playbackTimeline,durationMs)};
+    const existing=profiles.find(p=>p.id===alignment.profileId && sourceMatches(p.source,recording));
+    return {id:existing?.id || crypto.randomUUID(),scoreHash,scoreName:AppState.score.title || AppState.currentScoreFile.fileName,name,source:recording,durationMs,...timing,layout};
+  }
+  async function captureLibraryRecording(){
+    if(busy)throw new Error('Wait for the recording to finish loading, then save to the library.');
+    if(!source || !player)return null;
+    const token=generation;
+    await timelineReady();
+    if(token!==generation)throw new Error('The score or recording changed. Save again.');
+    if(localFile && !source.contentId){
+      const contentId=await recordingContentId(localFile);
+      if(token!==generation)throw new Error('The score or recording changed. Save again.');
+      // Audio analysis stays valid for this loaded source after a library save.
+      source.contentId=contentId;
+    }
+    const active=captureAlignment(),alternate=alternateAlignment;
+    const profile=draftTiming?null:buildProfile(active,source,active.name.trim() || source.label);
+    const other=alternate && buildProfile(alternate,source,alternate.name.trim() || source.label);
+    return {recording:source,handle:recordingHandle,file:recordingHandle?null:localFile,
+      profileId:profile?.id || '',profiles:[profile,other].filter(Boolean),unreviewed:Boolean(draftTiming),
+      async saved(){
+        if(token!==generation)return;
+        if(profile && profileId===active.profileId && points===active.points && timingPlan===active.timingPlan){
+          profileId=profile.id;dirty=get('profile-name').value!==active.name;
+        }
+        if(other && alternate===alternateAlignment){alternate.profileId=other.id;alternate.dirty=false;}
+        await refreshProfiles();sync();
+      }};
+  }
   get('save-profile').addEventListener('click',action(async()=>{
     if(draftTiming)throw new Error('Export the draft to keep unresolved work.');
-    const snapshotHash=scoreHash,token=generation,snapshot=JSON.stringify(points),valid=timingPlan?null:validatePoints(points,AppState.playbackTimeline,player.backingTrackDuration);
-    if(timingPlan)compileTimingPlan(timingPlan.plan,{allowReviewed:true,timeline:AppState.playbackTimeline,scoreSha256:scoreHash,recordingId:timingPlan.plan.recordingId,durationMs:player.backingTrackDuration});
-    const name=get('profile-name').value.trim();if(!name)throw new Error('Enter a profile name.');
-    const existing=profiles.find(profile=>profile.id===profileId);
-    const profile={id:existing && sourceMatches(existing.source,source)?profileId:crypto.randomUUID(),scoreHash,scoreName:AppState.score.title || AppState.currentScoreFile.fileName,name,source,durationMs:player.backingTrackDuration,...(timingPlan?{timingPlan:timingPlan.plan}:{points:valid}),layout};
-    await store.saveProfile(profile);if(snapshotHash!==scoreHash || token!==generation)return;profileId=profile.id;dirty=JSON.stringify(points)!==snapshot;await refreshProfiles();message(dirty?'Sync profile saved; newer alignment edits still need saving.':'Sync profile saved. Recordings are not copied into browser storage.');
+    const token=generation,alignment=captureAlignment(),name=alignment.name.trim();
+    if(!name)throw new Error('Enter a profile name.');
+    const profile=buildProfile(alignment,source,name);
+    await store.saveProfile(profile);if(token!==generation)return;profileId=profile.id;
+    dirty=points!==alignment.points || timingPlan!==alignment.timingPlan || get('profile-name').value!==alignment.name;
+    await refreshProfiles();message(dirty?'Sync profile saved; newer alignment edits still need saving.':'Sync profile saved.');
   }));
   get('profile-select').addEventListener('change',action(async()=>{
     alternateAlignment=null;
@@ -1237,11 +1304,11 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
   renderLayout();sourceControls();sync();refreshProfiles().catch(error=>message(error.message));
   return {sync,timelineReady,finishEditing,
     get recordingRevision(){return generation;},
-    libraryAttachment:()=>source && player && !busy?{recording:source,handle:recordingHandle,profileId}:null,
+    libraryAttachment:captureLibraryRecording,
     async restoreLibraryRecording(link){
       const score=AppState.currentScoreFile;
       try{await restoreRecording(link);}
-      catch(error){if(score===AppState.currentScoreFile){showMissing(link);message(error.message);}}
+      catch(error){if(score===AppState.currentScoreFile){showMissing(link);message('Saved recording unavailable. '+error.message+' Choose Reconnect recording to try again.');}}
     },
     draftTransport(action){
       if(audition?.fromScore && action==='toggle'){

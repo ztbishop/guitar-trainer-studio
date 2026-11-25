@@ -6,6 +6,10 @@ The Scores dropdowns use native popovers. `js/toolbar-ui.js` positions each open
 
 ## PDF practice and MIDI file import
 
+Full-score box detection keeps a draft for every page. The overview draws all suggested rectangles over the virtualized page canvases. Correct this page uses the existing geometry editor. Changes to box counts flow forward to pages without an explicit first measure. Applying checks the complete mapping against the written score and existing markings before writing it.
+
+Save to Library commits the score, its selected recording reference, and both available alignment profiles in one IndexedDB transaction. A browser file handle takes precedence for local recordings. A File from the fallback picker is stored separately by score ID so listing scores and exporting a backup avoid reading recording bytes. Replacement and deletion release that copy. A local recording identity uses SHA-256 over the ordered SHA-256 digests of fixed 4 MiB blocks. Reconnecting an identical file updates the link and matching profiles together. Online relocation uses explicit confirmation and the saved profile duration.
+
 The instrument panel uses the shared display preference `instrumentView`. Its keyboard projects the selected practice event, per-note credit, held input and live wrong pitches independently of string positions and PDF geometry. The same MIDI router and Wait/Realtime graders drive both views.
 
 White keys share the keyboard width equally and black keys straddle their white-key divisions. The narrow layout groups active pitch labels under the keys.
@@ -20,7 +24,7 @@ Opening a PDF through the score picker opens the standalone PDF + recording docu
 
 In PDF + recording, an explicit comparison decodes the selected media locally and passes only the chosen passage samples to a browser worker. The worker searches for a sequence of attacks between the two fixed endpoints. The room stores accepted interior times separately from taps, keyed to both endpoint measures, times and end-marker state. A changed or split passage falls back to interpolation. Seek, highlighting and loops share the resulting intervals. Comparison supports 2–16 measures over at most 90 seconds per passage and uses the score analyzer’s local file decoding limits.
 
-`js/pdf-companion.js` shares a continuous page stack with the PDF + recording room. `js/pdf-reading-pages.js` reserves each page’s actual aspect ratio and renders nearby canvases on demand with the bundled PDF.js worker. Distant pages release their canvas memory. The marking overlay uses the same page geometry and stays on its proposal page during review. PDF + recording reads the trainer’s saved zoom and auto-scroll settings.
+`js/pdf-companion.js` shares a continuous page stack with the PDF + recording room. `js/pdf-reading-pages.js` reserves each page’s actual aspect ratio and renders nearby canvases on demand with the bundled PDF.js worker. Distant pages release their canvas memory. A whole-score review displays boxes on every page. The editable overlay follows the selected correction page. PDF + recording reads the trainer’s saved zoom and auto-scroll settings.
 
 For a playable score with a companion PDF, Reset passes the destination tick to the reader. With auto-scroll enabled, the reader looks up its written measure and reveals its box even when the playback measure has stayed the same.
 

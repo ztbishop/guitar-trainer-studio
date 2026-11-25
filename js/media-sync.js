@@ -30,12 +30,19 @@ export function validateSource(source) {
   if(source.kind==='local') {
     if(typeof source.fileName!=='string' || !source.fileName || !finite(source.size) || source.size<0 || !finite(source.lastModified))throw new Error('Invalid local file details.');
     Object.assign(result,{fileName:source.fileName.slice(0,500),size:source.size,lastModified:source.lastModified});
+    if(source.contentId!==undefined){
+      if(!/^[a-f0-9]{64}$/.test(source.contentId))throw new Error('Invalid recording fingerprint.');
+      result.contentId=source.contentId;
+    }
   }
   return result;
 }
 export function sourceMatches(a,b) {
   if(!a || !b || a.kind!==b.kind)return false;
-  if(a.kind==='local')return a.fileName===b.fileName && a.size===b.size && a.lastModified===b.lastModified;
+  if(a.kind==='local'){
+    if(a.contentId && b.contentId)return a.contentId===b.contentId && a.size===b.size;
+    return a.fileName===b.fileName && a.size===b.size && a.lastModified===b.lastModified;
+  }
   if(a.kind==='url')return a.url===b.url;
   if(a.kind==='youtube')return a.videoId===b.videoId;
   return true;

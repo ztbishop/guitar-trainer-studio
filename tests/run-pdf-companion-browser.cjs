@@ -170,9 +170,22 @@ function twoBarMidi() {
     assert.ok(await page.locator('#pdf-toolbar').isHidden());
     await markMeasures();
     await page.locator('#pdf-find').click();
-    await page.locator('#pdf-use').click();
+    await page.locator('#pdf-use-score').waitFor();
+    assert.ok(await page.locator('#pdf-use').isHidden());
+    assert.equal(await page.locator('[data-page="2"] .pdf-review-boxes .pdf-box').textContent(),'2');
+    await page.locator('#pdf-scroll').evaluate(el=>{el.scrollTop=el.scrollHeight;});
+    await page.waitForFunction(()=>document.querySelector('#pdf-sheet').parentElement.dataset.page==='2');
     assert.equal(await page.locator('#pdf-page').inputValue(),'2');
-    assert.equal(await page.locator('#pdf-measure').inputValue(),'2');
+    await page.locator('#pdf-correct-page').click();
+    assert.equal(await page.locator('#pdf-boxes .pdf-box').textContent(),'2');
+    await page.locator('#pdf-action').selectOption('split');
+    await page.locator('#pdf-boxes .pdf-box').scrollIntoViewIfNeeded();
+    const splitBox=await page.locator('#pdf-boxes .pdf-box').boundingBox();
+    await page.mouse.click(splitBox.x+splitBox.width/2,splitBox.y+splitBox.height/2);
+    assert.ok(await page.locator('#pdf-use-score').isDisabled());
+    await page.getByRole('button',{name:'Review whole score'}).click();
+    await page.locator('#pdf-page').selectOption('1');
+    assert.equal(await page.locator('[data-page="2"] .pdf-review-boxes .pdf-box').count(),2);
     await page.locator('#pdf-cancel').click();
     await page.locator('#pdf-page').selectOption('1');
     const splitFirstPage=async()=>{
@@ -222,11 +235,17 @@ function twoBarMidi() {
       document.querySelector('#media-choose-file').click();
     });
     await page.waitForFunction(()=>!document.querySelector('#media-save-profile').disabled);
-    await page.locator('#media-save-profile').evaluate(el=>el.click());
-    await page.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('Sync profile saved'));
+    // Save once, then edit and save this same library score again without using Save profile.
     await page.locator('#btn-scores').click();
     await page.locator('#library-save').click();
-    await page.locator('.library-score-open').waitFor();
+    await page.waitForFunction(()=>document.querySelector('#library-status').textContent.includes('sync timing saved'));
+    const firstProfile=await page.locator('#media-profile-select').inputValue();
+    await page.evaluate(()=>{
+      document.querySelector('#media-sync-json').value='[[0,0.25],[1,3],[2,5.5]]';
+      document.querySelector('#media-apply-pasted-sync').click();
+    });
+    await page.locator('#library-save').click();
+    await page.waitForFunction(()=>!document.querySelector('#library-save').disabled);
     await page.keyboard.press('Escape');
     // A subsequent box correction must be in the portable backup too.
     await handle.focus();await handle.press('ArrowLeft');
@@ -235,6 +254,9 @@ function twoBarMidi() {
     assert.equal(backup.pdfs[0].data,pdf.buffer.toString('base64'));
     assert.deepEqual(backup.scores[0].pdf.boxes,await savedBoxes());
     assert.equal(backup.scores[0].recording.fileName,'practice.wav');
+    assert.equal(backup.scores.length,1);assert.equal(backup.mediaProfiles.length,1);
+    assert.equal(backup.scores[0].recordingProfileId,firstProfile);
+    assert.deepEqual(backup.mediaProfiles[0].points.map(p=>p.millisecondOffset),[250,3000,5500]);
     assert.equal(Object.hasOwn(backup.scores[0],'recordingHandle'),false);
     const openSaved=async()=>{
       await page.reload();await page.locator('#btn-scores').click();await page.locator('.library-score-open').click();
@@ -250,6 +272,46 @@ function twoBarMidi() {
     await openSaved();
     await page.locator('#media-reconnect').waitFor();
     assert.deepEqual(await page.evaluate(async()=>new (await import('/js/library-store.js')).LibraryStore().listProfiles()),backup.mediaProfiles);
+    const filenameOnly={name:'input.wav',mimeType:'audio/wav',buffer:Buffer.from(wav)};
+    const saveCurrent=async()=>{
+      await page.locator('#btn-scores').click();
+      await page.locator('#library-save').click();
+      await page.waitForFunction(()=>!document.querySelector('#library-save').disabled && document.querySelector('#library-status').textContent.includes('sync timing saved'));
+      await page.keyboard.press('Escape');
+    };
+    await page.locator('#media-file').setInputFiles(filenameOnly);
+    await page.waitForFunction(()=>document.querySelector('#media-recording-label').textContent==='input.wav' && !document.querySelector('#media-save-profile').disabled);
+    await saveCurrent();await openSaved();
+    await page.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('Saved alignment restored'));
+    assert.equal(await page.locator('#media-recording-label').textContent(),'input.wav');
+    const url=new URL('/test-recording.wav',page.url()).href,newUrl=new URL('/moved.wav',page.url()).href;
+    let unavailable=false;
+    await page.route(url,route=>route.fulfill(unavailable?{status:404}:{contentType:'audio/wav',body:filenameOnly.buffer}));
+    await page.route(newUrl,route=>route.fulfill({contentType:'audio/wav',body:filenameOnly.buffer}));
+    await page.evaluate(url=>{
+      document.querySelector('#media-source-kind').value='url';
+      document.querySelector('#media-url').value=url;
+      document.querySelector('#media-load-link').click();
+    },url);
+    await page.waitForFunction(url=>document.querySelector('#media-recording-label').textContent===url && !document.querySelector('#media-save-profile').disabled,url);
+    await page.evaluate(()=>{
+      document.querySelector('#media-sync-json').value='[[0,0.5],[1,2.5],[2,5.75]]';
+      document.querySelector('#media-apply-pasted-sync').click();
+    });
+    await saveCurrent();await openSaved();
+    await page.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('Saved alignment restored'));
+    assert.equal(await page.locator('#media-url').inputValue(),url);
+    unavailable=true;await openSaved();
+    await page.locator('#media-reconnect').click();
+    await page.locator('#media-url').fill(newUrl);
+    page.once('dialog',dialog=>dialog.accept());await page.locator('#media-load-link').click();
+    await page.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('Saved alignment restored'));
+    await openSaved();
+    await page.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('Saved alignment restored'));
+    assert.equal(await page.locator('#media-url').inputValue(),newUrl);
+    const linked=await page.evaluate(async()=>new (await import('/js/library-store.js')).LibraryStore().backup());
+    const online=linked.mediaProfiles.find(p=>p.id===linked.scores[0].recordingProfileId);
+    assert.equal(online.source.url,newUrl);assert.deepEqual(online.points.map(p=>p.millisecondOffset),[500,2500,5750]);
     // Import into an empty browser. Its old handles and local markup cache are absent.
     const fresh=await browser.newPage();await fresh.goto(page.url());
     await fresh.evaluate(async backup=>new (await import('/js/library-store.js')).LibraryStore().merge(backup),backup);
@@ -258,6 +320,14 @@ function twoBarMidi() {
     await fresh.locator('#media-reconnect').waitFor();
     await fresh.evaluate(async bytes=>{
       const dir=await navigator.storage.getDirectory(),picked=await dir.getFileHandle('practice.wav',{create:true});
+      bytes[50]^=1;
+      const writer=await picked.createWritable();await writer.write(Uint8Array.from(bytes));await writer.close();
+      window.showOpenFilePicker=async()=>[picked];
+    },wav);
+    await fresh.locator('#media-reconnect').click();
+    await fresh.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('differs from the saved recording'));
+    await fresh.evaluate(async bytes=>{
+      const dir=await navigator.storage.getDirectory(),picked=await dir.getFileHandle('moved.wav',{create:true});
       const writer=await picked.createWritable();await writer.write(Uint8Array.from(bytes));await writer.close();
       window.showOpenFilePicker=async()=>[picked];
     },wav);
@@ -300,7 +370,49 @@ function twoBarMidi() {
     assert.deepEqual(counts,[1,1,1,0,pdf.buffer.length]);
     await fresh.close();
     assert.deepEqual(errors, []);
-    console.log('Passed MIDI/PDF practice, library reopen, shared PDF storage, backup merge and missing recording reconnection with original sync points.');
+    console.log('Passed whole-score preview and correction, library resave, local file and URL reopen, and missing, renamed and replacement recording checks.');
+    if(process.env.GTS_PDF_TEST_MIDI && process.env.GTS_PDF_TEST_PDF){
+      const real=await browser.newPage({viewport:{width:1440,height:900}});
+      await real.goto(page.url());
+      await real.locator('#score-file-input').setInputFiles(process.env.GTS_PDF_TEST_MIDI);
+      await real.waitForFunction(()=>!document.querySelector('#pdf-attach').disabled);
+      await real.locator('#pdf-file').setInputFiles(process.env.GTS_PDF_TEST_PDF);
+      await real.locator('#pdf-find').click();
+      await real.locator('#pdf-correct-page').waitFor();
+      const pages=await real.locator('#pdf-page option').count();
+      const preview=real.locator('.pdf-review-boxes .pdf-box'),count=await preview.count();
+      assert.ok(pages>1 && count>pages);
+      for(const width of [1440,390]){
+        await real.setViewportSize({width,height:844});
+        await real.locator('#pdf-page').selectOption(String(pages));
+        await real.locator('#pdf-correct-page').click();
+        assert.ok(await real.locator('#pdf-boxes .pdf-box').count()>0);
+        await real.getByRole('button',{name:'Review whole score'}).click();
+        assert.equal(await preview.count(),count);
+        assert.ok(await real.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+      }
+      if(pages>=3){
+        const firstLabel=n=>real.locator('[data-page="'+n+'"] .pdf-review-boxes .pdf-box').first().textContent();
+        const second=Number(await firstLabel(2)),third=Number(await firstLabel(3));
+        await real.locator('#pdf-page').selectOption('3');await real.locator('#pdf-correct-page').click();
+        await real.locator('#pdf-measure').selectOption(String(third+1));
+        await real.getByRole('button',{name:'Review whole score'}).click();
+        await real.locator('#pdf-page').selectOption('1');await real.locator('#pdf-correct-page').click();
+        await real.locator('#pdf-action').selectOption('remove');
+        const remove=real.locator('#pdf-boxes .pdf-box').first();
+        await remove.scrollIntoViewIfNeeded();const r=await remove.boundingBox();
+        await real.mouse.click(r.x+r.width/2,r.y+r.height/2);
+        await real.getByRole('button',{name:'Review whole score'}).click();
+        assert.equal(Number(await firstLabel(2)),second-1);assert.equal(Number(await firstLabel(3)),third+1);
+        await real.locator('#pdf-cancel').click();await real.locator('#pdf-find').click();
+        await real.locator('#pdf-correct-page').waitFor();
+        assert.equal(await preview.count(),count);
+      }
+      await real.locator('#pdf-use-score').click();
+      assert.equal(await real.locator('#pdf-pages button[data-measure]').count(),count);
+      console.log('Verified '+count+' boxes across '+pages+' pages at 1440 and 390 pixels.');
+      await real.close();
+    }
   } finally {
     await browser?.close();
     await new Promise(resolve => server.close(resolve));

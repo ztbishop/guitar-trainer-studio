@@ -138,6 +138,14 @@ async function run() {
     const convert=page.locator('#media-continuous-points');
     await convert.click();
     await page.waitForFunction(()=>s.media.points?.length>=5 && !s.media.timingPlan);
+    await page.locator('#btn-scores').click();
+    await page.locator('#library-save').click();
+    await page.waitForFunction(()=>document.querySelector('#library-status').textContent.includes('sync timing saved'));
+    const library=await page.evaluate(async()=>new (await import('/js/library-store.js')).LibraryStore().backup());
+    assert.equal(library.mediaProfiles.length,2);
+    const timedId=library.mediaProfiles.find(p=>p.timingPlan).id;
+    assert.ok(library.mediaProfiles.find(p=>p.id===library.scores[0].recordingProfileId).points.length>=5);
+    await page.keyboard.press('Escape');
     const readPoints=()=>page.evaluate(()=>s.media.points);
     const end=(await readPoints()).length-1;
     const pin=i=>page.locator(`#media-timeline [data-point="${i}"] rect`).click();
@@ -196,7 +204,7 @@ async function run() {
     await page.locator('#media-file').dispatchEvent('change');
     await page.waitForFunction(url=>s.media.preview && s.playerReady && document.querySelector('#media-audio').src!==url &&
       /Saved alignment restored|Recording selected/.test(document.querySelector('#media-status').textContent),priorAudioUrl);
-    await page.locator('#media-profile-select').evaluate(select=>{select.value=[...select.options].find(o=>o.value).value;select.dispatchEvent(new Event('change'));});
+    await page.locator('#media-profile-select').evaluate((select,id)=>{select.value=id;select.dispatchEvent(new Event('change'));},timedId);
     await page.waitForFunction(()=>document.querySelector('#media-status').textContent.includes('Saved alignment restored'));
     await convert.click();
     await page.waitForFunction(()=>s.media.points?.length>=5 && !s.media.timingPlan);

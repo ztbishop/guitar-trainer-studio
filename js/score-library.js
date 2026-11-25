@@ -255,9 +255,14 @@ export function initScoreLibrary(loadFile,store=new LibraryStore(),captureAttach
   get('library-save').addEventListener('click',()=>run(async()=>{
     const file=AppState.currentScoreFile;if(!file)throw new Error('Open a score first.');
     const folderId=['__all__','__demos__'].includes(activeFolderId)?'':activeFolderId;
-    const attachments=captureAttachments();
+    const attachments=await captureAttachments();
+    if(file!==AppState.currentScoreFile)throw new Error('The score changed. Save again.');
     const result=await store.save({...file,title:libraryTitle(AppState.score?.title,file.fileName),folderId:folderId||null},attachments);
-    await refresh();message(attachments.pdf || attachments.recording?'Score and attachments saved to the library.':result.duplicate?'This score is already saved in the library.':'Saved to the library.');
+    await attachments.saved?.();
+    await refresh();
+    if(attachments.unreviewed)message('Score and recording saved. Review the draft timing or export it to keep your draft.');
+    else if(attachments.profileId)message('Score, recording and sync timing saved to the library.');
+    else message(attachments.pdf || attachments.recording?'Score and attachments saved to the library.':result.duplicate?'This score is already saved in the library.':'Saved to the library.');
   }));
   get('library-new-folder').addEventListener('click',()=>run(async()=>{
     const name=await requestText('New folder','', 'Folder name');if(name===null)return;

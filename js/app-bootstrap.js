@@ -851,7 +851,7 @@ async function bootstrap() {
     const loading=loadScoreFile(file);
     pendingLibraryRow=row;
     return loading;
-  },libraryStore,()=>({pdf:pdfCompanion.attachment(),...mediaControls?.libraryAttachment()}));
+  },libraryStore,async()=>({pdf:pdfCompanion.attachment(),...await mediaControls?.libraryAttachment()}));
   async function restoreLibraryAttachments(){
     const row=pendingLibraryRow,score=AppState.currentScoreFile;
     if(!row || score?.hash!==row.hash || !AppState.playbackTimeline || !AppState.playerReady)return;
@@ -861,8 +861,8 @@ async function bootstrap() {
       const saved=await libraryStore.attachments(row.id);
       if(!saved || score!==AppState.currentScoreFile)return;
       if(saved.pdf && revision===pdfCompanion.revision){
-        if(!saved.pdf.blob)throw new Error('The saved PDF is missing. Attach the original PDF again.');
-        await pdfCompanion.open(new File([saved.pdf.blob],saved.pdf.fileName,{type:'application/pdf'}),saved.pdf.boxes);
+        if(saved.pdf.blob)await pdfCompanion.open(new File([saved.pdf.blob],saved.pdf.fileName,{type:'application/pdf'}),saved.pdf.boxes);
+        else document.getElementById('library-status').textContent='The saved PDF is missing. Attach the original PDF again.';
       }
       if(saved.recording && score===AppState.currentScoreFile && mediaRevision===mediaControls.recordingRevision)
         await mediaControls.restoreLibraryRecording({...saved,scoreHash:score.hash,scoreId:row.id});

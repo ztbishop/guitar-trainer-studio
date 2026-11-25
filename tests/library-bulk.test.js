@@ -4,7 +4,7 @@ import {LibraryStore} from '../js/library-store.js';
 
 // Exercise bulk operations with asynchronous requests and transaction rollback.
 function fixture() {
-  const data={folders:new Map([['a',{id:'a'}],['b',{id:'b'}]]),scores:new Map([
+  const data={recordingFiles:new Map(),folders:new Map([['a',{id:'a'}],['b',{id:'b'}]]),scores:new Map([
     ['one',{id:'one',title:'First',folderId:'a',bytes:new Uint8Array([1,2])}],
     ['two',{id:'two',title:'Second',folderId:'b',bytes:new Uint8Array([3])}],
     ['three',{id:'three',title:'Third',folderId:'a',bytes:new Uint8Array([4])}]
