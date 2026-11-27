@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Image-only companion PDF beat anchors, November 27, 2026
+
+The reader uses the existing staff raster detector when a page exposes no text. Filled noteheads at stem tips supply an anchor when later heads corroborate it in the first measure of a five-line staff. The original image-only Arirang PDF is the test case. Raster inspection returned candidates in 36 of 40 systems. Chrome verified opening measures 1, 4, 7 and 11, and retained the regular measure box alignment on measure 2. The full Node suite passed. The full measure box still provides highlighting and seeking.
+
 ## Auto-sync editor stays open, November 27, 2026
 
 Automatic application keeps Media Sync open, with grading paused until Finish editing. Timing that still needs review stays in the draft editor.

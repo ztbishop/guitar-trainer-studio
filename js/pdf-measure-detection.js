@@ -99,8 +99,12 @@ function cleanBar(pixels,width,height,staff,left,right,previousBar) {
   return crossing && samples>0 && mostFrequent>=samples*.78;
 }
 
+export function detectStaves(pixels,width,height) {
+  return findStaves(horizontalLines(pixels,width,height),width);
+}
+
 export function detectMeasureBoxes(pixels, width, height, page) {
-  const staves = findStaves(horizontalLines(pixels,width,height),width);
+  const staves = detectStaves(pixels,width,height);
   for (const staff of staves) staff.columns = verticals(pixels,width,staff);
   const boxes = [];
   for (let i=0;i<staves.length;i++) {
@@ -145,7 +149,7 @@ export function detectMeasureBoxes(pixels, width, height, page) {
   return boxes;
 }
 
-export async function detectPdfPage(pdfPage,page) {
+export async function readPdfRaster(pdfPage, analyze) {
   const base=pdfPage.getViewport({scale:1});
   const viewport=pdfPage.getViewport({scale:Math.min(1440/base.width,2400/base.height)});
   const canvas=document.createElement('canvas');
@@ -156,8 +160,12 @@ export async function detectPdfPage(pdfPage,page) {
     const rgba=context.getImageData(0,0,canvas.width,canvas.height).data;
     const gray=new Uint8Array(canvas.width*canvas.height);
     for(let i=0;i<gray.length;i++) gray[i]=(rgba[i*4]+2*rgba[i*4+1]+rgba[i*4+2])/4;
-    return detectMeasureBoxes(gray,canvas.width,canvas.height,page);
+    return analyze(gray,canvas.width,canvas.height);
   } finally {canvas.width=canvas.height=1;}
+}
+
+export function detectPdfPage(pdfPage,page) {
+  return readPdfRaster(pdfPage,(pixels,width,height)=>detectMeasureBoxes(pixels,width,height,page));
 }
 
 export async function detectPdfScore(pdf,isCurrent,onPage) {

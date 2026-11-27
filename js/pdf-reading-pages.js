@@ -1,4 +1,5 @@
-import {beatInset, readBeatGlyphs} from './pdf-beat-anchors.js';
+import {beatInset, rasterBeatAnchors, rasterBeatInset, readBeatGlyphs} from './pdf-beat-anchors.js';
+import {detectStaves, readPdfRaster} from './pdf-measure-detection.js';
 
 // Page geometry and hit targets stay mounted. Only nearby pages need raster images.
 export function readingPages(scroll, root, onJump, onPage, onError, companion=false) {
@@ -7,15 +8,19 @@ export function readingPages(scroll, root, onJump, onPage, onError, companion=fa
   const paintedMarks = new Map();
   let activeMark, activeSegment;
 
-  function setBeatInset(el, box, glyphs) {
-    const inset = beatInset(box, glyphs);
+  function setBeatInset(el, box, p) {
+    const inset = p.beatGlyphs ? beatInset(box,p.beatGlyphs) : rasterBeatInset(box,p.rasterAnchors ?? []);
     if (inset) el.style.setProperty('--pdf-beat-inset', 100 * inset + '%');
   }
   function scanBeatGlyphs(p) {
-    if (!companion || p.beatScan || root.classList.contains('marking')) return;
-    p.beatScan = readBeatGlyphs(p.pdf, p.base).then(glyphs => {
+    if (!companion || p.beatScan || !p.beatBoxes.size || root.classList.contains('marking')) return;
+    p.beatScan = readBeatGlyphs(p.pdf, p.base).then(async glyphs => {
       p.beatGlyphs = glyphs;
-      for (const [el, box] of p.beatBoxes) setBeatInset(el, box, glyphs);
+      if(glyphs===null && p.beatBoxes.size) {
+        p.rasterAnchors=await readPdfRaster(p.pdf,(pixels,width,height)=>
+          rasterBeatAnchors(pixels,width,height,detectStaves(pixels,width,height),[...p.beatBoxes.values()]));
+      }
+      for (const [el, box] of p.beatBoxes) setBeatInset(el, box, p);
     }).catch(() => { p.beatGlyphs = []; });
   }
   function release(p) {
@@ -87,7 +92,7 @@ export function readingPages(scroll, root, onJump, onPage, onError, companion=fa
     pages.forEach(p => {
       p.layer.replaceChildren();
       p.beatBoxes.clear();
-      if (p.near) scanBeatGlyphs(p);
+
     });
     paintedMarks.clear();
     activeMark = activeSegment = null;
@@ -104,9 +109,10 @@ export function readingPages(scroll, root, onJump, onPage, onError, companion=fa
       targets.set(number, el);
       if (companion) {
         p.beatBoxes.set(el, box);
-        if (p.beatGlyphs?.length) setBeatInset(el, box, p.beatGlyphs);
+        setBeatInset(el, box, p);
       }
     }
+    pages.filter(p=>p.near).forEach(scanBeatGlyphs);
   }
   function follow(el) {
     if (!el) return;

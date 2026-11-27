@@ -417,6 +417,17 @@ function twoBarMidi() {
       await real.locator('#pdf-use-score').click();
       assert.equal(await real.locator('#pdf-pages button[data-measure]').count(),count);
       console.log('Verified '+count+' boxes across '+pages+' pages at 1440 and 390 pixels.');
+      if(process.env.GTS_PDF_TEST_RASTER_ARIRANG){
+        const anchor=n=>real.locator('#pdf-pages button[data-measure="'+n+'"]');
+        for(const [number,minimum,maximum] of [[1,24,29],[4,20,26],[7,18,24],[11,34,42]]){
+          const box=anchor(number);
+          await real.waitForFunction(n=>parseFloat(document.querySelector('#pdf-pages [data-measure="'+n+'"]').style.getPropertyValue('--pdf-beat-inset'))>0,number);
+          const inset=await box.evaluate(el=>parseFloat(el.style.getPropertyValue('--pdf-beat-inset')));
+          assert.ok(inset>=minimum && inset<=maximum,`Arirang measure ${number} raster inset: ${inset}`);
+        }
+        assert.equal(await anchor(2).evaluate(el=>el.style.getPropertyValue('--pdf-beat-inset')),'');
+        console.log('Verified first-note anchors on original Arirang measures 1, 4, 7 and 11.');
+      }
       if(process.env.GTS_PDF_TEST_ARIRANG_REPEATS){
         await real.setViewportSize({width:1600,height:1100});
         const staffFeedback=real.locator('#show-notation-feedback');
