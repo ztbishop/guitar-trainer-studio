@@ -32,3 +32,14 @@ test('reviewed estimates belong to the exact two taps and take, with a continuou
   const changed=putAnchor(taps,{measure:2,time:5.25});
   assert.deepEqual(measureIntervals(changed,overrides).map(s=>s.start),[3,5.25,7.125,13,14.1,19.5]);
 });
+
+test('a repeat join closes the first pass and starts the second at the same timestamp',()=>{
+  let pins=[{measure:35,time:1}];
+  pins=putAnchor(pins,{measure:45,time:12,end:true});
+  pins=putAnchor(pins,{measure:35,time:12});
+  pins=putAnchor(pins,{measure:46,time:23});
+  const spans=measureIntervals(pins);
+  assert.deepEqual(spans.slice(10,12),[{measure:45,start:11,end:12},{measure:35,start:12,end:13}]);
+  const start=pins[2];
+  assert.equal(putAnchor(pins,{...start,time:12.5},start)[1].end,true);
+});

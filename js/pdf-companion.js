@@ -529,7 +529,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
       measure.replaceChildren();
       if(recording) {
         view.hidden=false;
-        recording.opened(hash,selected.name,boxes);
+        recording.opened(hash,selected.name,boxes,selected);
         saveBoxes();
       } else {
         const visits=state.playbackTimeline.measures,limit=state.score.masterBars.length;

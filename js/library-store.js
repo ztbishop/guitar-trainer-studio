@@ -1,5 +1,6 @@
 // Original score bytes and folder metadata only; no renderer/trainer dependency.
 export const LIBRARY_FORMAT='guitar-trainer-library';
+import {tapPassages,validEstimates} from './pdf-recording-timing.js';
 import {validateProfile,validateSource,sourceMatches} from './media-sync.js';
 export const SCORE_EXTENSIONS=/\.(gp|gp3|gp4|gp5|gpx|xml|musicxml|mxl|mid|midi)$/i;
 const id=()=>crypto.randomUUID();
@@ -28,7 +29,7 @@ export function decodeBytes(text) {
 }
 
 export async function validateBackup(data) {
-  if(data?.format!==LIBRARY_FORMAT || ![1,2,3,4].includes(data.version) || !Array.isArray(data.folders) || !Array.isArray(data.scores))throw new Error('Choose a supported Guitar Trainer library backup.');
+  if(data?.format!==LIBRARY_FORMAT || ![1,2,3,4,5].includes(data.version) || !Array.isArray(data.folders) || !Array.isArray(data.scores))throw new Error('Choose a supported Guitar Trainer library backup.');
   if(data.version>=2 && !Array.isArray(data.mediaProfiles))throw new Error('The backup is missing media sync profiles.');
   if(data.version<3 && data.mediaProfiles?.some(p=>Object.hasOwn(p??{},'timingPlan')))throw new Error('Explanation profiles need a version-3 library backup.');
   const mediaProfiles=(data.mediaProfiles || []).map(validateProfile);
@@ -49,19 +50,16 @@ export async function validateBackup(data) {
   }
   const scores=[];
   for(const score of data.scores) {
-    if(!score || typeof score.id!=='string' || !score.id || scoreIds.has(score.id) || !name(score.title) || !SCORE_EXTENSIONS.test(score.fileName || '') ||
+    if(!score || typeof score.id!=='string' || !score.id || scoreIds.has(score.id) || !name(score.title) || !(SCORE_EXTENSIONS.test(score.fileName || '') || data.version===5 && score.pdfRecording && /\.pdf$/i.test(score.fileName || '')) ||
       (score.folderId!=null && !folderIds.has(score.folderId)))throw new Error('Invalid score metadata in backup.');
     scoreIds.add(score.id);
     const bytes=decodeBytes(score.data);
     const saved={id:score.id,title:name(score.title),fileName:String(score.fileName),folderId:score.folderId || null,bytes,hash:await fingerprint(bytes)};
-    if(data.version===4 && score.pdf){
+    if(data.version===5 && /\.pdf$/i.test(score.fileName)) saved.pdfRecording=validatePdfRecording(score.pdfRecording);
+    if(data.version>=4 && score.pdf){
       const {hash,fileName,boxes}=score.pdf;
       if(!pdfs.has(hash) || !name(fileName) || !boxes || typeof boxes!=='object' || Array.isArray(boxes))throw new Error('Invalid score PDF attachment.');
-      for(const [number,b] of Object.entries(boxes)){
-        if(!/^[1-9]\d*$/.test(number) || !b || !Number.isSafeInteger(b.page) || b.page<1 ||
-          ![b.x,b.y,b.w,b.h].every(Number.isFinite) || b.x<0 || b.y<0 || b.w<=0 || b.h<=0 ||
-          b.x+b.w>1.000001 || b.y+b.h>1.000001)throw new Error('Invalid PDF measure box.');
-      }
+      validateBoxes(boxes);
       saved.pdf={hash,fileName,boxes};
       if(score.pdf.mapping!==undefined){
         const mapping=score.pdf.mapping;
@@ -69,7 +67,7 @@ export async function validateBackup(data) {
         saved.pdf.mapping=mapping;
       }
     }
-    if(data.version===4 && score.recording){
+    if(data.version>=4 && score.recording){
       saved.recording=validateSource(score.recording);
       const selected=mediaProfiles.find(p=>p.id===score.recordingProfileId && p.scoreHash===saved.hash && sourceMatches(p.source,saved.recording));
       if(selected)saved.recordingProfileId=selected.id;
@@ -77,6 +75,36 @@ export async function validateBackup(data) {
     scores.push(saved);
   }
   return {folders,scores,mediaProfiles,pdfs};
+}
+
+function validateBoxes(boxes) {
+  for(const [number,b] of Object.entries(boxes)){
+    if(!/^[1-9]\d*$/.test(number) || !b || !Number.isSafeInteger(b.page) || b.page<1 ||
+      ![b.x,b.y,b.w,b.h].every(Number.isFinite) || b.x<0 || b.y<0 || b.w<=0 || b.h<=0 ||
+      b.x+b.w>1.000001 || b.y+b.h>1.000001)throw new Error('Invalid PDF measure box.');
+  }
+}
+
+function validatePdfRecording(pair) {
+  if(!pair || !/^[a-f0-9]{64}$/.test(pair.mediaHash) || !name(pair.mediaName) ||
+     !pair.boxes || typeof pair.boxes!=='object' || Array.isArray(pair.boxes) || !Array.isArray(pair.anchors))
+    throw new Error('Invalid PDF recording timing.');
+  validateBoxes(pair.boxes);
+  const anchors=[], seen=new Set();
+  for(const a of pair.anchors){
+    const key=a && a.time+':'+Boolean(a.end);
+    if(!a || !Number.isSafeInteger(a.measure) || a.measure<1 || !Number.isFinite(a.time) || a.time<0 ||
+       seen.has(key))throw new Error('Invalid PDF recording tap.');
+    seen.add(key);
+    anchors.push({measure:a.measure,time:a.time,end:Boolean(a.end)});
+  }
+  anchors.sort((a,b)=>a.time-b.time || Number(b.end)-Number(a.end));
+  const estimates={};
+  for(const p of tapPassages(anchors)){
+    const starts=pair.estimates?.[p.id];
+    if(validEstimates(p,starts))estimates[p.id]=starts.slice();
+  }
+  return {boxes:pair.boxes,anchors,estimates,mediaHash:pair.mediaHash,mediaName:name(pair.mediaName)};
 }
 
 export class LibraryStore {
@@ -160,6 +188,19 @@ export class LibraryStore {
       else write();
     });
   }
+  async savePdfRecording(pdf,file,pair) {
+    if(!/\.pdf$/i.test(pdf.name) || !pdf.size || !file.size)throw new Error('Choose a PDF and recording first.');
+    const bytes=new Uint8Array(await pdf.arrayBuffer()),hash=await fingerprint(bytes);
+    const pdfRecording=validatePdfRecording(pair);
+    return this.transaction(['scores','recordingFiles'],'readwrite',({scores,recordingFiles},done)=>{
+      scores.index('scoreHash').get(hash).onsuccess=event=>{
+        const score=event.target.result || {id:id(),title:pdf.name.replace(/\.pdf$/i,''),fileName:pdf.name,bytes,hash,folderId:null,createdAt:Date.now()};
+        scores.put({...score,pdfRecording});
+        recordingFiles.put({id:score.id,file});
+        done(score.id);
+      };
+    });
+  }
   createFolder(value) {
     const trimmed=name(value);if(!trimmed)throw new Error('Enter a folder name.');
     return this.transaction(['folders'],'readwrite',({folders},done)=>{
@@ -186,7 +227,7 @@ export class LibraryStore {
         if(!row)return;
         const result={recording:row.recording,handle:row.recordingHandle,profileId:row.recordingProfileId};
         done(result);
-        if(row.recording?.kind==='local' && !row.recordingHandle)
+        if(row.pdfRecording || row.recording?.kind==='local' && !row.recordingHandle)
           recordingFiles.get(scoreId).onsuccess=e=>{result.file=e.target.result?.file;};
         if(row.pdf)pdfs.get(row.pdf.hash).onsuccess=e=>{result.pdf={...row.pdf,blob:e.target.result?.blob};};
       };
@@ -294,7 +335,7 @@ export class LibraryStore {
       if(!blob)throw new Error('A PDF attachment changed during backup. Please retry.');
       pdfs.push({hash,data:encodeBytes(new Uint8Array(await blob.arrayBuffer()))});
     }
-    return {format:LIBRARY_FORMAT,version:attachments?4:mediaProfiles.some(p=>p.timingPlan)?3:2,exportedAt:new Date().toISOString(),folders,mediaProfiles,...(attachments?{pdfs}:{}),
+    return {format:LIBRARY_FORMAT,version:scores.some(s=>s.pdfRecording)?5:attachments?4:mediaProfiles.some(p=>p.timingPlan)?3:2,exportedAt:new Date().toISOString(),folders,mediaProfiles,...(attachments || scores.some(s=>s.pdfRecording)?{pdfs}:{}),
       scores:scores.map(({bytes,recordingHandle,...score})=>({...score,data:encodeBytes(bytes)}))};
   }
   async merge(data) {
@@ -323,12 +364,14 @@ export class LibraryStore {
         for(const score of incoming.scores) {
           const existing=byHash.get(score.hash);
           const addPdf=score.pdf && !existing?.pdf,addRecording=score.recording && !existing?.recording;
-          if(existing && !addPdf && !addRecording){skipped++;continue;}
+          const addPdfRecording=score.pdfRecording && !existing?.pdfRecording;
+          if(existing && !addPdf && !addRecording && !addPdfRecording){skipped++;continue;}
           const row=existing || {...score,id:id(),folderId:folderMap.get(score.folderId)||null,createdAt:Date.now()};
           if(addPdf){
             stores.pdfs.put({id:score.pdf.hash,blob:incoming.pdfs.get(score.pdf.hash)});
             row.pdf=score.pdf;
           }
+          if(addPdfRecording)row.pdfRecording=score.pdfRecording;
           if(addRecording){row.recording=score.recording;row.recordingProfileId=profileIds.get(score.recordingProfileId)||'';}
           stores.scores.put(row);byHash.set(row.hash,row);
           if(existing)skipped++;else added++;

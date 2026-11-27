@@ -58,3 +58,16 @@ test('synced media volume is independent, saved, and dispatched separately from 
     controls.sync();assert.equal(ids['media-volume-number'].value,'0');
   } finally {globalThis.document=previous.document;globalThis.window=previous.window;AppState.audio=previous.audio;}
 });
+
+test('version 5 validates standalone PDF timing including repeat joins',async()=>{
+  const data=backup();
+  Object.assign(data,{version:5,mediaProfiles:[],pdfs:[]});
+  const row=data.scores[0];
+  row.fileName='song.pdf';
+  row.pdfRecording={mediaName:'song.wav',mediaHash:'a'.repeat(64),boxes:{1:{page:1,x:.1,y:.1,w:.8,h:.2}},
+    anchors:[{measure:1,time:3,end:false},{measure:2,time:3,end:true}],estimates:{}};
+  const {scores}=await validateBackup(data);
+  assert.deepEqual(scores[0].pdfRecording.anchors,row.pdfRecording.anchors.slice().reverse());
+  row.pdfRecording.anchors.push({measure:1,time:3,end:false});
+  await assert.rejects(validateBackup(data),/Invalid PDF recording tap/);
+});

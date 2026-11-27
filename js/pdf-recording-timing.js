@@ -1,10 +1,10 @@
-// Printed measure numbers can repeat. Recording times are unique and ordered.
+// A passage end and the following start can share a timestamp at a repeat.
 export function putAnchor(anchors,anchor,replaceTime=null) {
   if(!Number.isInteger(anchor.measure) || anchor.measure<1 || !Number.isFinite(anchor.time) || anchor.time<0)
     throw Error('Choose a measure and a valid recording time.');
-  const next=anchors.filter(a=>a.time!==replaceTime);
-  if(next.some(a=>Math.abs(a.time-anchor.time)<.001))throw Error('There is already a tap at this time. Select it to make a correction.');
-  return [...next,anchor].sort((a,b)=>a.time-b.time);
+  const next=anchors.filter(a=>typeof replaceTime==='object' ? a!==replaceTime : a.time!==replaceTime);
+  if(next.some(a=>Math.abs(a.time-anchor.time)<.001 && !(a.time===anchor.time && Boolean(a.end)!==Boolean(anchor.end))))throw Error('There is already a tap at this time. Select it to make a correction.');
+  return [...next,anchor].sort((a,b)=>a.time-b.time || Number(Boolean(b.end))-Number(Boolean(a.end)));
 }
 
 export function tapPassages(anchors) {

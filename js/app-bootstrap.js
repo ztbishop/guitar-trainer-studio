@@ -274,23 +274,34 @@ function wireScoreStageUi() {
   return {sync(){displayControls.sync();trackVisibilityControls.sync();}};
 }
 
-function wireFilePicker(closeMenu) {
+function wireFilePicker(closeMenu,libraryStore) {
   const fileInput = document.getElementById('score-file-input');
   if (!fileInput) return;
   const room=document.getElementById('pdf-recording-room');
-  function openRecordingRoom(file) {
+  async function openRecordingRoom(file,row) {
     if(room.open)return;
+    const pair=row?.pdfRecording;
+    const recording=pair ? (await libraryStore.attachments(row.id))?.file : null;
     closeMenu();
     if(AppState.isPlaying || AppState.countInActive || (waitController.active && waitController.phase!=='paused'))
       document.getElementById('play-pause-button').click();
-    const frame=document.createElement('iframe');
-    frame.title='PDF and recording practice';
-    frame.src='assets/pdf-recording.html';
-    if(file)frame.onload=()=>frame.contentDocument.dispatchEvent(new CustomEvent('open-printed-score',{detail:file}));
-    room.append(frame);room.showModal();
+    let frame=room.querySelector('iframe');
+    const openPair=()=>frame.contentDocument.dispatchEvent(new CustomEvent('open-printed-score',{detail:{pdf:file,pair,recording}}));
+    if(file)frame?.remove();
+    if(!frame || file){
+      frame=document.createElement('iframe');
+      frame.title='PDF and recording practice';
+      frame.src='assets/pdf-recording.html';
+      if(file)frame.addEventListener('load',openPair,{once:true});
+      room.append(frame);
+    }
+    room.showModal();
+    return true;
   }
-  room.onclose=()=>room.querySelector('iframe')?.remove();
+  room.onclose=()=>room.querySelector('iframe')?.contentDocument?.dispatchEvent(new Event('pdf-practice-close'));
+  document.getElementById('pdf-back-to-trainer').onclick=()=>room.querySelector('iframe')?.contentDocument?.dispatchEvent(new Event('pdf-practice-view'));
   document.getElementById('open-pdf-recording').onclick=()=>openRecordingRoom(null);
+  window.addEventListener('pdf-library-saved',()=>scoreLibrary.scoreLoaded());
 
   fileInput.addEventListener('change', async (event) => {
     const file = event.target?.files?.[0];
@@ -298,13 +309,14 @@ function wireFilePicker(closeMenu) {
     // Selecting the same file again must fire change and offer pairing again.
     event.target.value='';
     try {
-      if(/\.pdf$/i.test(file.name) || file.type==='application/pdf')openRecordingRoom(file);
+      if(/\.pdf$/i.test(file.name) || file.type==='application/pdf')await openRecordingRoom(file);
       else await loadScoreFile(file);
     } catch (error) {
       console.error('Could not load score file.', error);
       alert(error?.message || 'Could not load that score file. Check the browser console for details.');
     }
   });
+  return openRecordingRoom;
 }
 
 function wireTransportButtons() {
@@ -853,7 +865,9 @@ async function bootstrap() {
       ? waitController.session.heldFeedbackColor(waitController.session.records[waitController.index])
       : realtimeHeldFeedback(event.id));
   let pendingLibraryRow=null;
+  const openRecordingRoom=wireFilePicker(toolbar.closeAllPopups,libraryStore);
   scoreLibrary=initScoreLibrary((file,row)=>{
+    if(row?.pdfRecording)return openRecordingRoom(file,row);
     const loading=loadScoreFile(file);
     pendingLibraryRow=row;
     return loading;
@@ -892,7 +906,6 @@ async function bootstrap() {
   document.getElementById('play-pause-button').addEventListener('click',()=>{fretboardBrowseTick=null;renderTrainerUi();});
   initWorkspacePanels();
   document.getElementById('fretboard-close').addEventListener('click',()=>{const toggle=document.getElementById('show-fretboard');toggle.checked=false;toggle.dispatchEvent(new Event('change'));document.getElementById('btn-more').focus();});
-  wireFilePicker(toolbar.closeAllPopups);
   wireTransportButtons();
   wirePracticeControls();
   wireTempoAndLoopControls();

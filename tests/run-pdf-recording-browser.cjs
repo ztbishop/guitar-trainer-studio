@@ -82,7 +82,7 @@ function audioFixture(starts=[1.36,4.3,7.98],name='exercise.wav',duration=1/3) {
     await room.getByRole('button',{name:'Go to measure 2',exact:true}).click();
     const refined=await player.evaluate(v=>v.currentTime);
     if(!process.argv[2])assert.ok(Math.abs(refined-4.3)<.08);
-    await page.getByRole('button',{name:'Back to trainer'}).click();await open();
+    await page.getByRole('button',{name:'Close PDF practice'}).click();await open();
     await room.locator('#audio-review summary').click();await room.locator('#restore-even').waitFor();
     await room.getByRole('button',{name:'Go to measure 2',exact:true}).click();
     assert.ok(Math.abs(await player.evaluate(v=>v.currentTime)-refined)<.02);
@@ -108,13 +108,27 @@ function audioFixture(starts=[1.36,4.3,7.98],name='exercise.wav',duration=1/3) {
     }));
     assert.equal(await room.locator('#following').textContent(),'Measure 2');
     await page.getByRole('button',{name:'Back to trainer'}).click();
-    await open();assert.equal(await room.locator('#anchors option').count(),3);
+    assert.equal(await room.locator('#timing').isVisible(),false);
+    assert.equal(await player.evaluate(v=>v.paused),false);
+    await room.locator('#edit-sync').click();
+    assert.equal(await room.locator('#anchors option').count(),3);
+    await room.locator('#loop').click();
     await seek(8.5);
     await player.evaluate(v=>v.play());
     await room.locator('#tap-measure').selectOption('3');await room.locator('#tap').click();
     await player.evaluate(v=>v.pause());
     assert.equal(await room.locator('#anchors option').count(),4);
     assert.ok(Number(await room.locator('#anchors').inputValue())>=8.5);
+    await room.locator('#save-pair').click();
+    await room.getByText('PDF and recording saved to the library.').waitFor();
+    await page.getByRole('button',{name:'Close PDF practice'}).click();
+    await page.evaluate(()=>{for(const key of Object.keys(localStorage))if(key.startsWith('gts.pdf.recording.'))localStorage.removeItem(key);});
+    await page.reload();
+    await page.locator('#btn-scores').click();
+    await page.locator('.library-score-open').first().click();
+    await room.locator('#tap:enabled').waitFor();
+    assert.equal(await room.locator('#anchors option').count(),4);
+    assert.equal(await player.evaluate(v=>Boolean(v.src)),true);
     if(!process.argv[2]){
       await room.locator('#recording-file').setInputFiles(audioFixture([1,2.64,4.65,7.34,9],'mixed.wav',.13));
       await room.locator('#tap:enabled').waitFor();
@@ -131,8 +145,17 @@ function audioFixture(starts=[1.36,4.3,7.98],name='exercise.wav',duration=1/3) {
       }
       assert.equal(await room.locator('#anchors').innerText(),anchors);
     }
+    if(!process.argv[2]){
+      await seek(10);
+      await room.getByText('Mark a repeat',{exact:true}).click();
+      await room.locator('#repeat-end').selectOption('5');
+      await room.locator('#repeat-start').selectOption('2');
+      await room.locator('#repeat').click();
+      await room.getByText('Measure 5 ends and measure 2 repeats at 0:10.00.').waitFor();
+      assert.match((await room.locator('#anchors option').allTextContents()).join(' '),/M5 end · 0:10.00[\s\S]*M2 start · 0:10.00/);
+    }
     assert.equal(await page.evaluate(async()=>(await import('/js/app-state.js')).AppState.currentScoreFile),null);
     assert.deepEqual(errors,[]);
-    console.log('Passed standalone PDF open, detection, sparse taps, correction, seek, rate changes, realtime loop and restored timing.');
+    console.log('Passed standalone PDF open, detection, sparse taps, correction, seek, rate changes, realtime loop, repeat marking, retained playback, and library restore.');
   } finally {await browser?.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

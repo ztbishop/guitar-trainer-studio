@@ -11,6 +11,8 @@
     <button id="pdf-attach" type="button">Open PDF…</button><input id="pdf-file" type="file" accept=".pdf,application/pdf" hidden>
     <label><input id="auto-find" type="checkbox" checked> Find measure boxes on open</label>
     <button id="choose-media" type="button">Open audio or video…</button><input id="recording-file" type="file" accept="audio/*,video/*" hidden>
+    <button id="save-pair" type="button" disabled>Save to Library</button>
+    <button id="edit-sync" type="button" hidden>Edit sync</button>
     <span class="practice-note"><strong>Realtime practice</strong> · Scoring and Wait mode require a MIDI, MusicXML or Guitar Pro score.</span>
   </header>
   <p id="pdf-attach-status" role="status" hidden></p>
@@ -26,6 +28,10 @@
       <fieldset id="timing" disabled><legend>Measure timing</legend>
         <p>Play the recording. Tap at a measure’s first beat. Skip ahead in the selector to estimate the measures between taps.</p>
         <div class="line"><label>Measure <select id="tap-measure"></select></label><button id="tap">Tap measure start</button></div>
+        <details><summary>Mark a repeat</summary>
+          <p>Pause when the repeated measure starts. Enter the last measure of the first pass and the first measure of the repeat.</p>
+          <div class="line"><label>End first pass at <select id="repeat-end"></select></label><label>Repeat from <select id="repeat-start"></select></label><button id="repeat">Mark repeat at playhead</button></div>
+        </details>
         <details><summary>Adjust taps and mark breaks</summary>
           <p>Choose the last measure of a passage and mark its end at the playhead. Tap the next start after the break.</p>
           <button id="passage-end">Mark end of selected measure</button>

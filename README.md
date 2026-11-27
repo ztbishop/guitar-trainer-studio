@@ -109,7 +109,11 @@ If even spacing drifts during a slowdown, open **Compare audio timing between ta
 
 If the reviewer says the accents fit two possible rhythms, tap a measure start you recognize inside the passage. For example, tapping the start of a long held measure keeps its extra time from shifting the estimates for the preceding measures.
 
-Reopen the same two files to restore the taps and any reviewed passage timing. The browser saves box positions and timing. PDF practice and the optional audio comparison run in the hosted app using your local files. For Wait mode and pitch grading, use the playable-score workflow below.
+For a recorded repeat of measures 35–45, tap the first start of measure 35. Pause exactly where the second pass begins, then open **Mark a repeat**, choose **45** as the end of the first pass and **35** as the restart, and click **Mark repeat at playhead**. Tap measure 46 when the second pass ends. Add more taps where either pass drifts.
+
+Choose **Save to Library** to reopen the PDF, recording and timing from Scores. **Back to trainer** hides the sync controls while keeping playback open. **Edit sync** brings them back. **Close PDF practice** pauses the recording and returns to the main trainer. Reopen **Scores → PDF → PDF + recording…** to resume that session. Library backups carry the PDF and timing. Reconnect the original recording after importing a backup on another browser.
+
+You can also reopen the same two files to restore the taps and any reviewed passage timing. The browser saves box positions and timing. PDF practice and the optional audio comparison run in the hosted app using your local files. For Wait mode and pitch grading, use the playable-score workflow below.
 
 Use a PDF with a MIDI when the print is your reference for reading the music. A Guitar Pro or MusicXML companion also works when you prefer the publisher's layout. Written fingerings for the virtual fretboard come from the companion. TAB printed on a PDF is visible to you but supplies no string data to the trainer.
 
