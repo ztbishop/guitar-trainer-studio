@@ -19,11 +19,11 @@ export function createDraftEditor({container,options,transport,highlight,stop,ap
   const button=(id,label,fn)=>{const b=document.createElement('button');b.type='button';b.id=id;b.textContent=label;b.addEventListener('click',()=>{try{fn();}catch(e){showError(e);}});actions.append(b);return b;};
   let original=null,working=null,undo=[],redo=[],revision=0;
   const use=button('media-draft-use','Use reviewed timing',()=>acceptIfReady().catch(showError));
-  async function acceptIfReady(){
+  async function acceptIfReady({keepEditorOpen=false}={}){
     if(use.disabled)return false;
     const choice=reviewedDraftChoice(original,working,options()),token=revision;
     use.disabled=true;
-    try{await apply(choice.compiled,()=>revision===token,working.candidatePlan);return true;}
+    try{await apply(choice.compiled,()=>revision===token,working.candidatePlan,{keepEditorOpen});return true;}
     finally{if(revision===token)use.disabled=false;}
   }
   const clearNotices=button('media-draft-clear-notices','Clear reviewed notices',()=>change({...working,unresolved:[]}));

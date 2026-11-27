@@ -189,10 +189,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
     transport(action,seconds){if(!draftTiming||!player)return;if(action==='pause'){stopDraftPreview();return;}if(action==='seek'){player.seekTo(seconds*1000);return;}beforeEdit();draftPreviewEnd=action==='audition'?seconds*1000:player.backingTrackDuration;player.play();},
     highlight:(position,reveal)=>host.showDraftPosition(position,reveal),
     stop:stopDraftPreview,exportFile:download,
-    async apply(compiled,isCurrent,reviewedPlan){
+    async apply(compiled,isCurrent,reviewedPlan,{keepEditorOpen=false}={}){
       if(!draftTiming||!player||!isCurrent())throw new Error('Draft changed. Preview the current edits again.');
       if(!compiled){
-        stopDraftPreview();reviewedPlayback=reviewedPlan;showEditor=false;renderLayout();sync();
+        stopDraftPreview();
+        if(keepEditorOpen){message('Auto-sync completed. Preview the draft here and review the remaining timing issues.');return;}
+        reviewedPlayback=reviewedPlan;showEditor=false;renderLayout();sync();
         message('Reviewed timing accepted for playback. Press Play. Open Edit sync to adjust or export this draft.');
         document.getElementById('play-pause-button').focus();return;
       }
@@ -201,7 +203,12 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       try{await selectRecording();if(token!==generation||!isCurrent()||!AppState.media.preview||AppState.media.timingPlan!==compiled)throw new Error('Recording selection changed. Review the draft again.');}
       catch(error){if(token===generation){await returnToPractice();timingPlan=null;draftTiming=originalDraft;openEditor();sync();}throw error;}
       acceptedAudioDraft=audioPlan(compiled.plan)?{compiled,original:originalDraft}:null;
-      draftTiming=null;draftEditor.complete();dirty=true;renderExplanationSummary();renderPoints();finishEditing();sync();message('Reviewed timing applied. Press Play to practice. Save profile is optional; Export draft retains original evidence.');
+      draftTiming=null;draftEditor.complete();dirty=true;renderExplanationSummary();renderPoints();
+      if(!keepEditorOpen)finishEditing();
+      sync();
+      message(keepEditorOpen ? 'Auto-sync applied. Review the timing here or choose Finish editing to practice.' :
+        'Reviewed timing applied. Press Play to practice. Save profile is optional; Export draft retains original evidence.');
+      if(keepEditorOpen)editMeasures.focus();
     }});
   let generation=0,scoreBytes=null,busy=false,pendingDelete=null,playhead=null,dirty=false;
   let waveformHint='Waveform unavailable';
@@ -263,7 +270,7 @@ export function initMediaControls(host,{beforeListen=()=>{},afterPractice=()=>{}
       dirty=true;renderExplanationSummary();renderPoints();sync();
       get('draft-timing').scrollIntoView({block:'nearest'});
       message('Listen across the suggested boundaries, then choose Use reviewed timing.');
-      if(automatic && !await draftEditor.acceptIfReady())message('Auto-sync found takes. Preview them here and review the listed timing issues.');
+      if(automatic && !await draftEditor.acceptIfReady({keepEditorOpen:true}))message('Auto-sync found takes. Preview them here and review the listed timing issues.');
     }
   });
   get('editor-toolbar').after(get('action-status'));

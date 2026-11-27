@@ -4,6 +4,8 @@ The Audio mixer groups tracks by shared channels. The alphaTab host indexes gene
 
 The Scores dropdowns use native popovers. `js/toolbar-ui.js` positions each open list in viewport coordinates from its trigger, including when the Scores panel scrolls or the window resizes.
 
+Auto-sync can apply ready timing while Media Sync remains open. The editor retains its grading pause until the user chooses Finish editing.
+
 ## PDF practice and MIDI file import
 
 A companion PDF defaults to the written measure of each playback visit. An optional array on the PDF attachment assigns each zero-based playback visit a one-based printed box number or null. The PDF projection, click-to-seek, pass selection, loop shading and Reset use this mapping. The playback timeline, media sync points and MIDI grading keep their original visit identities. Existing geometry-only attachments use the written order. The standalone PDF + recording room continues to use its measure taps.
