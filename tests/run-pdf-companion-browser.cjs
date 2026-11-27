@@ -137,6 +137,14 @@ function twoBarMidi() {
     await page.getByRole('button',{name:'Go to measure 1',exact:true}).click();
     await page.evaluate(()=>{practiceState.ui.autoScroll=true;});
     await page.locator('#play-pause-button').click();
+    const fallbackGuide=page.locator('#pdf-pages [data-measure="1"] .pdf-beat-mark.live');
+    await fallbackGuide.waitFor();
+    const fallback=await fallbackGuide.evaluate(mark=>({
+      inset:getComputedStyle(mark.parentElement).getPropertyValue('--pdf-beat-inset'),
+      height:mark.getBoundingClientRect().height,
+      background:getComputedStyle(mark).backgroundColor
+    }));
+    assert.deepEqual(fallback,{inset:'',height:14,background:'rgba(14, 86, 157, 0.23)'});
     await page.waitForFunction(() => document.querySelector('#pdf-page').value === '2' && document.querySelector('#pdf-pages .current'));
     await page.locator('#play-pause-button').click();
     await loadPair();
@@ -410,6 +418,38 @@ function twoBarMidi() {
       assert.equal(await real.locator('#pdf-pages button[data-measure]').count(),count);
       console.log('Verified '+count+' boxes across '+pages+' pages at 1440 and 390 pixels.');
       if(process.env.GTS_PDF_TEST_ARIRANG_REPEATS){
+        await real.setViewportSize({width:1600,height:1100});
+        const staffFeedback=real.locator('#show-notation-feedback');
+        await staffFeedback.evaluate(el=>{el.checked=false;el.dispatchEvent(new Event('change'));});
+        const arirangBox=n=>real.locator('#pdf-pages button[data-measure="'+n+'"]');
+        for(const number of [1,11]){
+          const box=arirangBox(number);
+          if(number===11) await box.evaluate(el=>{
+            const pane=document.querySelector('#pdf-scroll');
+            pane.scrollTop+=el.getBoundingClientRect().top-pane.getBoundingClientRect().top-5;
+          });
+          await box.evaluate(el=>el.click());
+          await real.waitForFunction(n=>document.querySelector('#pdf-pages .current')?.dataset.measure===String(n),number);
+          await real.waitForFunction(n=>parseFloat(document.querySelector('#pdf-pages [data-measure="'+n+'"]').style.getPropertyValue('--pdf-beat-inset'))>0,number);
+          await real.locator('#play-pause-button').click();
+          const guide=box.locator('.pdf-beat-mark.live.active');
+          await guide.waitFor();
+          const geometry=await guide.evaluate(mark=>{
+            const box=mark.parentElement.getBoundingClientRect();
+            const pane=document.querySelector('#pdf-scroll').getBoundingClientRect();
+            const strip=mark.getBoundingClientRect();
+            return {inset:strip.left-box.left,headroom:box.top-pane.top,height:strip.height};
+          });
+          assert.ok(geometry.inset>5);
+          assert.equal(geometry.height,14);
+          if(number===11) assert.ok(geometry.headroom>=75,`measure 11 headroom: ${geometry.headroom}`);
+          console.log('Arirang measure '+number+' guide geometry',geometry);
+          if(number===11 && process.env.GTS_PDF_GUIDE_SCREENSHOT)
+            await real.screenshot({path:process.env.GTS_PDF_GUIDE_SCREENSHOT});
+          await real.locator('#play-pause-button').click();
+          await real.waitForFunction(()=>!document.querySelector('.pdf-beat-mark.live'));
+        }
+        await staffFeedback.evaluate(el=>{el.checked=true;el.dispatchEvent(new Event('change'));});
         await real.setViewportSize({width:1440,height:900});
         const pdfMenu=async()=>{
           await real.locator('#btn-scores').click();

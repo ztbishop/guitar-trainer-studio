@@ -1,7 +1,23 @@
+import {beatInset, readBeatGlyphs} from './pdf-beat-anchors.js';
+
 // Page geometry and hit targets stay mounted. Only nearby pages need raster images.
-export function readingPages(scroll, root, onJump, onPage, onError) {
+export function readingPages(scroll, root, onJump, onPage, onError, companion=false) {
   let pages = [], width = 0, observer, active, cue, range, scrollFrame = 0;
   const targets = new Map();
+  const paintedMarks = new Map();
+  let activeMark, activeSegment;
+
+  function setBeatInset(el, box, glyphs) {
+    const inset = beatInset(box, glyphs);
+    if (inset) el.style.setProperty('--pdf-beat-inset', 100 * inset + '%');
+  }
+  function scanBeatGlyphs(p) {
+    if (!companion || p.beatScan || root.classList.contains('marking')) return;
+    p.beatScan = readBeatGlyphs(p.pdf, p.base).then(glyphs => {
+      p.beatGlyphs = glyphs;
+      for (const [el, box] of p.beatBoxes) setBeatInset(el, box, glyphs);
+    }).catch(() => { p.beatGlyphs = []; });
+  }
   function release(p) {
     p.task?.cancel();
     p.task = null;
@@ -17,12 +33,15 @@ export function readingPages(scroll, root, onJump, onPage, onError) {
     pages.forEach(release);
     pages = [];
     targets.clear();
+    paintedMarks.clear();
+    activeMark = activeSegment = null;
     width = 0;
     root.replaceChildren();
   }
   function draw(p) {
     release(p);
     if (!width || !p.near || root.hidden) return;
+    scanBeatGlyphs(p);
     const canvas = document.createElement('canvas');
     const scale = Math.min(devicePixelRatio || 1, 2, Math.sqrt(8000000 / (width ** 2 * p.base.height / p.base.width)));
     const viewport = p.pdf.getViewport({scale:width * scale / p.base.width});
@@ -46,7 +65,7 @@ export function readingPages(scroll, root, onJump, onPage, onError) {
       layer.className = 'pdf-boxes';
       node.append(layer);
       root.append(node);
-      return {node, layer, pdf, number, base};
+      return {node, layer, pdf, number, base, beatBoxes:new Map()};
     });
     observer = new IntersectionObserver(entries => {
       for (const entry of entries) {
@@ -65,7 +84,13 @@ export function readingPages(scroll, root, onJump, onPage, onError) {
     pages.filter(p => p.near).forEach(draw);
   }
   function populate(boxes, makeBox, label) {
-    pages.forEach(p => p.layer.replaceChildren());
+    pages.forEach(p => {
+      p.layer.replaceChildren();
+      p.beatBoxes.clear();
+      if (p.near) scanBeatGlyphs(p);
+    });
+    paintedMarks.clear();
+    activeMark = activeSegment = null;
     targets.clear();
     active = cue = range = undefined;
     for (const [key, box] of Object.entries(boxes)) {
@@ -77,12 +102,18 @@ export function readingPages(scroll, root, onJump, onPage, onError) {
       el.onclick = () => onJump(number);
       p.layer.append(el);
       targets.set(number, el);
+      if (companion) {
+        p.beatBoxes.set(el, box);
+        if (p.beatGlyphs?.length) setBeatInset(el, box, p.beatGlyphs);
+      }
     }
   }
   function follow(el) {
     if (!el) return;
     const frame = scroll.getBoundingClientRect(), rect = el.getBoundingClientRect();
-    if (rect.top < frame.top || rect.bottom > frame.bottom) scroll.scrollTop += rect.top-frame.top-12;
+    const headroom = companion ? Math.min(80, Math.max(32, scroll.clientWidth * .06), scroll.clientHeight * .18) : 12;
+    if (rect.top < frame.top + (companion ? headroom : 0) || rect.bottom > frame.bottom)
+      scroll.scrollTop += rect.top - frame.top - headroom;
     if (rect.left < frame.left || rect.right > frame.right) scroll.scrollLeft += rect.left-frame.left-8;
     onPage(Number(el.closest('[data-page]').dataset.page));
   }
@@ -116,5 +147,40 @@ export function readingPages(scroll, root, onJump, onPage, onError) {
   function placeEditor(number, sheet) {
     pages[number-1]?.node.append(sheet);
   }
-  return {clear, load, resize, populate, update, revealMeasure, jump, placeEditor};
+  function paintBeat(box, segment, live=false) {
+    const mark = document.createElement('span');
+    mark.className = 'pdf-beat-mark ' + segment.color + (live ? ' live' : '');
+    mark.setAttribute('aria-hidden', 'true');
+    mark.style.left = 'calc(' + (100 * segment.start) + '% + var(--pdf-beat-inset, 0%) * ' + (1 - segment.start) + ')';
+    mark.style.width = 'calc((100% - var(--pdf-beat-inset, 0%)) * ' + (segment.end - segment.start) + ')';
+    box.append(mark);
+    return mark;
+  }
+  function updateBeatGuide(results, segment) {
+    for (const [number, marks] of paintedMarks) {
+      if (results.has(number)) continue;
+      for (const {el} of marks.values()) el.remove();
+      paintedMarks.delete(number);
+    }
+    for (const [number, marks] of results) {
+      const box = targets.get(number);
+      if (!box) continue;
+      if (!paintedMarks.has(number)) paintedMarks.set(number, new Map());
+      const painted = paintedMarks.get(number);
+      for (const [id, old] of painted) {
+        if (marks.get(id) === old.mark) continue;
+        old.el.remove();
+        painted.delete(id);
+      }
+      for (const [id, mark] of marks) {
+        if (!painted.has(id)) painted.set(id, {mark, el:paintBeat(box, mark)});
+      }
+    }
+    if (segment && activeSegment && ['number','start','end','color'].every(key => segment[key] === activeSegment[key])) return;
+    activeMark?.remove();
+    const box = targets.get(segment?.number);
+    activeMark = box ? paintBeat(box, segment, true) : null;
+    activeSegment = segment;
+  }
+  return {clear, load, resize, populate, update, revealMeasure, jump, placeEditor, updateBeatGuide};
 }

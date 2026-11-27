@@ -1372,6 +1372,10 @@ body.has-score .pdf-practice-hint { display:none; }
 .pdf-boxes button.outside-loop { background: rgb(65 71 79 / 19%); }
 .pdf-boxes button.pdf-box:not(.outside-loop) { z-index: 1; }
 .pdf-boxes button.current { z-index: 2; border: 2px solid #1474bb; background: rgb(61 164 226 / 23%); }
+.pdf-beat-mark { position: absolute; bottom: 100%; height: 14px; pointer-events: none; background: rgb(14 86 157 / 23%); }
+.pdf-beat-mark.live { z-index: 1; }
+.pdf-beat-mark.correct { background: rgb(16 131 63 / 23%); }
+.pdf-beat-mark.wrong { background: rgb(193 35 44 / 23%); }
 .pdf-boxes button:hover, .pdf-boxes button:focus-visible { outline: 2px solid #2563a8; outline-offset: -2px; }
 #pdf-target { font-weight: 600; }
 #pdf-recording-room[open] { display:flex; flex-direction:column; padding:0; width:98vw; height:96dvh; max-width:100vw; border:1px solid var(--border); background:var(--panel-strong); }

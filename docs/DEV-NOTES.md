@@ -1,5 +1,11 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Companion PDF beat guide, November 27, 2026
+
+The companion PDF projects alphaTab playback events onto the mapped printed visit. The active strip is 14 px high. Staff feedback controls its live colors and retained grading marks. Recognized printed first notes inset the strip, and auto-scroll reserves up to 80 px above the measure.
+
+Chrome exercised the Arirang MIDI and eight-page TAB PDF. Measures 1 and 11 aligned to the first printed note, and measure 11 had about 80 px of headroom at 100% zoom in the desktop pane. The Chrome capture showed its high fingerings and triplet markings fully visible. The generated PDF used the full-box fallback. Browser checks also covered the mapped repeat and loop Reset. Automated grading checks covered held-note color priority and release, a partial Realtime chord, a Wait correction, and clearing results on repeat, loop restart, and Staff toggle. Physical Fishman input is pending.
+
 ## Stable v1.1.0, November 25, 2026
 
 The owner approved v1.1.0 for GitHub and the hosted trainer. The release adds PDF practice, MIDI file import, recording Auto-sync, keyboard feedback, loop speed training and library attachment recovery. The release check passed 984 Node tests with nine skipped. Physical MIDI response remains an owner check. [Release notes](releases/v1.1.0.md)

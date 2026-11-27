@@ -8,8 +8,9 @@ import {initRepeatControls,visitLabel} from './pdf-repeat-controls.js';
 import {barlineHandle} from './pdf-barline-controls.js';
 import {mountPdfEditor} from './pdf-editor-layout.js';
 import {readingPages} from './pdf-reading-pages.js';
+import {createPdfBeatGuide} from './pdf-beat-guide.js';
 
-export function writtenMeasureAt(measures, tick, mapping=null) {
+function playbackVisitAt(measures, tick) {
   let low = 0, high = measures?.length ?? 0;
   while (low < high) {
     const mid = (low + high) >>> 1;
@@ -17,7 +18,12 @@ export function writtenMeasureAt(measures, tick, mapping=null) {
     else high = mid;
   }
   const bar = measures?.[low];
-  return bar && tick >= bar.startTick ? printedBoxForVisit(bar,mapping) : null;
+  return bar && tick >= bar.startTick ? bar : null;
+}
+
+export function writtenMeasureAt(measures, tick, mapping=null) {
+  const visit = playbackVisitAt(measures, tick);
+  return visit ? printedBoxForVisit(visit, mapping) : null;
 }
 
 export function measureBox(page, a, b) {
@@ -36,7 +42,7 @@ export function expectedPdfNotes(event, states, waiting) {
 }
 
 const assets = new URL('../assets/vendor/pdfjs/', import.meta.url);
-export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibraryBoxes=null) {
+export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibraryBoxes=null, liveBeatColor=()=>null) {
   const byId = id => document.getElementById('pdf-' + id);
   mountPdfEditor(byId('view'));
   const view = byId('view'), sheet = byId('sheet'), scroll = byId('scroll'), overlay = byId('boxes');
@@ -52,6 +58,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
   let attachedFile=null,attachedHash=null;
   let visitMapping=null;
   const repeatControls=recording?null:initRepeatControls(state,()=>visitMapping,next=>{
+    beatGuide?.clear();
     visitMapping=next;current=undefined;loopRange=undefined;
     clearVisitSelection();sync();saveBoxes();
   },message);
@@ -65,7 +72,8 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     if(editing){
       if((!proposals || (scoreReview && !scoreReview.correcting)) && !drag && !find.disabled && !sheet.querySelector(':active'))goPage(number,false);
     } else {page=number;pageSelect.value=String(number);}
-  },message);
+  },message,!recording);
+  const beatGuide = recording ? null : createPdfBeatGuide(state, reader, liveBeatColor);
   function extendNumbers(last) {
     while(measure.length<last) {
       const number=String(measure.length+1);
@@ -434,12 +442,13 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     if (showButton.hidden === canShow) showButton.hidden = !canShow;
     const returnButton=byId('return');
     if(returnButton.hidden===canShow)returnButton.hidden=!canShow;
-    if (!shown) return;
+    if (!pdf) return;
     const event = trainer?.currentEvent;
     const waiting = state.mode === 'wait';
     const tick = waiting && event ? event.startTick : state.tickPosition;
     const outside = outsideRecordingScore(state);
-    const number = outside ? null : writtenMeasureAt(state.playbackTimeline?.measures, tick,visitMapping);
+    const visit = outside ? null : playbackVisitAt(state.playbackTimeline?.measures, tick);
+    const number = visit ? printedBoxForVisit(visit, visitMapping) : null;
     const label = !number ? '' : 'Measure ' + printedMeasure(state.score, number) + (!boxes[number] ? ' · Unmarked' : '');
     if (target.textContent !== label) target.textContent = label;
     const range=state.practiceLoop?.enabled ? state.practiceLoop.range : null;
@@ -448,6 +457,10 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
       loopRange=range;
       loopMeasures=range?new Set(state.playbackTimeline.measures.filter(v=>v.startTick<range.endTick && v.endTick>range.startTick).map(v=>printedBoxForVisit(v,visitMapping))):null;
     }
+    const playing = !outside && !state.media.editing && !state.countInActive &&
+      (waiting ? trainer?.active && ['waiting','seeking','settling'].includes(trainer.phase) : state.isPlaying && !trainer?.sessionCompleted);
+    beatGuide.sync(trainer, visit, tick, visitMapping, loopMeasures, playing);
+    if (!shown) {current = undefined;return;}
     if(noteVisit && (tick<noteVisit.startTick || tick>=noteVisit.endTick || state.isPlaying || changedRange))clearVisitSelection();
     if (current !== number || changedRange) {
       current = number;
@@ -459,6 +472,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     generation++;
     attachedFile=attachedHash=null;
     visitMapping=null;repeatControls?.reset();
+    beatGuide?.clear();
     reader.clear();
     documentTask?.destroy(); documentTask = null;
     pdf = null; key = null; boxes = {}; visible = false; current = null;loopRange=null;loopMeasures=null;
@@ -504,6 +518,7 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
       const pages=await Promise.all(Array.from({length:loaded.numPages},(_,i)=>loaded.getPage(i+1)));
       if(version!==generation){await task.destroy();return;}
       documentTask?.destroy(); documentTask = task;
+      beatGuide?.clear();
       reader.load(pages);
       pdf = loaded; page = 1; current = undefined;
       key=storageKey;boxes=mapping;
@@ -646,6 +661,6 @@ export function initPdfCompanion(state, closeMenu, seek, recording=null,saveLibr
     if(visible && !view.hidden && !editing && state.ui.autoScroll)
       reader.revealMeasure(writtenMeasureAt(state.playbackTimeline?.measures,tick,visitMapping));
   }
-  return {sync,reset,open,revealAtTick,get revision(){return generation;},
+  return {sync,reset,open,revealAtTick,clearBeatResults:()=>beatGuide?.clear(),get revision(){return generation;},
     attachment:()=>attachedHash?{file:attachedFile,hash:attachedHash,boxes:structuredClone(boxes),mapping:visitMapping?.slice()}:null};
 }

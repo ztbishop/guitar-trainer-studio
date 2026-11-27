@@ -123,6 +123,8 @@ Written repeats reuse their printed box automatically. When a MIDI writes out a 
 
 While reading a companion PDF, **Scores → PDF** has the **Page** selector and **Show notation**. **Show PDF** beside the full-screen button switches back. In both PDF workflows, scroll vertically from one page to the next or use **Page** for a direct jump. With **Auto-scroll** enabled, the trainer brings the current measure into view as you play. Turn it off to browse freely. Both views use your saved zoom.
 
+During playback, a blue strip above the box marks the current beat or chord. With **Practice → Score feedback → Staff feedback** enabled, correct held notes turn it green and a held wrong note takes priority in red. After the beat, red marks a wrong or missed note and green marks a fully correct beat. Pause keeps the marks for review. Reset or turning Staff feedback off clears them.
+
 Choose **Scores → Save to Library** with the companion PDF attached. If you already saved the MIDI or other playable score before attaching the PDF, choose **Save to Library** again. This updates the existing library entry with the PDF and its current measure boxes. Do the same whenever you replace the PDF with a different edition.
 
 Once the PDF is saved with the score, **measure box edits and repeat mappings save automatically**. They travel with a library backup. For a session opened directly from files, reattaching the same pair recalls its local markings and repeat mapping.

@@ -33,6 +33,7 @@ import {
   finishRealtimeSession,
   resetRealtimeSession,
   newRealtimeAttemptHere,
+  realtimeHeldFeedback,
   buildExpectedEventsFromPracticeTrack,
   handleMidiEvent,
   refreshTrainerMatchState,
@@ -323,6 +324,7 @@ function wireTransportButtons() {
     restartSpeedTraining();
     const start=AppState.practiceLoop.range?.startTick ?? 0;
     resetRealtimeSession('stop',start);
+    pdfCompanion?.clearBeatResults();
     updateActiveTargetsFromPlayback(start);
     renderTrainerUi();
     pdfCompanion?.revealAtTick(start);
@@ -338,6 +340,7 @@ function wirePracticeControls() {
     clearActiveMidiNotes();
     if(AppState.mode==='wait')waitController.newAttemptHere(AppState.tickPosition);
     else newRealtimeAttemptHere();
+    pdfCompanion?.clearBeatResults();
     renderMidiUi();renderTrainerUi();
   });
   chordControls=initChordControls(settings=>{
@@ -845,7 +848,10 @@ async function bootstrap() {
   const toolbar=initToolbar();
   const libraryStore=new LibraryStore();
   pdfCompanion=initPdfCompanion(AppState,toolbar.closeAllPopups,tick=>browsePracticeTick(tick,'pdf-seek'),null,
-    (scoreHash,pdfHash,boxes,mapping)=>libraryStore.updatePdfBoxes(scoreHash,pdfHash,boxes,mapping));
+    (scoreHash,pdfHash,boxes,mapping)=>libraryStore.updatePdfBoxes(scoreHash,pdfHash,boxes,mapping),
+    event=>AppState.mode==='wait'
+      ? waitController.session.heldFeedbackColor(waitController.session.records[waitController.index])
+      : realtimeHeldFeedback(event.id));
   let pendingLibraryRow=null;
   scoreLibrary=initScoreLibrary((file,row)=>{
     const loading=loadScoreFile(file);

@@ -68,6 +68,10 @@ function publishRealtimeStats() {
   AppState.trainer.liveWrongNotes = [...(realtime?.liveWrong.values() ?? [])];
 }
 
+export function realtimeHeldFeedback(eventId) {
+  return realtime?.heldFeedbackColor(realtime.recordFor(eventId));
+}
+
 export function newRealtimeAttemptHere(at = performance.now()) {
   const started = Boolean(realtime?.started || AppState.isPlaying);
   resetRealtimeSession('new-attempt-here', AppState.tickPosition);

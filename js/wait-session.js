@@ -270,9 +270,21 @@ export class WaitSession {
     return null;
   }
   clearLiveWrong() { this.liveWrong.clear(); }
+  heldFeedbackColor(record) {
+    if (!record || record.skipped) return null;
+    const held = [...this.held.values()];
+    const sameInput = (a, b) => a.channel === b.channel && (a.rawMidi ?? a.midi) === (b.rawMidi ?? b.midi);
+    if (record.wrongNotes.some(wrong => wrong.wrongPitch && !wrong.pending &&
+        held.some(note => sameInput(note, wrong)))) return 'wrong';
+    if (record.slots.some(slot => slot.hit && held.some(note => slot.attackInput ?
+        sameInput(note, slot.attackInput) : note.channel === slot.channel &&
+        (slot.midi === note.midi || slot.midi == null)))) return 'correct';
+    return null;
+  }
   feedbackHistory(pass=1) {
     return this.records.filter(r=>!r.skipped).map(record=>({eventId:record.eventId,pass,
       completed:record.slots.every(s=>s.hit),
+      allHit:record.slots.every(s=>s.hit),wrongCount:record.wrong,
       outcome:record.slots.every(s=>s.hit)?(record.wrongNotes.some(n=>!n.pending)?'completed-with-errors':'completed-clean'):'pending',
       supportedHeldNotes:record.slots.filter(s=>s.evidence==='held').map(s=>({midi:s.midi,channel:s.channel,noteIds:[...s.noteIds],evidence:'held',freshAttack:false})),
       pitchCorrections:(record.pitchCorrections??[]).map(c=>({...c})),
