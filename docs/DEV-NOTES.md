@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Reference-only standalone PDF recordings, November 27, 2026
+
+PDF + recording saves its PDF, timing, and optional browser file handle. The library automatically removes the old media copies belonging to PDF entries the next time it opens. The original file remains on disk. A renamed or moved file can be reselected and matched by content. A browser that supplies no handle asks for the recording again on reopen. Chrome verified the legacy cleanup, a saved file handle, and reopening and reconnecting without a media copy. The full Node suite passed.
+
 ## Bulk standalone PDF tap corrections, November 27, 2026
 
 Shift or clear taps supports reassignment of a printed measure range across all passes while retaining timestamps. Clear all taps confirms removal of anchors and reviewed timing for the open pair. PDF measure boxes stay available. Chrome verified shifting a repeat tap, canceling a clear, and clearing all taps while preserving the boxes. The timing test covers repeated passes, unchanged timestamps, and rejection of an unmapped destination.

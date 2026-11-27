@@ -120,12 +120,23 @@ function audioFixture(starts=[1.36,4.3,7.98],name='exercise.wav',duration=1/3) {
     assert.equal(await room.locator('#anchors option').count(),4);
     assert.ok(Number(await room.locator('#anchors').inputValue())>=8.5);
     await room.locator('#save-pair').click();
-    await room.getByText('PDF and recording saved to the library.').waitFor();
+    await room.getByText('PDF timing saved. Choose the original recording when you reopen it.').waitFor();
+    const stored=await page.evaluate(async()=>{
+      const {LibraryStore}=await import('/js/library-store.js');
+      const store=new LibraryStore(), {scores}=await store.list();
+      return store.transaction(['recordingFiles'],'readonly',({recordingFiles},done)=>{
+        recordingFiles.get(scores[0].id).onsuccess=e=>done(Boolean(e.target.result));
+      });
+    });
+    assert.equal(stored,false,'saving with the fallback picker stores no media copy');
     await page.getByRole('button',{name:'Close PDF practice'}).click();
     await page.evaluate(()=>{for(const key of Object.keys(localStorage))if(key.startsWith('gts.pdf.recording.'))localStorage.removeItem(key);});
     await page.reload();
     await page.locator('#btn-scores').click();
     await page.locator('.library-score-open').first().click();
+    await room.getByText('Choose the original recording to reconnect this saved PDF.').waitFor();
+    assert.equal(await player.evaluate(v=>Boolean(v.src)),false);
+    await room.locator('#recording-file').setInputFiles(recording);
     await room.locator('#tap:enabled').waitFor();
     assert.equal(await room.locator('#anchors option').count(),4);
     assert.equal(await player.evaluate(v=>Boolean(v.src)),true);
@@ -168,6 +179,43 @@ function audioFixture(starts=[1.36,4.3,7.98],name='exercise.wav',duration=1/3) {
       assert.equal(await room.locator('#pdf-pages button[data-measure]').count(),measures);
     }
     assert.equal(await page.evaluate(async()=>(await import('/js/app-state.js')).AppState.currentScoreFile),null);
+    const legacy=await browser.newPage();
+    await legacy.goto('http://127.0.0.1:'+server.address().port+'/README.md');
+    const migrated=await legacy.evaluate(async()=>{
+      await new Promise((resolve,reject)=>{
+        const request=indexedDB.open('guitarTrainerLibrary',4);
+        request.onupgradeneeded=()=>{
+          const scores=request.result.createObjectStore('scores',{keyPath:'id'});
+          const copies=request.result.createObjectStore('recordingFiles',{keyPath:'id'});
+          scores.put({id:'pdf',pdfRecording:{anchors:[{measure:2,time:1}]}});
+          scores.put({id:'playable',recording:{kind:'local'}});
+          for(const id of ['pdf','playable'])copies.put({id,file:new Blob(['fixture'])});
+        };
+        request.onsuccess=()=>{request.result.close();resolve();};
+        request.onerror=()=>reject(request.error);
+      });
+      const {LibraryStore}=await import('/js/library-store.js');
+      const store=new LibraryStore(), {scores}=await store.list();
+      const keys=await store.transaction(['recordingFiles'],'readonly',({recordingFiles},done)=>{
+        recordingFiles.getAllKeys().onsuccess=e=>done(e.target.result);
+      });
+      return {keys,anchors:scores.find(row=>row.id==='pdf').pdfRecording.anchors};
+    });
+    assert.deepEqual(migrated,{keys:['playable'],anchors:[{measure:2,time:1}]});
+    const reference=await legacy.evaluate(async()=>{
+      const {LibraryStore}=await import('/js/library-store.js');
+      const store=new LibraryStore();
+      const directory=await navigator.storage.getDirectory();
+      const handle=await directory.getFileHandle('test.wav',{create:true});
+      const writer=await handle.createWritable();
+      await writer.write('original recording');
+      await writer.close();
+      const scoreId=await store.savePdfRecording(new File(['test'],'reference.pdf'),handle,
+        {boxes:{},anchors:[],estimates:{},mediaHash:'a'.repeat(64),mediaName:handle.name});
+      const saved=await new LibraryStore().attachments(scoreId);
+      return {contents:await (await saved.handle.getFile()).text(),copy:Boolean(saved.file)};
+    });
+    assert.deepEqual(reference,{contents:'original recording',copy:false});
     assert.deepEqual(errors,[]);
     console.log('Passed standalone PDF open, detection, sparse taps, correction, seek, rate changes, realtime loop, repeat marking, retained playback, and library restore.');
   } finally {await browser?.close();await new Promise(r=>server.close(r));}

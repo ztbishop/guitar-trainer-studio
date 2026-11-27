@@ -112,12 +112,21 @@ export class LibraryStore {
   async open() {
     if(!this.factory)throw new Error('This browser cannot store a score library. Open File still works.');
     if(!this.dbPromise)this.dbPromise=new Promise((resolve,reject)=>{
-      const request=this.factory.open('guitarTrainerLibrary',4);
-      request.onupgradeneeded=()=>{
+      const request=this.factory.open('guitarTrainerLibrary',5);
+      request.onupgradeneeded=event=>{
         for(const store of ['folders','scores','mediaProfiles','pdfs','recordingFiles'])if(!request.result.objectStoreNames.contains(store))request.result.createObjectStore(store,{keyPath:'id'});
         const scores=request.transaction.objectStore('scores');
         if(!scores.indexNames.contains('pdfHash'))scores.createIndex('pdfHash','pdf.hash');
         if(!scores.indexNames.contains('scoreHash'))scores.createIndex('scoreHash','hash');
+        if(event.oldVersion>0 && event.oldVersion<5){
+          const files=request.transaction.objectStore('recordingFiles');
+          scores.openCursor().onsuccess=e=>{
+            const cursor=e.target.result;
+            if(!cursor)return;
+            if(cursor.value.pdfRecording)files.delete(cursor.primaryKey);
+            cursor.continue();
+          };
+        }
       };
       request.onerror=()=>{this.dbPromise=null;reject(request.error || new Error('Could not open the score library.'));};
       request.onblocked=()=>{this.dbPromise=null;reject(new Error('Close other Guitar Trainer tabs and retry.'));};
@@ -188,16 +197,24 @@ export class LibraryStore {
       else write();
     });
   }
-  async savePdfRecording(pdf,file,pair) {
-    if(!/\.pdf$/i.test(pdf.name) || !pdf.size || !file.size)throw new Error('Choose a PDF and recording first.');
+  async savePdfRecording(pdf,handle,pair) {
+    if(!/\.pdf$/i.test(pdf.name) || !pdf.size)throw new Error('Choose a PDF and recording first.');
     const bytes=new Uint8Array(await pdf.arrayBuffer()),hash=await fingerprint(bytes);
     const pdfRecording=validatePdfRecording(pair);
     return this.transaction(['scores','recordingFiles'],'readwrite',({scores,recordingFiles},done)=>{
       scores.index('scoreHash').get(hash).onsuccess=event=>{
         const score=event.target.result || {id:id(),title:pdf.name.replace(/\.pdf$/i,''),fileName:pdf.name,bytes,hash,folderId:null,createdAt:Date.now()};
-        scores.put({...score,pdfRecording});
-        recordingFiles.put({id:score.id,file});
+        scores.put({...score,pdfRecording,recordingHandle:handle || null});
+        recordingFiles.delete(score.id);
         done(score.id);
+      };
+    });
+  }
+  reconnectPdfRecording(scoreId,mediaHash,handle) {
+    return this.transaction(['scores'],'readwrite',({scores})=>{
+      scores.get(scoreId).onsuccess=e=>{
+        const score=e.target.result;
+        if(score?.pdfRecording?.mediaHash===mediaHash)scores.put({...score,recordingHandle:handle});
       };
     });
   }
@@ -227,7 +244,7 @@ export class LibraryStore {
         if(!row)return;
         const result={recording:row.recording,handle:row.recordingHandle,profileId:row.recordingProfileId};
         done(result);
-        if(row.pdfRecording || row.recording?.kind==='local' && !row.recordingHandle)
+        if(row.recording?.kind==='local' && !row.recordingHandle)
           recordingFiles.get(scoreId).onsuccess=e=>{result.file=e.target.result?.file;};
         if(row.pdf)pdfs.get(row.pdf.hash).onsuccess=e=>{result.pdf={...row.pdf,blob:e.target.result?.blob};};
       };

@@ -12,6 +12,7 @@ const status=text=>{el('status').textContent=text;};
 const stamp=t=>Math.floor(t/60)+':'+(t%60).toFixed(2).padStart(5,'0');
 const key=()=>pdfHash && mediaHash && 'gts.pdf.recording.taps.v1.'+pdfHash+'.'+mediaHash;
 const time=()=>Math.round(media.currentTime*1000)/1000;
+let recordingHandle=null, savedHandle=null, savedScoreId=null;
 let localRecording=null, pdfFile=null, currentBoxes={}, restoredPair=null, restoredPdf=null, acceptedTiming={};
 const library=new LibraryStore();
 const audioReview=initAudioReview({recording:()=>localRecording,media,
@@ -79,7 +80,7 @@ const editor=initPdfCompanion(display,()=>{},null,{
   current,selectedMeasure:()=>Number(selected.value)||null,loop:()=>loop,boxesChanged:setBoxes,autoFind:()=>el('auto-find').checked,
   opened(hash,name,boxes,file) {
     media.pause();pdfFile=file;pdfHash=hash;
-    if(file!==restoredPdf)restoredPair=null;el('pdf-attach').textContent=name;
+    if(file!==restoredPdf){restoredPair=null;savedHandle=null;savedScoreId=null;el('reopen-media').hidden=true;}el('pdf-attach').textContent=name;
     setBoxes(boxes);restore();
   },
   seek(number) {
@@ -92,7 +93,9 @@ const editor=initPdfCompanion(display,()=>{},null,{
   }
 });
 document.addEventListener('open-printed-score',async e=>{
-  const {pdf, pair, recording}=e.detail;
+  const {pdf, pair, handle, scoreId}=e.detail;
+  savedHandle=handle;
+  savedScoreId=scoreId;
   restoredPair=pair;
   restoredPdf=pdf;
   let boxes=pair?.boxes;
@@ -101,8 +104,7 @@ document.addEventListener('open-printed-score',async e=>{
     try {boxes=JSON.parse(localStorage.getItem('gts.pdf.recording.boxes.v1.'+hash)) ?? boxes;}catch {}
   }
   await editor.open(pdf,boxes);
-  if(recording)await openRecording(recording);
-  else if(pair)status('Choose the original recording to reconnect this saved PDF.');
+  if(pair)await reopenRecording(false);
 });
 function showTiming(editing) {
   el('timing').hidden=!editing;
@@ -116,8 +118,11 @@ el('save-pair').onclick=async()=>{
   if(!pdf || !recording)return;
   const pair={boxes:currentBoxes,anchors,estimates:acceptedTiming,mediaHash,mediaName:recording.name};
   try {
-    await library.savePdfRecording(pdf,recording,structuredClone(pair));
-    status('PDF and recording saved to the library.');
+    const handle=recordingHandle;
+    savedScoreId=await library.savePdfRecording(pdf,handle,structuredClone(pair));
+    savedHandle=handle;
+    restoredPair=pair;
+    status(handle ? 'PDF timing and recording reference saved to the library.' : 'PDF timing saved. Choose the original recording when you reopen it.');
     window.parent.dispatchEvent(new Event('pdf-library-saved'));
   } catch(error){status('Could not save to the library. '+error.message);}
 };
@@ -147,13 +152,39 @@ media.onerror=()=>{stopLoop();el('timing').disabled=el('loop-controls').disabled
 for(const rate of [.25,.5,.6,.7,.75,.8,.9,1,1.1,1.25,1.5,1.75,2])speed.add(new Option(Math.round(rate*100)+'%',String(rate)));
 speed.value='1';speed.onchange=()=>{media.playbackRate=Number(speed.value);};
 
-el('choose-media').onclick=()=>fileInput.click();
+async function reopenRecording(userClick) {
+  const handle=savedHandle;
+  if(handle){
+    try {
+      if(await handle.queryPermission()==='granted' || (userClick && await handle.requestPermission()==='granted')){
+        return await openRecording(await handle.getFile(),handle);
+      }
+      el('reopen-media').hidden=false;
+    }catch {el('reopen-media').hidden=true;}
+  }
+  status('Choose the original recording to reconnect this saved PDF.');
+}
+el('reopen-media').onclick=()=>reopenRecording(true);
+el('choose-media').onclick=async()=>{
+  if(window.showOpenFilePicker){
+    try {
+      const [handle]=await window.showOpenFilePicker({id:'guitar-trainer-recording',types:[{description:'Audio or video',
+        accept:{'audio/*':['.wav','.mp3','.m4a','.aac','.flac','.ogg'],'video/*':['.mp4','.webm','.mov','.m4v']}}]});
+      await openRecording(await handle.getFile(),handle);
+      return;
+    }catch(error){
+      if(error.name==='AbortError')return;
+      if(error.name!=='SecurityError'){status('Could not open the recording. '+error.message);return;}
+    }
+  }
+  fileInput.click();
+};
 fileInput.onchange=async()=>{
   const file=fileInput.files[0];fileInput.value='';if(file)await openRecording(file);
 };
-async function openRecording(file) {
+async function openRecording(file, handle=null) {
   const version=++loading;
-  media.pause();localRecording=null;mediaHash='';restore();status('Opening recording…');
+  media.pause();localRecording=null;recordingHandle=null;mediaHash='';restore();status('Opening recording…');
   try {
     // Read a small sample for identity. Native media playback streams the file.
     const sample=new Blob([String(file.size),file.slice(0,65536),file.slice(-65536)]);
@@ -162,10 +193,16 @@ async function openRecording(file) {
     const old=objectUrl;objectUrl=URL.createObjectURL(file);media.src=objectUrl;
     if(old)URL.revokeObjectURL(old);
     el('recording-name').textContent=file.name;localRecording=file;mediaHash=hash;
+    recordingHandle=handle;
+    el('reopen-media').hidden=true;
     if(hash===restoredPair?.mediaHash){
       try {if(localStorage.getItem(key()+'.audio.v1')===null)localStorage.setItem(key()+'.audio.v1',JSON.stringify(restoredPair.estimates));}catch {}
     }
     restore();
+    if(savedScoreId && handle && hash===restoredPair?.mediaHash && handle!==savedHandle){
+      await library.reconnectPdfRecording(savedScoreId,hash,handle);
+      if(version===loading)savedHandle=handle;
+    }
     if(!pdfHash)status('Open the printed PDF to find its measures.');
   } catch(e){if(version===loading)status('Could not open the recording. '+e.message);}
 }

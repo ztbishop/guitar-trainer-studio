@@ -2,6 +2,7 @@
 
 Guitar grading, PDF companions, MIDI import, Auto-sync and library recovery are implemented. The current milestone is normal practice with the released features. Physical Fishman response and personal take preferences are optional owner checks. Recording comparisons, browser recovery and fixture coverage can be tested by the project maintainer. The remaining timing ideas below are accuracy research.
 
+- [x] Save recording references for standalone PDF entries and remove their legacy media copies.
 - [x] Shift a range of standalone PDF taps or clear all taps for the current recording.
 - [x] Mark recorded repeats and save standalone PDF/recording pairs to the library.
 - [x] Use one shortest-duration strip per companion PDF chord, with one retained chord result.

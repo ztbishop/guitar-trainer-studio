@@ -281,12 +281,12 @@ function wireFilePicker(closeMenu,libraryStore) {
   async function openRecordingRoom(file,row) {
     if(room.open)return;
     const pair=row?.pdfRecording;
-    const recording=pair ? (await libraryStore.attachments(row.id))?.file : null;
+    const handle=pair ? (await libraryStore.attachments(row.id))?.handle : null;
     closeMenu();
     if(AppState.isPlaying || AppState.countInActive || (waitController.active && waitController.phase!=='paused'))
       document.getElementById('play-pause-button').click();
     let frame=room.querySelector('iframe');
-    const openPair=()=>frame.contentDocument.dispatchEvent(new CustomEvent('open-printed-score',{detail:{pdf:file,pair,recording}}));
+    const openPair=()=>frame.contentDocument.dispatchEvent(new CustomEvent('open-printed-score',{detail:{pdf:file,pair,handle,scoreId:row?.id}}));
     if(file)frame?.remove();
     if(!frame || file){
       frame=document.createElement('iframe');
