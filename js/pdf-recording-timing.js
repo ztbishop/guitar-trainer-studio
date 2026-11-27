@@ -7,6 +7,22 @@ export function putAnchor(anchors,anchor,replaceTime=null) {
   return [...next,anchor].sort((a,b)=>a.time-b.time || Number(Boolean(b.end))-Number(Boolean(a.end)));
 }
 
+export function shiftAnchors(anchors, measures, first, last, offset) {
+  if(!Number.isSafeInteger(offset) || !offset || first>last)
+    throw Error('Choose an ordered measure range and a nonzero whole-number shift.');
+  const mapped=new Set(measures);
+  let changed=false;
+  const shifted=anchors.map(anchor=>{
+    if(anchor.measure<first || anchor.measure>last)return anchor;
+    const measure=anchor.measure+offset;
+    if(!mapped.has(measure))throw Error('Measure '+measure+' has no PDF box. Choose a smaller range or shift.');
+    changed=true;
+    return {...anchor,measure};
+  });
+  if(!changed)throw Error('There are no saved taps in that range.');
+  return shifted;
+}
+
 export function tapPassages(anchors) {
   const passages=[];
   for(let i=1;i<anchors.length;i++) {

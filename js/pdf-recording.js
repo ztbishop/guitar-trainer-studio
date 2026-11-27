@@ -1,7 +1,7 @@
 import {initPdfCompanion} from './pdf-companion.js';
 import {readDisplayPreferences, DISPLAY_PREFERENCES_KEY} from './display-preferences.js';
 import {LibraryStore,fingerprint} from './library-store.js';
-import {measureIntervals,putAnchor,recordingLoop} from './pdf-recording-timing.js';
+import {measureIntervals,putAnchor,recordingLoop,shiftAnchors} from './pdf-recording-timing.js';
 import {initAudioReview} from './pdf-audio-review.js';
 
 const el=id=>document.getElementById(id);
@@ -33,6 +33,7 @@ function refreshTiming(chosen) {
   saved.replaceChildren(...anchors.map(a=>new Option('M'+a.measure+(a.end?' end':' start')+' · '+stamp(a.time),String(a.time)+(a.end?' end':''))));
   if(chosen)saved.selectedIndex=anchors.indexOf(chosen);
   refreshAnchorFields();updateReady();
+  el('clear-taps').disabled=el('shift-taps').disabled=!anchors.length;
 }
 function updateReady() {
   const ready=Boolean(key() && Number.isFinite(media.duration) && measures.length);
@@ -59,10 +60,11 @@ function persist(message,chosen) {
 function setBoxes(boxes) {
   currentBoxes=boxes;
   measures=Object.keys(boxes).map(Number).sort((a,b)=>a-b);
-  for(const select of [selected,first,last,el('repeat-end'),el('repeat-start')]) {
+  for(const select of [selected,first,last,el('repeat-end'),el('repeat-start'),el('shift-first'),el('shift-last')]) {
     const previous=select.value;
     select.replaceChildren(...measures.map(n=>new Option(String(n),String(n))));
     if(measures.includes(Number(previous)))select.value=previous;
+    else if(select.id==='shift-last')select.selectedIndex=measures.length-1;
     else if(select===last && measures.length>1)select.selectedIndex=1;
   }
   updateReady();
@@ -201,6 +203,20 @@ function adjust(t) {
 el('adjust').onclick=()=>adjust(el('seconds').valueAsNumber);
 el('retap').onclick=()=>adjust(time());
 el('remove').onclick=()=>{anchors=anchors.filter((_,i)=>i!==saved.selectedIndex);persist('Tap removed.');};
+el('shift-taps').onclick=()=>{
+  const from=Number(el('shift-first').value), through=Number(el('shift-last').value);
+  const offset=el('shift-offset').valueAsNumber;
+  try {
+    anchors=shiftAnchors(anchors,measures,from,through,offset);
+    persist('Shifted taps for measures '+from+'–'+through+' by '+(offset>0?'+':'')+offset+'. Recording times stayed the same.');
+  }catch(error){status(error.message);}
+};
+el('clear-taps').onclick=()=>{
+  if(!anchors.length || !window.confirm('Clear all '+anchors.length+' taps and reviewed timing for this PDF and recording?'))return;
+  anchors=[];
+  selected.selectedIndex=0;
+  persist('All taps cleared. Your measure boxes are still in place.');
+};
 first.onchange=last.onchange=()=>{stopLoop();tick();};
 el('loop').onclick=async()=>{
   if(loop){stopLoop();tick();return;}

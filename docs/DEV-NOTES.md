@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Bulk standalone PDF tap corrections, November 27, 2026
+
+Shift or clear taps supports reassignment of a printed measure range across all passes while retaining timestamps. Clear all taps confirms removal of anchors and reviewed timing for the open pair. PDF measure boxes stay available. Chrome verified shifting a repeat tap, canceling a clear, and clearing all taps while preserving the boxes. The timing test covers repeated passes, unchanged timestamps, and rejection of an unmapped destination.
+
 ## Standalone PDF recording workflow, November 27, 2026
 
 A repeat boundary records both the final measure of the first pass and the first measure of the repeat at the playhead. Save to Library stores the pair on this device. Back to trainer keeps the PDF and recording visible with sync controls hidden, and Edit sync restores the controls. Closing practice pauses playback and retains the loaded pair in the page. Library backups retain the PDF and timing for reconnecting the local recording. Chrome verified the repeat control, continued playback after hiding sync controls, and library reopening after clearing the temporary file-pair timing. Unit checks covered shared-timestamp repeat intervals and backup validation.

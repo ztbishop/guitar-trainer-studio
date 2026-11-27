@@ -39,6 +39,14 @@
           <div class="line"><label>Seconds <input id="seconds" type="number" min="0" step=".001"></label>
             <button id="adjust">Save time</button><button id="retap">Use playhead</button><button id="remove">Remove tap</button></div>
         </details>
+        <details>
+          <summary>Shift or clear taps</summary>
+          <p>Shift saved measure numbers while keeping their recording times. The range includes every pass through those measures.</p>
+          <div class="line"><label>From measure <select id="shift-first"></select></label><label>Through measure <select id="shift-last"></select></label>
+            <label>Shift by <input id="shift-offset" type="number" step="1" value="1" required></label>
+            <button id="shift-taps" type="button">Shift taps</button></div>
+          <button id="clear-taps" type="button">Clear all taps</button>
+        </details>
         <details id="audio-review"><summary>Compare audio timing between taps</summary>
           <p id="audio-hint">Tap across at least two measures in one continuous passage.</p>
           <div class="line"><label>Passage <select id="audio-passage"></select></label>

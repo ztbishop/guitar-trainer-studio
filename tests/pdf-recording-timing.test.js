@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {measureIntervals,putAnchor,recordingLoop,tapPassages} from '../js/pdf-recording-timing.js';
+import {measureIntervals,putAnchor,recordingLoop,shiftAnchors,tapPassages} from '../js/pdf-recording-timing.js';
 
 test('sparse downbeats interpolate locally and an interior correction leaves outer pins fixed',()=>{
   let pins=[{time:1,measure:1},{time:9,measure:5}];
@@ -42,4 +42,16 @@ test('a repeat join closes the first pass and starts the second at the same time
   assert.deepEqual(spans.slice(10,12),[{measure:45,start:11,end:12},{measure:35,start:12,end:13}]);
   const start=pins[2];
   assert.equal(putAnchor(pins,{...start,time:12.5},start)[1].end,true);
+});
+
+test('bulk shift preserves repeat timestamps and rejects a missing destination before changing taps',()=>{
+  const taps=[{measure:2,time:1},{measure:4,time:5,end:true},{measure:2,time:5},{measure:5,time:10}];
+  const measures=[1,2,3,4,5];
+  const shifted=shiftAnchors(taps,measures,2,4,1);
+  assert.deepEqual(shifted.map(a=>a.measure),[3,5,3,5]);
+  assert.deepEqual(shifted.map(a=>a.time),taps.map(a=>a.time));
+  assert.equal(shifted[1].end,true);
+  assert.deepEqual(taps.map(a=>a.measure),[2,4,2,5]);
+  assert.throws(()=>shiftAnchors(taps,measures,2,5,1),/Measure 6 has no PDF box/);
+  assert.throws(()=>shiftAnchors(taps,measures,4,2,1),/ordered measure range/);
 });

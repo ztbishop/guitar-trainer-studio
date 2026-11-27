@@ -153,6 +153,19 @@ function audioFixture(starts=[1.36,4.3,7.98],name='exercise.wav',duration=1/3) {
       await room.locator('#repeat').click();
       await room.getByText('Measure 5 ends and measure 2 repeats at 0:10.00.').waitFor();
       assert.match((await room.locator('#anchors option').allTextContents()).join(' '),/M5 end · 0:10.00[\s\S]*M2 start · 0:10.00/);
+      await room.getByText('Shift or clear taps',{exact:true}).click();
+      await room.locator('#shift-first').selectOption('2');
+      await room.locator('#shift-last').selectOption('2');
+      await room.locator('#shift-taps').click();
+      assert.ok((await room.locator('#anchors option').allTextContents()).includes('M3 start · 0:10.00'));
+      page.once('dialog', dialog=>dialog.dismiss());
+      await room.locator('#clear-taps').click();
+      assert.ok(await room.locator('#anchors option').count()>0);
+      page.once('dialog', dialog=>dialog.accept());
+      await room.locator('#clear-taps').click();
+      await room.getByText('All taps cleared. Your measure boxes are still in place.').waitFor();
+      assert.equal(await room.locator('#anchors option').count(),0);
+      assert.equal(await room.locator('#pdf-pages button[data-measure]').count(),measures);
     }
     assert.equal(await page.evaluate(async()=>(await import('/js/app-state.js')).AppState.currentScoreFile),null);
     assert.deepEqual(errors,[]);
