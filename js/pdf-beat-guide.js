@@ -8,14 +8,33 @@ export function beatSegment(event, visit) {
   return end > start ? {start, end} : null;
 }
 
+function beatsByOnset(events) {
+  const beats = new Map();
+  for (const {startTick, endTick, isRest} of events) {
+    if (!(endTick > startTick)) continue;
+    const beat = beats.get(startTick);
+    if (!beat || (beat.isRest && !isRest)) {
+      beats.set(startTick, {startTick, endTick, isRest});
+    } else if (beat.isRest === isRest) {
+      beat.endTick = Math.min(beat.endTick, endTick);
+    }
+  }
+  const ordered = [...beats.values()];
+  let nextNote = Infinity;
+  for (let index = ordered.length - 1; index >= 0; index--) {
+    const beat = ordered[index];
+    // A later note takes over from a sustaining voice. Rests in other voices can coexist.
+    beat.endTick = Math.min(beat.endTick, beat.isRest ? ordered[index + 1]?.startTick ?? Infinity : nextNote);
+    if (!beat.isRest) nextNote = beat.startTick;
+  }
+  return beats;
+}
+
 export function playbackBeat(events, tick) {
   let current = null;
   for (const event of events ?? []) {
     if (event.startTick > tick) break;
-    if (event.endTick <= tick) continue;
-    if (!current || (current.isRest && !event.isRest) ||
-        (current.isRest === event.isRest && (event.startTick > current.startTick ||
-          (event.startTick === current.startTick && event.endTick > current.endTick)))) current = event;
+    if (tick < event.endTick && (!current || current.isRest || !event.isRest)) current = event;
   }
   return current;
 }
@@ -53,6 +72,7 @@ export function createPdfBeatGuide(state, reader, liveColor) {
         if (!byVisit.has(event.playbackMeasureIndex)) byVisit.set(event.playbackMeasureIndex, []);
         byVisit.get(event.playbackMeasureIndex).push(event);
       }
+      for (const [index, beats] of byVisit) byVisit.set(index, beatsByOnset(beats));
       clear();
       suppressed.clear();
       activeVisit = previousTick = waitPass = undefined;
@@ -63,10 +83,12 @@ export function createPdfBeatGuide(state, reader, liveColor) {
       attackByTick = new Map(events.map(event => [event.startTick, event]));
     }
     const waiting = state.mode === 'wait';
-    const event = waiting ? trainer?.currentEvent : playbackBeat(byVisit.get(visit?.playbackMeasureIndex), tick);
+    const beats = byVisit.get(visit?.playbackMeasureIndex);
+    const gate = trainer?.currentEvent;
+    const event = waiting ? beats?.get(gate?.startTick) ?? gate : playbackBeat(beats?.values(), tick);
     const number = visit && printedBoxForVisit(visit, mapping);
     const segment = event && visit && beatSegment(event, visit);
-    const attack = event && (waiting ? event : attackByTick.get(event.startTick));
+    const attack = event && (waiting ? gate : attackByTick.get(event.startTick));
     const feedback = state.ui.showNotationFeedback;
     if (!feedback) {
       clear();
@@ -106,7 +128,8 @@ export function createPdfBeatGuide(state, reader, liveColor) {
         const box = printedBoxForVisit(targetVisit, mapping);
         if (box == null || visitsByBox.get(box) !== targetVisit) continue;
         const color = completedBeatColor(record);
-        const geometry = color && beatSegment(target, targetVisit);
+        const beat = byVisit.get(target.playbackMeasureIndex)?.get(target.startTick) ?? target;
+        const geometry = color && beatSegment(beat, targetVisit);
         if (!geometry) continue;
         if (!results.has(box)) results.set(box, new Map());
         const marks = results.get(box);

@@ -2,6 +2,7 @@
 
 Guitar grading, PDF companions, MIDI import, Auto-sync and library recovery are implemented. The current milestone is normal practice with the released features. Physical Fishman response and personal take preferences are optional owner checks. Recording comparisons, browser recovery and fixture coverage can be tested by the project maintainer. The remaining timing ideas below are accuracy research.
 
+- [x] Use one shortest-duration strip per companion PDF chord, with one retained chord result.
 - [x] Add a timed beat guide to companion PDFs, with live and retained colors controlled by Staff feedback.
 - [x] Choose a bundled synth sound for a melodic track in Audio and restore the score's original instrument changes.
 - [x] Allow Fill gaps on a continuous performance with unmatched opening or closing measures, and identify the estimated ends in the editor.

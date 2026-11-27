@@ -1,5 +1,9 @@
 For the active checklist, see [Current status and to-do](TODO.md). Older entries record decisions, test evidence, and pending work as of their dates.
 
+## Mixed-duration companion PDF chords, November 27, 2026
+
+The active and historical strips use the shortest sounding beat at a shared onset. The next sounding onset takes over from any sustaining voice. The existing chord grade supplies one historical strip, with red for any error or miss. A regression covers Realtime and Wait, an overlapping rest, one retained red chord result, and the end of a sustained voice. The full Node suite and local Chrome companion PDF suite passed. At 100% zoom, the Arirang TAB capture showed the shorter opening strip in measure 11.
+
 ## Companion PDF beat guide, November 27, 2026
 
 The companion PDF projects alphaTab playback events onto the mapped printed visit. The active strip is 14 px high. Staff feedback controls its live colors and retained grading marks. Recognized printed first notes inset the strip, and auto-scroll reserves up to 80 px above the measure.

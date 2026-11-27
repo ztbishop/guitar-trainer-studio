@@ -85,3 +85,30 @@ test('PDF results remain on pause, refresh on mapped repeat, and clear on loop o
   sync(2,4900);
   assert.equal(rendered.size,0);
 });
+
+test('PDF uses one shortest segment per mixed-duration chord in Realtime and Wait', () => {
+  const visit = {measureNumber:1,playbackMeasureIndex:0,startTick:0,endTick:1920};
+  const long = {...chord, endTick:1920};
+  const short = {...chord, id:'upper', endTick:480};
+  const next = {...chord, id:'next',startTick:600,endTick:960};
+  const rest = {...chord,id:'rest',startTick:120,endTick:240,isRest:true};
+  const timeline = {measures:[visit],events:[long,short,rest,next]};
+  const graded = {eventId:long.id,completed:true,allHit:false,wrongCount:1};
+  for (const mode of ['realtime','wait']) {
+    const state = {mode,playbackTimeline:timeline,practiceTrackId:'0',expectedEvents:[long,next],ui:{showNotationFeedback:true}};
+    let active, marks;
+    const guide = createPdfBeatGuide(state, {updateBeatGuide(results, segment){active=segment;marks=results.get(1);}}, ()=> 'correct');
+    const trainer = {currentEvent:long,sessionStarted:true,history:[]};
+    guide.sync(trainer,visit,150,null,null,true);
+    assert.deepEqual(active,{number:1,start:0,end:.25,color:'correct'});
+    trainer.currentEvent = next;
+    trainer.history = [graded];
+    guide.sync(trainer,visit,600,null,null,true);
+    assert.deepEqual(active,{number:1,start:.3125,end:.5,color:'correct'});
+    assert.deepEqual([...marks.values()],[{start:0,end:.25,color:'wrong'}]);
+    if (mode === 'realtime') {
+      guide.sync(trainer,visit,1000,null,null,true);
+      assert.equal(active,null,'the sustained voice does not bring back the earlier beat');
+    }
+  }
+});
